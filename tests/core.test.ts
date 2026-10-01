@@ -83,6 +83,43 @@ describe("deterministic sampler and shared playhead", () => {
     expect(getFinalFrame(program).x).toBeCloseTo(450, 3);
   });
 
+  it.each(["walk", "run"] as const)("infers %s facing from either target without adding authoring fields", (action) => {
+    const left = compile({
+      ...base,
+      targets: { destination: { x: 20, y: 290 } },
+      actions: [{ action, startMs: 0, durationMs: 1000, target: "destination" }]
+    });
+    const right = compile({
+      ...base,
+      targets: { destination: { x: 450, y: 290 } },
+      actions: [{ action, startMs: 0, durationMs: 1000, target: "destination" }]
+    });
+    const leftTorso = sampleAnimation(left, 500).segments[0]!;
+    const rightTorso = sampleAnimation(right, 500).segments[0]!;
+    expect(leftTorso.x2).toBeLessThan(leftTorso.x1);
+    expect(rightTorso.x2).toBeGreaterThan(rightTorso.x1);
+    expect(validateAnimation({
+      ...base,
+      targets: { destination: { x: 20, y: 290 } },
+      facing: "left",
+      actions: [{ action, startMs: 0, durationMs: 1000, target: "destination" }]
+    }).diagnostics.map((item) => item.code)).toContain("unknown_field");
+  });
+
+  it("turns the rig toward a point target while the pointing hand stays bound in world space", () => {
+    const program = compile({
+      ...base,
+      targets: { attention: { x: 20, y: 120 } },
+      actions: [{ action: "point", startMs: 0, durationMs: 1000, target: "attention" }]
+    });
+    const frame = sampleAnimation(program, 500);
+    const torso = frame.segments[0]!;
+    const rearArm = frame.segments[1]!;
+    const pointingHand = frame.segments.find((segment) => segment.id === "right-forearm")!;
+    expect(rearArm.x2).toBeGreaterThan(torso.x2);
+    expect(pointingHand.x2).toBeLessThan(torso.x2);
+  });
+
   it.each(["run", "wave", "point", "jump"] as const)("settles %s continuously at action entry and exit", (action) => {
     const spec = {
       ...base,
@@ -146,6 +183,55 @@ describe("bound contact and render parity", () => {
     expect(unreachable.diagnostics.map((item) => item.code)).toContain("unreachable_contact");
     const unbound = validateAnimation({ ...pushed, actions: [{ action: "push", startMs: 0, durationMs: 1000, target: "other" }] });
     expect(unbound.diagnostics.map((item) => item.code)).toContain("unbound_prop");
+  });
+
+  it("keeps the prop still through approach, makes contact before travel, and releases after the push", () => {
+    const program = compile(pushed);
+    const start = 100;
+    const beforeContact = sampleAnimation(program, start + 50);
+    expect(beforeContact.prop!.x).toBeCloseTo(150, 5);
+    expect(beforeContact.x).toBeCloseTo(148, 5);
+    expect(beforeContact.segments[0]!.x2).toBeGreaterThan(beforeContact.segments[0]!.x1);
+
+    const contact = sampleAnimation(program, start + 150);
+    expect(contact.prop!.x).toBeCloseTo(150, 5);
+    const contactingHand = contact.segments.find((segment) => segment.id === "right-forearm")!;
+    expect(contactingHand.x2).toBeCloseTo(contact.prop!.handleX, 5);
+    expect(contactingHand.y2).toBeCloseTo(contact.prop!.handleY, 5);
+
+    const drive = sampleAnimation(program, start + 500);
+    expect(drive.prop!.x).toBeGreaterThan(150);
+    const drivingHand = drive.segments.find((segment) => segment.id === "right-forearm")!;
+    expect(drivingHand.x2).toBeCloseTo(drive.prop!.handleX, 5);
+    expect(drivingHand.y2).toBeCloseTo(drive.prop!.handleY, 5);
+
+    const release = sampleAnimation(program, start + 900);
+    expect(release.prop!.x).toBeCloseTo(250, 5);
+    const releasedHand = release.segments.find((segment) => segment.id === "right-forearm")!;
+    expect(Math.hypot(releasedHand.x2 - release.prop!.handleX, releasedHand.y2 - release.prop!.handleY)).toBeGreaterThan(0);
+  });
+
+  it("validates push reach from the preceding walk endpoint and keeps their boundary continuous", () => {
+    const walkToPush = {
+      ...base,
+      actor: { x: 20, groundY: 210, color: "#202124" },
+      durationMs: 2200,
+      targets: { approach: { x: 148, y: 210 } },
+      prop: { id: "crate", x: 150, y: 160, width: 50, height: 50, toX: 250, handle: { x: 5, y: 8 } },
+      actions: [
+        { action: "walk", startMs: 0, durationMs: 1000, target: "approach" },
+        { action: "push", startMs: 1000, durationMs: 1000, target: "crate" }
+      ]
+    } satisfies AnimationSpec;
+    const program = compile(walkToPush);
+    expectFramesNear(sampleAnimation(program, 999.99), sampleAnimation(program, 1000));
+    expect(sampleAnimation(program, 1000).action).toBe("push");
+
+    const walkingAway = validateAnimation({
+      ...walkToPush,
+      targets: { approach: { x: 50, y: 210 } }
+    });
+    expect(walkingAway.diagnostics.map((item) => item.code)).toContain("unreachable_contact");
   });
 
   it("exports identical SVG geometry and a self-contained HTML sampler", () => {

@@ -73,7 +73,9 @@ Documents use the strict, versioned `stickman.animation/v1` JSON Schema, availab
 | `jump@1.0.0` | Anticipation arc and landing | None |
 | `push@1.0.0` | Actor and visible prop translate rightward together in two-hand handle contact | Bound prop ID and local handle |
 
-Actions are ordered and non-overlapping, use one deterministic playhead, and return to a stable endpoint. Reduced and static modes sample the meaningful final state without travel or oscillation. Sampling the same program and time produces the same geometry.
+Actions are ordered and non-overlapping, use one deterministic playhead, and return to a stable endpoint. Walk, run, and point infer left/right facing from their existing target coordinates; no facing field is required. Turning blends into the action rather than mirroring the actor abruptly.
+
+Push remains rightward. If a walk precedes it, validation resolves push reach from the walk destination, not the animation's initial actor position. During push, the first 15% establishes two-hand contact while the prop stays still; the prop moves only during the contacted 15-85% drive phase; the final 15% holds the prop in place and releases the hands. Reduced and static modes preserve the meaningful final state. Sampling the same program and time produces the same geometry.
 
 ## Library, CLI, MCP
 

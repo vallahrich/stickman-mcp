@@ -117,6 +117,8 @@ export function validateAnimation(input: unknown): ValidationResult {
   else {
     let lastEnd = 0;
     let pushCount = 0;
+    let plannedActorX = isRecord(input.actor) && finiteNumber(input.actor.x) ? input.actor.x : width * 0.2;
+    let plannedGroundY = isRecord(input.actor) && finiteNumber(input.actor.groundY) ? input.actor.groundY : height * 0.8;
     const actions: unknown[] = input.actions;
     for (let i = 0; i < actions.length; i++) {
       const path = `$.actions[${i}]`;
@@ -141,18 +143,23 @@ export function validateAnimation(input: unknown): ValidationResult {
         if (typeof action.target !== "string" || !Object.hasOwn(targets, action.target)) {
           diagnostics.push({ path: `${path}.target`, code: "unbound_target", message: `${String(action.action)} requires a target ID declared under targets.` });
         }
+        if ((action.action === "walk" || action.action === "run") && typeof action.target === "string") {
+          const destination = targets[action.target];
+          if (isRecord(destination) && finiteNumber(destination.x) && finiteNumber(destination.y)) {
+            plannedActorX = destination.x;
+            plannedGroundY = destination.y;
+          }
+        }
       } else if (action.action === "push") {
         pushCount++;
         if (typeof action.target !== "string" || !isRecord(prop) || action.target !== prop.id) {
           diagnostics.push({ path: `${path}.target`, code: "unbound_prop", message: "push must target the ID of the visible prop in $.prop." });
         } else if (finiteNumber(prop.x) && finiteNumber(prop.y) && finiteNumber(prop.toX) && isRecord(prop.handle) && finiteNumber(prop.handle.x) && finiteNumber(prop.handle.y)) {
-          const startActorX = isRecord(input.actor) && finiteNumber(input.actor.x) ? input.actor.x : width * 0.2;
-          const groundY = isRecord(input.actor) && finiteNumber(input.actor.groundY) ? input.actor.groundY : height * 0.8;
           const handX = prop.x + prop.handle.x;
           const handY = prop.y + prop.handle.y;
-          const distance = Math.hypot(handX - startActorX, handY - (groundY - 92));
-          if (handX <= startActorX) diagnostics.push({ path: "$.prop.handle", code: "unsupported_push_facing", message: "Version 1 push is right-facing; place the actor to the left of the prop handle." });
-          if (distance > 52 || distance < 4) diagnostics.push({ path: "$.prop.handle", code: "unreachable_contact", message: `Prop handle is ${distance.toFixed(1)} units from the actor shoulder; two-hand reach must be 4-52 units. Move actor or prop to establish physical contact.` });
+          if (handX <= plannedActorX) diagnostics.push({ path: "$.prop.handle", code: "unsupported_push_facing", message: "Version 1 push is right-facing; the actor must approach from the left side of the prop handle." });
+          const approachDistance = Math.hypot(handX - plannedActorX, handY - (plannedGroundY - 92));
+          if (approachDistance > 52 || approachDistance < 4) diagnostics.push({ path: "$.prop.handle", code: "unreachable_contact", message: `Prop handle is ${approachDistance.toFixed(1)} units from the actor shoulder at push start; two-hand reach must be 4-52 units. Add or adjust a preceding walk target to establish contact.` });
         }
       } else if (action.target !== undefined) {
         diagnostics.push({ path: `${path}.target`, code: "unexpected_target", message: `${String(action.action)} does not accept a target.` });
@@ -182,10 +189,11 @@ export function sampleAnimation(program: CompiledAnimation, timeMs: number, mode
   const groundY = spec.actor?.groundY ?? height * 0.8;
   const smooth = (v: number): number => { const c = Math.max(0, Math.min(1, v)); return c * c * (3 - 2 * c); };
   const clamp01 = (v: number): number => Math.max(0, Math.min(1, v));
-  const active = mode === "normal" ? spec.actions.find((a) => t >= a.startMs && t <= a.startMs + a.durationMs) : undefined;
+  const active = mode === "normal" ? spec.actions.find((a) => t >= a.startMs && t < a.startMs + a.durationMs) : undefined;
   let action: AnimationAction | undefined = active;
   let rootX = actorX;
   let rootY = groundY;
+  let facing = 1;
   let walkPhase = 0;
   let walkMix = 0;
   let bodyLean = 0;
@@ -200,8 +208,13 @@ export function sampleAnimation(program: CompiledAnimation, timeMs: number, mode
   for (const item of spec.actions) {
     const progress = clamp01((t - item.startMs) / item.durationMs);
     if (item.action === "walk" || item.action === "run") {
+      const actionStartX = rootX;
       const target = spec.targets?.[item.target ?? ""];
       if (target) {
+        if (t >= item.startMs) {
+          const direction = target.x === actionStartX ? facing : Math.sign(target.x - actionStartX);
+          facing += (direction - facing) * smooth(progress / 0.16);
+        }
         rootX += (target.x - rootX) * smooth(progress);
         rootY += (target.y - rootY) * smooth(progress);
       }
@@ -212,12 +225,13 @@ export function sampleAnimation(program: CompiledAnimation, timeMs: number, mode
       }
     } else if (item.action === "push" && spec.prop) {
       const delta = spec.prop.toX - spec.prop.x;
-      const travel = smooth(Math.min(1, progress / 0.85));
+      if (t >= item.startMs) facing += (1 - facing) * smooth(progress / 0.18);
+      const travel = smooth((progress - 0.15) / 0.7);
       propX = spec.prop.x + delta * travel;
       rootX += delta * travel;
       if (active === item) {
-        pushMix = smooth(progress / 0.12) * (1 - smooth((progress - 0.85) / 0.15));
-        bodyLean = -0.14 * pushMix;
+        pushMix = smooth(progress / 0.15) * (1 - smooth((progress - 0.85) / 0.15));
+        bodyLean = 0.14 * pushMix;
       }
     } else if (item.action === "jump" && active === item) {
       jumping = Math.sin(Math.PI * progress) * 52;
@@ -229,25 +243,34 @@ export function sampleAnimation(program: CompiledAnimation, timeMs: number, mode
       armPoint = spec.targets?.[item.target ?? ""];
       pointMix = smooth(progress / 0.2) * (1 - smooth((progress - 0.8) / 0.2));
     }
+    if (item.action === "point" && t >= item.startMs) {
+      const target = spec.targets?.[item.target ?? ""];
+      if (target) {
+        const direction = target.x === rootX ? facing : Math.sign(target.x - rootX);
+        facing += (direction - facing) * smooth(progress / 0.2);
+      }
+    }
   }
   rootY -= jumping;
 
+  const poseX = (x: number): number => rootX + (x - rootX) * facing;
   const hip = { x: rootX, y: rootY - 48 };
-  const shoulder = { x: rootX + Math.sin(bodyLean) * 10, y: rootY - 92 };
-  const head = { x: shoulder.x + Math.sin(bodyLean) * 5, y: shoulder.y - 19 };
+  const localShoulderX = rootX + Math.sin(bodyLean) * 10;
+  const shoulder = { x: poseX(localShoulderX), y: rootY - 92 };
+  const head = { x: poseX(localShoulderX + Math.sin(bodyLean) * 5), y: shoulder.y - 19 };
   const legSwing = active && (active.action === "walk" || active.action === "run") ? Math.sin(walkPhase) * (active.action === "run" ? 0.75 : 0.48) * walkMix : 0;
-  const leftKnee = { x: rootX - 12 + Math.sin(legSwing) * 16, y: rootY - 25 };
-  const rightKnee = { x: rootX + 12 - Math.sin(legSwing) * 16, y: rootY - 25 };
-  const leftFoot = { x: rootX - 12 + Math.sin(legSwing) * 29, y: rootY - Math.max(0, Math.cos(walkPhase)) * (active?.action === "run" ? 12 : 3) * walkMix };
-  const rightFoot = { x: rootX + 12 - Math.sin(legSwing) * 29, y: rootY - Math.max(0, -Math.cos(walkPhase)) * (active?.action === "run" ? 12 : 3) * walkMix };
-  let leftElbow = { x: shoulder.x - 22, y: shoulder.y + 25 + bodyLean * 12 };
-  let rightElbow = { x: shoulder.x + 22, y: shoulder.y + 25 + bodyLean * 12 };
-  let leftHand = { x: shoulder.x - 30, y: shoulder.y + 52 };
-  let rightHand = { x: shoulder.x + 30, y: shoulder.y + 52 };
+  const leftKnee = { x: poseX(rootX - 12 + Math.sin(legSwing) * 16), y: rootY - 25 };
+  const rightKnee = { x: poseX(rootX + 12 - Math.sin(legSwing) * 16), y: rootY - 25 };
+  const leftFoot = { x: poseX(rootX - 12 + Math.sin(legSwing) * 29), y: rootY - Math.max(0, Math.cos(walkPhase)) * (active?.action === "run" ? 12 : 3) * walkMix };
+  const rightFoot = { x: poseX(rootX + 12 - Math.sin(legSwing) * 29), y: rootY - Math.max(0, -Math.cos(walkPhase)) * (active?.action === "run" ? 12 : 3) * walkMix };
+  let leftElbow = { x: poseX(localShoulderX - 22), y: shoulder.y + 25 + bodyLean * 12 };
+  let rightElbow = { x: poseX(localShoulderX + 22), y: shoulder.y + 25 + bodyLean * 12 };
+  let leftHand = { x: poseX(localShoulderX - 30), y: shoulder.y + 52 };
+  let rightHand = { x: poseX(localShoulderX + 30), y: shoulder.y + 52 };
 
   if (active?.action === "wave") {
-    const targetElbow = { x: shoulder.x + 22, y: shoulder.y - 4 };
-    const targetHand = { x: shoulder.x + 32 + armWave * 8, y: shoulder.y - 28 + armWave * 5 };
+    const targetElbow = { x: poseX(localShoulderX + 22), y: shoulder.y - 4 };
+    const targetHand = { x: poseX(localShoulderX + 32 + armWave * 8), y: shoulder.y - 28 + armWave * 5 };
     rightElbow = { x: rightElbow.x + (targetElbow.x - rightElbow.x) * waveMix, y: rightElbow.y + (targetElbow.y - rightElbow.y) * waveMix };
     rightHand = { x: rightHand.x + (targetHand.x - rightHand.x) * waveMix, y: rightHand.y + (targetHand.y - rightHand.y) * waveMix };
   } else if (active?.action === "point" && armPoint) {

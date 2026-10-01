@@ -22,8 +22,10 @@ in the README.
 
 ## Next stages
 
-1. **Choreography and motion:** broaden tested transitions, pacing, locomotion,
-   and facing; specify phase and contact semantics before adding verbs. Keep
+1. **Choreography and motion:** current v1 infers facing for walk, run, and
+   point from existing target coordinates and stages rightward push as approach,
+   contacted travel, and release. Broaden tested transitions, pacing, and
+   locomotion; specify phase and contact semantics before adding verbs. Keep
    normal, reduced, and static outcomes deterministic and meaningful.
 2. **Props and interactions:** add explicitly modeled grip points, prop
    geometry, routes, and release/contact validation. Add carry, pull, or other
