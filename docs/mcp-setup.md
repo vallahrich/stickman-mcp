@@ -153,6 +153,32 @@ is an optional additional diagnostic client. Review its version, Node
 requirements, and installation instructions before installing it; it is not a
 runtime dependency and this repository does not launch or install it for you.
 
+## Recorded end-to-end verification
+
+In addition to 28 passing automated tests, local verification covered:
+
+- Installed Copilot CLI `1.0.90-2` connected through an isolated ACP session and
+  ephemeral MCP configuration. The actual client negotiated initialization
+  with this server; no model prompt was sent and no persistent client settings
+  were changed. Actual tool calls are covered separately by the SDK tests.
+- Chromium loaded five self-contained scenes: wave, walk-and-wave, push,
+  left-turn/run/point/wave, and walk-to-push. Sampled DOM coordinates matched
+  canonical frames, seek and motion modes worked, and there were no script
+  runtime errors. Reduced-motion startup/resume and visible prop styling were
+  checked and corrected.
+- GIF and H.264 MP4 export each produced 72 readable frames at 640x360 over
+  2.4 seconds. Testing used a SHA-256-verified portable FFmpeg `9.0.2`
+  essentials build from [Gyan](https://www.gyan.dev/ffmpeg/builds/), downloaded
+  temporarily for session QA and removed afterward, not bundled or installed
+  globally. That build is
+  GPLv3-enabled; users must review their own encoder licensing and put their
+  approved FFmpeg installation on `PATH`.
+  The prop-push scene was also exported and fully decoded as GIF and MP4:
+  54 frames at 640x360 over 1.8 seconds.
+
+These are bounded smoke checks, not exhaustive motion/visual certification or
+verification of every VS Code/Copilot client version.
+
 ## Deliberate remaining limits
 
 There are no HTTP/OAuth transports, exposed resources/prompts, SDK-major
