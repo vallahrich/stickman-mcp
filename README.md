@@ -17,7 +17,21 @@ mirror. GitHub's Ed25519 host key is pinned in the workflow. Pushes are
 non-forcing: a divergent mirror ref causes the sync job to fail visibly rather
 than rewriting history. To check sync, inspect the `Mirror to vallahrich`
 Actions run and compare the matching branch/tag commit SHAs in both private
-repositories.
+repositories. **This corporate repository currently has GitHub-hosted Actions
+runners disabled by its Enterprise policy.** The workflow is committed but
+cannot execute until an administrator enables a runner. Until then, sync each
+version explicitly after pushing it to the corporate remote:
+
+```powershell
+git push origin --all
+git push origin --tags
+git push https://github.com/vallahrich/stickman-mcp.git --all
+git push https://github.com/vallahrich/stickman-mcp.git --tags
+```
+
+Authenticate each remote with its corresponding GitHub account. Do not force
+push; if the mirror rejects a ref as non-fast-forward, inspect and reconcile
+the divergence before retrying.
 
 ## Requirements and setup
 

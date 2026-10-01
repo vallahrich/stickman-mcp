@@ -14,7 +14,11 @@ repository. A push workflow mirrors matching branches and tags to the private
 [`vallahrich/stickman-mcp`](https://github.com/vallahrich/stickman-mcp)
 repository. Sync uses a mirror-scoped deploy key, pins GitHub's Ed25519 host
 key, and refuses non-fast-forward rewrites; failed syncs must be resolved
-before treating the mirror as current.
+before treating the mirror as current. GitHub-hosted Actions runners are
+currently disabled for the corporate repository by Enterprise policy, so the
+workflow cannot run there yet. Until an administrator enables runners, each
+version must be pushed to both remotes explicitly; see the mirror instructions
+in the README.
 
 ## Next stages
 
