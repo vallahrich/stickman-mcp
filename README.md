@@ -19,13 +19,18 @@ than rewriting history. To check sync, inspect the `Mirror to vallahrich`
 Actions run and compare the matching branch/tag commit SHAs in both private
 repositories. **This corporate repository currently has GitHub-hosted Actions
 runners disabled by its Enterprise policy.** The workflow is committed but
-cannot execute until an administrator enables a runner. Until then, sync each
-version explicitly after pushing it to the corporate remote:
+cannot execute until an administrator enables a runner. The canonical
+development checkout is configured with two `origin` push URLs, so normal
+branch/tag pushes from its linked worktrees push to both private repositories.
+That Git configuration is local and is not inherited by a fresh clone. Until
+an administrator enables Actions, configure dual push URLs for a fresh clone
+and authenticate its corporate HTTPS and `github-vallahrich` SSH remotes, or
+push each branch/tag to both remotes explicitly:
 
 ```powershell
-git push origin --all
+git push origin HEAD:refs/heads/<branch>
+git push https://github.com/vallahrich/stickman-mcp.git HEAD:refs/heads/<branch>
 git push origin --tags
-git push https://github.com/vallahrich/stickman-mcp.git --all
 git push https://github.com/vallahrich/stickman-mcp.git --tags
 ```
 
