@@ -6,6 +6,16 @@ local CLI and stdio MCP adapters, strict validation, and an explicitly bound
 rightward two-hand prop push. The roadmap is intent, not a promise or a claim
 of visual qualification.
 
+## Repository synchronization
+
+Development is canonical in the private
+[`t-vwallerich_microsoft/stickman-mcp`](https://github.com/t-vwallerich_microsoft/stickman-mcp)
+repository. A push workflow mirrors matching branches and tags to the private
+[`vallahrich/stickman-mcp`](https://github.com/vallahrich/stickman-mcp)
+repository. Sync uses a mirror-scoped deploy key, pins GitHub's Ed25519 host
+key, and refuses non-fast-forward rewrites; failed syncs must be resolved
+before treating the mirror as current.
+
 ## Next stages
 
 1. **Choreography and motion:** broaden tested transitions, pacing, locomotion,

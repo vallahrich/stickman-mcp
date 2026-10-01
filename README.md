@@ -2,6 +2,23 @@
 
 An original, deterministic 2D vector stick-figure animation engine for presentation-ready SVG/HTML and optional GIF/MP4 export. The local library, CLI, and stdio MCP server share the same strict contract, compiler, playhead sampler, and renderer. Animation instructions are validated data; the runtime does not execute authored code or call a video-generation service.
 
+## Canonical repository and mirror
+
+The canonical private repository is
+[`t-vwallerich_microsoft/stickman-mcp`](https://github.com/t-vwallerich_microsoft/stickman-mcp)
+(the linked corporate GitHub login is `t-vwallerich_microsoft`). Every branch
+and tag push triggers a GitHub Actions workflow that pushes those refs to the
+private [`vallahrich/stickman-mcp`](https://github.com/vallahrich/stickman-mcp)
+mirror. The mirror is a downstream copy, not a second source of truth.
+
+The workflow uses the corporate repository secret `VALLAHRICH_MIRROR_KEY`,
+which must be a write-enabled deploy key registered only on the vallahrich
+mirror. GitHub's Ed25519 host key is pinned in the workflow. Pushes are
+non-forcing: a divergent mirror ref causes the sync job to fail visibly rather
+than rewriting history. To check sync, inspect the `Mirror to vallahrich`
+Actions run and compare the matching branch/tag commit SHAs in both private
+repositories.
+
 ## Requirements and setup
 
 - Node.js 20 or newer
