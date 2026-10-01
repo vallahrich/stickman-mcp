@@ -22,6 +22,13 @@ in the README.
 
 ## Next stages
 
+Completed groundwork includes target-inferred v1 facing, staged rightward push,
+and push reach after preceding locomotion. The local stdio MCP adapter also
+enforces advertised argument schemas, supplies structured result/output schemas,
+distinguishes protocol and execution errors, and has actual client/transport
+regression coverage. See [MCP setup and verification](mcp-setup.md) for connection
+instructions and explicit limits; this is not certification of every MCP client.
+
 1. **Choreography and motion:** current v1 infers facing for walk, run, and
    point from existing target coordinates and stages rightward push as approach,
    contacted travel, and release. Broaden tested transitions, pacing, and
@@ -34,8 +41,11 @@ in the README.
    boundary, then support additional independently constructed geometric
    actors without coupling animation documents to renderer internals.
 4. **Library and integrations:** stabilize the public contract and SDK
-   ergonomics, document compatibility, and add client examples. Keep CLI and
-   MCP as thin adapters over the same compiler and runtime.
+   ergonomics and verify documented connections in the intended Copilot clients.
+   Evaluate long-export cancellation/progress and any SDK/protocol migration
+   separately against actual client support. Keep CLI and MCP as thin adapters
+   over the same compiler and runtime; HTTP/OAuth and resources/prompts require
+   an identified use case rather than being mandatory local-server features.
 5. **Quality promotion:** add visual regression fixtures and browser/playback
    review across actions, boundaries, replay, accessibility modes, and export
    targets. Publish explicit support/qualification evidence; compilation and

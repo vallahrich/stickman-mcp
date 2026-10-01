@@ -87,7 +87,9 @@ Start the stdio server with an output root selected at launch:
 node dist/mcp.js --root C:\Projects\MyPresentation\stickman-output
 ```
 
-The MCP tools are `stickman_discover`, `stickman_describe`, `stickman_schema`, `stickman_validate`, `stickman_compile`, `stickman_preview`, and `stickman_export`. The server does not edit client configuration or accept an output-root override from a tool request. Register it in an MCP client only after reviewing that client's configuration.
+The MCP tools are `stickman_discover`, `stickman_describe`, `stickman_schema`, `stickman_validate`, `stickman_compile`, `stickman_preview`, and `stickman_export`. Their advertised input schemas are enforced without type coercion. Results retain the existing JSON text and add schema-described structured output; unknown tools are protocol errors, while argument and execution failures are actionable tool errors. The server does not edit client configuration or accept an output-root override from a tool request.
+
+See [local MCP setup and verification](docs/mcp-setup.md) for reviewed Copilot CLI/VS Code connection examples, result/error contracts, safe export checks, and remaining compatibility limits. Register it in a client only after reviewing that client's configuration; the guide does not install or change settings automatically.
 
 ## Export and limitations
 
