@@ -1,0 +1,34 @@
+{
+  "version": "stickman.animation/v1",
+  "canvas": {
+    "width": 640,
+    "height": 360,
+    "fps": 30
+  },
+  "durationMs": 1800,
+  "actor": {
+    "x": 142,
+    "groundY": 290,
+    "color": "#202124"
+  },
+  "prop": {
+    "id": "crate",
+    "x": 145,
+    "y": 240,
+    "width": 54,
+    "height": 50,
+    "toX": 260,
+    "handle": {
+      "x": 5,
+      "y": 8
+    }
+  },
+  "actions": [
+    {
+      "action": "push",
+      "startMs": 200,
+      "durationMs": 1200,
+      "target": "crate"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+node_modules/
+dist/
+coverage/
+*.gif
+*.mp4
+.env

@@ -1,0 +1,21 @@
+{
+  "version": "stickman.animation/v1",
+  "canvas": {
+    "width": 640,
+    "height": 360,
+    "fps": 30
+  },
+  "durationMs": 2400,
+  "actor": {
+    "x": 140,
+    "groundY": 290,
+    "color": "#202124"
+  },
+  "actions": [
+    {
+      "action": "wave",
+      "startMs": 300,
+      "durationMs": 1600
+    }
+  ]
+}

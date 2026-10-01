@@ -1,0 +1,16 @@
+Stickman MCP source code and its geometric stick-figure model are original to
+this repository and are licensed under MIT; see LICENSE. No reference artwork,
+third-party character assets, or source files from TemplatePresentation are
+included.
+
+Runtime dependency:
+- @modelcontextprotocol/sdk 1.30.1, MIT; copyright and license remain with the
+  upstream Model Context Protocol TypeScript SDK project.
+
+Optional video renderer:
+- @resvg/resvg-js 2.6.2 and its platform binding packages, MPL-2.0; upstream
+  source and license: https://github.com/yisibl/resvg-js.
+- FFmpeg is an external system executable, not bundled here. Its applicable
+  license depends on the user's separately installed build and enabled codecs.
+
+Dependency copies, where installed, retain their upstream license files.

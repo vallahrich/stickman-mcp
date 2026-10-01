@@ -1,0 +1,32 @@
+{
+  "version": "stickman.animation/v1",
+  "canvas": {
+    "width": 640,
+    "height": 360,
+    "fps": 30
+  },
+  "durationMs": 3600,
+  "actor": {
+    "x": 100,
+    "groundY": 290
+  },
+  "targets": {
+    "presenter-mark": {
+      "x": 350,
+      "y": 290
+    }
+  },
+  "actions": [
+    {
+      "action": "walk",
+      "startMs": 0,
+      "durationMs": 1800,
+      "target": "presenter-mark"
+    },
+    {
+      "action": "wave",
+      "startMs": 1800,
+      "durationMs": 1200
+    }
+  ]
+}
