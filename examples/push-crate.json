@@ -5,9 +5,9 @@
     "height": 360,
     "fps": 30
   },
-  "durationMs": 1800,
+  "durationMs": 3400,
   "actor": {
-    "x": 142,
+    "x": 100,
     "groundY": 290,
     "color": "#202124"
   },
@@ -27,7 +27,7 @@
     {
       "action": "push",
       "startMs": 200,
-      "durationMs": 1200,
+      "durationMs": 3000,
       "target": "crate"
     }
   ]

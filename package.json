@@ -13,6 +13,14 @@
     "stickman-mcp": "./dist/mcp.js"
   },
   "exports": {
+    "./keyboard": {
+      "types": "./dist/keyboard.d.ts",
+      "import": "./dist/keyboard.js"
+    },
+    "./browser": {
+      "types": "./dist/browser.d.ts",
+      "import": "./dist/browser.js"
+    },
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
@@ -30,7 +38,8 @@
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "start": "node dist/cli.js",
-    "mcp": "node dist/mcp.js"
+    "mcp": "node dist/mcp.js",
+    "preview:deck": "npm run build && node scripts/preview-deck.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.25.2"

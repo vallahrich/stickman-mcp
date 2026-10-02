@@ -61,7 +61,7 @@ describe("deterministic sampler and shared playhead", () => {
     const program = compile({
       ...base,
       targets: { stop: { x: 450, y: 290 } },
-      actions: [{ action: "run", startMs: 200, durationMs: 1200, target: "stop" }]
+      actions: [{ action: "run", startMs: 200, durationMs: 1600, target: "stop" }]
     });
     expect(sampleAnimation(program, 670)).toEqual(sampleAnimation(program, 670));
     expect(sampleAnimation(program, 670).segments).toHaveLength(9);
@@ -70,14 +70,15 @@ describe("deterministic sampler and shared playhead", () => {
   it("has continuous action boundaries and stable travel final state", () => {
     const program = compile({
       ...base,
+      durationMs: 4600,
       targets: { stop: { x: 450, y: 290 } },
       actions: [
-        { action: "walk", startMs: 0, durationMs: 1000, target: "stop" },
-        { action: "wave", startMs: 1000, durationMs: 1000 }
+        { action: "walk", startMs: 0, durationMs: 2800, target: "stop" },
+        { action: "wave", startMs: 2800, durationMs: 1400 }
       ]
     });
-    const before = sampleAnimation(program, 999);
-    const boundary = sampleAnimation(program, 1000);
+    const before = sampleAnimation(program, 2799);
+    const boundary = sampleAnimation(program, 2800);
     expect(Math.abs(before.x - boundary.x)).toBeLessThan(0.01);
     expect(Math.abs(before.segments[0]!.x1 - boundary.segments[0]!.x1)).toBeLessThan(0.01);
     expect(getFinalFrame(program).x).toBeCloseTo(450, 3);
@@ -86,13 +87,15 @@ describe("deterministic sampler and shared playhead", () => {
   it.each(["walk", "run"] as const)("infers %s facing from either target without adding authoring fields", (action) => {
     const left = compile({
       ...base,
-      targets: { destination: { x: 20, y: 290 } },
-      actions: [{ action, startMs: 0, durationMs: 1000, target: "destination" }]
+      durationMs: 3200,
+      targets: { destination: { x: 60, y: 290 } },
+      actions: [{ action, startMs: 0, durationMs: action === "walk" ? 2800 : 1600, target: "destination" }]
     });
     const right = compile({
       ...base,
+      durationMs: 3200,
       targets: { destination: { x: 450, y: 290 } },
-      actions: [{ action, startMs: 0, durationMs: 1000, target: "destination" }]
+      actions: [{ action, startMs: 0, durationMs: action === "walk" ? 2800 : 1600, target: "destination" }]
     });
     const leftTorso = sampleAnimation(left, 500).segments[0]!;
     const rightTorso = sampleAnimation(right, 500).segments[0]!;
@@ -123,20 +126,20 @@ describe("deterministic sampler and shared playhead", () => {
   it.each(["run", "wave", "point", "jump"] as const)("settles %s continuously at action entry and exit", (action) => {
     const spec = {
       ...base,
-      durationMs: 1500,
-      targets: action === "run" || action === "point" ? { mark: { x: 500, y: 110 } } : undefined,
-      actions: [{ action, startMs: 200, durationMs: 800, ...(action === "run" || action === "point" ? { target: "mark" } : {}) }]
+      durationMs: 3000,
+      targets: action === "run" || action === "point" ? { mark: { x: 500, y: action === "run" ? 290 : 110 } } : undefined,
+      actions: [{ action, startMs: 200, durationMs: 2400, ...(action === "run" || action === "point" ? { target: "mark" } : {}) }]
     };
     const program = compile(spec);
     expectFramesNear(sampleAnimation(program, 199), sampleAnimation(program, 200));
-    expectFramesNear(sampleAnimation(program, 1000), sampleAnimation(program, 1001));
+    expectFramesNear(sampleAnimation(program, 2600), sampleAnimation(program, 2601));
   });
 
   it("supports pause, seek, reduced/static final pose, and cancellation without an extra ticker", () => {
     const program = compile({
       ...base,
       targets: { stop: { x: 420, y: 290 } },
-      actions: [{ action: "walk", startMs: 0, durationMs: 1200, target: "stop" }]
+      actions: [{ action: "walk", startMs: 0, durationMs: 2400, target: "stop" }]
     });
     const session = new PlaybackSession(program);
     session.play();
@@ -156,25 +159,25 @@ describe("deterministic sampler and shared playhead", () => {
 describe("bound contact and render parity", () => {
   const pushed = {
     ...base,
-    actor: { x: 148, groundY: 210, color: "#202124" },
-    durationMs: 1400,
+    actor: { x: 105, groundY: 210, color: "#202124" },
+    durationMs: 3000,
     prop: { id: "crate", x: 150, y: 160, width: 50, height: 50, toX: 250, handle: { x: 5, y: 8 } },
-    actions: [{ action: "push", startMs: 100, durationMs: 1000, target: "crate" }]
+    actions: [{ action: "push", startMs: 100, durationMs: 2600, target: "crate" }]
   };
 
   it("binds both hands to the visible prop handle throughout translation", () => {
     const program = compile(pushed);
     expectFramesNear(sampleAnimation(program, 99), sampleAnimation(program, 100));
-    for (const time of [350, 600, 850]) {
+    for (const time of [1000, 1500, 2000]) {
       const frame = sampleAnimation(program, time);
       const hand = frame.segments.find((segment) => segment.id === "right-forearm")!;
       expect(hand.x2).toBeCloseTo(frame.prop!.handleX, 5);
       expect(hand.y2).toBeCloseTo(frame.prop!.handleY, 5);
       const otherHand = frame.segments.find((segment) => segment.id === "left-forearm")!;
       expect(Math.hypot(otherHand.x2 - frame.prop!.handleX, otherHand.y2 - frame.prop!.handleY)).toBeLessThanOrEqual(3);
-      expect(frame.x).toBeCloseTo(148 + frame.prop!.x - 150, 5);
+      expect(frame.x).toBeCloseTo(105 + frame.prop!.x - 150, 5);
     }
-    expectFramesNear(sampleAnimation(program, 1100), sampleAnimation(program, 1101));
+    expectFramesNear(sampleAnimation(program, 2700), sampleAnimation(program, 2701));
     expect(getFinalFrame(program).prop!.x).toBeCloseTo(250, 5);
   });
 
@@ -188,24 +191,24 @@ describe("bound contact and render parity", () => {
   it("keeps the prop still through approach, makes contact before travel, and releases after the push", () => {
     const program = compile(pushed);
     const start = 100;
-    const beforeContact = sampleAnimation(program, start + 50);
+    const beforeContact = sampleAnimation(program, start + 260);
     expect(beforeContact.prop!.x).toBeCloseTo(150, 5);
-    expect(beforeContact.x).toBeCloseTo(148, 5);
+    expect(beforeContact.x).toBeCloseTo(105, 5);
     expect(beforeContact.segments[0]!.x2).toBeGreaterThan(beforeContact.segments[0]!.x1);
 
-    const contact = sampleAnimation(program, start + 150);
+    const contact = sampleAnimation(program, start + 520);
     expect(contact.prop!.x).toBeCloseTo(150, 5);
     const contactingHand = contact.segments.find((segment) => segment.id === "right-forearm")!;
     expect(contactingHand.x2).toBeCloseTo(contact.prop!.handleX, 5);
     expect(contactingHand.y2).toBeCloseTo(contact.prop!.handleY, 5);
 
-    const drive = sampleAnimation(program, start + 500);
+    const drive = sampleAnimation(program, start + 1300);
     expect(drive.prop!.x).toBeGreaterThan(150);
     const drivingHand = drive.segments.find((segment) => segment.id === "right-forearm")!;
     expect(drivingHand.x2).toBeCloseTo(drive.prop!.handleX, 5);
     expect(drivingHand.y2).toBeCloseTo(drive.prop!.handleY, 5);
 
-    const release = sampleAnimation(program, start + 900);
+    const release = sampleAnimation(program, start + 2340);
     expect(release.prop!.x).toBeCloseTo(250, 5);
     const releasedHand = release.segments.find((segment) => segment.id === "right-forearm")!;
     expect(Math.hypot(releasedHand.x2 - release.prop!.handleX, releasedHand.y2 - release.prop!.handleY)).toBeGreaterThan(0);
@@ -214,13 +217,13 @@ describe("bound contact and render parity", () => {
   it("validates push reach from the preceding walk endpoint and keeps their boundary continuous", () => {
     const walkToPush = {
       ...base,
-      actor: { x: 20, groundY: 210, color: "#202124" },
-      durationMs: 2200,
-      targets: { approach: { x: 148, y: 210 } },
+      actor: { x: 40, groundY: 210, color: "#202124" },
+      durationMs: 4000,
+      targets: { approach: { x: 105, y: 210 } },
       prop: { id: "crate", x: 150, y: 160, width: 50, height: 50, toX: 250, handle: { x: 5, y: 8 } },
       actions: [
         { action: "walk", startMs: 0, durationMs: 1000, target: "approach" },
-        { action: "push", startMs: 1000, durationMs: 1000, target: "crate" }
+        { action: "push", startMs: 1000, durationMs: 2600, target: "crate" }
       ]
     } satisfies AnimationSpec;
     const program = compile(walkToPush);

@@ -22,6 +22,13 @@ in the README.
 
 ## Next stages
 
+**Current priority: correct the rejected character and motion quality.**
+Follow [the scored development cycle](motion-quality-plan.md) before adding
+more verbs, actors or transports. The baseline is approximately 3/10 and
+requires a motion-authority pivot; every action and overall score must reach
+8/10 with hard kinematic/contact gates passing. A score below 5 triggers a
+framework/engine/stack checkpoint, not another round of cosmetic tuning.
+
 Completed groundwork includes target-inferred v1 facing, staged rightward push,
 and push reach after preceding locomotion. The local stdio MCP adapter also
 enforces advertised argument schemas, supplies structured result/output schemas,

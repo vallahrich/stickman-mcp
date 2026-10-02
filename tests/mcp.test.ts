@@ -56,13 +56,13 @@ function expectResult(response: ToolResponse, expected: unknown): void {
 const scene = {
   version: "stickman.animation/v1",
   canvas: { width: 640, height: 360, fps: 24 },
-  durationMs: 1800,
-  actor: { x: 20, groundY: 210 },
-  targets: { arrival: { x: 148, y: 210 } },
+  durationMs: 4000,
+  actor: { x: 40, groundY: 210 },
+  targets: { arrival: { x: 105, y: 210 } },
   prop: { id: "crate", x: 150, y: 160, width: 50, height: 50, toX: 250, handle: { x: 5, y: 8 } },
   actions: [
-    { action: "walk", startMs: 0, durationMs: 600, target: "arrival" },
-    { action: "push", startMs: 600, durationMs: 1000, target: "crate" }
+    { action: "walk", startMs: 0, durationMs: 1000, target: "arrival" },
+    { action: "push", startMs: 1000, durationMs: 2600, target: "crate" }
   ]
 } satisfies AnimationSpec;
 
@@ -116,11 +116,14 @@ describe("stdio MCP protocol", () => {
     expectResult(htmlResponse, htmlPayload);
     expect(htmlPayload.format).toBe("html");
     expect(htmlPayload.content.split("<script>")[0]).toBe(renderHtml(program).split("<script>")[0]);
+    const initialStage = /<div id="stage">([\s\S]+?)<\/div>/.exec(htmlPayload.content);
+    expect(initialStage).not.toBeNull();
+    expect(initialStage![1]).toBe(renderSvgFrame(program, 0));
     const embedded = /;const sample=([\s\S]+?);const svg=/.exec(htmlPayload.content);
     expect(embedded).not.toBeNull();
     const browserSample: unknown = runInNewContext(`(${embedded![1]})`);
     if (typeof browserSample !== "function") throw new Error("HTML preview must contain an executable sampler.");
-    for (const timeMs of [0, 600, 750, 1100, 1450, 1600, 1800]) {
+    for (const timeMs of [0, 1000, 1520, 2300, 3132, 3340, 3600, 4000]) {
       for (const mode of ["normal", "reduced", "static"] as const) {
         expect(browserSample(program, timeMs, mode)).toEqual(sampleAnimation(program, timeMs, mode));
       }

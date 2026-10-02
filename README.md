@@ -73,9 +73,9 @@ Documents use the strict, versioned `stickman.animation/v1` JSON Schema, availab
 | `jump@1.0.0` | Anticipation arc and landing | None |
 | `push@1.0.0` | Actor and visible prop translate rightward together in two-hand handle contact | Bound prop ID and local handle |
 
-Actions are ordered and non-overlapping, use one deterministic playhead, and return to a stable endpoint. Walk, run, and point infer left/right facing from their existing target coordinates; no facing field is required. Turning blends into the action rather than mirroring the actor abruptly.
+Actions are ordered and non-overlapping and use one deterministic playhead. Walk, run, and point infer left/right facing from their existing target coordinates; no facing field is required. The quality rebuild uses fixed-length skeletal poses and explicit world-space foot contacts, not a facing scale that flattens the rig during turns.
 
-Push remains rightward. If a walk precedes it, validation resolves push reach from the walk destination, not the animation's initial actor position. During push, the first 15% establishes two-hand contact while the prop stays still; the prop moves only during the contacted 15-85% drive phase; the final 15% holds the prop in place and releases the hands. Reduced and static modes preserve the meaningful final state. Sampling the same program and time produces the same geometry.
+Push remains rightward. Validation resolves reach from the actual preceding actor endpoint and rejects infeasible timing, grips, canvas fit, or body/prop overlap. Approach, supported drive and release are derived from feasible poses rather than guaranteed fixed 15/70/15 percentages. Reduced and static modes preserve the meaningful final state. Sampling the same program and time produces the same geometry. Locomotion uses one flat world floor: travel target Y must match that floor, and pushed crates must rest on it.
 
 ## Library, CLI, MCP
 
@@ -91,6 +91,13 @@ The MCP tools are `stickman_discover`, `stickman_describe`, `stickman_schema`, `
 
 See [local MCP setup and verification](docs/mcp-setup.md) for reviewed Copilot CLI/VS Code connection examples, result/error contracts, safe export checks, and remaining compatibility limits. Register it in a client only after reviewing that client's configuration; the guide does not install or change settings automatically.
 
+For a small stickman inside a website/animation deck, see the
+[browser overlay and deck-clock integration](docs/browser-integration.md).
+`npm run preview:deck` opens a localhost development bridge that compiles a
+run-to-DOM-anchor, jump, then point sequence through the actual stdio MCP server.
+The transparent overlay does not block deck controls. This is not a public HTTP
+MCP service or a claim that the visual quality cycle has passed.
+
 ## Export and limitations
 
 - SVG frame/animation and self-contained HTML preview need no renderer service or external assets.
@@ -99,6 +106,12 @@ See [local MCP setup and verification](docs/mcp-setup.md) for reviewed Copilot C
 - `PlaybackSession.advance(ms)` is caller-driven and has a single clock; the library starts no hidden ticker or background process.
 
 ## Roadmap
+
+The previous motion result was rejected on visual quality. Development now
+follows the [motion-quality rebuild plan](docs/motion-quality-plan.md): replace
+coordinate-based limb motion with a fixed-length, contact-aware skeleton, score
+each version and action, continue below 8/10, and re-evaluate the engine/framework
+below 5/10. Protocol tests and successful encoding are not visual approval.
 
 Future work should first broaden tested locomotion/facing and prop-contact profiles, then add additional interactions only when their target geometry and contact mechanics are modeled explicitly. Browser-level visual review and encoder compatibility checks are still required before describing output as presentation-qualified; build and unit tests alone are not visual certification.
 
