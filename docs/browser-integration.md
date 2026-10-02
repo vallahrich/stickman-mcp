@@ -131,12 +131,42 @@ the shared `createSvgPainter`; its poses still come from canonical compiled
 clips. The controller owns the supplied rendering port, so do not reuse a port
 after disposal.
 
-Current diagnostic limits are explicit: movement is generated in bounded
-walk/run segments, and release, reversal or jump waits for a grounded segment
-endpoint (up to 700 ms for walking / 500 ms for running). Jumping is in-place
-with no mid-air steering. Reduced motion disables keyboard clips without
-skipping the actor to a future endpoint. This is not yet responsive, seamless
-commercial-game locomotion; normal-size/miniature visual scoring remains open.
+The original finite-clip diagnostic scored 4.6/10 and was rejected: waiting
+up to 700/500 ms for clip endpoints is not responsive steering. The current
+iteration replaces that architecture with timestamped intent and explicit
+world-root/contact planning evaluated by the shared skeletal kernel. Its score
+remains open until actual browser review; recognize-the-key tests are not
+human-motion approval.
+
+## 2.5D room preview
+
+**2.5D room preview** mounts an original isometric stage with world X/Z floor
+coordinates, Y height, collision footprints and depth-ordered furniture/actor
+layers. The character remains a flat billboard-style drawing. WASD/arrows
+steer the room preview; the small figure-size selector defaults to 48px.
+
+The renderer's shadow stays on the floor. This is a bounded orthographic,
+box-and-paper-actor stage, not a general mesh engine or arbitrary transparent
+occlusion solution. The world planner uses the same FK/IK solver; moving a
+sprite independently of its ground contacts is not an acceptable implementation.
+
+Each grounded foot has its own projected floor Y, because world-depth movement
+is not a horizontal screen-space floor. Room support must be verified against
+those world anchors. The legacy authored v1 flat-floor contract is not silently
+reinterpreted as a 3D scene schema.
+
+This preview is an authoring/validation aid for presentation/video scenes;
+it does not claim that 2.5D room scenes already have a new MCP authoring/export
+contract or that the current room/controller candidate passed visual review.
+See [verified 2.5D research](2.5d-research.md) for precedents, evidence limits and
+the renderer-pivot criteria.
+
+The room/controller diagnostic is not included in the scripted animation score.
+Its faster-locomotion mode still needs separate flight/cadence and directional
+pose refinement before being described as human-natural running. Realtime
+response must also be viewed in an unthrottled environment. Those limits do not
+apply to the independently reviewed authored v1 run clips, which have genuine
+flight and are part of the scored movie/deck candidate.
 
 Actual Chromium checks covered focused movement/release, stable in-place jump
 and surface disposal. Unit checks cover held-key repeat, blur/visibility,

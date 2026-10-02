@@ -1,7 +1,7 @@
 import { runInNewContext } from "node:vm";
 import { describe, expect, it } from "vitest";
 import { compileAnimation, sampleAnimation } from "../src/compiler.js";
-import { renderAnimatedSvg, renderHtml, renderSvgFrame } from "../src/render.js";
+import { frameGeometry, renderAnimatedSvg, renderHtml, renderSvgFrame } from "../src/render.js";
 
 function preview(reduced: boolean) {
   const compiled = compileAnimation({
@@ -16,14 +16,15 @@ function preview(reduced: boolean) {
   const nodes = new Map<string, {
     value: string; textContent: string; attributes: Map<string, string | number>;
     listeners: Map<string, () => void>;
+    parentNode: { appendChild(): void };
     setAttribute(key: string, value: string | number): void;
     addEventListener(event: string, listener: () => void): void;
   }>();
-  for (const id of ["mode", "seek", "toggle", "head", "stage-svg", "ground", "pelvis", "neck", "left-foot", "right-foot", "left-hand", "right-hand", ...sampleAnimation(program, 0).segments.map(line => line.id)]) {
+  for (const id of ["mode", "seek", "toggle", "head", "eye", "stage-svg", "ground", "pelvis", "neck", "left-foot", "right-foot", "left-hand", "right-hand", "point-finger", ...sampleAnimation(program, 0).segments.map(line => line.id)]) {
     const attributes = new Map<string, string | number>();
     const listeners = new Map<string, () => void>();
     nodes.set(id, {
-      value: "", textContent: "Pause", attributes, listeners,
+      value: "", textContent: "Pause", attributes, listeners, parentNode: { appendChild() {} },
       setAttribute: (key, value) => { attributes.set(key, value); },
       addEventListener: (event, listener) => { listeners.set(event, listener); }
     });
@@ -67,6 +68,54 @@ describe("self-contained HTML startup controls", () => {
   });
 
   describe("rig-safe vector frame playback", () => {
+    it("makes the active pointing arm dominant even when it is the anatomical far arm", () => {
+      const compiled = compileAnimation({
+        version: "stickman.animation/v1", canvas: { width: 640, height: 400, fps: 30 },
+        actor: { x: 260, groundY: 310 }, durationMs: 2600,
+        targets: { mark: { x: 100, y: 150 } },
+        actions: [{ action: "point", startMs: 200, durationMs: 2000, target: "mark" }]
+      });
+      expect(compiled.valid).toBe(true);
+      const frame = sampleAnimation(compiled.program!, 1200);
+      const geometry = frameGeometry(frame);
+      expect(geometry.nearSide).toBe("left");
+      expect(geometry.frontArm).toBe("right");
+      expect(geometry.rearSegments).toContain("left-forearm");
+      expect(geometry.rearSegments).not.toContain("right-forearm");
+      expect(geometry.segmentOrder.at(-1)).toBe("right-forearm");
+      const svg = renderSvgFrame(compiled.program!, 1200);
+      expect(svg).toContain('id="point-finger"');
+      expect(svg).toContain('id="eye"');
+      expect(svg.indexOf('id="right-forearm"')).toBeGreaterThan(svg.indexOf('id="left-forearm"'));
+      expect(Math.hypot(geometry.eye.x - frame.head.x, geometry.eye.y - frame.head.y)
+        + geometry.eye.radius).toBeLessThan(geometry.headRadius);
+    });
+    it("keeps the leading silhouette readable when travel direction reverses", () => {
+      const make = (targetX: number) => compileAnimation({
+        version: "stickman.animation/v1",
+        canvas: { width: 640, height: 360, fps: 30 },
+        durationMs: 2400,
+        actor: { x: 320, groundY: 290 },
+        targets: { destination: { x: targetX, y: 290 } },
+        actions: [{ action: "run", startMs: 200, durationMs: 1600, target: "destination" }]
+      });
+      const left = make(150), right = make(500);
+      expect(left.valid).toBe(true);
+      expect(right.valid).toBe(true);
+      expect(frameGeometry(sampleAnimation(left.program!, 1000)).nearSide).toBe("left");
+      expect(frameGeometry(sampleAnimation(right.program!, 1000)).nearSide).toBe("right");
+      const leftSvg = renderSvgFrame(left.program!, 1000);
+      const rightSvg = renderSvgFrame(right.program!, 1000);
+      expect(leftSvg.indexOf('id="left-thigh"')).toBeGreaterThan(leftSvg.indexOf('id="right-thigh"'));
+      expect(rightSvg.indexOf('id="right-thigh"')).toBeGreaterThan(rightSvg.indexOf('id="left-thigh"'));
+      const animated = renderAnimatedSvg(left.program!);
+      expect(animated).toContain('<use data-slot="near-left-thigh"');
+      expect(animated).toContain('attributeName="visibility"');
+      expect(animated).not.toContain('attributeName="href"');
+      expect(animated.indexOf('data-layer="near"')).toBeGreaterThan(animated.indexOf('data-layer="far"'));
+      expect(animated.match(/<line id="/g)).toHaveLength(9);
+      expect(animated).not.toContain("<script");
+    });
     it("preserves solved poses instead of interpolating independent bone endpoints", () => {
       const compiled = compileAnimation({
         version: "stickman.animation/v1",

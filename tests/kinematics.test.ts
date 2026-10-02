@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { runInNewContext } from "node:vm";
-import { compileAnimation, sampleAnimation, validateAnimation } from "../src/compiler.js";
+import {
+  compileAnimation, evaluateMotionIntent, sampleAnimation, sampleMotionIntent, validateAnimation,
+  type MotionPoseIntent as MotionIntentState
+} from "../src/compiler.js";
 import type { AnimationSpec, CompiledAnimation, SampledFrame, Segment } from "../src/contract.js";
 
 const base: AnimationSpec = {
@@ -290,6 +293,230 @@ describe("validated structural narrowing", () => {
       expect(validation.diagnostics.map((item) => item.code)).not.toContain("invalid_structure");
       expect(compileAnimation(input).program).toBeUndefined();
     }
+  });
+
+  describe("shared controller intent authority", () => {
+    const restIntent = (): MotionIntentState => ({
+      rootX: 180, facing: 1, phase: 0, hipHeight: 70, action: "idle",
+      leftFoot: { x: 171, y: 290, pole: -1, contact: true },
+      rightFoot: { x: 189, y: 290, pole: -1, contact: true }
+    });
+
+    it("accepts independent projected support planes without moving or resizing the authored rig", () => {
+      const program = compile(base);
+      const before = JSON.stringify(program);
+      const state: MotionIntentState = {
+        ...restIntent(), groundY: 260,
+        leftFoot: { x: 171, y: 254, floorY: 254, pole: -1, contact: true },
+        rightFoot: { x: 189, y: 267, floorY: 267, pole: -1, contact: true }
+      };
+      const evaluated = evaluateMotionIntent(program, 1000, state);
+      expect(evaluated.frame.groundY).toBe(260);
+      expect(evaluated.contacts.left.contact).toBe(true);
+      expect(evaluated.contacts.right.contact).toBe(true);
+      expect(evaluated.contacts.left.floorY).toBe(254);
+      expect(evaluated.contacts.right.floorY).toBe(267);
+      expect(evaluated.contacts.left.y).toBeCloseTo(254, 8);
+      expect(evaluated.contacts.right.y).toBeCloseTo(267, 8);
+      for (const line of evaluated.frame.segments) {
+        const expected = line.id === "torso" ? 45 : line.id.includes("arm") ? 28 : 36;
+        expect(length(line)).toBeCloseTo(expected, 8);
+      }
+      expect(JSON.stringify(program)).toBe(before);
+      const isolated = runInNewContext(`(${sampleAnimation.toString()})`, {}) as typeof sampleAnimation;
+      expect(JSON.parse(JSON.stringify(isolated(program, 1000, "normal", state)))).toEqual(evaluated.frame);
+    });
+
+    it("keeps small-canvas bone and head scale tied to the program, not the projected root floor", () => {
+      const program = compile({
+        ...base, canvas: { width: 96, height: 80, fps: 30 }, actor: { x: 48, groundY: 65 },
+        actions: [{ action: "jump", startMs: 0, durationMs: 2800 }]
+      });
+      const authored = sampleAnimation(program, 0);
+      const scale = length(segment(authored, "torso")) / 45;
+      for (const groundY of [25, 50, 70]) {
+        const frame = sampleMotionIntent(program, 100, {
+          rootX: 48, groundY, facing: 1, phase: 0, hipHeight: 70 * scale,
+          leftFoot: { x: 48 - 9 * scale, y: groundY - 2 * scale, floorY: groundY - 2 * scale, pole: -1, contact: true },
+          rightFoot: { x: 48 + 9 * scale, y: groundY + 2 * scale, floorY: groundY + 2 * scale, pole: -1, contact: true }
+        });
+        for (const line of frame.segments) expect(length(line)).toBeCloseTo(length(segment(authored, line.id)), 8);
+        const shoulder = segment(frame, "torso");
+        expect(Math.hypot(frame.head.x - shoulder.x2, frame.head.y - shoulder.y2)).toBeCloseTo(16.5 * scale, 8);
+      }
+    });
+
+    it("holds each projected stance anchor through root depth travel and preserves legacy flat-floor guards", () => {
+      const program = compile(base);
+      for (const groundY of [275, 278, 281, 284, 287]) {
+        const evaluated = evaluateMotionIntent(program, groundY, {
+          ...restIntent(), groundY, hipHeight: 60,
+          leftFoot: { x: 171, y: 276, floorY: 276, pole: -1, contact: true },
+          rightFoot: { x: 189, y: 284, floorY: 284, pole: -1, contact: true }
+        });
+        expect(evaluated.contacts.left.y).toBeCloseTo(276, 8);
+        expect(evaluated.contacts.right.y).toBeCloseTo(284, 8);
+        expect(evaluated.contacts.left.x).toBeCloseTo(171, 8);
+        expect(evaluated.contacts.right.x).toBeCloseTo(189, 8);
+      }
+      expect(() => sampleMotionIntent(program, 0, {
+        ...restIntent(), rightFoot: { x: 189, y: 295, pole: -1, contact: true }
+      })).toThrow(/floor/);
+      const nonFlat = validateAnimation({
+        ...base, targets: { end: { x: 300, y: 295 } },
+        actions: [{ action: "walk", startMs: 0, durationMs: 2800, target: "end" }]
+      });
+      expect(nonFlat.diagnostics).toContainEqual(expect.objectContaining({ code: "non_flat_ground" }));
+    });
+
+    it("keeps an omitted foot floor at the authored plane, separately from the projected root floor", () => {
+      const program = compile(base);
+      const evaluated = evaluateMotionIntent(program, 10, {
+        ...restIntent(), groundY: 284, hipHeight: 60
+      });
+      expect(evaluated.frame.groundY).toBe(284);
+      expect(evaluated.contacts.left.contact).toBe(true);
+      expect(evaluated.contacts.right.contact).toBe(true);
+      expect(evaluated.contacts.left.y).toBeCloseTo(290, 8);
+      expect(evaluated.contacts.right.y).toBeCloseTo(290, 8);
+      expect(() => sampleMotionIntent(program, 10, {
+        ...restIntent(), groundY: 284,
+        rightFoot: { x: 189, y: 284, pole: -1, contact: true }
+      })).toThrow(/floor/);
+    });
+
+    it("rejects non-finite planes and wrong assigned-plane contact rather than relaxing contact tolerance", () => {
+      const program = compile(base);
+      expect(() => sampleMotionIntent(program, 0, { ...restIntent(), groundY: NaN })).toThrow(/finite/);
+      expect(() => sampleMotionIntent(program, 0, {
+        ...restIntent(), leftFoot: { ...restIntent().leftFoot, floorY: Infinity }
+      })).toThrow(/finite/);
+      for (const y of [287, 290]) {
+        expect(() => sampleMotionIntent(program, 0, {
+          ...restIntent(), rightFoot: { x: 189, y, floorY: 286, pole: -1, contact: true }
+        })).toThrow(/floor/);
+      }
+      expect(() => sampleMotionIntent(program, 0, {
+        ...restIntent(), rightFoot: { x: 189, y: 286, floorY: 290, pole: -1, contact: true }
+      })).toThrow(/floor/);
+    });
+
+    it("uses the canonical rig, preserves inputs and is not clamped to an authored clip duration", () => {
+      const program = compile(base);
+      const state = restIntent();
+      const input = JSON.stringify({ program, state });
+      expect(sampleMotionIntent(program, 0, state)).toEqual(sampleAnimation(program, 0));
+      const frame = sampleMotionIntent(program, 9000, state);
+      expect(frame.timeMs).toBe(9000);
+      expect(frame.segments).toEqual(sampleAnimation(program, 0).segments);
+      expect(JSON.stringify({ program, state })).toBe(input);
+    });
+
+    it("reconstructs canonical gait, turn, jump and pointing poses through the same FK/IK path", () => {
+      for (const spec of scenes()) {
+        const program = compile(spec);
+        for (const time of [200, 770, 1430, 2300]) {
+          const frame = sampleAnimation(program, time);
+          if (frame.action === "push") continue; // This controller API does not drive a prop.
+          const torso = segment(frame, "torso");
+          const lean = Math.atan2(torso.x2 - torso.x1, torso.y1 - torso.y2);
+          const arm = (side: string) => {
+            const upper = segment(frame, `${side}-upper-arm`);
+            const lower = segment(frame, `${side}-forearm`);
+            const a = Math.atan2(upper.x2 - upper.x1, upper.y2 - upper.y1);
+            const b = Math.atan2(lower.x2 - lower.x1, lower.y2 - lower.y1);
+            return { upper: a + lean, bend: Math.atan2(Math.sin(b - a), Math.cos(b - a)) };
+          };
+          const foot = (side: string) => {
+            const thigh = segment(frame, `${side}-thigh`);
+            const shin = segment(frame, `${side}-shin`);
+            const pole: -1 | 1 = (shin.x2 - thigh.x1) * (thigh.y2 - thigh.y1)
+              - (shin.y2 - thigh.y1) * (thigh.x2 - thigh.x1) >= 0 ? 1 : -1;
+            return { x: shin.x2, y: shin.y2, pole, contact: Math.abs(shin.y2 - frame.groundY) < 1e-7 };
+          };
+          const leftFoot = foot("left");
+          const rightFoot = foot("right");
+          const facing: -1 | 1 = spec.targets?.[spec.actions[0]!.target ?? ""]?.x !== undefined
+            && spec.targets[spec.actions[0]!.target!]!.x < frame.x ? -1 : 1;
+          const state: MotionIntentState = {
+            rootX: frame.x, facing, phase: 0, hipHeight: frame.groundY - torso.y1,
+            hipOffset: torso.x1 - frame.x, lean, action: frame.action,
+            pivot: leftFoot.contact && rightFoot.contact,
+            leftFoot, rightFoot, arms: { left: arm("left"), right: arm("right") }
+          };
+          const controlled = sampleMotionIntent(program, time, state);
+          for (let i = 0; i < 9; i++) {
+            for (const key of ["x1", "y1", "x2", "y2"] as const) expect(controlled.segments[i]![key]).toBeCloseTo(frame.segments[i]![key], 6);
+          }
+          expect(controlled.head.x).toBeCloseTo(frame.head.x, 6);
+          expect(controlled.head.y).toBeCloseTo(frame.head.y, 6);
+        }
+      }
+    });
+
+    it("evaluates recorded step contacts and an absolute phase clock without frame history or retiming old steps", () => {
+      const program = compile(base);
+      const state: MotionIntentState = {
+        ...restIntent(), action: "walk", phaseTimeMs: 0, cadence: 2, hipHeight: 65,
+        steps: [
+          { side: "left", liftMs: 100, placeMs: 500, fromX: 171, toX: 207, clearance: 11 },
+          { side: "right", liftMs: 600, placeMs: 1000, fromX: 189, toX: 225, clearance: 11 }
+        ]
+      };
+      const at = (time: number, plan = state) => evaluateMotionIntent(program, time, { ...plan, rootX: 180 + time * 0.03 });
+      const sampled = at(300);
+      expect(sampled.contacts.left.contact).toBe(false);
+      expect(sampled.contacts.left.y).toBeLessThan(280);
+      expect(sampled.contacts.right).toEqual({ x: 189, y: 290, pole: -1, contact: true });
+      expect(at(500).contacts.left).toEqual({ x: 207, y: 290, pole: -1, contact: true });
+      const future: MotionIntentState = {
+        ...state, steps: [...state.steps!, { side: "left", liftMs: 1200, placeMs: 1600, fromX: 207, toX: 243, clearance: 11 }]
+      };
+      for (const time of [1000, 0, 300, 500, 700, 100]) expect(at(time, future)).toEqual(at(time));
+      const isolated = runInNewContext(`(${sampleAnimation.toString()})`, {}) as typeof sampleAnimation;
+      expect(JSON.parse(JSON.stringify(isolated(program, 300, "normal", { ...state, rootX: 189 })))).toEqual(sampled.frame);
+    });
+
+    it("keeps world anchors exact during independent root/phase changes and supplies the canonical pointing IK", () => {
+      const program = compile(base);
+      const state: MotionIntentState = { ...restIntent(), action: "run", lean: 0.15, hipHeight: 64 };
+      for (let i = 0; i <= 40; i++) {
+        const evaluated = evaluateMotionIntent(program, i * 5, { ...state, rootX: 180 + i * 0.25, phase: i / 80 });
+        for (const side of ["left", "right"] as const) {
+          expect(evaluated.contacts[side].contact).toBe(true);
+          expect(evaluated.contacts[side].x).toBe(side === "left" ? 171 : 189);
+          expect(evaluated.contacts[side].y).toBe(290);
+        }
+        for (const line of evaluated.frame.segments) {
+          const expected = line.id === "torso" ? 45 : line.id.includes("arm") ? 28 : 36;
+          expect(length(line)).toBeCloseTo(expected, 8);
+        }
+      }
+      const pointed = sampleMotionIntent(program, 10000, {
+        ...restIntent(), action: "point", point: { x: 470, y: 120, weight: 1 }
+      });
+      const shoulder = segment(pointed, "right-upper-arm");
+      const wrist = segment(pointed, "right-forearm");
+      const dx = 470 - shoulder.x1;
+      const dy = 120 - shoulder.y1;
+      expect(Math.abs(dx * (wrist.y2 - shoulder.y1) - dy * (wrist.x2 - shoulder.x1))).toBeLessThan(1e-7);
+    });
+
+    it("throws explicit errors for invalid states, impossible anchors, floor contact and disconnected event histories", () => {
+      const program = compile(base);
+      for (const state of [undefined, null, "idle", {}, { ...restIntent(), phase: NaN },
+        { ...restIntent(), facing: 0 }, { ...restIntent(), lean: null },
+        { ...restIntent(), leftFoot: undefined }]) {
+        expect(() => Reflect.apply(sampleMotionIntent, undefined, [program, 0, state])).toThrow(TypeError);
+      }
+      expect(() => sampleMotionIntent(program, 0, { ...restIntent(), cadence: 2 })).toThrow(/phase clock/);
+      expect(() => sampleMotionIntent(program, 0, { ...restIntent(), leftFoot: { x: 700, y: 290, pole: -1, contact: true } })).toThrow(/unreachable/);
+      expect(() => sampleMotionIntent(program, 0, { ...restIntent(), leftFoot: { x: 171, y: 280, pole: -1, contact: true } })).toThrow(/world floor/);
+      expect(() => sampleMotionIntent(program, 0, {
+        ...restIntent(), steps: [{ side: "left", liftMs: 10, placeMs: 200, fromX: 170, toX: 210, clearance: 10 }]
+      })).toThrow(/anchor.*teleportation/);
+      expect(() => sampleAnimation(program, 0, "static", restIntent())).toThrow(/normal playback/);
+    });
   });
 
   it("compiles valid narrowed data into an independent clone without changing the public program shape", () => {

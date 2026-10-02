@@ -96,7 +96,14 @@ For a small stickman inside a website/animation deck, see the
 `npm run preview:deck` opens a localhost development bridge that compiles a
 run-to-DOM-anchor, jump, then point sequence through the actual stdio MCP server.
 The transparent overlay does not block deck controls. This is not a public HTTP
-MCP service or a claim that the visual quality cycle has passed.
+MCP service; the scripted quality result below does not qualify its interactive
+room/controller diagnostics.
+
+The preview now defaults to a smaller 48px figure and includes an original
+2.5D room staging diagnostic. The [2.5D research notes](docs/2.5d-research.md)
+separate verified engine patterns from unverified game internals. Presentation/
+video choreography remains primary; room/keyboard diagnostics are not a claim
+of seamless game control or completed room-scene MCP/video authoring.
 
 ## Export and limitations
 
@@ -113,7 +120,13 @@ coordinate-based limb motion with a fixed-length, contact-aware skeleton, score
 each version and action, continue below 8/10, and re-evaluate the engine/framework
 below 5/10. Protocol tests and successful encoding are not visual approval.
 
-Future work should first broaden tested locomotion/facing and prop-contact profiles, then add additional interactions only when their target geometry and contact mechanics are modeled explicitly. Browser-level visual review and encoder compatibility checks are still required before describing output as presentation-qualified; build and unit tests alone are not visual certification.
+The scripted V7 candidate subsequently received independent provisional
+scores of **8.27/10 normal and 8.155/10 at 48px**, with every reviewed
+action/chain at least 8.0. The requested run -> jump -> point sequence scored
+8.4/8.3. See the plan for evidence, uncertainty and the important distinction
+between this scored scripted scope and the experimental 2.5D room/controller.
+
+Future work should first broaden tested locomotion/facing and prop-contact profiles, then add additional interactions only when their target geometry and contact mechanics are modeled explicitly. The bounded scripted review and decoded movie checks are not cross-browser or universal encoder certification; build and unit tests alone are not visual approval.
 
 ## Rights and notices
 

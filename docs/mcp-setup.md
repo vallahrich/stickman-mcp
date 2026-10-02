@@ -179,6 +179,39 @@ In addition to 28 passing automated tests, local verification covered:
 These are bounded smoke checks, not exhaustive motion/visual certification or
 verification of every VS Code/Copilot client version.
 
+### Scripted motion-quality cycle result
+
+The later original-rig rebuild was independently reviewed across 19 scripted
+scenes at normal and native 48-pixel character size. V7's weighted provisional
+scores are **8.27 normal / 8.155 miniature**, with no reviewed action/chain below
+8.0. The run-to-arrival, jump, then point sequence scored **8.4 / 8.3**.
+This meets the requested version-above-8 target and the original minimum-8
+per-action gate; it does not mean every individual row is strictly above 8.
+
+Movie checks exported and fully decoded:
+
+| Scene | Formats | Dimensions | Frames | Duration |
+|---|---|---|---|---|
+| Run -> jump -> point | H.264 MP4 and GIF | 640x400 | 162 | 5.4 s |
+| Loaded push | H.264 MP4 | 640x400 | 183 | 6.1 s |
+| Supported reversal | H.264 MP4 | 640x400 | 192 | 6.4 s |
+
+Vector-only rasterization skips unnecessary per-frame system-font loading;
+a representative frame was byte-identical with/without that optimization.
+The temporary checksum-verified FFmpeg build remains a QA tool, not a bundled
+or global installation.
+
+The reviewer observed approximately 1-second RAF intervals in the tool-driven
+browser, even on a visible focused standalone page. The score is a bounded
+pose/choreography judgment (+/-0.3-0.4), not smooth-realtime or industry
+certification. Normal-speed viewing in the user's actual presentation/video
+environment remains recommended.
+
+The separate 2.5D room/controller preview is **not included** in this movie-quality
+score or a new room-scene MCP/video-authoring contract. See the
+[motion cycle and scope](motion-quality-plan.md) and
+[browser integration limits](browser-integration.md).
+
 ## Deliberate remaining limits
 
 There are no HTTP/OAuth transports, exposed resources/prompts, SDK-major

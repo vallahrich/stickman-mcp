@@ -26,6 +26,21 @@ export function frameGeometry(frame: SampledFrame) {
   if (!Number.isFinite(scale) || scale <= 0) throw new Error("Pose has an invalid torso length.");
   const headRadius = 11 * scale;
   const strokeWidth = 3.6 * scale;
+  const torsoDirection = torso.x2 - torso.x1;
+  const kneeDirection = (leftThigh.x2 + rightThigh.x2) / 2 - torso.x1;
+  const direction = Math.abs(torsoDirection) > 0.1 * scale ? torsoDirection : kneeDirection;
+  const nearSide = direction < 0 ? "left" : "right";
+  const farSide = nearSide === "left" ? "right" : "left";
+  const frontArm = frame.action === "point" ? "right" : nearSide;
+  const backArm = frontArm === "left" ? "right" : "left";
+  const rearSegments = [
+    `${farSide}-thigh`, `${farSide}-shin`, `${backArm}-upper-arm`, `${backArm}-forearm`
+  ];
+  const segmentOrder = [
+    ...rearSegments,
+    "torso",
+    `${nearSide}-thigh`, `${nearSide}-shin`, `${frontArm}-upper-arm`, `${frontArm}-forearm`
+  ];
   const format = (value: number): string => Number(value.toFixed(3)).toString();
   const path = (x1: number, y1: number, x2: number, y2: number): string =>
     `M${format(x1)} ${format(y1)}L${format(x2)} ${format(y2)}`;
@@ -42,39 +57,52 @@ export function frameGeometry(frame: SampledFrame) {
     return path(shin.x2 - dx, shin.y2 - dy, shin.x2 + dx, shin.y2 + dy);
   };
   return {
-    scale, headRadius, strokeWidth,
+    scale, headRadius, strokeWidth, nearSide, frontArm, rearSegments, segmentOrder,
+    eye: { x: frame.head.x + (nearSide === "left" ? -4.5 : 4.5) * scale, y: frame.head.y - scale, radius: 1.6 * scale },
     hands: [
-      { id: "left-hand", x: leftForearm.x2, y: leftForearm.y2, rear: true },
-      { id: "right-hand", x: rightForearm.x2, y: rightForearm.y2, rear: false }
+      { id: "left-hand", x: leftForearm.x2, y: leftForearm.y2, rear: frontArm !== "left" },
+      { id: "right-hand", x: rightForearm.x2, y: rightForearm.y2, rear: frontArm !== "right" }
     ],
-    handlePath: frame.prop ? path(frame.prop.handleX, frame.prop.handleY - 3 * scale, frame.prop.handleX, frame.prop.handleY + 6 * scale) : null,
+    handlePath: frame.prop ? path(frame.prop.handleX, frame.prop.handleY - 5 * scale, frame.prop.handleX, frame.prop.handleY + 5 * scale) : null,
     paths: [
       { id: "pelvis", d: path(leftThigh.x1, leftThigh.y1, rightThigh.x1, rightThigh.y1), rear: false },
       { id: "neck", d: path(torso.x2, torso.y2, torso.x2 + (frame.head.x - torso.x2) * neckFraction, torso.y2 + (frame.head.y - torso.y2) * neckFraction), rear: false },
-      { id: "left-foot", d: footPath(leftShin), rear: true },
-      { id: "right-foot", d: footPath(rightShin), rear: false }
+      { id: "left-foot", d: footPath(leftShin), rear: nearSide !== "left" },
+      { id: "right-foot", d: footPath(rightShin), rear: nearSide !== "right" },
+      {
+        id: "point-finger",
+        d: (() => {
+          const dx = rightForearm.x2 - torso.x2, dy = rightForearm.y2 - torso.y2;
+          const reach = Math.hypot(dx, dy);
+          if (!Number.isFinite(reach) || reach <= 0) throw new Error("Pointing pose has an invalid arm reach.");
+          const extension = frame.action === "point" ? 7 * scale : 0;
+          return path(rightForearm.x2, rightForearm.y2,
+            rightForearm.x2 + dx / reach * extension, rightForearm.y2 + dy / reach * extension);
+        })(),
+        rear: false, strokeWidth: 1.8 * scale
+      }
     ]
   };
 }
 
 function frameMarkup(frame: SampledFrame, color: string, width: number, height: number): string {
   const geometry = frameGeometry(frame);
-  const lines = frame.segments.map(line =>
-    `<line id="${xml(line.id)}" x1="${number(line.x1)}" y1="${number(line.y1)}" x2="${number(line.x2)}" y2="${number(line.y2)}"${line.id.startsWith("left-") ? ' stroke-opacity="0.55"' : ""}/>`
+  const lines = geometry.segmentOrder.map(id => frame.segments.find(line => line.id === id)!).map(line =>
+    `<line id="${xml(line.id)}" x1="${number(line.x1)}" y1="${number(line.y1)}" x2="${number(line.x2)}" y2="${number(line.y2)}"${geometry.rearSegments.includes(line.id) ? ' stroke-opacity="0.65"' : ""}/>`
   ).join("");
   const details = geometry.paths.map(item =>
-    `<path id="${item.id}" d="${item.d}"${item.rear ? ' stroke-opacity="0.55"' : ""}/>`
+    `<path id="${item.id}" d="${item.d}"${item.rear ? ' stroke-opacity="0.65"' : ""}${typeof item.strokeWidth === "number" ? ` stroke-width="${number(item.strokeWidth)}"` : ""}/>`
   ).join("");
   const prop = frame.prop
     ? `<g id="prop"><rect x="${number(frame.prop.x)}" y="${number(frame.prop.y)}" width="${number(frame.prop.width)}" height="${number(frame.prop.height)}" rx="3" fill="#fff" stroke="${xml(color)}" stroke-width="${number(geometry.strokeWidth)}"/><path id="handle" d="${geometry.handlePath}" fill="none" stroke="${xml(color)}" stroke-width="${number(1.4 * geometry.scale)}" stroke-linecap="round"/></g>`
     : "";
   const hands = geometry.hands.map(hand =>
-    `<circle id="${hand.id}" cx="${number(hand.x)}" cy="${number(hand.y)}" r="${number(2.1 * geometry.scale)}" fill="#fff" stroke="${xml(color)}" stroke-width="${number(geometry.scale)}"${hand.rear ? ' stroke-opacity="0.7"' : ""}/>`
+    `<circle id="${hand.id}" cx="${number(hand.x)}" cy="${number(hand.y)}" r="${number(3 * geometry.scale)}" fill="#fff" stroke="${xml(color)}" stroke-width="${number(geometry.scale)}"${hand.rear ? ' stroke-opacity="0.7"' : ""}/>`
   ).join("");
   return `<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Stick figure ${xml(frame.action)} at ${number(frame.timeMs)} milliseconds" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">
 <rect width="100%" height="100%" fill="#ffffff"/><path id="ground" d="M0 ${number(frame.groundY)}H${width}" stroke="#d8dbe0" stroke-width="1"/>
 <g fill="none" stroke="${xml(color)}" stroke-width="${number(geometry.strokeWidth)}" stroke-linecap="round" stroke-linejoin="round">${lines}${details}</g>
-<circle id="head" cx="${number(frame.head.x)}" cy="${number(frame.head.y)}" r="${number(geometry.headRadius)}" fill="#ffffff" stroke="${xml(color)}" stroke-width="${number(geometry.strokeWidth)}"/>${prop}${hands}
+<circle id="head" cx="${number(frame.head.x)}" cy="${number(frame.head.y)}" r="${number(geometry.headRadius)}" fill="#ffffff" stroke="${xml(color)}" stroke-width="${number(geometry.strokeWidth)}"/><circle id="eye" cx="${number(geometry.eye.x)}" cy="${number(geometry.eye.y)}" r="${number(geometry.eye.radius)}" fill="${xml(color)}"/>${prop}${hands}
 </svg>`;
 }
 
@@ -98,24 +126,38 @@ export function renderAnimatedSvg(program: CompiledAnimation): string {
   const first = samples[0]!;
   const firstShape = shapes[0]!;
   const color = program.spec.actor?.color ?? "#202124";
-  const lines = first.segments.map(line => {
+  const lines = firstShape.segmentOrder.map(id => first.segments.find(line => line.id === id)!).map(line => {
     const at = samples.map(frame => frame.segments.find(segment => segment.id === line.id)!);
-    return `<line id="${xml(line.id)}" x1="${number(line.x1)}" y1="${number(line.y1)}" x2="${number(line.x2)}" y2="${number(line.y2)}"${line.id.startsWith("left-") ? ' stroke-opacity="0.55"' : ""}>${animateAttribute("x1", at.map(s => s.x1), seconds, keys)}${animateAttribute("y1", at.map(s => s.y1), seconds, keys)}${animateAttribute("x2", at.map(s => s.x2), seconds, keys)}${animateAttribute("y2", at.map(s => s.y2), seconds, keys)}</line>`;
+    const opacity = shapes.map(shape => shape.rearSegments.includes(line.id) ? 0.65 : 1);
+    return `<line id="${xml(line.id)}" x1="${number(line.x1)}" y1="${number(line.y1)}" x2="${number(line.x2)}" y2="${number(line.y2)}" stroke-opacity="${opacity[0]}">${animateAttribute("x1", at.map(s => s.x1), seconds, keys)}${animateAttribute("y1", at.map(s => s.y1), seconds, keys)}${animateAttribute("x2", at.map(s => s.x2), seconds, keys)}${animateAttribute("y2", at.map(s => s.y2), seconds, keys)}${animateAttribute("stroke-opacity", opacity, seconds, keys)}</line>`;
   }).join("");
   const details = firstShape.paths.map((item, index) =>
-    `<path id="${item.id}" d="${item.d}"${item.rear ? ' stroke-opacity="0.55"' : ""}><animate attributeName="d" dur="${number(seconds)}s" values="${shapes.map(shape => shape.paths[index]!.d).join(";")}" keyTimes="${keys}" fill="freeze" calcMode="discrete"/></path>`
+    `<path id="${item.id}" d="${item.d}" stroke-opacity="${item.rear ? 0.65 : 1}"${typeof item.strokeWidth === "number" ? ` stroke-width="${number(item.strokeWidth)}"` : ""}><animate attributeName="d" dur="${number(seconds)}s" values="${shapes.map(shape => shape.paths[index]!.d).join(";")}" keyTimes="${keys}" fill="freeze" calcMode="discrete"/>${animateAttribute("stroke-opacity", shapes.map(shape => shape.paths[index]!.rear ? 0.65 : 1), seconds, keys)}</path>`
   ).join("");
+  const limbLayer = (near: boolean): string => {
+    const name = near ? "near" : "far";
+    const sides = ["left", "right"].flatMap(side => ["legs", "arms"].map(kind => {
+      const visibility = shapes.map(shape =>
+        ((kind === "legs" ? shape.nearSide : shape.frontArm) === side) === near ? "visible" : "hidden");
+      const references = (kind === "legs" ? ["thigh", "shin"] : ["upper-arm", "forearm"]).map(part =>
+        `<use data-slot="${name}-${side}-${part}" href="#${side}-${part}"/>`
+      ).join("");
+      return `<g data-side="${side}" data-kind="${kind}" visibility="${visibility[0]}"><animate attributeName="visibility" dur="${number(seconds)}s" values="${visibility.join(";")}" keyTimes="${keys}" fill="freeze" calcMode="discrete"/>${references}</g>`;
+    })).join("");
+    return `<g data-layer="${name}">${sides}</g>`;
+  };
   const head = `<circle id="head" cx="${number(first.head.x)}" cy="${number(first.head.y)}" r="${number(firstShape.headRadius)}" fill="#fff" stroke="${xml(color)}" stroke-width="${number(firstShape.strokeWidth)}">${animateAttribute("cx", samples.map(s => s.head.x), seconds, keys)}${animateAttribute("cy", samples.map(s => s.head.y), seconds, keys)}</circle>`;
+  const eye = `<circle id="eye" cx="${number(firstShape.eye.x)}" cy="${number(firstShape.eye.y)}" r="${number(firstShape.eye.radius)}" fill="${xml(color)}">${animateAttribute("cx", shapes.map(shape => shape.eye.x), seconds, keys)}${animateAttribute("cy", shapes.map(shape => shape.eye.y), seconds, keys)}</circle>`;
   const prop = first.prop
     ? `<g id="prop"><rect y="${number(first.prop.y)}" width="${number(first.prop.width)}" height="${number(first.prop.height)}" rx="3" fill="#fff" stroke="${xml(color)}" stroke-width="${number(firstShape.strokeWidth)}">${animateAttribute("x", samples.map(s => s.prop!.x), seconds, keys)}</rect><path id="handle" d="${firstShape.handlePath}" fill="none" stroke="${xml(color)}" stroke-width="${number(1.4 * firstShape.scale)}" stroke-linecap="round"><animate attributeName="d" dur="${number(seconds)}s" values="${shapes.map(shape => shape.handlePath).join(";")}" keyTimes="${keys}" fill="freeze" calcMode="discrete"/></path></g>`
     : "";
   const hands = firstShape.hands.map((hand, index) =>
-    `<circle id="${hand.id}" cx="${number(hand.x)}" cy="${number(hand.y)}" r="${number(2.1 * firstShape.scale)}" fill="#fff" stroke="${xml(color)}" stroke-width="${number(firstShape.scale)}"${hand.rear ? ' stroke-opacity="0.7"' : ""}>${animateAttribute("cx", shapes.map(shape => shape.hands[index]!.x), seconds, keys)}${animateAttribute("cy", shapes.map(shape => shape.hands[index]!.y), seconds, keys)}</circle>`
+    `<circle id="${hand.id}" cx="${number(hand.x)}" cy="${number(hand.y)}" r="${number(3 * firstShape.scale)}" fill="#fff" stroke="${xml(color)}" stroke-width="${number(firstShape.scale)}" stroke-opacity="${hand.rear ? 0.7 : 1}">${animateAttribute("cx", shapes.map(shape => shape.hands[index]!.x), seconds, keys)}${animateAttribute("cy", shapes.map(shape => shape.hands[index]!.y), seconds, keys)}${animateAttribute("stroke-opacity", shapes.map(shape => shape.hands[index]!.rear ? 0.7 : 1), seconds, keys)}</circle>`
   ).join("");
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${canvas.width} ${canvas.height}" width="${canvas.width}" height="${canvas.height}" role="img" aria-label="Deterministic stick figure animation">
 <rect width="100%" height="100%" fill="#fff"/><path id="ground" d="M0 ${number(first.groundY)}H${canvas.width}" stroke="#d8dbe0"/>
-<g fill="none" stroke="${xml(color)}" stroke-width="${number(firstShape.strokeWidth)}" stroke-linecap="round" stroke-linejoin="round">${lines}${details}</g>${head}${prop}${hands}</svg>`;
+<g fill="none" stroke="${xml(color)}" stroke-width="${number(firstShape.strokeWidth)}" stroke-linecap="round" stroke-linejoin="round"><defs>${lines}</defs>${limbLayer(false)}<use href="#torso"/>${limbLayer(true)}${details}</g>${head}${eye}${prop}${hands}</svg>`;
 }
 
 export function renderHtml(program: CompiledAnimation): string {
@@ -130,10 +172,12 @@ modeSelect.value=mode;let time=0;let playing=mode==="normal";let previous=0;let 
 toggle.textContent=playing?"Pause":"Play";
 function draw(){
 const frame=sample(program,time,mode),shape=geometry(frame);
-for(const segment of frame.segments){const el=document.getElementById(segment.id);if(!el)throw Error("Missing segment "+segment.id);for(const key of ["x1","y1","x2","y2"])el.setAttribute(key,segment[key]);}
-for(const detail of shape.paths)document.getElementById(detail.id).setAttribute("d",detail.d);
-for(const hand of shape.hands){const el=document.getElementById(hand.id);el.setAttribute("cx",hand.x);el.setAttribute("cy",hand.y);}
+for(const segment of frame.segments){const el=document.getElementById(segment.id);if(!el)throw Error("Missing segment "+segment.id);for(const key of ["x1","y1","x2","y2"])el.setAttribute(key,segment[key]);el.setAttribute("stroke-opacity",shape.rearSegments.includes(segment.id)?0.65:1);}
+for(const id of shape.segmentOrder){const el=document.getElementById(id);el.parentNode.appendChild(el);}
+for(const detail of shape.paths){const el=document.getElementById(detail.id);el.setAttribute("d",detail.d);el.setAttribute("stroke-opacity",detail.rear?0.65:1);}
+for(const hand of shape.hands){const el=document.getElementById(hand.id);el.setAttribute("cx",hand.x);el.setAttribute("cy",hand.y);el.setAttribute("stroke-opacity",hand.rear?0.7:1);}
 const head=document.getElementById("head");head.setAttribute("cx",frame.head.x);head.setAttribute("cy",frame.head.y);head.setAttribute("r",shape.headRadius);
+const eye=document.getElementById("eye");eye.setAttribute("cx",shape.eye.x);eye.setAttribute("cy",shape.eye.y);
 document.getElementById("ground").setAttribute("d","M0 "+frame.groundY+"H"+program.spec.canvas.width);
 svg.setAttribute("aria-label","Stick figure "+frame.action+" at "+frame.timeMs+" milliseconds");
 const prop=document.querySelector("#prop");if(frame.prop&&prop){prop.querySelector("rect").setAttribute("x",frame.prop.x);document.getElementById("handle").setAttribute("d",shape.handlePath);}

@@ -22,12 +22,22 @@ in the README.
 
 ## Next stages
 
-**Current priority: correct the rejected character and motion quality.**
-Follow [the scored development cycle](motion-quality-plan.md) before adding
-more verbs, actors or transports. The baseline is approximately 3/10 and
-requires a motion-authority pivot; every action and overall score must reach
-8/10 with hard kinematic/contact gates passing. A score below 5 triggers a
-framework/engine/stack checkpoint, not another round of cosmetic tuning.
+**Scripted motion milestone: provisionally accepted V7.**
+The [scored development cycle](motion-quality-plan.md) replaced the rejected
+approximately 3/10 coordinate-motion baseline with fixed-length FK/IK,
+world-space foot plants, run flight, supported turns and loaded push mechanics.
+Independent review scored V7 **8.27/10 normal and 8.155/10 at native 48px**;
+every reviewed action/chain reached at least 8.0, and run -> jump -> point
+scored 8.4/8.3. These are bounded judgments, not industry certification.
+
+The final local suite has 259 passing tests across 14 files, plus build and
+type checks. Representative MP4/GIF outputs were fully decoded. The tool-driven
+browser was RAF-throttled, so unthrottled realtime playback still needs viewing
+in the intended presentation environment. The original 2.5D room/controller is
+an **experimental preview**, outside the scripted score, without a new room-scene
+MCP authoring/export contract. Retain the quality gate for further milestones:
+weighted version scores above 8, no reviewed action/chain below 8, and an
+architecture checkpoint below 5 rather than cosmetic tuning.
 
 Completed groundwork includes target-inferred v1 facing, staged rightward push,
 and push reach after preceding locomotion. The local stdio MCP adapter also

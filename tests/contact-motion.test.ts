@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { compileAnimation, sampleAnimation, validateAnimation } from "../src/compiler.js";
-import type { AnimationSpec, CompiledAnimation, SampledFrame } from "../src/contract.js";
+import type { AnimationSpec, CompiledAnimation, SampledFrame, Segment } from "../src/contract.js";
 
 const scene: AnimationSpec = {
   version: "stickman.animation/v1",
@@ -22,8 +22,26 @@ const foot = (frame: SampledFrame, side: string) => frame.segments.find((line) =
 const grip = (frame: SampledFrame, side: string) => {
   const torso = frame.segments[0]!;
   const scale = Math.hypot(torso.x2 - torso.x1, torso.y2 - torso.y1) / 45;
-  return { x: frame.prop!.handleX, y: frame.prop!.handleY + (side === "left" ? 3 * scale : 0) };
+  return { x: frame.prop!.handleX, y: frame.prop!.handleY + (side === "left" ? 4 : -4) * scale };
 };
+function intersectsCrateStroke(line: Segment, frame: SampledFrame): boolean {
+  const prop = frame.prop!;
+  const margin = 2.5;
+  let lo = 0, hi = 1;
+  for (const [a, b, min, max] of [
+    [line.x1, line.x2, prop.x - margin, prop.x + prop.width + margin],
+    [line.y1, line.y2, prop.y - margin, prop.y + prop.height + margin]
+  ] as const) {
+    const delta = b - a;
+    if (Math.abs(delta) < 1e-9) { if (a < min || a > max) return false; }
+    else {
+      const t0 = (min - a) / delta, t1 = (max - a) / delta;
+      lo = Math.max(lo, Math.min(t0, t1)); hi = Math.min(hi, Math.max(t0, t1));
+      if (lo > hi) return false;
+    }
+  }
+  return true;
+}
 
 describe("supported prop contact", () => {
   it("supports the clean 55px stand-off demo with a real crouch/hinge and no grip stretching", () => {
@@ -71,8 +89,8 @@ describe("supported prop contact", () => {
     }
     expect(drift).toBeLessThanOrEqual(0.25);
     expect(steps).toBe(6);
-    // V3 reserves a 2.5-unit supported load stroke, not the old 1.2-unit brace.
-    expect(minimumHipHeight).toBeGreaterThanOrEqual(59.5);
+    // The current supported load stroke reserves seven units of compression.
+    expect(minimumHipHeight).toBeGreaterThanOrEqual(57);
     expect(largestTrailingReach).toBeGreaterThan(25);
     expect(sampleAnimation(program, 3600).x).toBe(345);
     expect(sampleAnimation(program, 3600).prop!.x).toBe(400);
@@ -130,10 +148,10 @@ describe("supported prop contact", () => {
         }
       }
       for (const line of frame.segments) {
-        // For this low-grip fixture the entire body and both legs must remain
-        // left of the crate, not merely be hidden by the drawing order.
+        // A stronger hinge may pass OVER the crate, but never through its
+        // stroke-expanded rectangle or hide penetration by drawing order.
         if (line.id === "torso" || line.id.includes("thigh") || line.id.includes("shin")) {
-          expect(Math.max(line.x1, line.x2)).toBeLessThan(frame.prop!.x - 2);
+          expect(intersectsCrateStroke(line, frame), `${time} ${line.id}`).toBe(false);
         }
         const previous = last.segments.find((old) => old.id === line.id)!;
         expect(Math.hypot(line.x2 - previous.x2, line.y2 - previous.y2)).toBeLessThan(1.5);
@@ -159,25 +177,45 @@ describe("supported prop contact", () => {
     expect(at.prop!.x).toBe(150);
     expect(at.segments[0]!.x2 - at.segments[0]!.x1).toBeGreaterThan(12);
     expect(at.segments[0]!.y1).toBeGreaterThan(290 - 68);
-    expect(hand(at, "right").x2).toBeGreaterThan(at.segments[0]!.x2 + 8);
+    const idleAtArrival = sampleAnimation(compile({
+      version: scene.version, canvas: scene.canvas, durationMs: scene.durationMs,
+      ...(scene.actor ? { actor: scene.actor } : {}), actions: []
+    }), 0);
+    const target = grip(at, "right");
+    const distance = (frame: SampledFrame) => Math.hypot(hand(frame, "right").x2 - target.x, hand(frame, "right").y2 - target.y);
+    expect(distance(at)).toBeLessThan(distance(idleAtArrival) - 4);
     for (let i = 0; i < at.segments.length; i++) {
       expect(Math.hypot(before.segments[i]!.x2 - at.segments[i]!.x2, before.segments[i]!.y2 - at.segments[i]!.y2)).toBeLessThan(0.01);
     }
     expect(sampleAnimation(program, 4700).x).toBe(195);
-    const away = validateAnimation({ ...spec, targets: { approach: { x: 65, y: 290 } } });
+    const extended = validateAnimation({ ...spec, targets: { approach: { x: 65, y: 290 } } });
+    expect(extended.valid).toBe(true);
+    const away = validateAnimation({ ...spec, targets: { approach: { x: 35, y: 290 } } });
     expect(away.diagnostics.map((item) => item.code)).toContain("unreachable_contact");
   });
 
-  it.each([18, 32, 48, 64, 76])("finds feasible posture for a grip at crate-local y=%i with unchanged root/timing", (height) => {
+  it.each([18, 32, 48, 64, 74])("finds feasible posture for a grip at crate-local y=%i with unchanged root/timing", (height) => {
     const program = compile({
       ...scene, prop: { ...scene.prop!, y: 180, height: 110, handle: { x: 0, y: height } }
     });
 
     for (const time of [1060, 1510, 2190]) {
       const frame = sampleAnimation(program, time);
+      const shoulder = frame.segments[0]!;
+      const near = grip(frame, "right");
+      const far = grip(frame, "left");
+      const nearReach = Math.hypot(near.x - shoulder.x2, near.y - shoulder.y2);
+      const farReach = Math.hypot(far.x - shoulder.x2, far.y - shoulder.y2);
+      expect(nearReach).toBeLessThanOrEqual(56);
+      expect(farReach).toBeLessThanOrEqual(56);
+      expect(Math.abs(nearReach - farReach)).toBeGreaterThan(0.1);
       for (const side of ["left", "right"]) {
         const assigned = grip(frame, side);
         expect(Math.hypot(hand(frame, side).x2 - assigned.x, hand(frame, side).y2 - assigned.y)).toBeLessThan(0.25);
+        for (const suffix of ["upper-arm", "forearm"]) {
+          const bone = frame.segments.find((line) => line.id === `${side}-${suffix}`)!;
+          expect(Math.hypot(bone.x2 - bone.x1, bone.y2 - bone.y1)).toBeCloseTo(28, 8);
+        }
       }
       expect(frame.x - frame.prop!.x).toBeCloseTo(-45, 8);
     }
@@ -191,6 +229,7 @@ describe("supported prop contact", () => {
     });
     expect(result.valid).toBe(false);
     expect(result.diagnostics).toContainEqual(expect.objectContaining({ code: "unreachable_contact", path: "$.prop.handle" }));
+    expect(result.diagnostics.find((item) => item.code === "unreachable_contact")!.message).toMatch(/near\/right grip error.*far\/left grip error/);
   });
 
   it("rejects inside-crate, excessively low and distant grips rather than stretching, relocating or retiming", () => {
@@ -199,7 +238,7 @@ describe("supported prop contact", () => {
     const lowSpec = { ...scene, prop: { ...scene.prop!, handle: { x: 0, y: 45 } } };
     const low = validateAnimation(lowSpec);
     expect(low.diagnostics.map((item) => item.code)).toContain("unreachable_contact");
-    const distant = validateAnimation({ ...scene, actor: { x: 65, groundY: 290 } });
+    const distant = validateAnimation({ ...scene, actor: { x: 35, groundY: 290 } });
     expect(distant.diagnostics.map((item) => item.code)).toContain("unreachable_contact");
     expect(low.valid).toBe(false);
     expect(compileAnimation(lowSpec).program).toBeUndefined();
@@ -262,12 +301,18 @@ describe("supported prop contact", () => {
     for (let i = times.length - 1; i >= 0; i--) expect(sampleAnimation(program, times[i]!)).toEqual(expected[i]);
   });
 
-  it("keeps the two assigned wrists 3 scaled units apart rather than relaxing a shared-contact error tolerance", () => {
+  it("keeps the handle at the center of two exact wrists 8 scaled units apart, not at either wrist", () => {
     const program = compile(scene);
     for (let time = 700; time <= 2560; time += 7) {
       const frame = sampleAnimation(program, time);
       expect(hand(frame, "left").x2).toBeCloseTo(hand(frame, "right").x2, 8);
-      expect(hand(frame, "left").y2 - hand(frame, "right").y2).toBeCloseTo(3, 8);
+      expect(hand(frame, "left").y2 - hand(frame, "right").y2).toBeCloseTo(8, 8);
+      expect(hand(frame, "left").y2 - frame.prop!.handleY).toBeCloseTo(4, 8);
+      expect(hand(frame, "right").y2 - frame.prop!.handleY).toBeCloseTo(-4, 8);
+      for (const side of ["left", "right"]) {
+        const wrongCenterError = Math.hypot(hand(frame, side).x2 - frame.prop!.handleX, hand(frame, side).y2 - frame.prop!.handleY);
+        expect(wrongCenterError).toBeGreaterThan(3.99);
+      }
     }
   });
 
@@ -308,7 +353,7 @@ describe("supported prop contact", () => {
     });
     for (let time = 400; time <= 1640; time += 11) {
       const frame = sampleAnimation(program, time);
-      const expectedSeparation = 3 * (65 - 4) / 145;
+      const expectedSeparation = 8 * (65 - 4) / 145;
       expect(hand(frame, "left").y2 - hand(frame, "right").y2).toBeCloseTo(expectedSeparation, 8);
       for (const side of ["left", "right"]) {
         const assigned = grip(frame, side);
@@ -317,11 +362,13 @@ describe("supported prop contact", () => {
     }
   });
 
-  it("diagnoses a grip region crossing the bottom of the prop", () => {
-    const result = validateAnimation({ ...scene, prop: { ...scene.prop!, handle: { x: 0, y: 49 } } });
-    expect(result.valid).toBe(false);
-    expect(result.diagnostics).toContainEqual(expect.objectContaining({
-      path: "$.prop.handle", code: "grip_region_outside_prop"
-    }));
+  it("diagnoses either edge of the two-grip region crossing the prop boundary", () => {
+    for (const y of [1, 49]) {
+      const result = validateAnimation({ ...scene, prop: { ...scene.prop!, handle: { x: 0, y } } });
+      expect(result.valid).toBe(false);
+      expect(result.diagnostics).toContainEqual(expect.objectContaining({
+        path: "$.prop.handle", code: "grip_region_outside_prop"
+      }));
+    }
   });
 });

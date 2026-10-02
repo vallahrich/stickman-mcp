@@ -89,7 +89,8 @@ async function writeVideo(program: CompiledAnimation, destination: string, forma
       const time = Math.min(program.spec.durationMs, index * 1000 / fps);
       const svg = renderSvgFrame(program, time);
       const file = resolve(framesDirectory, `frame${String(index).padStart(6, "0")}.png`);
-      const png = new rasterize(svg).render().asPng();
+      // v1 frames contain no text; loading the system font database per frame is unnecessary.
+      const png = new rasterize(svg, { font: { loadSystemFonts: false } }).render().asPng();
       await writeFile(file, png);
     }
     const sequence = resolve(framesDirectory, "frame%06d.png");

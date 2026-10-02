@@ -369,14 +369,15 @@ export interface MountedBrowserPlayer extends BrowserPlayer {
 const svgNamespace = "http://www.w3.org/2000/svg";
 
 /** Shared pose painter for scripted decks and focused controller diagnostics. */
-export function createSvgPainter(svg: SVGSVGElement, color = "#202124"): {
+export function createSvgPainter(svg: SVGSVGElement, color = "#202124", parent: SVGElement = svg): {
   draw(frame: SampledFrame): void;
   dispose(): void;
 } {
   if (!/^#[0-9a-fA-F]{6}$/.test(color)) throw new TypeError("SVG painter color must be a six-digit hex color.");
   const document = svg.ownerDocument;
   const layer = document.createElementNS(svgNamespace, "g");
-  svg.appendChild(layer);
+  if (parent.ownerDocument !== document) throw new Error("SVG painter parent must belong to the same document.");
+  parent.appendChild(layer);
   const node = <K extends keyof SVGElementTagNameMap>(tag: K, parent: SVGElement = layer): SVGElementTagNameMap[K] => {
     const child = document.createElementNS(svgNamespace, tag);
     parent.appendChild(child);
@@ -394,10 +395,12 @@ export function createSvgPainter(svg: SVGSVGElement, color = "#202124"): {
   const details = new Map<string, SVGPathElement>();
   const hands = new Map<string, SVGCircleElement>();
   const head = node("circle");
+  const eye = node("circle");
   const prop = node("g");
   const crate = node("rect", prop);
   const handle = node("path", prop);
   attr(head, { fill: "#fff", stroke: color });
+  attr(eye, { fill: color });
   attr(crate, { fill: "#fff", stroke: color, rx: 3 });
   attr(handle, { fill: "none", stroke: color, "stroke-linecap": "round" });
   let disposed = false;
@@ -409,14 +412,16 @@ export function createSvgPainter(svg: SVGSVGElement, color = "#202124"): {
       for (const segment of frame.segments) {
         let line = lines.get(segment.id);
         if (!line) { line = node("line", body); lines.set(segment.id, line); }
-        attr(line, { x1: segment.x1, y1: segment.y1, x2: segment.x2, y2: segment.y2, "stroke-opacity": segment.id.startsWith("left-") ? 0.55 : 1 });
+        attr(line, { x1: segment.x1, y1: segment.y1, x2: segment.x2, y2: segment.y2, "stroke-opacity": geometry.rearSegments.includes(segment.id) ? 0.65 : 1 });
       }
+      for (const id of geometry.segmentOrder) body.appendChild(lines.get(id)!);
       for (const detail of geometry.paths) {
         let path = details.get(detail.id);
         if (!path) { path = node("path", body); details.set(detail.id, path); }
-        attr(path, { d: detail.d, "stroke-opacity": detail.rear ? 0.55 : 1 });
+        attr(path, { d: detail.d, "stroke-opacity": detail.rear ? 0.65 : 1, "stroke-width": detail.strokeWidth ?? geometry.strokeWidth });
       }
       attr(head, { cx: frame.head.x, cy: frame.head.y, r: geometry.headRadius, "stroke-width": geometry.strokeWidth });
+      attr(eye, { cx: geometry.eye.x, cy: geometry.eye.y, r: geometry.eye.radius });
       prop.style.display = frame.prop ? "" : "none";
       if (frame.prop) {
         attr(crate, { x: frame.prop.x, y: frame.prop.y, width: frame.prop.width, height: frame.prop.height, "stroke-width": geometry.strokeWidth });
@@ -426,7 +431,7 @@ export function createSvgPainter(svg: SVGSVGElement, color = "#202124"): {
       for (const hand of geometry.hands) {
         let circle = hands.get(hand.id);
         if (!circle) { circle = node("circle"); hands.set(hand.id, circle); }
-        attr(circle, { cx: hand.x, cy: hand.y, r: 2.1 * geometry.scale, fill: "#fff", stroke: color, "stroke-width": geometry.scale, "stroke-opacity": hand.rear ? 0.7 : 1 });
+        attr(circle, { cx: hand.x, cy: hand.y, r: 3 * geometry.scale, fill: "#fff", stroke: color, "stroke-width": geometry.scale, "stroke-opacity": hand.rear ? 0.7 : 1 });
       }
     },
     dispose() { if (!disposed) { disposed = true; layer.remove(); } }

@@ -13,6 +13,10 @@
     "stickman-mcp": "./dist/mcp.js"
   },
   "exports": {
+    "./room": {
+      "types": "./dist/room.d.ts",
+      "import": "./dist/room.js"
+    },
     "./keyboard": {
       "types": "./dist/keyboard.d.ts",
       "import": "./dist/keyboard.js"

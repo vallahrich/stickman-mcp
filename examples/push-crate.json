@@ -5,7 +5,7 @@
     "height": 360,
     "fps": 30
   },
-  "durationMs": 3400,
+  "durationMs": 5400,
   "actor": {
     "x": 100,
     "groundY": 290,
@@ -27,7 +27,7 @@
     {
       "action": "push",
       "startMs": 200,
-      "durationMs": 3000,
+      "durationMs": 4800,
       "target": "crate"
     }
   ]

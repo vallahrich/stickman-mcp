@@ -170,11 +170,13 @@ describe("bound contact and render parity", () => {
     expectFramesNear(sampleAnimation(program, 99), sampleAnimation(program, 100));
     for (const time of [1000, 1500, 2000]) {
       const frame = sampleAnimation(program, time);
+      const torso = frame.segments[0]!;
+      const scale = Math.hypot(torso.x2 - torso.x1, torso.y2 - torso.y1) / 45;
       const hand = frame.segments.find((segment) => segment.id === "right-forearm")!;
       expect(hand.x2).toBeCloseTo(frame.prop!.handleX, 5);
-      expect(hand.y2).toBeCloseTo(frame.prop!.handleY, 5);
+      expect(hand.y2).toBeCloseTo(frame.prop!.handleY - 4 * scale, 5);
       const otherHand = frame.segments.find((segment) => segment.id === "left-forearm")!;
-      expect(Math.hypot(otherHand.x2 - frame.prop!.handleX, otherHand.y2 - frame.prop!.handleY)).toBeLessThanOrEqual(3);
+      expect(Math.hypot(otherHand.x2 - frame.prop!.handleX, otherHand.y2 - (frame.prop!.handleY + 4 * scale))).toBeLessThanOrEqual(0.25);
       expect(frame.x).toBeCloseTo(105 + frame.prop!.x - 150, 5);
     }
     expectFramesNear(sampleAnimation(program, 2700), sampleAnimation(program, 2701));
@@ -200,18 +202,18 @@ describe("bound contact and render parity", () => {
     expect(contact.prop!.x).toBeCloseTo(150, 5);
     const contactingHand = contact.segments.find((segment) => segment.id === "right-forearm")!;
     expect(contactingHand.x2).toBeCloseTo(contact.prop!.handleX, 5);
-    expect(contactingHand.y2).toBeCloseTo(contact.prop!.handleY, 5);
+    expect(contactingHand.y2).toBeCloseTo(contact.prop!.handleY - 4, 5);
 
     const drive = sampleAnimation(program, start + 1300);
     expect(drive.prop!.x).toBeGreaterThan(150);
     const drivingHand = drive.segments.find((segment) => segment.id === "right-forearm")!;
     expect(drivingHand.x2).toBeCloseTo(drive.prop!.handleX, 5);
-    expect(drivingHand.y2).toBeCloseTo(drive.prop!.handleY, 5);
+    expect(drivingHand.y2).toBeCloseTo(drive.prop!.handleY - 4, 5);
 
     const release = sampleAnimation(program, start + 2340);
     expect(release.prop!.x).toBeCloseTo(250, 5);
     const releasedHand = release.segments.find((segment) => segment.id === "right-forearm")!;
-    expect(Math.hypot(releasedHand.x2 - release.prop!.handleX, releasedHand.y2 - release.prop!.handleY)).toBeGreaterThan(0);
+    expect(Math.hypot(releasedHand.x2 - release.prop!.handleX, releasedHand.y2 - (release.prop!.handleY - 4))).toBeGreaterThan(0);
   });
 
   it("validates push reach from the preceding walk endpoint and keeps their boundary continuous", () => {

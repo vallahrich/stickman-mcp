@@ -87,9 +87,11 @@ button:focus-visible{outline:2px solid var(--cp-accent)}input{accent-color:var(-
 <label>Deck clock <input id="seek" type="range" min="0" max="0" step="1" value="0"></label>
 <button id="dispose" type="button">Dispose overlay</button>
 <button id="keyboard" type="button">Enable keyboard diagnostic</button>
+<button id="room" type="button">2.5D room preview</button>
+<label>Figure size <select id="figure-size"><option value="40">40px</option><option value="48" selected>48px</option><option value="64">64px</option></select></label>
 </nav>
 <div class="deck" id="deck" tabindex="0" aria-label="Animation deck preview">
-<div class="badge">DOM anchors · 64px character · transparent overlay</div>
+<div class="badge">DOM anchors · small character · transparent overlay</div>
 <div class="target" id="target"><strong>Point here</strong><div>This remains a normal interactive deck element.</div><button id="target-button" type="button">Test deck interaction</button></div>
 <div class="arrival" id="arrival"></div><div class="floor"></div>
 </div>
@@ -101,25 +103,28 @@ at safe clip endpoints; it is not yet seamless game locomotion.</p>
 <script type="module">
 import {createBrowserScene,measureHostViewport,viewportToScene,mapElementAnchor,projectTravelAnchor,mountBrowserAnimation,createSvgPainter} from "/modules/browser.js";
 import {createKeyboardController,bindFocusedKeyboard} from "/modules/keyboard.js";
+import {createIsometricRoom,mountRoomStage} from "/modules/room.js";
 const host=document.getElementById("deck"),status=document.getElementById("status"),seek=document.getElementById("seek");
 let player=null,request=null,previous=null,compileGeneration=0;
 let lastDocument=null;
 let keyboard=null;
+let restoreStage=()=>{};
+const figureHeight=()=>Number(document.getElementById("figure-size").value);
 function stop(){if(request!==null)cancelAnimationFrame(request);request=null;previous=null;player?.pause();}
-function dispose(){stop();keyboard?.dispose();keyboard=null;player?.dispose();player=null;seek.max="0";seek.value="0";}
+function dispose(){stop();keyboard?.dispose();keyboard=null;player?.dispose();player=null;restoreStage();restoreStage=()=>{};seek.max="0";seek.value="0";}
 function tick(now){request=null;if(!player?.snapshot().playing)return;const delta=previous===null?0:now-previous;previous=now;const state=player.seek(player.snapshot().timeMs+delta);seek.value=String(state.timeMs);if(state.playing)request=requestAnimationFrame(tick);}
 async function prepare(){
  const generation=++compileGeneration;dispose();
- const projection=createBrowserScene(measureHostViewport(host),64);
+ const projection=createBrowserScene(measureHostViewport(host),figureHeight());
  const ground=viewportToScene(projection,{x:projection.rect.left+100,y:projection.rect.top+host.clientHeight-68}).y;
  const start=viewportToScene(projection,{x:projection.rect.left+100,y:projection.rect.top+host.clientHeight-68});
  const arrival=projectTravelAnchor(mapElementAnchor(projection,document.getElementById("arrival")),ground,projection.canvas);
  const highlight=mapElementAnchor(projection,document.getElementById("target"));
  const minimumRun=Math.ceil(Math.ceil(Math.abs(arrival.x-start.x)/60)*1000/(5.5*.76))+600;
  const runMs=Math.max(2200,minimumRun);
- const animation={version:"stickman.animation/v1",canvas:{...projection.canvas,fps:30},durationMs:runMs+4400,
+ const animation={version:"stickman.animation/v1",canvas:{...projection.canvas,fps:30},durationMs:runMs+3500,
  actor:{x:start.x,groundY:ground,color:getComputedStyle(host).getPropertyValue("--cp-text").trim()},targets:{arrival,highlight},
- actions:[{action:"run",startMs:200,durationMs:runMs,target:"arrival"},{action:"jump",startMs:runMs+200,durationMs:1800},{action:"point",startMs:runMs+2000,durationMs:2000,target:"highlight"}]};
+ actions:[{action:"run",startMs:200,durationMs:runMs,target:"arrival"},{action:"jump",startMs:runMs+200,durationMs:1200},{action:"point",startMs:runMs+1400,durationMs:1800,target:"highlight"}]};
  status.textContent="Compiling through the actual local stdio MCP server…";
  const response=await fetch("/api/compile",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(animation)});
  const payload=await response.json();if(!response.ok||!payload.result?.program)throw Error(JSON.stringify(payload));
@@ -137,7 +142,7 @@ document.getElementById("dispose").onclick=()=>{++compileGeneration;dispose();st
 document.getElementById("keyboard").onclick=()=>{
  try{
  ++compileGeneration;dispose();
- const projection=createBrowserScene(measureHostViewport(host),64);
+ const projection=createBrowserScene(measureHostViewport(host),figureHeight());
  const initialX=viewportToScene(projection,{x:projection.rect.left+100,y:projection.rect.top+host.clientHeight-68}).x;
  const groundY=viewportToScene(projection,{x:projection.rect.left+100,y:projection.rect.top+host.clientHeight-68}).y;
  const pointTarget=mapElementAnchor(projection,document.getElementById("target"));
@@ -158,14 +163,48 @@ document.getElementById("keyboard").onclick=()=>{
  onLayoutChange:listener=>{const width=host.clientWidth,height=host.clientHeight;const observer=new ResizeObserver(()=>{if(host.clientWidth!==width||host.clientHeight!==height)listener();});observer.observe(host);window.addEventListener("scroll",listener,true);return()=>{observer.disconnect();window.removeEventListener("scroll",listener,true);};}
  };
  keyboard=createKeyboardController({canvas:projection.canvas,initialX,groundY,pointTarget,
- onState:state=>{status.textContent="Keyboard "+state.status+" · root "+state.currentRoot.x.toFixed(1)+" · release/turn/jump wait for a grounded clip endpoint"+(state.error?" · "+state.error:"");},
+ onState:state=>{status.textContent="Keyboard "+state.status+" · root "+state.currentRoot.x.toFixed(1)+(state.error?" · "+state.error:"");},
  onError:error=>console.error(error)},port,{now:()=>performance.now(),request:callback=>requestAnimationFrame(callback),cancel:id=>cancelAnimationFrame(id)});
  bindFocusedKeyboard(host,keyboard,{approved:true});
  host.focus();
  }catch(error){showError(error);}
 };
+ document.getElementById("room").onclick=()=>{
+  try{
+  ++compileGeneration;dispose();
+  const projection=createBrowserScene(measureHostViewport(host),figureHeight());
+  const roomScale=Math.min(1,(projection.canvas.width-160)/(1400*Math.sqrt(3)/2),(projection.canvas.height-200)/700);
+  if(roomScale<0.35)throw Error("Preview region is too small for this room/figure combination. Enlarge it or choose a smaller figure.");
+  const room=createIsometricRoom({width:900,depth:500,canvas:projection.canvas,padding:80,unitScale:roomScale,
+  objects:[{id:"table",x:400,z:240,width:180,depth:100,height:90}]});
+  const hidden=[...host.querySelectorAll(".target,.floor,.arrival,.badge")].map(element=>({element,display:element.style.display}));
+  for(const item of hidden)item.element.style.display="none";
+  restoreStage=()=>{for(const item of hidden)item.element.style.display=item.display;};
+  const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+  svg.setAttribute("viewBox","0 0 "+projection.canvas.width+" "+projection.canvas.height);
+  Object.assign(svg.style,{position:"absolute",left:"0",top:"0",width:host.clientWidth+"px",height:host.clientHeight+"px",pointerEvents:"none",background:"transparent"});
+  host.append(svg);
+  const stage=mountRoomStage(svg,room);
+  const painter=createSvgPainter(svg,getComputedStyle(host).getPropertyValue("--cp-text").trim(),stage.actorLayer);
+  const media=matchMedia("(prefers-reduced-motion: reduce)");
+  const port={
+  measure:()=>svg.getBoundingClientRect(),layoutCurrent:()=>svg.isConnected,
+  draw:frame=>painter.draw(frame),setVisible:visible=>{svg.style.visibility=visible?"visible":"hidden";},
+  dispose:()=>{painter.dispose();stage.dispose();svg.remove();},
+  reducedMotion:()=>media.matches,
+  onReducedMotion:listener=>{const callback=event=>listener(event.matches);media.addEventListener("change",callback);return()=>media.removeEventListener("change",callback);},
+  onLayoutChange:listener=>{const width=host.clientWidth,height=host.clientHeight;const observer=new ResizeObserver(()=>{if(host.clientWidth!==width||host.clientHeight!==height)listener();});observer.observe(host);window.addEventListener("scroll",listener,true);return()=>{observer.disconnect();window.removeEventListener("scroll",listener,true);};}
+  };
+  const world={width:room.width,depth:room.depth,initial:{x:180,z:420},pointTarget:{x:490,z:290,height:90},projectWorld:room.project,canOccupy:room.canOccupy,actorRadius:12/roomScale};
+  keyboard=createKeyboardController({canvas:projection.canvas,world,
+  onState:state=>{if(!["disposed","invalid","error"].includes(state.status))stage.orderActor(state.worldRoot,state.worldHeight);status.textContent="2.5D prototype "+state.status+" · X "+state.worldRoot.x.toFixed(1)+" / Z "+state.worldRoot.z.toFixed(1)+" · focus room; WASD/arrows, Shift, Space, P"+(state.error?" · "+state.error:"");},
+  onError:error=>console.error(error)},port,{now:()=>performance.now(),request:callback=>requestAnimationFrame(callback),cancel:id=>cancelAnimationFrame(id)});
+  bindFocusedKeyboard(host,keyboard,{approved:true});host.focus();
+  }catch(error){dispose();showError(error);}
+ };
 let interactions=0;document.getElementById("target-button").onclick=()=>{status.textContent="Deck target clicked "+(++interactions)+" times; overlay did not intercept input.";};
 window.addEventListener("pagehide",dispose);
+document.getElementById("figure-size").onchange=()=>{++compileGeneration;dispose();status.textContent="Figure size changed. Compile/mount or enable the keyboard diagnostic again.";};
 window.stickmanDemo={prepare,dispose,snapshot:()=>player?.snapshot()??null,keyboard:()=>keyboard?.snapshot()??null,document:()=>lastDocument,mapTarget:()=>player?.mapElement(document.getElementById("target"))};
 </script>
 </html>

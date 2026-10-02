@@ -5,7 +5,7 @@
     "height": 360,
     "fps": 30
   },
-  "durationMs": 4800,
+  "durationMs": 6400,
   "actor": {
     "x": 100,
     "groundY": 290
@@ -20,12 +20,12 @@
     {
       "action": "walk",
       "startMs": 0,
-      "durationMs": 2800,
+      "durationMs": 4400,
       "target": "presenter-mark"
     },
     {
       "action": "wave",
-      "startMs": 2800,
+      "startMs": 4400,
       "durationMs": 1600
     }
   ]

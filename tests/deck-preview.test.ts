@@ -24,6 +24,8 @@ it("compiles the deck scene through real stdio MCP and confines the local previe
     expect(await page.text()).toContain("Compile with MCP and mount");
     expect((await fetch(`${url}modules/browser.js`)).status).toBe(200);
     expect((await fetch(`${url}modules/keyboard.js`)).status).toBe(200);
+    expect((await fetch(`${url}modules/room.js`)).status).toBe(200);
+    expect((await fetch(`${url}modules/world-motion.js`)).status).toBe(200);
     expect((await fetch(`${url}modules/mcp.js`)).status).toBe(404);
     expect((await fetch(`${url}api/compile`, {
       method: "POST", headers: { Origin: "https://untrusted.example", "Content-Type": "application/json" }, body: "{}"

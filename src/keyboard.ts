@@ -1,33 +1,71 @@
 import {
-  createBrowserPlayer, createSceneProjection,
-  type BrowserClock, type BrowserPlayer, type BrowserPlayerPort
+  createSceneProjection, type BrowserClock, type BrowserPlayerPort
 } from "./browser.js";
-import { compileAnimation } from "./compiler.js";
-import { CONTRACT_VERSION, type AnimationSpec, type CompiledAnimation, type Point2D } from "./contract.js";
+import { type CompiledAnimation, type Point2D, type SampledFrame } from "./contract.js";
+import {
+  advanceMotionIntent, createMotionIntentState,
+  type MotionIntentState, type MotionIntentSample, type WorldPoint, type WorldRoom, type WorldMotionScene
+} from "./world-motion.js";
 
-export type KeyboardCommand = "left" | "right" | "run" | "jump" | "point";
-export type KeyboardStatus = "idle" | "moving" | "jumping" | "pointing" | "blocked" | "reduced" | "invalid" | "error" | "disposed";
+export type KeyboardCommand = "left" | "right" | "forward" | "backward" | "run" | "jump" | "point";
+export type KeyboardMotionStatus = "idle" | "moving" | "jumping" | "pointing" | "blocked";
+export type KeyboardStatus = KeyboardMotionStatus | "reduced" | "invalid" | "error" | "disposed";
 
-export interface KeyboardState {
+export interface KeyboardIntent {
+  readonly horizontal: -1 | 0 | 1;
+  readonly depth: -1 | 0 | 1;
+  readonly run: boolean;
+  readonly jumpRequest: number;
+  readonly pointRequest: number;
+  readonly stop: boolean;
+}
+
+/** Timestamped intent observations, not a promise of partition-independent replay. */
+export interface KeyboardIntentRecord {
+  readonly timeMs: number;
+  readonly intent: KeyboardIntent;
+}
+
+export interface KeyboardState extends KeyboardIntentRecord {
   readonly status: KeyboardStatus;
-  /** Canonical sampled world root, never a separately integrated position. */
+  /** Core status remains observable while reduced motion safely brakes/lands. */
+  readonly motionStatus: KeyboardMotionStatus;
+  /** Canonical frame root and world floor; not the actor's airborne hip position. */
   readonly currentRoot: Readonly<Point2D>;
-  readonly deferredJump: boolean;
+  readonly worldRoot: Readonly<WorldPoint>;
+  readonly worldHeight: number;
   readonly direction: -1 | 0 | 1;
+  readonly depthDirection: -1 | 0 | 1;
   readonly running: boolean;
   readonly error: string | null;
 }
 
+export interface KeyboardMotionObservation extends KeyboardIntentRecord {
+  readonly status: KeyboardMotionStatus;
+  readonly frame: SampledFrame;
+  readonly worldRoot: Readonly<WorldPoint>;
+  readonly worldHeight: number;
+  readonly contacts: MotionIntentSample["contacts"];
+}
+
 export interface KeyboardControllerOptions {
-  /** Virtual units, not CSS pixels. Use the browser scene mapper for CSS anchors. */
+  /** Virtual units, not CSS pixels. Map the entire browser scene and its anchors. */
   canvas: { width: number; height: number };
-  initialX: number;
-  groundY: number;
-  /** Required explicit world-space anchor for P. */
-  pointTarget: Point2D;
+  /** Legacy flat scene; required unless world is supplied. */
+  initialX?: number;
+  groundY?: number;
+  pointTarget?: Point2D;
+  /** Fixed orthographic room callbacks, supplied by the trusted local host. */
+  world?: WorldRoom;
+  program?: CompiledAnimation;
   onState?: (state: KeyboardState) => void;
   onError?: (error: Error) => void;
-  /** Receives canonical data for diagnostics, not executable authored code. */
+  onIntent?: (record: KeyboardIntentRecord) => void;
+  onMotion?: (observation: KeyboardMotionObservation) => void;
+  /**
+   * @deprecated Called ONLY once with the canonical authored baseline, if supplied.
+   * Interactive intent is not a sequence of finite v1 programs. Use onMotion.
+   */
   onProgram?: (program: CompiledAnimation) => void;
 }
 
@@ -35,276 +73,267 @@ export interface KeyboardController {
   snapshot(): KeyboardState;
   press(command: KeyboardCommand): void;
   release(command: KeyboardCommand): void;
-  /** Clears intent; the active finite clip finishes at its safe grounded endpoint. */
+  /** Immediately clears intent; canonical core brakes/lands without pose freezing. */
   stop(): void;
-  /** Terminal: hide stale coordinates; remap the scene and create a new controller. */
+  /** Terminal: stale scene coordinates are hidden, never resized in place. */
   invalidateLayout(reason?: string): void;
-  /** Immediate teardown (unlike stop); releases RAF, player, port and subscriptions. */
   dispose(): void;
-  /** Bindings use this to restore listeners/tabindex on controller teardown. */
   onDispose(listener: () => void): () => void;
 }
 
 /**
- * Bounded keyboard testbed using the SAME canonical compiler and sampler.
+ * Responsive local intent adapter, not an MCP game-input protocol. MCP supplies
+ * authored v1 programs; local keyboard intent uses the world/contact planner and
+ * compiler's shared FK/IK. No finite-clip queues, per-frame compilation, root integration,
+ * foot/joint manipulation, or independent physics live in this adapter. The
+ * world-motion planner owns X/Z trajectories and contacts; compiler owns joints.
  *
- * This is not a game-input protocol for MCP: MCP supplies authored sequences;
- * local keyboard intent supplies a single canonical action at each endpoint.
- * No physics, joint coordinates, authored JavaScript, or per-frame compilation.
+ * Input advances OLD intent to clock.now(), then NEW intent at that same time.
+ * Jump/point requests have monotonic edge IDs: keyup does not revoke a pending
+ * jump. Escape/blur sets stop=true; the core cancels requests and brakes/lands.
+ * RAF advances only the returned opaque core state. A RAF timestamp predating
+ * an input has zero elapsed time; input clock regression is an explicit error.
  *
- * v1 has no velocity/contact-state handoff or interruptible landing API.
- * Each segment therefore anticipates and settles again, with possible facing/
- * pose discontinuities at remount. Root positions never teleport. Release,
- * Escape, reversal, run changes and jump wait at most one segment (walk 700ms,
- * run 500ms, jump 1000ms, point 700ms); there is no in-air steering.
- * Contacts/bones/physical bounds inside each clip are canonical, not a promise
- * of seamless cross-clip foot continuity. Long RAF gaps finish only one clip.
+ * Reduced motion rejects fresh keyboard motion and clears intent immediately.
+ * An already moving/airborne pose settles safely through the same core, rather
+ * than teleporting or freezing in flight. Once settled it is static; returning
+ * to normal does not restore held input. Safe settling can still be animated.
  *
- * A full-size rig is required so the core's action-dependent headroom policy
- * cannot resize the actor between walk, point and jump. Conservative 80-unit
- * root margins are genuine usable bounds, not sampler clamping. Reduced motion
- * disables all keyboard clips and freezes the current canonical frame without
- * endpoint skipping. If it interrupts a clip, remount is required (the frozen
- * pose might be airborne); otherwise returning to normal needs fresh input.
- *
- * The controller owns the supplied port and disposes it once. A browser host
- * may implement the port or wrap its rendering surface; do not reuse a disposed
- * mounted player as a port. Layout invalidation is terminal, never a resize of
- * stale anchors. Call invalidateLayout when an explicit point anchor moves.
+ * The controller owns the port and observers after successful construction.
+ * Layout invalidation hides the stale surface and is terminal; remap/recreate.
+ * Dispose also removes associated focused bindings and restores owned tabindex.
+ * Deterministic replay is NOT promised here; onIntent records exact transitions
+ * for diagnostics, and onMotion reports canonical samples with their timestamps.
  */
 export function createKeyboardController(
   options: KeyboardControllerOptions, port: BrowserPlayerPort, clock: BrowserClock
 ): KeyboardController {
-  const canvas = { ...options.canvas, fps: 60 };
-  const sceneRect = createSceneProjection(port.measure(), canvas).rect;
-  const { initialX, groundY } = options;
-  const target = { ...options.pointTarget };
-  if (canvas.width < 180 || !Number.isFinite(groundY) || groundY < 196 || groundY > canvas.height - 4) {
-    throw new RangeError("Keyboard testbed requires width >=180 and groundY from 196 to canvas.height - 4 for a fixed full-size rig.");
+  let room: WorldRoom;
+  if (options.world) room = options.world;
+  else {
+    const { initialX, groundY, pointTarget } = options;
+    if (initialX === undefined || groundY === undefined || pointTarget === undefined) {
+      throw new TypeError("Supply world room options or legacy initialX, groundY and pointTarget.");
+    }
+    const width = options.canvas.width;
+    room = {
+      width, depth: 0, initial: { x: initialX, z: 0 },
+      pointTarget: { x: pointTarget.x, z: 0, height: groundY - pointTarget.y },
+      projectWorld: (point, height = 0) => ({ x: point.x, y: groundY - height }),
+      canOccupy: point => point.x >= 80 && point.x <= width - 80 && point.z === 0
+    };
   }
-  const minX = 80;
-  const maxX = canvas.width - 80;
-  if (!Number.isFinite(initialX) || initialX < minX || initialX > maxX) {
-    throw new RangeError(`initialX must lie inside the usable root bounds ${minX}..${maxX}.`);
-  }
-  if (![target.x, target.y].every(Number.isFinite) || target.x < 0 || target.x > canvas.width || target.y < 0 || target.y > canvas.height) {
-    throw new RangeError("pointTarget must be finite and inside the virtual canvas.");
-  }
-  const held = new Set<KeyboardCommand>();
-  let jump = false;
-  let point = false;
-  let root: Point2D = { x: initialX, y: groundY };
-  let status: KeyboardStatus = port.reducedMotion() ? "reduced" : "idle";
+  const scene: WorldMotionScene = {
+    ...room, canvas: { ...options.canvas, fps: 60 },
+    projectWorld: (point, height = 0) => room.projectWorld(point, height),
+    ...(room.canOccupy ? { canOccupy: (point: WorldPoint, radius: number) => room.canOccupy!(point, radius) } : {}),
+    ...(options.program ? { program: options.program } : {})
+  };
+  const sceneRect = createSceneProjection(port.measure(), scene.canvas).rect;
+  const initialTime = clock.now();
+  if (!Number.isFinite(initialTime)) throw new RangeError("Keyboard clock timestamp must be finite.");
+  let core: MotionIntentState = createMotionIntentState(scene, initialTime);
+  let timeMs = initialTime;
+  let reduced = port.reducedMotion();
+  let terminalStatus: "invalid" | "error" | "disposed" | null = null;
   let errorMessage: string | null = null;
-  let player: BrowserPlayer | null = null;
+  let intent: KeyboardIntent = { horizontal: 0, depth: 0, run: false, jumpRequest: 0, pointRequest: 0, stop: reduced };
+  const initialSample = advanceMotionIntent(core, intent, initialTime);
+  core = initialSample.state;
+  let motionStatus: KeyboardMotionStatus = initialSample.status;
+  let frame: SampledFrame = initialSample.frame;
+  let worldRoot: WorldPoint = { ...initialSample.worldRoot };
+  let worldHeight = initialSample.worldHeight;
+  let contacts = initialSample.contacts;
   let raf: number | null = null;
-  let previous = 0;
-  let reduced = status === "reduced";
-  let interrupted = false;
-  let intentRevision = 0;
+  let jumpRequest = 0;
+  let pointRequest = 0;
+  const held = new Set<KeyboardCommand>();
   const cleanups: Array<() => void> = [];
   const disposeListeners = new Set<() => void>();
   const direction = (): -1 | 0 | 1 => held.has("left") === held.has("right") ? 0 : held.has("left") ? -1 : 1;
-  const terminal = (): boolean => status === "disposed" || status === "error" || status === "invalid";
+  const depthDirection = (): -1 | 0 | 1 => scene.depth === 0 || held.has("forward") === held.has("backward") ? 0 : held.has("forward") ? -1 : 1;
   const snapshot = (): KeyboardState => ({
-    status, currentRoot: { ...root }, deferredJump: jump,
-    direction: direction(), running: held.has("run"), error: errorMessage
+    timeMs, intent: { ...intent }, status: terminalStatus ?? (reduced ? "reduced" : motionStatus),
+    motionStatus, currentRoot: { x: frame.x, y: frame.groundY },
+    worldRoot: { ...worldRoot }, worldHeight, direction: intent.horizontal, depthDirection: intent.depth, running: intent.run, error: errorMessage
   });
   const publish = (): void => { options.onState?.(snapshot()); };
-  const clearIntent = (): void => { intentRevision++; held.clear(); jump = false; point = false; };
+  const cancelRaf = (): void => { if (raf !== null) clock.cancel(raf); raf = null; };
+  const detach = (): void => { for (const cleanup of cleanups.splice(0)) cleanup(); };
+  const clearHeld = (): void => { held.clear(); };
   const layoutCurrent = (): boolean => {
     const rect = port.measure();
     return rect.left === sceneRect.left && rect.top === sceneRect.top
       && rect.width === sceneRect.width && rect.height === sceneRect.height
       && (port.layoutCurrent?.() ?? true);
   };
-  const cancelRaf = (): void => { if (raf !== null) clock.cancel(raf); raf = null; };
-  const releasePlayer = (): void => {
-    const old = player;
-    player = null;
-    old?.dispose();
-  };
-  // A clip owns its playhead, not the shared surface or observer subscriptions.
-  const clipPort: BrowserPlayerPort = {
-    measure: () => port.measure(),
-    layoutCurrent,
-    draw(frame) { root = { x: frame.x, y: frame.groundY }; port.draw(frame); },
-    setVisible: visible => port.setVisible(visible),
-    dispose() {},
-    reducedMotion: () => false,
-    onReducedMotion: () => () => {},
-    onLayoutChange: () => () => {}
-  };
-  const compile = (action: AnimationSpec["actions"] = [], durationMs = 100, destination = root.x): CompiledAnimation => {
-    const spec: AnimationSpec = {
-      version: CONTRACT_VERSION, canvas: { ...canvas }, durationMs,
-      actor: { x: root.x, groundY },
-      targets: { travel: { x: destination, y: groundY }, point: { ...target } },
-      actions: action
-    };
-    const result = compileAnimation(spec);
-    if (!result.valid || !result.program) {
-      throw new TypeError(`Keyboard clip rejected: ${result.diagnostics.map(d => `${d.code} ${d.path}: ${d.message}`).join("; ")}`);
+  const advance = (next: KeyboardIntent, atMs: number): void => {
+    if (!Number.isFinite(atMs)) throw new RangeError("Keyboard clock timestamp must be finite.");
+    if (atMs < timeMs) throw new RangeError("Keyboard input clock must be monotonic.");
+    const sample = advanceMotionIntent(core, next, atMs);
+    if (sample.diagnostic !== undefined) {
+      throw new Error(`Keyboard motion rejected: ${typeof sample.diagnostic === "string" ? sample.diagnostic : JSON.stringify(sample.diagnostic)}`);
     }
-    return result.program;
+    core = sample.state;
+    worldRoot = { ...sample.worldRoot };
+    worldHeight = sample.worldHeight;
+    contacts = sample.contacts;
+    frame = sample.frame;
+    motionStatus = sample.status;
+    timeMs = atMs;
+    intent = { ...next };
   };
+  const render = (): void => {
+    if (terminalStatus !== null) return;
+    // Host can latch depth/occlusion metadata before its existing draw(frame).
+    options.onMotion?.({
+      timeMs, intent: { ...intent }, status: motionStatus,
+      frame: structuredClone(frame), worldRoot: { ...worldRoot }, worldHeight, contacts: structuredClone(contacts)
+    });
+    if (terminalStatus !== null) return;
+    port.draw(frame);
+    publish();
+  };
+  const needsTick = (): boolean => motionStatus === "moving" || motionStatus === "jumping" || motionStatus === "pointing"
+    || (!reduced && !intent.stop && (intent.horizontal !== 0 || intent.depth !== 0) && motionStatus !== "blocked");
+  const schedule = (): void => {
+    if (terminalStatus === null && raf === null && needsTick()) raf = clock.request(tick);
+  };
+  const settleSchedule = (): void => { if (needsTick()) schedule(); else cancelRaf(); };
   const fail = (cause: unknown): void => {
+    if (terminalStatus !== null) return;
     cancelRaf();
-    releasePlayer();
-    clearIntent();
-    status = "error";
+    clearHeld();
+    intent = { ...intent, horizontal: 0, depth: 0, run: false, stop: true };
+    terminalStatus = "error";
     const error = cause instanceof Error ? cause : new Error(String(cause));
     errorMessage = error.message;
+    detach();
     port.setVisible(false);
     publish();
     options.onError?.(error);
   };
   const invalidateLayout = (reason = "Layout changed. Remap anchors and recreate the keyboard controller."): void => {
-    if (terminal()) return;
+    if (terminalStatus !== null) return;
     cancelRaf();
-    releasePlayer();
-    clearIntent();
-    status = "invalid";
+    clearHeld();
+    intent = { ...intent, horizontal: 0, depth: 0, run: false, stop: true };
+    terminalStatus = "invalid";
     errorMessage = reason;
+    detach();
     port.setVisible(false);
-    for (const cleanup of cleanups.splice(0)) cleanup();
     publish();
   };
-  const schedule = (): void => { if (player && raf === null && !terminal() && !reduced) raf = clock.request(tick); };
-  const begin = (): void => {
-    if (player || terminal() || reduced) return;
-    if (!layoutCurrent()) { invalidateLayout(); return; }
-    let kind: "walk" | "run" | "jump" | "point";
-    let durationMs: number;
-    let destination = root.x;
-    if (jump) { kind = "jump"; durationMs = 1000; jump = false; }
-    else if (point) { kind = "point"; durationMs = 700; point = false; }
-    else {
-      const dir = direction();
-      if (!dir) { status = "idle"; publish(); return; }
-      kind = held.has("run") ? "run" : "walk";
-      // Two supported steps: 2/(.7*.76)<=4, 2/(.5*.76)<=5.5.
-      durationMs = kind === "run" ? 500 : 700;
-      destination = Math.max(minX, Math.min(maxX, root.x + dir * (kind === "run" ? 60 : 40)));
-      if (destination === root.x) { status = "blocked"; publish(); return; }
-    }
-    const action = kind === "jump"
-      ? { action: kind, startMs: 0, durationMs }
-      : { action: kind, startMs: 0, durationMs, target: kind === "point" ? "point" : "travel" };
-    const program = compile([action], durationMs, destination);
-    const revision = intentRevision;
-    options.onProgram?.(structuredClone(program));
-    // A callback is allowed to stop/dispose; never start work after teardown.
-    if (terminal() || reduced || revision !== intentRevision) return;
-    status = kind === "jump" ? "jumping" : kind === "point" ? "pointing" : "moving";
-    player = createBrowserPlayer(program, clipPort, clock, { clock: "external", onInvalidate: invalidateLayout });
-    previous = clock.now();
-    if (!Number.isFinite(previous)) throw new RangeError("Keyboard clock timestamp must be finite.");
-    schedule();
-    publish();
+  const guardLayout = (): boolean => {
+    if (layoutCurrent()) return true;
+    invalidateLayout();
+    return false;
   };
-  function tick(now: number): void {
-    raf = null;
-    if (!player || terminal() || reduced) return;
+  const transition = (change: () => KeyboardIntent): void => {
+    if (terminalStatus !== null) return;
     try {
-      if (!Number.isFinite(now)) throw new RangeError("Keyboard clock timestamp must be finite.");
-      const time = Math.min(player.durationMs, player.snapshot().timeMs + Math.max(0, now - previous));
-      previous = now;
-      player.seek(time);
-      if (time === player.durationMs) {
-        releasePlayer();
-        begin();
-      } else { schedule(); publish(); }
-    } catch (cause) {
-      if (!terminal()) fail(cause);
-    }
+      if (!guardLayout()) return;
+      const atMs = clock.now();
+      // No callbacks between old/new sampling: observers see one committed input.
+      advance(intent, atMs);
+      advance(change(), atMs);
+      options.onIntent?.({ timeMs, intent: { ...intent } });
+      if (terminalStatus !== null) return;
+      render();
+      settleSchedule();
+    } catch (cause) { fail(cause); }
+  };
+  function tick(atMs: number): void {
+    raf = null;
+    if (terminalStatus !== null) return;
+    try {
+      if (!Number.isFinite(atMs)) throw new RangeError("Keyboard RAF timestamp must be finite.");
+      if (!guardLayout()) return;
+      advance(intent, Math.max(timeMs, atMs));
+      render();
+      settleSchedule();
+    } catch (cause) { fail(cause); }
   }
   const controller: KeyboardController = {
     snapshot,
     press(command) {
-      if (terminal() || reduced || held.has(command)) return;
-      intentRevision++;
-      held.add(command);
-      if (command === "jump") jump = true;
-      if (command === "point") point = true;
-      try { begin(); publish(); } catch (cause) { fail(cause); }
+      if (terminalStatus !== null || reduced || held.has(command)) return;
+      transition(() => {
+        held.add(command);
+        if (command === "jump") jumpRequest++;
+        if (command === "point") pointRequest++;
+        return { horizontal: direction(), depth: depthDirection(), run: held.has("run"), jumpRequest, pointRequest, stop: false };
+      });
     },
     release(command) {
-      if (terminal()) return;
-      intentRevision++;
-      held.delete(command);
-      if (command === "jump") jump = false;
-      if (command === "point") point = false;
-      if (!player && !reduced) {
-        try { begin(); } catch (cause) { fail(cause); }
-      }
-      publish();
+      if (terminalStatus !== null || !held.has(command)) return;
+      transition(() => {
+        held.delete(command);
+        // Edge requests remain pending until consumed/cancelled by the core.
+        return { ...intent, horizontal: direction(), depth: depthDirection(), run: held.has("run") };
+      });
     },
     stop() {
-      if (terminal()) return;
-      clearIntent();
-      if (!player && !reduced) status = "idle";
-      publish();
+      transition(() => {
+        clearHeld();
+        // Retain monotonic IDs: core stop cancels pending requests, not their history.
+        return { horizontal: 0, depth: 0, run: false, jumpRequest, pointRequest, stop: true };
+      });
     },
     invalidateLayout,
     dispose() {
-      if (status === "disposed") return;
+      if (terminalStatus === "disposed") return;
       cancelRaf();
-      releasePlayer();
-      clearIntent();
-      status = "disposed";
+      clearHeld();
+      intent = { ...intent, horizontal: 0, depth: 0, run: false, stop: true };
+      terminalStatus = "disposed";
       for (const listener of [...disposeListeners]) listener();
       disposeListeners.clear();
-      for (const cleanup of cleanups.splice(0)) cleanup();
+      detach();
       port.dispose();
       publish();
     },
     onDispose(listener) {
-      if (status === "disposed") { listener(); return () => {}; }
+      if (terminalStatus === "disposed") { listener(); return () => {}; }
       disposeListeners.add(listener);
       return () => { disposeListeners.delete(listener); };
     }
   };
   try {
-    // Validate/render the initial exact root before accepting any input.
-    const initial = compile();
-    const still = createBrowserPlayer(initial, clipPort, clock, { clock: "external" });
-    still.dispose();
+    advance(intent, initialTime);
     cleanups.push(port.onLayoutChange(() => invalidateLayout()));
     cleanups.push(port.onReducedMotion(value => {
-      if (terminal() || value === reduced) return;
+      if (terminalStatus !== null || value === reduced) return;
       reduced = value;
-      interrupted ||= player !== null;
-      cancelRaf();
-      releasePlayer();
-      clearIntent();
-      status = value ? "reduced" : interrupted ? "invalid" : "idle";
-      if (!value && interrupted) {
-        errorMessage = "Reduced motion interrupted a clip. Remount from a stable grounded scene before playing again.";
-        port.setVisible(false);
-      }
-      publish();
+      controller.stop();
     }));
-    publish();
+    if (options.onProgram) {
+      options.onProgram(structuredClone(core.program));
+    }
+    if (terminalStatus === null) {
+      port.setVisible(true);
+      render();
+    }
   } catch (cause) {
-    controller.dispose();
+    // Initialization failures throw; runtime failures publish terminal error state.
+    cancelRaf();
+    detach();
+    port.dispose();
     throw cause;
   }
   return controller;
 }
 
 export interface FocusedKeyboardBinding {
-  /** Stops held intent, detaches listeners, restores owned tabindex; idempotent. */
   dispose(): void;
 }
 
 /**
- * Host-only listeners; focus must be on the explicitly approved host itself.
- * Descendant inputs/contenteditable/widgets and Ctrl/Alt/Meta shortcuts are
- * never captured. No document/window key handlers and no automatic focus.
- * Binding teardown stops intent, but controller/port teardown remains explicit.
- * Controller teardown also automatically disposes its associated bindings.
- * Visibility loss clears intent even if the browser does not send keyup/blur.
+ * Host-only listeners; explicitly approved host itself must have focus.
+ * No automatic focus, document/window key handlers, editable/widget capture,
+ * Ctrl/Alt/Meta shortcut capture, or composition interception.
+ * Blur/hidden/disposal clears held intent; controller safely brakes/lands.
  */
 export function bindFocusedKeyboard(
   host: HTMLElement, controller: KeyboardController, options: { approved: true }
@@ -320,6 +349,8 @@ export function bindFocusedKeyboard(
     switch (event.code) {
       case "ArrowLeft": case "KeyA": return "left";
       case "ArrowRight": case "KeyD": return "right";
+      case "ArrowUp": case "KeyW": return "forward";
+      case "ArrowDown": case "KeyS": return "backward";
       case "ShiftLeft": case "ShiftRight": return "run";
       case "Space": return "jump";
       case "KeyP": return "point";
@@ -328,8 +359,7 @@ export function bindFocusedKeyboard(
   };
   const clear = (): void => { keys.clear(); controller.stop(); };
   const keydown = (event: KeyboardEvent): void => {
-    const status = controller.snapshot().status;
-    if (["disposed", "error", "invalid", "reduced"].includes(status)) return;
+    if (["disposed", "error", "invalid", "reduced"].includes(controller.snapshot().status)) return;
     if (disposed || host.ownerDocument.hidden || host.ownerDocument.activeElement !== host || event.target !== host
       || host.isContentEditable || host.matches("input,textarea,select,button,a[href],[role=textbox]")
       || event.ctrlKey || event.altKey || event.metaKey || event.isComposing || event.defaultPrevented) return;
@@ -339,7 +369,6 @@ export function bindFocusedKeyboard(
     event.preventDefault();
     if (event.repeat || keys.has(event.code)) return;
     keys.set(event.code, command);
-    // Shift may already be held before this host received focus.
     if (event.shiftKey && command !== "run") controller.press("run");
     controller.press(command);
   };
@@ -348,7 +377,6 @@ export function bindFocusedKeyboard(
     keys.delete(event.code);
     if (command && ![...keys.values()].includes(command)) controller.release(command);
     if (!event.shiftKey && ![...keys.values()].includes("run")) controller.release("run");
-    // Keyup only reconciles our own held keys; never prevents a browser shortcut.
   };
   const visibility = (): void => { if (host.ownerDocument.hidden) clear(); };
   host.addEventListener("keydown", keydown);

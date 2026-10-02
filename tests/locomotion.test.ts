@@ -25,6 +25,10 @@ function travel(action: "walk" | "run", direction: number, distance = 200, durat
 }
 
 const foot = (frame: SampledFrame, side: string) => frame.segments.find((line) => line.id === `${side}-shin`)!;
+const preparationMs = (duration: number, reversing = false): number => Math.min(duration * (reversing ? 0.16 : 0.08), reversing ? 240 : 120);
+const settlementMs = (duration: number): number => Math.min(duration * 0.08, 200);
+const atGait = (duration: number, q: number, reversing = false): number =>
+  preparationMs(duration, reversing) + (duration - preparationMs(duration, reversing) - settlementMs(duration)) * q;
 
 describe("world-space locomotion contacts", () => {
   it.each(["walk", "run"] as const)("%s plants both directions with cumulative stance drift <= 0.25px and no floor penetration", (action) => {
@@ -187,7 +191,7 @@ describe("jump and action boundaries", () => {
       const arrival = sampleAnimation(program, 2000);
       const landing = sampleAnimation(program, 3800);
       expect(arrival.x).toBe(360 * scale);
-      expect(ground - arrival.segments[0]!.y1).toBeCloseTo(62 * scale, 8);
+      expect(ground - arrival.segments[0]!.y1).toBeCloseTo(54 * scale, 8);
       expect(arrival.segments[0]!.x2 - arrival.segments[0]!.x1).toBeGreaterThan(4 * scale);
       expect(ground - landing.segments[0]!.y1).toBeCloseTo(66 * scale, 8);
       const arm = landing.segments.find((line) => line.id === "right-forearm")!;
@@ -346,7 +350,7 @@ describe("jump and action boundaries", () => {
       const switchTimes: number[] = [];
       for (const side of ["left", "right"]) {
         let prior = 0;
-        for (let time = 0; time <= 384; time++) {
+        for (let time = 0; time < preparationMs(2400, true); time++) {
           const frame = sampleAnimation(program, time);
           const thigh = frame.segments.find((line) => line.id === `${side}-thigh`)!;
           const ankle = foot(frame, side);
@@ -363,7 +367,7 @@ describe("jump and action boundaries", () => {
         }
       }
       expect(switchTimes).toHaveLength(2);
-      expect(Math.abs(switchTimes[0]! - switchTimes[1]!)).toBeGreaterThan(100);
+      expect(Math.abs(switchTimes[0]! - switchTimes[1]!)).toBeGreaterThan(50);
       const early = sampleAnimation(program, 80);
       expect(Math.abs(early.segments[0]!.x1 - early.x)).toBeGreaterThan(0.5);
       expect(early.segments[0]!.x2).toBeLessThan(early.segments[0]!.x1 - 0.5);
@@ -475,6 +479,89 @@ describe("jump and action boundaries", () => {
 });
 
 describe("clean presentation locomotion profiles", () => {
+  it.each(["walk", "run"] as const)("makes left/right %s equivalent near/far skeletal poses rather than bunching the left-facing limbs", (action) => {
+    const duration = action === "run" ? 1600 : 3200;
+    const distance = action === "run" ? 360 : 200;
+    const right = compile({
+      ...base, durationMs: duration + 200, actor: { x: 140, groundY: 290 },
+      targets: { mark: { x: 140 + distance, y: 290 } },
+      actions: [{ action, startMs: 0, durationMs: duration, target: "mark" }]
+    });
+    const left = compile({
+      ...base, durationMs: duration + 200, actor: { x: 500, groundY: 290 },
+      targets: { mark: { x: 500 - distance, y: 290 } },
+      actions: [{ action, startMs: 0, durationMs: duration, target: "mark" }]
+    });
+    for (const q of [0.08, 0.15, 0.25, 0.45, 0.65, 0.80, 0.99]) {
+      const a = sampleAnimation(right, atGait(duration, q));
+      const b = sampleAnimation(left, atGait(duration, q, true));
+      expect(a.x + b.x).toBeCloseTo(640, 7);
+      for (const line of a.segments) {
+        const oppositeId = line.id.startsWith("left-") ? line.id.replace("left-", "right-")
+          : line.id.startsWith("right-") ? line.id.replace("right-", "left-") : line.id;
+        const opposite = b.segments.find((item) => item.id === oppositeId)!;
+        expect(line.x1 + opposite.x1, `${action} ${q} ${line.id}`).toBeCloseTo(640, 6);
+        expect(line.x2 + opposite.x2, `${action} ${q} ${line.id}`).toBeCloseTo(640, 6);
+        expect(line.y1).toBeCloseTo(opposite.y1, 6);
+        expect(line.y2).toBeCloseTo(opposite.y2, 6);
+      }
+    }
+  });
+
+  it("carries loaded front-foot support and new torso intention through reversal, then pushes into the new route", () => {
+    const program = compile({
+      ...base, durationMs: 5800, actor: { x: 140, groundY: 290 },
+      targets: { a: { x: 320, y: 290 }, b: { x: 140, y: 290 } },
+      actions: [
+        { action: "run", startMs: 0, durationMs: 2800, target: "a" },
+        { action: "run", startMs: 2800, durationMs: 2800, target: "b" }
+      ]
+    });
+    const plant = sampleAnimation(program, 2800);
+    expect(plant.x).toBe(320);
+    expect(290 - plant.segments[0]!.y1).toBeCloseTo(62, 8);
+    expect(plant.segments[0]!.x1 - plant.x).toBeCloseTo(5, 8);
+    expect(plant.segments[0]!.x2).toBeLessThan(plant.segments[0]!.x1 - 5);
+    for (const side of ["left", "right"]) expect(foot(plant, side).y2).toBeCloseTo(290, 8);
+    const transfer = sampleAnimation(program, 2800 + 400 * 0.72);
+    expect(transfer.segments[0]!.x1).toBeLessThan(transfer.x - 4);
+    expect(transfer.segments[0]!.x2).toBeLessThan(transfer.segments[0]!.x1 - 8);
+    for (let time = 2800; time <= 3200; time += 5) {
+      const frame = sampleAnimation(program, time);
+      expect(290 - frame.segments[0]!.y1).toBeLessThanOrEqual(62.1);
+      expect(frame.x).toBe(320);
+      expect(Math.min(foot(frame, "left").y2, foot(frame, "right").y2)).toBeLessThanOrEqual(290 + 1e-7);
+      expect(Math.max(foot(frame, "left").y2, foot(frame, "right").y2)).toBeCloseTo(290, 7);
+    }
+    expect(sampleAnimation(program, 3350).x).toBeLessThan(320);
+  });
+
+  it("retains counterbalance through arrival braking and drives the jump without a repeated full planted preparation", () => {
+    const program = compile({
+      ...base, durationMs: 4000, actor: { x: 140, groundY: 290 },
+      targets: { arrival: { x: 360, y: 290 } },
+      actions: [
+        { action: "run", startMs: 200, durationMs: 1800, target: "arrival" },
+        { action: "jump", startMs: 2000, durationMs: 1800 }
+      ]
+    });
+    expect(sampleAnimation(program, 1900).x).toBeLessThan(360);
+    for (const time of [1820, 1950, 2000, 2040, 2080]) {
+      const frame = sampleAnimation(program, time);
+      const hands = frame.segments.filter((line) => line.id.includes("forearm"));
+      expect(Math.abs(hands[0]!.x2 - hands[1]!.x2)).toBeGreaterThan(30);
+      if (time >= 2000) expect(frame.x).toBe(360);
+    }
+    const arrived = sampleAnimation(program, 2000);
+    const loading = sampleAnimation(program, 2090);
+    expect(loading.segments[0]!.y1).toBeGreaterThan(arrived.segments[0]!.y1 + 2);
+    const driven = sampleAnimation(program, 2250);
+    const hand = driven.segments.find((line) => line.id === "right-forearm")!;
+    expect(hand.y2).toBeLessThan(driven.segments[0]!.y2 + 10);
+    for (const side of ["left", "right"]) expect(foot(sampleAnimation(program, 2330), side).y2).toBeLessThan(289);
+    for (let time = 2000; time <= 3800; time += 13) expect(sampleAnimation(program, time).x).toBe(360);
+  });
+
   it.each(["walk", "run"] as const)("prepares a grounded weight shift before the %s root starts moving", (action) => {
     const duration = action === "walk" ? 3200 : 1600;
     const program = compile({
@@ -484,7 +571,7 @@ describe("clean presentation locomotion profiles", () => {
       actions: [{ action, startMs: 0, durationMs: duration, target: "destination" }]
     });
     const rest = sampleAnimation(program, 0);
-    const preparation = sampleAnimation(program, duration * 0.075);
+    const preparation = sampleAnimation(program, preparationMs(duration) * 0.9375);
     expect(preparation.x).toBe(140);
     expect(preparation.segments[0]!.y1 - rest.segments[0]!.y1).toBeGreaterThan(action === "walk" ? 1.5 : 4);
     expect(preparation.segments[0]!.x2).toBeGreaterThan(preparation.segments[0]!.x1 + (action === "walk" ? 1.5 : 5));
@@ -492,8 +579,8 @@ describe("clean presentation locomotion profiles", () => {
       expect(foot(preparation, side).x2).toBeCloseTo(foot(rest, side).x2, 8);
       expect(foot(preparation, side).y2).toBeCloseTo(310, 8);
     }
-    const before = sampleAnimation(program, duration * 0.08 - 0.001);
-    const after = sampleAnimation(program, duration * 0.08 + 0.001);
+    const before = sampleAnimation(program, preparationMs(duration) - 0.001);
+    const after = sampleAnimation(program, preparationMs(duration) + 0.001);
     for (let i = 0; i < 9; i++) expect(Math.hypot(before.segments[i]!.x2 - after.segments[i]!.x2, before.segments[i]!.y2 - after.segments[i]!.y2)).toBeLessThan(0.01);
   });
 
@@ -553,7 +640,7 @@ describe("clean presentation locomotion profiles", () => {
       targets: { destination: { x: 420, y: 310 } },
       actions: [{ action: "walk", startMs: 0, durationMs: 3200, target: "destination" }]
     });
-    const atStep = (phase: number) => sampleAnimation(program, 3200 * (0.08 + 0.84 * phase / 7));
+    const atStep = (phase: number) => sampleAnimation(program, atGait(3200, phase / 7));
     const passing = atStep(1.5);
     const support = atStep(1.95);
     expect(foot(passing, "left").y2).toBeCloseTo(310, 8);
@@ -573,7 +660,7 @@ describe("clean presentation locomotion profiles", () => {
     // The final pair brakes into a narrow stance; grade reciprocal drive at
     // the two full-stride contacts rather than the delayed stopping contact.
     for (const [step, planted, forwardArm] of [[1, "left", "right"], [2, "right", "left"]] as const) {
-      const frame = sampleAnimation(program, 1600 * (0.08 + 0.84 * step / 4));
+      const frame = sampleAnimation(program, atGait(1600, step / 4));
       expect(foot(frame, planted).y2).toBeCloseTo(310, 7);
       const arm = frame.segments.find((line) => line.id === `${forwardArm}-forearm`)!;
       const other = frame.segments.find((line) => line.id === `${forwardArm === "left" ? "right" : "left"}-forearm`)!;

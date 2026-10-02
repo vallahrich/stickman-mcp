@@ -73,6 +73,13 @@ animation engine/MCP server; no TemplatePresentation edits are authorized.
 
 ## Definition of publishable for this milestone
 
+The latest user instruction sets the **version's weighted score over 8/10**,
+at normal and intended miniature size. Retain the original **minimum 8/10 per
+reviewed action/chain**, so weak cases cannot be hidden by an average. An exactly
+8.0 overall version does not pass. A separate all-rows-strictly-over-8 stretch
+target was used during review but was not the user's stated completion rule;
+do not inflate unchanged 8.0 rows or claim that stretch result was achieved.
+
 Each action and representative transition must score at least **8/10** in the
 style above. A score is a documented expert judgment supported by clips,
 frame inspection and numerical evidence; it is not an automatic certification.
@@ -220,6 +227,53 @@ Record any prototype limitations such as jumping only from a stopped stance.
 A keyboard playground is a diagnostic/interactive integration surface, not
 permission to replace the data-only v1 contract with arbitrary game scripts.
 
+### Clarified target: 2D character in a room with depth
+
+The user clarified "2D in 3D": a flat character walking around a room, rather
+than a side-on actor confined to one horizontal screen-space floor. This is a
+**2.5D world/character separation**, not permission to copy game sprites or
+replace the character with a fully modeled 3D mesh.
+
+The camera preference question was unanswered. Use an **orthographic angled/
+isometric room** as the explicit working assumption; a perspective camera can
+be substituted behind the same world/projection boundary if later requested.
+Do not describe this camera choice as user-confirmed.
+
+The world owns horizontal room coordinates **X/Z**, vertical height **Y**,
+floor support, room bounds, obstacles, and named world anchors. Projection
+maps those coordinates to the browser. The original 2D rig remains upright
+and readable as a billboard/paper character. Rendering must depth-sort it
+with furniture/walls, so it can go behind or in front of objects rather than
+floating above every layer. Diagonal movement must be normalized; walking
+toward/away from the camera must change its screen position consistently.
+
+This clarification supersedes the horizontal-only controller API as the final
+gameplay target. Preserve reusable focus/lifecycle and shared rig work, but
+freeze the controller/world API before extending one-axis motion further.
+The old flat-floor v1 animation contract remains supported; room authoring
+must be a distinct explicit contract/integration surface if exposed through
+MCP, not secretly reinterpret existing `targets.x/y` as 3D coordinates.
+
+Room acceptance adds:
+
+- Arrow/WASD movement across both world axes, normalized diagonals, collision/
+  bounds and responsive intention changes.
+- Stable floor contacts in world coordinates, not feet dragged by separately
+  moving a sprite over the room.
+- Jump height along world Y, landing at a feasible support position, and
+  pointing toward a projected room/deck anchor.
+- Occlusion at furniture/walls and consistent billboard scale/projection.
+- The same small-scale human-natural motion score, >=8 per representative
+  action/chain; keyboard/controller scores below 5 still trigger architecture
+  review.
+
+First implement a bounded original room and one controllable original figure;
+not camera navigation, combat, a game asset pipeline or arbitrary physics.
+Three.js is an option if real perspective meshes/lights/camera controls become
+requirements. Isometric SVG/canvas can represent actual world depth, collision
+and sorting without adopting a separate animation authority. Choose on required
+behavior and measured prototype evidence, not the "3D" label alone.
+
 ### Gate A: character and skeleton
 
 Deliver the neutral original character, connected skeleton, readable feet,
@@ -339,14 +393,56 @@ by Enterprise runner policy; verified private dual pushes still work.
 | `5ced65d` | Existing coordinate-wiggle baseline | 3/10 provisional | Push/walk below 8 | Rejected; rebuild the rig/motion authority |
 | Skeletal candidate V1 | Fixed bones, FK/IK, foot anchors, first authored poses | 7.4/10, approximately +/-0.5 | Push 6.2; sequence 6.4 | Independent QA rejected; improve force silhouette, turns, jump and handoff |
 | Human-motion candidate V2 | Distinct grips, taller push posture/longer steps, preload, coordinated turns, jump follow-through | 7.6 normal / 7.3 miniature | Chain 6.7 | Rejected; improve trajectory/intent continuity and miniature mechanics |
-| Human-motion candidate V3 | Shared waypoint velocity/contact scheduling, run-to-jump and landing-to-point intention, longer run strides, alternating push loading | Pending | Pending | 199 technical checks pass; independent normal/miniature and keyboard review open |
+| Human-motion candidate V3 | Shared waypoint velocity/contact scheduling, run-to-jump and landing-to-point intention, longer run strides, alternating push loading | 7.76 normal / 7.55 miniature | Shipped push 6.9 miniature | Rejected despite 200 technical checks passing |
+| Controller diagnostic V1 | Canonical finite-clip keyboard testbed | 4.6/10 | Response latency | Architecture pivot required |
+| Scripted V4 | Centered grips, directed arrival and turn/load refinements | 7.945 normal / 7.735 at 48px | 7.4 | Rejected |
+| Scripted V5 | Human pacing and correct near/far readability | 8.035 normal / 7.920 at 48px | 7.7 | Rejected |
+| Corrected scripted V6 | Supported load impulses, bounded turn timing, static-reference vector repair | 8.180 normal / 8.065 at 48px | 7.9 | Rejected: pointing/reversal below minimum |
+| Scripted V7 | Loaded stepping pivot, dominant pointing/index cue and clear attention | **8.270 normal / 8.155 at 48px** | **8.0** | **Provisional approval for the scripted presentation/video scope** |
 
 Subsequent rows must contain observed results, not anticipated scores.
+
+### Accepted scripted V7 scope and evidence limits
+
+The independent reviewer assessed all 19 frozen scripted scenes at normal
+and native 48-pixel size. Every reviewed action/chain met the original 8/10
+minimum, and both weighted totals exceeded 8. The requested run-to-arrival,
+jump, then point sequence scored **8.4 normal / 8.3 miniature**.
+
+The stronger pivot keeps one supporting foot grounded while the other steps
+and changes branch at extension; compression is retained into departure.
+Pointing gives the active arm foreground contrast and a restrained index cue.
+HTML and representative baked SVG exports agree after replacing animated
+references with static references and visibility-based layering.
+
+This is a provisional pose/choreography judgment, approximately +/-0.3-0.4,
+not industry certification. The review environment delivered roughly 1-second
+RAF intervals even for a focused standalone page; no smooth realtime playback
+claim is inferred from that environment. Encoded MP4/GIF files are independently
+checked for dimensions, frame count, duration and complete decoding.
+
+**Not approved by this score:** the separate 2.5D room/controller diagnostic,
+a new room-scene MCP authoring/export contract, cross-browser certification,
+or every possible authored input. Several unchanged miniature rows are exactly
+8.0, so "all rows strictly above 8" remains false and is not claimed.
 
 V2's independent final result was **7.6/10 normal and 7.3/10 miniature**.
 Its lowest representative chain was 6.7; the miniature run-jump-point fixture
 was 7.0. It was rejected, not an accepted release. V3 is addressing those
 defects; no score is inferred from its technical checks.
+
+V3's independent final result was **7.76/10 normal and 7.55/10 miniature**.
+The miniature acceptance sequence scored 7.3, and the shipped low-crate push
+scored 6.9. V3 remains rejected. V4 must make the grip readable, preserve
+counterbalance through arrival/jump loading, make reversal support explicit,
+and improve left-run silhouette. The technically verified vector export did
+not increase the human-motion score.
+
+The keyboard diagnostic scored **4.6/10**. This triggers the agreed
+architecture checkpoint: whole finite-clip queuing is unsuitable for responsive
+steering. Pivot to explicit input intent, root/contact state and shared rig
+evaluation rather than duplicate poses or blame SVG. The motion developer and
+controller developer must freeze a shared typed API before concurrent edits.
 
 The generic browser overlay and local actual-MCP compile bridge now exist, with
 scoped SVG painting, external clock, anchor mapping, click-through, resize
