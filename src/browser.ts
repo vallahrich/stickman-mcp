@@ -250,6 +250,11 @@ export function createBrowserPlayer(input: unknown, port: BrowserPlayerPort, clo
   const cleanups: Array<() => void> = [];
   const mode = (): PlaybackMode => options.mode === "static" ? "static"
     : reduced || options.mode === "reduced" ? "reduced" : "normal";
+  const sampleTime = (): number => {
+    if (mode() !== "normal") return timeMs;
+    const frameDuration = 1000 / program.spec.canvas.fps;
+    return Math.min(program.spec.durationMs, Math.floor(timeMs / frameDuration + 1e-9) * 1000 / program.spec.canvas.fps);
+  };
   const snapshot = (): BrowserPlayerState => ({ timeMs, playing, cancelled, disposed, layoutValid, mode: mode() });
   const stop = (): void => {
     playing = false;
@@ -273,7 +278,7 @@ export function createBrowserPlayer(input: unknown, port: BrowserPlayerPort, clo
     if (layoutValid && (!sameRect(initialRect, port.measure()) || port.layoutCurrent?.() === false)) invalidateLayout();
     if (!layoutValid) throw new Error("Browser player layout is invalid. Remap anchors, recompile, and remount.");
   };
-  const draw = (): void => port.draw(sampleAnimation(program, timeMs, mode()));
+  const draw = (): void => port.draw(sampleAnimation(program, sampleTime(), mode()));
   const schedule = (): void => {
     if (playing && options.clock !== "external" && requestId === null) requestId = clock.request(tick);
   };
@@ -391,16 +396,12 @@ export function createSvgPainter(svg: SVGSVGElement, color = "#202124", parent: 
   };
   const body = node("g");
   attr(body, { fill: "none", stroke: color, "stroke-linecap": "round", "stroke-linejoin": "round" });
-  const lines = new Map<string, SVGLineElement>();
   const details = new Map<string, SVGPathElement>();
-  const hands = new Map<string, SVGCircleElement>();
   const head = node("circle");
-  const eye = node("circle");
   const prop = node("g");
   const crate = node("rect", prop);
   const handle = node("path", prop);
   attr(head, { fill: "#fff", stroke: color });
-  attr(eye, { fill: color });
   attr(crate, { fill: "#fff", stroke: color, rx: 3 });
   attr(handle, { fill: "none", stroke: color, "stroke-linecap": "round" });
   let disposed = false;
@@ -408,30 +409,39 @@ export function createSvgPainter(svg: SVGSVGElement, color = "#202124", parent: 
     draw(frame) {
       if (disposed) throw new Error("SVG painter is disposed.");
       const geometry = frameGeometry(frame);
-      attr(body, { "stroke-width": geometry.strokeWidth });
-      for (const segment of frame.segments) {
-        let line = lines.get(segment.id);
-        if (!line) { line = node("line", body); lines.set(segment.id, line); }
-        attr(line, { x1: segment.x1, y1: segment.y1, x2: segment.x2, y2: segment.y2, "stroke-opacity": geometry.rearSegments.includes(segment.id) ? 0.65 : 1 });
+      const viewBox = svg.viewBox.baseVal;
+      const rect = svg.getBoundingClientRect();
+      const scenePerCssPixel = rect.width > 0 && viewBox.width > 0 ? viewBox.width / rect.width : 1;
+      const strokeWidth = Math.max(geometry.strokeWidth, 2.5 * scenePerCssPixel);
+      attr(body, { "stroke-width": strokeWidth });
+      for (const limb of geometry.limbs) {
+        let path = details.get(limb.id);
+        if (!path) { path = node("path", body); details.set(limb.id, path); }
+        attr(path, { d: limb.d, "stroke-width": strokeWidth });
       }
-      for (const id of geometry.segmentOrder) body.appendChild(lines.get(id)!);
       for (const detail of geometry.paths) {
         let path = details.get(detail.id);
         if (!path) { path = node("path", body); details.set(detail.id, path); }
-        attr(path, { d: detail.d, "stroke-opacity": detail.rear ? 0.65 : 1, "stroke-width": detail.strokeWidth ?? geometry.strokeWidth });
+        attr(path, { d: detail.d, "stroke-width": detail.strokeWidth ?? strokeWidth });
       }
-      attr(head, { cx: frame.head.x, cy: frame.head.y, r: geometry.headRadius, "stroke-width": geometry.strokeWidth });
-      attr(eye, { cx: geometry.eye.x, cy: geometry.eye.y, r: geometry.eye.radius });
+      const appendDrawn = (id: string): void => {
+        body.appendChild(details.get(id)!);
+        if (id.endsWith("-leg")) {
+          const foot = details.get(id.replace("-leg", "-foot"));
+          if (foot) body.appendChild(foot);
+        }
+      };
+      for (const id of geometry.segmentOrder.slice(0, 3)) appendDrawn(id);
+      body.appendChild(head);
+      for (const id of geometry.segmentOrder.slice(3)) appendDrawn(id);
+      const finger = details.get("point-finger");
+      if (finger) body.appendChild(finger);
+      attr(head, { cx: geometry.head.x, cy: geometry.head.y, r: geometry.headRadius, "stroke-width": strokeWidth });
       prop.style.display = frame.prop ? "" : "none";
       if (frame.prop) {
-        attr(crate, { x: frame.prop.x, y: frame.prop.y, width: frame.prop.width, height: frame.prop.height, "stroke-width": geometry.strokeWidth });
+        attr(crate, { x: frame.prop.x, y: frame.prop.y, width: frame.prop.width, height: frame.prop.height, "stroke-width": strokeWidth });
         if (geometry.handlePath === null) throw new Error("Shared renderer geometry is missing the prop handle.");
         attr(handle, { d: geometry.handlePath, "stroke-width": 1.4 * geometry.scale });
-      }
-      for (const hand of geometry.hands) {
-        let circle = hands.get(hand.id);
-        if (!circle) { circle = node("circle"); hands.set(hand.id, circle); }
-        attr(circle, { cx: hand.x, cy: hand.y, r: 3 * geometry.scale, fill: "#fff", stroke: color, "stroke-width": geometry.scale, "stroke-opacity": hand.rear ? 0.7 : 1 });
       }
     },
     dispose() { if (!disposed) { disposed = true; layer.remove(); } }

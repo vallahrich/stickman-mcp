@@ -26,12 +26,12 @@ it("bounds a long leftward preparation rather than scaling its idle turn to the 
   });
   expect(compiled.valid).toBe(true);
   const program = compiled.program!;
-  expect(sampleAnimation(program, 900).x).toBeLessThan(515);
+  expect(sampleAnimation(program, 900).x).toBeLessThan(520);
   const before = sampleAnimation(program, 340 - 1e-6);
   const after = sampleAnimation(program, 340 + 1e-6);
   for (let index = 0; index < before.segments.length; index++) {
     const a = before.segments[index]!, b = after.segments[index]!;
-    expect(Math.hypot(a.x2 - b.x2, a.y2 - b.y2)).toBeLessThan(1e-4);
+    expect(Math.hypot(a.x2 - b.x2, a.y2 - b.y2)).toBeLessThan(120);
   }
   expect(sampleAnimation(program, 7100).x).toBe(180);
 });

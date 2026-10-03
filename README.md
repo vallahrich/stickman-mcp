@@ -126,8 +126,14 @@ action/chain at least 8.0. The requested run -> jump -> point sequence scored
 8.4/8.3. See the plan for evidence, uncertainty and the important distinction
 between this scored scripted scope and the experimental 2.5D room/controller.
 
+The repository now also includes a generated compact CMU-mocap-derived 2D clip
+library (`src/motion-clips.ts`) and importer (`scripts/import-clips.mjs`) for the
+next motion-player path. The current v1 MCP contract and schemas remain
+unchanged while clip sampling, stride-warp planning, floor checks and point IK
+are covered by unit tests.
+
 Future work should first broaden tested locomotion/facing and prop-contact profiles, then add additional interactions only when their target geometry and contact mechanics are modeled explicitly. The bounded scripted review and decoded movie checks are not cross-browser or universal encoder certification; build and unit tests alone are not visual approval.
 
 ## Rights and notices
 
-The source and geometric actor are original to this repository and released under [MIT](LICENSE). No source, assets, or derivatives from the separate TemplatePresentation project are included. `@resvg/resvg-js` (optional) and FFmpeg (external) retain their own licenses; see [NOTICE](NOTICE). No third-party character or reference artwork is bundled.
+The source and geometric actor are original to this repository and released under [MIT](LICENSE). No source, assets, or derivatives from the separate TemplatePresentation project are included. `@resvg/resvg-js` (optional), FFmpeg (external), and the compact CMU-derived motion clips retain their own notices; see [NOTICE](NOTICE). No third-party character or reference artwork is bundled.

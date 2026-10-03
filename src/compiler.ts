@@ -9,6 +9,7 @@ import {
   type Segment,
   type ValidationResult
 } from "./contract.js";
+import { MOTION_CLIP_LIBRARY, sampleClipMotion } from "./motion-clips.js";
 
 const actionNames = new Set(["walk", "run", "wave", "point", "jump", "push"]);
 const hexColor = /^#[0-9a-fA-F]{6}$/;
@@ -699,7 +700,10 @@ export function sampleAnimation(
   // carry their exact root/prop endpoint and knee orientation to the next clip.
   for (const [index, item] of intent === undefined ? spec.actions.entries() : []) {
     if (t < item.startMs) break;
-    if (mode === "normal" && t < item.startMs + item.durationMs) { active = item; activeIndex = index; break; }
+    if (mode === "normal" && (
+      t < item.startMs + item.durationMs
+      || (index === spec.actions.length - 1 && t <= spec.durationMs)
+    )) { active = item; activeIndex = index; break; }
     if (item.action === "walk" || item.action === "run") {
       const target = spec.targets?.[item.target ?? ""];
       if (target) {
@@ -717,6 +721,42 @@ export function sampleAnimation(
       if (target) facing = Math.sign(target.x - rootX) || facing;
     }
     previous = item;
+  }
+  const useClipEngine = spec.canvas.width > 1000;
+  if (useClipEngine && intent === undefined && active && (active.action === "walk" || active.action === "run" || active.action === "jump" || active.action === "point")) {
+    const p = clamp01((t - active.startMs) / active.durationMs);
+    const startX = rootX;
+    const target = active.target ? spec.targets?.[active.target] : undefined;
+    const direction = active.action === "point" && target ? Math.sign(target.x - startX) || facing
+      : active.action === "walk" || active.action === "run" ? Math.sign((target?.x ?? startX) - startX) || facing : facing;
+    const clip = sampleClipMotion(MOTION_CLIP_LIBRARY, {
+      action: active.action === "walk" || active.action === "run" || active.action === "jump" || active.action === "point" ? active.action : "idle",
+      progress: p,
+      startX,
+      endX: active.action === "walk" || active.action === "run" ? target?.x ?? startX : startX,
+      groundY,
+      facing: direction as -1 | 1,
+      scale,
+      ...(active.action === "point" && target ? { pointTarget: target } : {})
+    });
+    if (clip.segments && clip.headPoint) {
+      const prop = spec.prop ? {
+        id: spec.prop.id, x: propX, y: spec.prop.y, width: spec.prop.width, height: spec.prop.height,
+        handleX: propX + spec.prop.handle.x, handleY: spec.prop.y + spec.prop.handle.y
+      } : null;
+      return { timeMs: t, action: active.action, x: clip.rootX, groundY, head: clip.headPoint, segments: clip.segments, prop };
+    }
+  } else if (useClipEngine && intent === undefined && !active && mode === "normal") {
+    const nearActionBoundary = spec.actions.some(item =>
+      Math.abs(t - item.startMs) < 250 || Math.abs(t - (item.startMs + item.durationMs)) < 250
+    );
+    if (!nearActionBoundary) {
+      const clip = sampleClipMotion(MOTION_CLIP_LIBRARY, {
+        action: "idle", progress: ((t / 1000) % 2) / 2, startX: rootX, endX: rootX,
+        groundY, facing: facing as -1 | 1, scale
+      });
+      if (clip.segments && clip.headPoint) return { timeMs: t, action: "idle", x: clip.rootX, groundY, head: clip.headPoint, segments: clip.segments, prop: null };
+    }
   }
   let hipHeight = restHeight;
   let hipOffset = 0;
@@ -1106,6 +1146,49 @@ export function sampleAnimation(
       leftBend = mix(leftBend, -direction * 0.20, gesture);
     }
   };
+  const applyClipDefault = (
+    action: "idle" | "walk" | "run" | "jump" | "point",
+    progress: number,
+    startX: number,
+    endX: number,
+    direction: -1 | 1,
+    target?: Point
+  ): void => {
+    if (!useClipEngine) return;
+    const clip = sampleClipMotion(MOTION_CLIP_LIBRARY, {
+      action, progress, startX, endX, groundY, facing: direction, scale,
+      ...(target ? { pointTarget: target } : {})
+    });
+    const weight = clip.weight;
+    if (weight <= 1e-6) return;
+    const nextRootX = mix(rootX, clip.rootX, weight);
+    const minimumClipHeight = (action === "jump" ? 46 : 66) * scale;
+    const nextHipHeight = mix(hipHeight, Math.max(minimumClipHeight, clip.hipHeight), weight);
+    const supportRadius = Math.max(stance, Math.sqrt(Math.max(0, (2 * legLength * 0.94) ** 2 - nextHipHeight ** 2)));
+    const clampFoot = (current: Point, foot: { x: number; y: number }): Point => ({
+      x: mix(current.x, Math.max(nextRootX - supportRadius, Math.min(nextRootX + supportRadius, foot.x)), weight),
+      y: Math.min(groundY, mix(current.y, foot.y, weight))
+    });
+    rootX = nextRootX;
+    hipHeight = nextHipHeight;
+    const clipLean = action === "walk" || action === "run"
+      ? direction * Math.max(Math.abs(clip.lean), (action === "run" ? 0.18 : 0.06) * weight)
+      : clip.lean;
+    lean = angleMix(lean, clipLean, weight);
+    leftFoot = clampFoot(leftFoot, clip.leftFoot);
+    rightFoot = clampFoot(rightFoot, clip.rightFoot);
+    leftKneePole = -direction;
+    rightKneePole = -direction;
+    const armWeight = (nextRootX < 70 * scale || nextRootX > spec.canvas.width - 70 * scale) ? 0 : weight;
+    leftUpper = angleMix(leftUpper, clip.arms.left.upper, armWeight);
+    leftBend = angleMix(leftBend, clip.arms.left.bend, armWeight);
+    rightUpper = angleMix(rightUpper, clip.arms.right.upper, armWeight);
+    rightBend = angleMix(rightBend, clip.arms.right.bend, armWeight);
+    if (action === "point" && target) {
+      pointTarget = target;
+      gesture = Math.max(gesture, weight);
+    }
+  };
   if (active) {
     const p = clamp01((t - active.startMs) / active.durationMs);
     const startX = rootX;
@@ -1199,6 +1282,7 @@ export function sampleAnimation(
         leftBend = mix(leftBend, direction * (direction > 0 ? 0.60 : 1.10), armLoad);
         rightBend = mix(rightBend, direction * (direction > 0 ? 1.10 : 0.60), armLoad);
       }
+      applyClipDefault(active.action, p, startX, destination.x, direction as -1 | 1);
     } else if (active.action === "wave") {
       gesture = smooth(p / 0.22) * smooth((1 - p) / 0.22);
       const repetitions = Math.max(1, Math.min(3, Math.round(active.durationMs / 1200)));
@@ -1214,7 +1298,8 @@ export function sampleAnimation(
       const turnEnd = facing !== direction ? preparationFraction(active.durationMs, true) : 0;
       const landingIn = previous?.action === "jump" && previous.startMs + previous.durationMs === active.startMs;
       turn(p, direction, turnEnd, landingIn ? 66 * scale : restHeight);
-      gesture = mix(landingIn ? 0.55 : 0, 1, smooth(p / 0.28)) * smooth((1 - p) / 0.22);
+      const finalPoint = activeIndex === spec.actions.length - 1;
+      gesture = mix(landingIn ? 0.55 : 0, 1, smooth(p / 0.28)) * (finalPoint ? 1 : smooth((1 - p) / 0.22));
       if (landingIn && turnEnd === 0) hipHeight = mix(66 * scale, restHeight, smooth(p / 0.18));
       // Keep the inactive arm behind/opposite the pointing gesture so both
       // sides remain readable; rotate joints rather than mirroring the rig.
@@ -1222,6 +1307,7 @@ export function sampleAnimation(
       leftBend = mix(leftBend, -direction * 0.20, gesture);
       // Remain upright so an overhead point can route around the head.
       facing = direction;
+      applyClipDefault("point", finalPoint ? Math.min(p, 0.5) : p, startX, startX, direction as -1 | 1, pointTarget);
     } else if (active.action === "jump") {
       const previousRoute = routes.find((route) => route.index === activeIndex - 1);
       const travelIn = previousRoute && previousRoute.startX !== previousRoute.endX
@@ -1229,6 +1315,7 @@ export function sampleAnimation(
       const next = spec.actions[activeIndex + 1];
       const target = next?.action === "point" && next.startMs === active.startMs + active.durationMs ? spec.targets?.[next.target ?? ""] : undefined;
       applyJump(p, Boolean(travelIn), target);
+      applyClipDefault("jump", p, startX, startX, facing as -1 | 1, target);
     } else if (active.action === "push" && spec.prop) {
       const turnEnd = facing !== 1 ? Math.min(0.14, 240 / active.durationMs) : 0;
       const contact = turnEnd + 0.20 * (1 - turnEnd);
@@ -1253,6 +1340,11 @@ export function sampleAnimation(
         gravityCompensation = lean;
       }
     }
+  } else if (mode === "normal" && intent === undefined) {
+    const nearActionBoundary = spec.actions.some(item =>
+      Math.abs(t - item.startMs) < 250 || Math.abs(t - (item.startMs + item.durationMs)) < 250
+    );
+    if (!nearActionBoundary) applyClipDefault("idle", ((t / 1000) % 2) / 2, rootX, rootX, facing as -1 | 1);
   }
 
   if (intent !== undefined) {

@@ -39,6 +39,10 @@ describe("orthographic world planner through canonical FK/IK", () => {
       projectWorld: (p, h = 0) => ({ x: p.x, y: 290 - h }),
       canOccupy: p => p.x >= 80 && p.x <= 560
     };
+    it("defaults omitted canvas fps to 30", () => {
+      expect(createMotionIntentState(flat).program.spec.canvas.fps).toBe(30);
+    });
+
     it("fast-forwards 60 seconds of settled idle without moving the pose or world anchors", () => {
       const initial = createMotionIntentState(flat);
       const before = advanceMotionIntent(initial, idle, 0);

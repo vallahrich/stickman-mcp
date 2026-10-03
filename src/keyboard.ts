@@ -50,7 +50,7 @@ export interface KeyboardMotionObservation extends KeyboardIntentRecord {
 
 export interface KeyboardControllerOptions {
   /** Virtual units, not CSS pixels. Map the entire browser scene and its anchors. */
-  canvas: { width: number; height: number };
+  canvas: { width: number; height: number; fps?: number };
   /** Legacy flat scene; required unless world is supplied. */
   initialX?: number;
   groundY?: number;
@@ -124,7 +124,7 @@ export function createKeyboardController(
     };
   }
   const scene: WorldMotionScene = {
-    ...room, canvas: { ...options.canvas, fps: 60 },
+    ...room, canvas: { ...options.canvas, fps: options.canvas.fps ?? 30 },
     projectWorld: (point, height = 0) => room.projectWorld(point, height),
     ...(room.canOccupy ? { canOccupy: (point: WorldPoint, radius: number) => room.canOccupy!(point, radius) } : {}),
     ...(options.program ? { program: options.program } : {})

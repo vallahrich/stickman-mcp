@@ -20,7 +20,7 @@ function preview(reduced: boolean) {
     setAttribute(key: string, value: string | number): void;
     addEventListener(event: string, listener: () => void): void;
   }>();
-  for (const id of ["mode", "seek", "toggle", "head", "eye", "stage-svg", "ground", "pelvis", "neck", "left-foot", "right-foot", "left-hand", "right-hand", "point-finger", ...sampleAnimation(program, 0).segments.map(line => line.id)]) {
+  for (const id of ["mode", "seek", "toggle", "head", "stage-svg", "ground", "torso", "left-arm", "right-arm", "left-leg", "right-leg", "left-foot", "right-foot", "point-finger"]) {
     const attributes = new Map<string, string | number>();
     const listeners = new Map<string, () => void>();
     nodes.set(id, {
@@ -80,15 +80,16 @@ describe("self-contained HTML startup controls", () => {
       const geometry = frameGeometry(frame);
       expect(geometry.nearSide).toBe("left");
       expect(geometry.frontArm).toBe("right");
-      expect(geometry.rearSegments).toContain("left-forearm");
-      expect(geometry.rearSegments).not.toContain("right-forearm");
-      expect(geometry.segmentOrder.at(-1)).toBe("right-forearm");
+      expect(geometry.limbs.find(limb => limb.id === "left-arm")!.near).toBe(false);
+      expect(geometry.limbs.find(limb => limb.id === "right-arm")!.near).toBe(true);
+      expect(geometry.segmentOrder.at(-1)).toBe("right-arm");
       const svg = renderSvgFrame(compiled.program!, 1200);
       expect(svg).toContain('id="point-finger"');
-      expect(svg).toContain('id="eye"');
-      expect(svg.indexOf('id="right-forearm"')).toBeGreaterThan(svg.indexOf('id="left-forearm"'));
-      expect(Math.hypot(geometry.eye.x - frame.head.x, geometry.eye.y - frame.head.y)
-        + geometry.eye.radius).toBeLessThan(geometry.headRadius);
+      expect(svg).not.toContain('id="eye"');
+      expect(svg).not.toContain("-hand");
+      expect(svg.indexOf('id="right-arm"')).toBeGreaterThan(svg.indexOf('id="left-arm"'));
+      expect((svg.match(/<circle\b/g) ?? [])).toHaveLength(1);
+      expect(geometry.headRadius * 2 / (frame.groundY - (geometry.head.y - geometry.headRadius))).toBeGreaterThan(0.21);
     });
     it("keeps the leading silhouette readable when travel direction reverses", () => {
       const make = (targetX: number) => compileAnimation({
@@ -106,15 +107,40 @@ describe("self-contained HTML startup controls", () => {
       expect(frameGeometry(sampleAnimation(right.program!, 1000)).nearSide).toBe("right");
       const leftSvg = renderSvgFrame(left.program!, 1000);
       const rightSvg = renderSvgFrame(right.program!, 1000);
-      expect(leftSvg.indexOf('id="left-thigh"')).toBeGreaterThan(leftSvg.indexOf('id="right-thigh"'));
-      expect(rightSvg.indexOf('id="right-thigh"')).toBeGreaterThan(rightSvg.indexOf('id="left-thigh"'));
+      expect(leftSvg.indexOf('id="left-leg"')).toBeGreaterThan(leftSvg.indexOf('id="right-leg"'));
+      expect(rightSvg.indexOf('id="right-leg"')).toBeGreaterThan(rightSvg.indexOf('id="left-leg"'));
       const animated = renderAnimatedSvg(left.program!);
-      expect(animated).toContain('<use data-slot="near-left-thigh"');
+      expect(animated).toContain('id="near-left-leg"');
       expect(animated).toContain('attributeName="visibility"');
       expect(animated).not.toContain('attributeName="href"');
       expect(animated.indexOf('data-layer="near"')).toBeGreaterThan(animated.indexOf('data-layer="far"'));
-      expect(animated.match(/<line id="/g)).toHaveLength(9);
+      expect(animated.match(/<line id="/g) ?? []).toHaveLength(0);
+      expect(animated.match(/<path id="(?:far|near)-/g)).toHaveLength(12);
       expect(animated).not.toContain("<script");
+    });
+
+    it("uses Pivot-style figure primitives without rear opacity or marker circles", () => {
+      const compiled = compileAnimation({
+        version: "stickman.animation/v1",
+        canvas: { width: 640, height: 360, fps: 30 },
+        durationMs: 1800,
+        actor: { x: 120, groundY: 290, color: "#202124" },
+        targets: { destination: { x: 420, y: 290 } },
+        actions: [{ action: "run", startMs: 0, durationMs: 1600, target: "destination" }]
+      });
+      expect(compiled.valid).toBe(true);
+      const frame = sampleAnimation(compiled.program!, 600);
+      const geometry = frameGeometry(frame);
+      const svg = renderSvgFrame(compiled.program!, 600);
+      expect(svg.match(/<circle\b/g) ?? []).toHaveLength(1);
+      expect(svg).not.toMatch(/stroke-opacity="0\.[^"]+"/);
+      for (const id of ["left-arm", "right-arm", "left-leg", "right-leg"]) {
+        expect(svg).toMatch(new RegExp(`<path id="${id}" d="[^"]+"`));
+      }
+      expect(svg).toContain('stroke-linecap="round"');
+      expect(svg).toContain('stroke-linejoin="round"');
+      expect(geometry.strokeWidth / (geometry.headRadius * 2)).toBeCloseTo(0.09, 3);
+      expect(geometry.headRadius * 2 / (frame.groundY - (geometry.head.y - geometry.headRadius))).toBeGreaterThan(0.21);
     });
     it("preserves solved poses instead of interpolating independent bone endpoints", () => {
       const compiled = compileAnimation({
@@ -129,7 +155,7 @@ describe("self-contained HTML startup controls", () => {
       expect(artifact).toContain('calcMode="discrete"');
       expect(artifact).not.toContain('calcMode="linear"');
       const keys = /keyTimes="([^"]+)"/.exec(artifact)![1]!.split(";").map(Number);
-      expect(keys).toHaveLength(145);
+      expect(keys).toHaveLength(59);
       expect(keys[0]).toBe(0);
       expect(keys.at(-1)).toBe(1);
       for (let index = 1; index < keys.length; index++) expect(keys[index]).toBeGreaterThan(keys[index - 1]!);
@@ -145,7 +171,7 @@ describe("self-contained HTML startup controls", () => {
       });
       expect(compiled.valid).toBe(true);
       const keys = /keyTimes="([^"]+)"/.exec(renderAnimatedSvg(compiled.program!))![1]!.split(";").map(Number);
-      expect(keys).toHaveLength(1201);
+      expect(keys).toHaveLength(21);
       for (let index = 1; index < keys.length; index++) expect(keys[index]).toBeGreaterThan(keys[index - 1]!);
     });
   });

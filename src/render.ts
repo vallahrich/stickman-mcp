@@ -1,5 +1,6 @@
 import type { CompiledAnimation, PlaybackMode, SampledFrame } from "./contract.js";
 import { sampleAnimation } from "./compiler.js";
+import { MOTION_CLIP_LIBRARY, sampleClipMotion } from "./motion-clips.js";
 
 function xml(value: string): string {
   return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&apos;");
@@ -15,17 +16,19 @@ function number(value: number): string {
 
 export function frameGeometry(frame: SampledFrame) {
   const torso = frame.segments.find(segment => segment.id === "torso");
+  const leftUpperArm = frame.segments.find(segment => segment.id === "left-upper-arm");
+  const rightUpperArm = frame.segments.find(segment => segment.id === "right-upper-arm");
   const leftThigh = frame.segments.find(segment => segment.id === "left-thigh");
   const rightThigh = frame.segments.find(segment => segment.id === "right-thigh");
   const leftShin = frame.segments.find(segment => segment.id === "left-shin");
   const rightShin = frame.segments.find(segment => segment.id === "right-shin");
   const leftForearm = frame.segments.find(segment => segment.id === "left-forearm");
   const rightForearm = frame.segments.find(segment => segment.id === "right-forearm");
-  if (!torso || !leftThigh || !rightThigh || !leftShin || !rightShin || !leftForearm || !rightForearm) throw new Error("Pose is missing required torso or limb segments.");
-  const scale = Math.hypot(torso.x2 - torso.x1, torso.y2 - torso.y1) / 46;
+  if (!torso || !leftUpperArm || !rightUpperArm || !leftThigh || !rightThigh || !leftShin || !rightShin || !leftForearm || !rightForearm) throw new Error("Pose is missing required torso or limb segments.");
+  const scale = Math.hypot(torso.x2 - torso.x1, torso.y2 - torso.y1) / 30;
   if (!Number.isFinite(scale) || scale <= 0) throw new Error("Pose has an invalid torso length.");
   const headRadius = 11 * scale;
-  const strokeWidth = 3.6 * scale;
+  const strokeWidth = Math.max(2.5, headRadius * 2 * 0.09);
   const torsoDirection = torso.x2 - torso.x1;
   const kneeDirection = (leftThigh.x2 + rightThigh.x2) / 2 - torso.x1;
   const direction = Math.abs(torsoDirection) > 0.1 * scale ? torsoDirection : kneeDirection;
@@ -33,19 +36,41 @@ export function frameGeometry(frame: SampledFrame) {
   const farSide = nearSide === "left" ? "right" : "left";
   const frontArm = frame.action === "point" ? "right" : nearSide;
   const backArm = frontArm === "left" ? "right" : "left";
-  const rearSegments = [
-    `${farSide}-thigh`, `${farSide}-shin`, `${backArm}-upper-arm`, `${backArm}-forearm`
-  ];
-  const segmentOrder = [
-    ...rearSegments,
-    "torso",
-    `${nearSide}-thigh`, `${nearSide}-shin`, `${frontArm}-upper-arm`, `${frontArm}-forearm`
-  ];
+  const farLeg = `${farSide}-leg`;
+  const nearLeg = `${nearSide}-leg`;
+  const farArm = `${backArm}-arm`;
+  const nearArm = `${frontArm}-arm`;
+  const segmentOrder = [farArm, farLeg, "torso", nearLeg, nearArm];
   const format = (value: number): string => Number(value.toFixed(3)).toString();
   const path = (x1: number, y1: number, x2: number, y2: number): string =>
     `M${format(x1)} ${format(y1)}L${format(x2)} ${format(y2)}`;
-  const neckDistance = Math.hypot(frame.head.x - torso.x2, frame.head.y - torso.y2);
-  const neckFraction = neckDistance > headRadius ? 1 - headRadius / neckDistance : 0;
+  const curve = (
+    root: { x: number; y: number }, joint: { x: number; y: number }, end: { x: number; y: number }
+  ): string => {
+    const dx = end.x - root.x;
+    const dy = end.y - root.y;
+    const length = Math.hypot(dx, dy);
+    if (length <= 1e-6) return path(root.x, root.y, end.x, end.y);
+    const signedDistance = ((joint.x - root.x) * dy - (joint.y - root.y) * dx) / length;
+    if (Math.abs(signedDistance) < 0.85 * scale) return path(root.x, root.y, end.x, end.y);
+    const limitedDistance = Math.max(-0.15 * length, Math.min(0.15 * length, signedDistance));
+    const midX = (root.x + end.x) / 2;
+    const midY = (root.y + end.y) / 2;
+    const cx = midX - dy / length * limitedDistance * 2;
+    const cy = midY + dx / length * limitedDistance * 2;
+    return `M${format(root.x)} ${format(root.y)}Q${format(cx)} ${format(cy)} ${format(end.x)} ${format(end.y)}`;
+  };
+  const limb = (id: string, upper: typeof leftUpperArm, lower: typeof leftForearm, kind: "arm" | "leg", near: boolean) => ({
+    id, kind, near,
+    d: curve({ x: upper.x1, y: upper.y1 }, { x: upper.x2, y: upper.y2 }, { x: lower.x2, y: lower.y2 })
+  });
+  const headVectorLength = Math.hypot(frame.head.x - torso.x2, frame.head.y - torso.y2);
+  const head = headVectorLength > 1e-6
+    ? {
+        x: torso.x2 + (frame.head.x - torso.x2) / headVectorLength * headRadius,
+        y: torso.y2 + (frame.head.y - torso.y2) / headVectorLength * headRadius
+      }
+    : frame.head;
   const footPath = (shin: typeof leftShin): string => {
     const halfLength = 5.5 * scale;
     const clearance = Math.max(0, frame.groundY - shin.y2);
@@ -56,19 +81,20 @@ export function frameGeometry(frame: SampledFrame) {
     const dy = Math.sin(angle) * halfLength;
     return path(shin.x2 - dx, shin.y2 - dy, shin.x2 + dx, shin.y2 + dy);
   };
+  const limbs = [
+    limb("left-arm", leftUpperArm, leftForearm, "arm", frontArm === "left"),
+    limb("right-arm", rightUpperArm, rightForearm, "arm", frontArm === "right"),
+    limb("left-leg", leftThigh, leftShin, "leg", nearSide === "left"),
+    limb("right-leg", rightThigh, rightShin, "leg", nearSide === "right")
+  ];
   return {
-    scale, headRadius, strokeWidth, nearSide, frontArm, rearSegments, segmentOrder,
-    eye: { x: frame.head.x + (nearSide === "left" ? -4.5 : 4.5) * scale, y: frame.head.y - scale, radius: 1.6 * scale },
-    hands: [
-      { id: "left-hand", x: leftForearm.x2, y: leftForearm.y2, rear: frontArm !== "left" },
-      { id: "right-hand", x: rightForearm.x2, y: rightForearm.y2, rear: frontArm !== "right" }
-    ],
+    scale, headRadius, strokeWidth, head, nearSide, frontArm,
+    rearSegments: [] as string[], segmentOrder, limbs,
     handlePath: frame.prop ? path(frame.prop.handleX, frame.prop.handleY - 5 * scale, frame.prop.handleX, frame.prop.handleY + 5 * scale) : null,
     paths: [
-      { id: "pelvis", d: path(leftThigh.x1, leftThigh.y1, rightThigh.x1, rightThigh.y1), rear: false },
-      { id: "neck", d: path(torso.x2, torso.y2, torso.x2 + (frame.head.x - torso.x2) * neckFraction, torso.y2 + (frame.head.y - torso.y2) * neckFraction), rear: false },
-      { id: "left-foot", d: footPath(leftShin), rear: nearSide !== "left" },
-      { id: "right-foot", d: footPath(rightShin), rear: nearSide !== "right" },
+      { id: "torso", d: path(torso.x1, torso.y1, torso.x2, torso.y2), near: true },
+      { id: "left-foot", d: footPath(leftShin), near: nearSide === "left" },
+      { id: "right-foot", d: footPath(rightShin), near: nearSide === "right" },
       {
         id: "point-finger",
         d: (() => {
@@ -79,7 +105,7 @@ export function frameGeometry(frame: SampledFrame) {
           return path(rightForearm.x2, rightForearm.y2,
             rightForearm.x2 + dx / reach * extension, rightForearm.y2 + dy / reach * extension);
         })(),
-        rear: false, strokeWidth: 1.8 * scale
+        near: true, strokeWidth: strokeWidth
       }
     ]
   };
@@ -87,22 +113,28 @@ export function frameGeometry(frame: SampledFrame) {
 
 function frameMarkup(frame: SampledFrame, color: string, width: number, height: number): string {
   const geometry = frameGeometry(frame);
-  const lines = geometry.segmentOrder.map(id => frame.segments.find(line => line.id === id)!).map(line =>
-    `<line id="${xml(line.id)}" x1="${number(line.x1)}" y1="${number(line.y1)}" x2="${number(line.x2)}" y2="${number(line.y2)}"${geometry.rearSegments.includes(line.id) ? ' stroke-opacity="0.65"' : ""}/>`
-  ).join("");
-  const details = geometry.paths.map(item =>
-    `<path id="${item.id}" d="${item.d}"${item.rear ? ' stroke-opacity="0.65"' : ""}${typeof item.strokeWidth === "number" ? ` stroke-width="${number(item.strokeWidth)}"` : ""}/>`
-  ).join("");
+  const limbById = new Map(geometry.limbs.map(limb => [limb.id, limb]));
+  const detailById = new Map(geometry.paths.map(item => [item.id, item]));
+  const footForSide = (side: "left" | "right"): string => {
+    const foot = detailById.get(`${side}-foot`);
+    return foot ? `<path id="${foot.id}" d="${foot.d}"/>` : "";
+  };
+  const limb = (id: string): string => {
+    const item = limbById.get(id);
+    if (!item) throw new Error(`Missing limb ${id}.`);
+    const foot = item.kind === "leg" ? footForSide(id.startsWith("left") ? "left" : "right") : "";
+    return `<path id="${item.id}" d="${item.d}"/>${foot}`;
+  };
+  const figure = `${limb(geometry.segmentOrder[0]!)}${limb(geometry.segmentOrder[1]!)}<path id="torso" d="${geometry.paths.find(item => item.id === "torso")?.d ?? `M${number(frame.segments[0]!.x1)} ${number(frame.segments[0]!.y1)}L${number(frame.segments[0]!.x2)} ${number(frame.segments[0]!.y2)}`}"/>` +
+    `<circle id="head" cx="${number(geometry.head.x)}" cy="${number(geometry.head.y)}" r="${number(geometry.headRadius)}" fill="#ffffff" stroke="${xml(color)}" stroke-width="${number(geometry.strokeWidth)}"/>` +
+    `${limb(geometry.segmentOrder[3]!)}${limb(geometry.segmentOrder[4]!)}` +
+    `${detailById.get("point-finger") ? `<path id="point-finger" d="${detailById.get("point-finger")!.d}"/>` : ""}`;
   const prop = frame.prop
     ? `<g id="prop"><rect x="${number(frame.prop.x)}" y="${number(frame.prop.y)}" width="${number(frame.prop.width)}" height="${number(frame.prop.height)}" rx="3" fill="#fff" stroke="${xml(color)}" stroke-width="${number(geometry.strokeWidth)}"/><path id="handle" d="${geometry.handlePath}" fill="none" stroke="${xml(color)}" stroke-width="${number(1.4 * geometry.scale)}" stroke-linecap="round"/></g>`
     : "";
-  const hands = geometry.hands.map(hand =>
-    `<circle id="${hand.id}" cx="${number(hand.x)}" cy="${number(hand.y)}" r="${number(3 * geometry.scale)}" fill="#fff" stroke="${xml(color)}" stroke-width="${number(geometry.scale)}"${hand.rear ? ' stroke-opacity="0.7"' : ""}/>`
-  ).join("");
   return `<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Stick figure ${xml(frame.action)} at ${number(frame.timeMs)} milliseconds" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">
 <rect width="100%" height="100%" fill="#ffffff"/><path id="ground" d="M0 ${number(frame.groundY)}H${width}" stroke="#d8dbe0" stroke-width="1"/>
-<g fill="none" stroke="${xml(color)}" stroke-width="${number(geometry.strokeWidth)}" stroke-linecap="round" stroke-linejoin="round">${lines}${details}</g>
-<circle id="head" cx="${number(frame.head.x)}" cy="${number(frame.head.y)}" r="${number(geometry.headRadius)}" fill="#ffffff" stroke="${xml(color)}" stroke-width="${number(geometry.strokeWidth)}"/><circle id="eye" cx="${number(geometry.eye.x)}" cy="${number(geometry.eye.y)}" r="${number(geometry.eye.radius)}" fill="${xml(color)}"/>${prop}${hands}
+<g fill="none" stroke="${xml(color)}" stroke-width="${number(geometry.strokeWidth)}" stroke-linecap="round" stroke-linejoin="round">${figure}</g>${prop}
 </svg>`;
 }
 
@@ -118,7 +150,7 @@ export function renderAnimatedSvg(program: CompiledAnimation): string {
   const { durationMs, canvas } = program.spec;
   // A cached vector frame must retain its solved bone lengths and contacts;
   // interpolating separate endpoints between poses breaks those constraints.
-  const frames = Math.max(2, Math.ceil(durationMs * Math.max(60, canvas.fps) / 1000) + 1);
+  const frames = Math.max(2, Math.ceil(durationMs * canvas.fps / 1000) + 1);
   const samples = Array.from({ length: frames }, (_, index) => sampleAnimation(program, durationMs * index / (frames - 1)));
   const shapes = samples.map(frameGeometry);
   const keys = samples.map((_, index) => (index / (frames - 1)).toString()).join(";");
@@ -126,58 +158,57 @@ export function renderAnimatedSvg(program: CompiledAnimation): string {
   const first = samples[0]!;
   const firstShape = shapes[0]!;
   const color = program.spec.actor?.color ?? "#202124";
-  const lines = firstShape.segmentOrder.map(id => first.segments.find(line => line.id === id)!).map(line => {
-    const at = samples.map(frame => frame.segments.find(segment => segment.id === line.id)!);
-    const opacity = shapes.map(shape => shape.rearSegments.includes(line.id) ? 0.65 : 1);
-    return `<line id="${xml(line.id)}" x1="${number(line.x1)}" y1="${number(line.y1)}" x2="${number(line.x2)}" y2="${number(line.y2)}" stroke-opacity="${opacity[0]}">${animateAttribute("x1", at.map(s => s.x1), seconds, keys)}${animateAttribute("y1", at.map(s => s.y1), seconds, keys)}${animateAttribute("x2", at.map(s => s.x2), seconds, keys)}${animateAttribute("y2", at.map(s => s.y2), seconds, keys)}${animateAttribute("stroke-opacity", opacity, seconds, keys)}</line>`;
-  }).join("");
-  const details = firstShape.paths.map((item, index) =>
-    `<path id="${item.id}" d="${item.d}" stroke-opacity="${item.rear ? 0.65 : 1}"${typeof item.strokeWidth === "number" ? ` stroke-width="${number(item.strokeWidth)}"` : ""}><animate attributeName="d" dur="${number(seconds)}s" values="${shapes.map(shape => shape.paths[index]!.d).join(";")}" keyTimes="${keys}" fill="freeze" calcMode="discrete"/>${animateAttribute("stroke-opacity", shapes.map(shape => shape.paths[index]!.rear ? 0.65 : 1), seconds, keys)}</path>`
-  ).join("");
+  const limbFor = (shape: typeof firstShape, side: "left" | "right", kind: "arm" | "leg") =>
+    shape.limbs.find(limb => limb.id === `${side}-${kind}`)!;
+  const pathFor = (shape: typeof firstShape, id: string) => shape.paths.find(item => item.id === id)!;
+  const animatedPath = (id: string, initialD: string, values: string[], visibility?: string[]): string =>
+    `<path id="${id}" d="${initialD}"><animate attributeName="d" dur="${number(seconds)}s" values="${values.join(";")}" keyTimes="${keys}" fill="freeze" calcMode="discrete"/>${visibility ? `<animate attributeName="visibility" dur="${number(seconds)}s" values="${visibility.join(";")}" keyTimes="${keys}" fill="freeze" calcMode="discrete"/>` : ""}</path>`;
   const limbLayer = (near: boolean): string => {
     const name = near ? "near" : "far";
-    const sides = ["left", "right"].flatMap(side => ["legs", "arms"].map(kind => {
-      const visibility = shapes.map(shape =>
-        ((kind === "legs" ? shape.nearSide : shape.frontArm) === side) === near ? "visible" : "hidden");
-      const references = (kind === "legs" ? ["thigh", "shin"] : ["upper-arm", "forearm"]).map(part =>
-        `<use data-slot="${name}-${side}-${part}" href="#${side}-${part}"/>`
-      ).join("");
-      return `<g data-side="${side}" data-kind="${kind}" visibility="${visibility[0]}"><animate attributeName="visibility" dur="${number(seconds)}s" values="${visibility.join(";")}" keyTimes="${keys}" fill="freeze" calcMode="discrete"/>${references}</g>`;
+    const sides = (["left", "right"] as const).flatMap(side => (["arm", "leg"] as const).map(kind => {
+      const limbs = shapes.map(shape => limbFor(shape, side, kind));
+      const visibility = limbs.map(limb => limb.near === near ? "visible" : "hidden");
+      const foot = kind === "leg"
+        ? animatedPath(`${name}-${side}-foot`, pathFor(firstShape, `${side}-foot`).d, shapes.map(shape => pathFor(shape, `${side}-foot`).d), visibility)
+        : "";
+      return animatedPath(`${name}-${side}-${kind}`, limbs[0]!.d, limbs.map(limb => limb.d), visibility) + foot;
     })).join("");
     return `<g data-layer="${name}">${sides}</g>`;
   };
-  const head = `<circle id="head" cx="${number(first.head.x)}" cy="${number(first.head.y)}" r="${number(firstShape.headRadius)}" fill="#fff" stroke="${xml(color)}" stroke-width="${number(firstShape.strokeWidth)}">${animateAttribute("cx", samples.map(s => s.head.x), seconds, keys)}${animateAttribute("cy", samples.map(s => s.head.y), seconds, keys)}</circle>`;
-  const eye = `<circle id="eye" cx="${number(firstShape.eye.x)}" cy="${number(firstShape.eye.y)}" r="${number(firstShape.eye.radius)}" fill="${xml(color)}">${animateAttribute("cx", shapes.map(shape => shape.eye.x), seconds, keys)}${animateAttribute("cy", shapes.map(shape => shape.eye.y), seconds, keys)}</circle>`;
+  const torso = animatedPath("torso", pathFor(firstShape, "torso").d, shapes.map(shape => pathFor(shape, "torso").d));
+  const pointFinger = animatedPath("point-finger", pathFor(firstShape, "point-finger").d, shapes.map(shape => pathFor(shape, "point-finger").d));
+  const head = `<circle id="head" cx="${number(firstShape.head.x)}" cy="${number(firstShape.head.y)}" r="${number(firstShape.headRadius)}" fill="#fff" stroke="${xml(color)}" stroke-width="${number(firstShape.strokeWidth)}">${animateAttribute("cx", shapes.map(shape => shape.head.x), seconds, keys)}${animateAttribute("cy", shapes.map(shape => shape.head.y), seconds, keys)}</circle>`;
   const prop = first.prop
     ? `<g id="prop"><rect y="${number(first.prop.y)}" width="${number(first.prop.width)}" height="${number(first.prop.height)}" rx="3" fill="#fff" stroke="${xml(color)}" stroke-width="${number(firstShape.strokeWidth)}">${animateAttribute("x", samples.map(s => s.prop!.x), seconds, keys)}</rect><path id="handle" d="${firstShape.handlePath}" fill="none" stroke="${xml(color)}" stroke-width="${number(1.4 * firstShape.scale)}" stroke-linecap="round"><animate attributeName="d" dur="${number(seconds)}s" values="${shapes.map(shape => shape.handlePath).join(";")}" keyTimes="${keys}" fill="freeze" calcMode="discrete"/></path></g>`
     : "";
-  const hands = firstShape.hands.map((hand, index) =>
-    `<circle id="${hand.id}" cx="${number(hand.x)}" cy="${number(hand.y)}" r="${number(3 * firstShape.scale)}" fill="#fff" stroke="${xml(color)}" stroke-width="${number(firstShape.scale)}" stroke-opacity="${hand.rear ? 0.7 : 1}">${animateAttribute("cx", shapes.map(shape => shape.hands[index]!.x), seconds, keys)}${animateAttribute("cy", shapes.map(shape => shape.hands[index]!.y), seconds, keys)}${animateAttribute("stroke-opacity", shapes.map(shape => shape.hands[index]!.rear ? 0.7 : 1), seconds, keys)}</circle>`
-  ).join("");
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${canvas.width} ${canvas.height}" width="${canvas.width}" height="${canvas.height}" role="img" aria-label="Deterministic stick figure animation">
 <rect width="100%" height="100%" fill="#fff"/><path id="ground" d="M0 ${number(first.groundY)}H${canvas.width}" stroke="#d8dbe0"/>
-<g fill="none" stroke="${xml(color)}" stroke-width="${number(firstShape.strokeWidth)}" stroke-linecap="round" stroke-linejoin="round"><defs>${lines}</defs>${limbLayer(false)}<use href="#torso"/>${limbLayer(true)}${details}</g>${head}${eye}${prop}${hands}</svg>`;
+<g fill="none" stroke="${xml(color)}" stroke-width="${number(firstShape.strokeWidth)}" stroke-linecap="round" stroke-linejoin="round">${limbLayer(false)}${torso}${head}${limbLayer(true)}${pointFinger}</g>${prop}</svg>`;
 }
 
 export function renderHtml(program: CompiledAnimation): string {
   const { canvas } = program.spec;
   const svg = frameMarkup(sampleAnimation(program, 0), program.spec.actor?.color ?? "#202124", canvas.width, canvas.height);
   const controls = `<label>Motion mode <select id="mode"><option value="normal">Normal</option><option value="reduced">Reduced</option><option value="static">Static</option></select></label><label>Playhead <input id="seek" type="range" min="0" max="${program.spec.durationMs}" step="1" value="0"></label><button id="toggle" type="button">Pause</button>`;
-  const script = `(()=>{"use strict";const program=${scriptJson(program)};const geometry=${frameGeometry.toString()};const sample=${sampleAnimation.toString()};const svg=document.querySelector("#stage svg");
+  const script = `(()=>{"use strict";const program=${scriptJson(program)};const geometry=${frameGeometry.toString()};const sample=(program,timeMs,mode)=>{const MOTION_CLIP_LIBRARY=${scriptJson(MOTION_CLIP_LIBRARY)};const sampleClipMotion=${sampleClipMotion.toString()};const __vite_ssr_import_1__={MOTION_CLIP_LIBRARY,sampleClipMotion};return (${sampleAnimation.toString()})(program,timeMs,mode);};const svg=document.querySelector("#stage svg");
 const modeSelect=document.querySelector("#mode"),seek=document.querySelector("#seek"),toggle=document.querySelector("#toggle");
 const duration=program.spec.durationMs;
 let mode=matchMedia("(prefers-reduced-motion: reduce)").matches?"reduced":"normal";
 modeSelect.value=mode;let time=0;let playing=mode==="normal";let previous=0;let requestId=null;
 toggle.textContent=playing?"Pause":"Play";
 function draw(){
-const frame=sample(program,time,mode),shape=geometry(frame);
-for(const segment of frame.segments){const el=document.getElementById(segment.id);if(!el)throw Error("Missing segment "+segment.id);for(const key of ["x1","y1","x2","y2"])el.setAttribute(key,segment[key]);el.setAttribute("stroke-opacity",shape.rearSegments.includes(segment.id)?0.65:1);}
-for(const id of shape.segmentOrder){const el=document.getElementById(id);el.parentNode.appendChild(el);}
-for(const detail of shape.paths){const el=document.getElementById(detail.id);el.setAttribute("d",detail.d);el.setAttribute("stroke-opacity",detail.rear?0.65:1);}
-for(const hand of shape.hands){const el=document.getElementById(hand.id);el.setAttribute("cx",hand.x);el.setAttribute("cy",hand.y);el.setAttribute("stroke-opacity",hand.rear?0.7:1);}
-const head=document.getElementById("head");head.setAttribute("cx",frame.head.x);head.setAttribute("cy",frame.head.y);head.setAttribute("r",shape.headRadius);
-const eye=document.getElementById("eye");eye.setAttribute("cx",shape.eye.x);eye.setAttribute("cy",shape.eye.y);
+const frameDuration=1000/program.spec.canvas.fps;
+const sampleTime=mode==="normal"?Math.min(program.spec.durationMs,Math.floor(time/frameDuration+1e-9)*1000/program.spec.canvas.fps):time;
+const frame=sample(program,sampleTime,mode),shape=geometry(frame);
+for(const limb of shape.limbs){const el=document.getElementById(limb.id);if(!el)throw Error("Missing limb "+limb.id);el.setAttribute("d",limb.d);}
+for(const detail of shape.paths){const el=document.getElementById(detail.id);if(el)el.setAttribute("d",detail.d);}
+const head=document.getElementById("head");head.setAttribute("cx",shape.head.x);head.setAttribute("cy",shape.head.y);head.setAttribute("r",shape.headRadius);
+function appendDrawn(id){const el=document.getElementById(id);if(el)el.parentNode.appendChild(el);if(id.endsWith("-leg")){const foot=document.getElementById(id.replace("-leg","-foot"));if(foot)foot.parentNode.appendChild(foot);}}
+for(const id of shape.segmentOrder.slice(0,3)){appendDrawn(id);}
+head.parentNode.appendChild(head);
+for(const id of shape.segmentOrder.slice(3)){appendDrawn(id);}
+const finger=document.getElementById("point-finger");if(finger)finger.parentNode.appendChild(finger);
 document.getElementById("ground").setAttribute("d","M0 "+frame.groundY+"H"+program.spec.canvas.width);
 svg.setAttribute("aria-label","Stick figure "+frame.action+" at "+frame.timeMs+" milliseconds");
 const prop=document.querySelector("#prop");if(frame.prop&&prop){prop.querySelector("rect").setAttribute("x",frame.prop.x);document.getElementById("handle").setAttribute("d",shape.handlePath);}

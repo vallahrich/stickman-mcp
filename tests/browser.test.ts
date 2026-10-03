@@ -237,6 +237,17 @@ describe("browser player lifecycle using typed platform fakes", () => {
     expect(player.snapshot().timeMs).toBe(200);
   });
 
+  it("holds browser samples on canvas fps frame boundaries", () => {
+    const { player, port, program } = setup({ clock: "external" });
+    player.seek(35);
+    expect(player.snapshot().timeMs).toBe(35);
+    expect(port.frames.at(-1)).toEqual(sampleAnimation(program, 1000 / 30));
+    player.seek(66);
+    expect(port.frames.at(-1)).toEqual(sampleAnimation(program, 1000 / 30));
+    player.seek(67);
+    expect(port.frames.at(-1)).toEqual(sampleAnimation(program, 2000 / 30));
+  });
+
   it("finishes without a loop/restart and requires an explicit seek to replay", () => {
     const { player, clock, port } = setup();
     player.play();

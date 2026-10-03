@@ -118,8 +118,12 @@ async function prepare(){
  const projection=createBrowserScene(measureHostViewport(host),figureHeight());
  const ground=viewportToScene(projection,{x:projection.rect.left+100,y:projection.rect.top+host.clientHeight-68}).y;
  const start=viewportToScene(projection,{x:projection.rect.left+100,y:projection.rect.top+host.clientHeight-68});
- const arrival=projectTravelAnchor(mapElementAnchor(projection,document.getElementById("arrival")),ground,projection.canvas);
  const highlight=mapElementAnchor(projection,document.getElementById("target"));
+ const targetRect=document.getElementById("target").getBoundingClientRect();
+ const targetLeft=viewportToScene(projection,{x:targetRect.left,y:targetRect.top+targetRect.height*.52});
+ const sceneUnitsPerCssPixel=projection.canvas.width/projection.rect.width;
+ const bodyHeight=figureHeight()*sceneUnitsPerCssPixel;
+ const arrival=projectTravelAnchor({x:targetLeft.x-bodyHeight*1.05,y:highlight.y},ground,projection.canvas);
  const minimumRun=Math.ceil(Math.ceil(Math.abs(arrival.x-start.x)/60)*1000/(5.5*.76))+600;
  const runMs=Math.max(2200,minimumRun);
  const animation={version:"stickman.animation/v1",canvas:{...projection.canvas,fps:30},durationMs:runMs+3500,

@@ -14,7 +14,7 @@ const transport = new StdioClientTransport({
 });
 await client.connect(transport);
 await client.listTools();
-const modules = new Set(["browser.js", "compiler.js", "contract.js", "render.js", "keyboard.js", "room.js", "world-motion.js"]);
+const modules = new Set(["browser.js", "compiler.js", "contract.js", "render.js", "keyboard.js", "room.js", "world-motion.js", "motion-clips.js"]);
 const server = createServer(async (request, response) => {
   const origin = `http://127.0.0.1:${server.address().port}`;
   if (request.headers.host !== origin.slice(7)

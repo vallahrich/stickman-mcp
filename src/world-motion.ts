@@ -160,7 +160,7 @@ export function createMotionIntentState(sceneInput: WorldMotionScene, initialTim
     throw new RangeError("Projected initial root needs full-size rig headroom and an 80-unit horizontal margin.");
   }
   const result = compileAnimation(scene.program?.spec ?? {
-    version: CONTRACT_VERSION, canvas: { ...scene.canvas, fps: scene.canvas.fps ?? 60 },
+    version: CONTRACT_VERSION, canvas: { ...scene.canvas, fps: scene.canvas.fps ?? 30 },
     actor: { x: root.x, groundY: root.y }, durationMs: 100, actions: []
   });
   if (scene.program && scene.program.contractVersion !== CONTRACT_VERSION) throw new TypeError("Expected a canonical v1 baseline program.");

@@ -16,9 +16,15 @@ export class PlaybackSession {
 
   constructor(private readonly program: CompiledAnimation, private mode: PlaybackMode = "normal") {}
 
+  private sampleTime(): number {
+    if (this.mode !== "normal") return this.position;
+    const frameDuration = 1000 / this.program.spec.canvas.fps;
+    return Math.min(this.program.spec.durationMs, Math.floor(this.position / frameDuration + 1e-9) * 1000 / this.program.spec.canvas.fps);
+  }
+
   snapshot(): PlaybackSnapshot {
     return {
-      frame: sampleAnimation(this.program, this.position, this.mode),
+      frame: sampleAnimation(this.program, this.sampleTime(), this.mode),
       playing: this.playing,
       cancelled: this.cancelled,
       generation: this.generation

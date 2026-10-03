@@ -13,4 +13,9 @@ Optional video renderer:
 - FFmpeg is an external system executable, not bundled here. Its applicable
   license depends on the user's separately installed build and enabled codecs.
 
+Motion clip data:
+- The data used in this project was obtained from mocap.cs.cmu.edu. The
+  database was created with funding from NSF EIA-0196217. The repository
+  contains only compact 2D derived clips; raw BVH files are not bundled.
+
 Dependency copies, where installed, retain their upstream license files.

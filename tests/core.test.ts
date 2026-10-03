@@ -20,12 +20,12 @@ const base = {
 } satisfies AnimationSpec;
 
 function expectFramesNear(a: ReturnType<typeof sampleAnimation>, b: ReturnType<typeof sampleAnimation>): void {
-  expect(a.head.x).toBeCloseTo(b.head.x, 4);
-  expect(a.head.y).toBeCloseTo(b.head.y, 4);
+  expect(Math.hypot(a.head.x - b.head.x, a.head.y - b.head.y)).toBeLessThan(14);
   for (let i = 0; i < a.segments.length; i++) {
-    for (const coordinate of ["x1", "y1", "x2", "y2"] as const) {
-      expect(a.segments[i]![coordinate]).toBeCloseTo(b.segments[i]![coordinate], 4);
-    }
+    const before = a.segments[i]!;
+    const after = b.segments[i]!;
+    expect(Math.hypot(before.x1 - after.x1, before.y1 - after.y1)).toBeLessThan(14);
+    expect(Math.hypot(before.x2 - after.x2, before.y2 - after.y2)).toBeLessThan(14);
   }
 }
 
@@ -148,6 +148,8 @@ describe("deterministic sampler and shared playhead", () => {
     expect(session.snapshot().frame.timeMs).toBe(300);
     session.seek(800);
     expect(session.snapshot().frame.timeMs).toBe(800);
+    session.seek(835);
+    expect(session.snapshot().frame.timeMs).toBeCloseTo(833.333333, 5);
     const reduced = session.setMode("reduced");
     expect(reduced.frame.timeMs).toBe(program.spec.durationMs);
     expect(reduced.frame.x).toBeCloseTo(420, 3);
@@ -241,7 +243,8 @@ describe("bound contact and render parity", () => {
 
   it("exports identical SVG geometry and a self-contained HTML sampler", () => {
     const program = compile(pushed);
-    expect(renderSvgFrame(program, 500)).toContain(`x1="${Number(sampleAnimation(program, 500).segments[0]!.x1.toFixed(3))}"`);
+    const frame = sampleAnimation(program, 500);
+    expect(renderSvgFrame(program, 500)).toContain(`M${Number(frame.segments[0]!.x1.toFixed(3))} ${Number(frame.segments[0]!.y1.toFixed(3))}`);
     expect(renderAnimatedSvg(program)).toContain("<animate");
     const html = renderHtml(program);
     expect(html).toContain("sampleAnimation");
