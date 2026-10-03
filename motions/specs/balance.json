@@ -1,0 +1,52 @@
+{
+  "id": "balance",
+  "label": "Balance",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "89_06.bvh",
+    "subject": "89",
+    "trial": "06",
+    "range120": [
+      450,
+      1200
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/089/89_06.bvh"
+  },
+  "kind": "loop",
+  "travel": "travel",
+  "view": "side",
+  "expect": {
+    "pose": "cyclic-readable-human-motion",
+    "contacts": [
+      "lFoot",
+      "rFoot"
+    ],
+    "travel": "travel",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot"
+  ],
+  "prop": null,
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "balance",
+    "beam",
+    "best",
+    "balance",
+    "beam",
+    "careful",
+    "walk",
+    "clip",
+    "foot",
+    "detector",
+    "is",
+    "low"
+  ],
+  "notes": "Best balance-beam/careful-walk clip; foot detector is low because narrow careful steps slide in FK.",
+  "approvedBaseline": false
+}

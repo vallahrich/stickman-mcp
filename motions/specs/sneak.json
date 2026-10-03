@@ -1,0 +1,53 @@
+{
+  "id": "sneak",
+  "label": "Sneak",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "143_41.bvh",
+    "subject": "143",
+    "trial": "41",
+    "range120": [
+      1,
+      500
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/143/143_41.bvh",
+    "alternativeFor": "sneak"
+  },
+  "kind": "loop",
+  "travel": "travel",
+  "view": "side",
+  "expect": {
+    "pose": "cyclic-readable-human-motion",
+    "contacts": [
+      "lFoot",
+      "rFoot"
+    ],
+    "travel": "travel",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot"
+  ],
+  "prop": null,
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "sneaky",
+    "stylized",
+    "sneaky",
+    "walk",
+    "loop",
+    "candidate",
+    "long",
+    "horizontal",
+    "travel",
+    "planted",
+    "ratio",
+    "high"
+  ],
+  "notes": "Stylized sneaky walk loop candidate; long horizontal travel, planted-ratio high but loop endpoints need engine normalization. Re-picked alternative trial 143_41.",
+  "approvedBaseline": false
+}

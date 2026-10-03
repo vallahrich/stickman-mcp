@@ -1,0 +1,53 @@
+{
+  "id": "sidestep",
+  "label": "Sidestep",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "111_26.bvh",
+    "subject": "111",
+    "trial": "26",
+    "range120": [
+      1,
+      500
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/111/111_26.bvh",
+    "alternativeFor": "sidestep"
+  },
+  "kind": "loop",
+  "travel": "travel",
+  "view": "front",
+  "expect": {
+    "pose": "cyclic-readable-human-motion",
+    "contacts": [
+      "lFoot",
+      "rFoot"
+    ],
+    "travel": "travel",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot"
+  ],
+  "prop": null,
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "walk",
+    "sideways",
+    "clear",
+    "walk",
+    "sideways",
+    "candidate",
+    "root",
+    "direction",
+    "is",
+    "lateral",
+    "relative",
+    "to"
+  ],
+  "notes": "Clear walk-sideways candidate; root direction is lateral relative to body orientation. Re-picked alternative trial 111_26.",
+  "approvedBaseline": false
+}

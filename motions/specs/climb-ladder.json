@@ -1,0 +1,57 @@
+{
+  "id": "climb-ladder",
+  "label": "Climb Ladder",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "143_37.bvh",
+    "subject": "143",
+    "trial": "37",
+    "range120": [
+      1,
+      500
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/143/143_37.bvh",
+    "alternativeFor": "climb-ladder"
+  },
+  "kind": "loop",
+  "travel": "travel",
+  "view": "side",
+  "expect": {
+    "pose": "hands-high-vertical-cycle",
+    "contacts": [
+      "lFoot",
+      "rFoot",
+      "lHand",
+      "rHand"
+    ],
+    "travel": "travel",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot",
+    "lHand",
+    "rHand"
+  ],
+  "prop": "ladder",
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "climb",
+    "ladder",
+    "clear",
+    "ladder",
+    "climb",
+    "ascent",
+    "hip",
+    "rises",
+    "from",
+    "19",
+    "to",
+    "35"
+  ],
+  "notes": "Clear ladder-climb ascent; hip rises from ~19 to ~35. Treat as rung-cycle loop after root/height normalization. Re-picked alternative trial 143_37.",
+  "approvedBaseline": false
+}

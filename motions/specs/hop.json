@@ -1,0 +1,52 @@
+{
+  "id": "hop",
+  "label": "Hop",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "49_02.bvh",
+    "subject": "49",
+    "trial": "02",
+    "range120": [
+      430,
+      900
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/049/49_02.bvh"
+  },
+  "kind": "loop",
+  "travel": "in-place",
+  "view": "side",
+  "expect": {
+    "pose": "cyclic-readable-human-motion",
+    "contacts": [
+      "lFoot",
+      "rFoot"
+    ],
+    "travel": "in-place",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot"
+  ],
+  "prop": null,
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "jump",
+    "up",
+    "and",
+    "down",
+    "hop",
+    "on",
+    "one",
+    "foot",
+    "one",
+    "foot",
+    "hop",
+    "jump"
+  ],
+  "notes": "One-foot hop/jump section; strong vertical hip range from low crouch to high hop.",
+  "approvedBaseline": false
+}

@@ -1,0 +1,52 @@
+{
+  "id": "cheer",
+  "label": "Cheer",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "05_12.bvh",
+    "subject": "5",
+    "trial": "12",
+    "range120": [
+      1120,
+      1320
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/005/05_12.bvh"
+  },
+  "kind": "oneshot",
+  "travel": "in-place",
+  "view": "side",
+  "expect": {
+    "pose": "both-hands-above-head",
+    "contacts": [
+      "lFoot",
+      "rFoot"
+    ],
+    "travel": "in-place",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot"
+  ],
+  "prop": null,
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "dance",
+    "arms",
+    "held",
+    "high",
+    "pointe",
+    "tendue",
+    "a",
+    "terre",
+    "upper",
+    "body",
+    "rotation",
+    "no"
+  ],
+  "notes": "No literal CMU cheer found; closest clean arms-up celebration pose/action, with hand-height peak at frame 1269.",
+  "approvedBaseline": false
+}

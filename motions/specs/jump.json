@@ -1,0 +1,39 @@
+{
+  "id": "jump",
+  "label": "Jump",
+  "status": "user-approved",
+  "source": {
+    "dataset": "CMU",
+    "file": "16_05.bvh",
+    "subject": "16",
+    "trial": "05",
+    "range120": null,
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/016/16_05.bvh"
+  },
+  "kind": "oneshot",
+  "travel": "travel",
+  "view": "side",
+  "expect": {
+    "pose": "readable-human-key-poses",
+    "contacts": [
+      "lFoot",
+      "rFoot"
+    ],
+    "travel": "travel",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot"
+  ],
+  "prop": null,
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "forward",
+    "jump"
+  ],
+  "notes": "Forward jump with take-off/landing. Frame 1 is the conversion T-pose; frames 2-296 are useful motion.",
+  "approvedBaseline": true
+}

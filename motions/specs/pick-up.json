@@ -1,0 +1,56 @@
+{
+  "id": "pick-up",
+  "label": "Pick Up",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "69_68.bvh",
+    "subject": "69",
+    "trial": "68",
+    "range120": [
+      240,
+      430
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/069/69_68.bvh"
+  },
+  "kind": "oneshot",
+  "travel": "in-place",
+  "view": "side",
+  "expect": {
+    "pose": "readable-human-key-poses",
+    "contacts": [
+      "lFoot",
+      "rFoot",
+      "lHand",
+      "rHand"
+    ],
+    "travel": "in-place",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot",
+    "lHand",
+    "rHand"
+  ],
+  "prop": "box",
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "walk",
+    "forward",
+    "and",
+    "pick",
+    "up",
+    "object",
+    "set",
+    "down",
+    "object",
+    "floor",
+    "pickup",
+    "segment"
+  ],
+  "notes": "Floor pickup segment; hip minimum at frame 343 then rises with object.",
+  "approvedBaseline": false
+}

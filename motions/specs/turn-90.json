@@ -1,0 +1,52 @@
+{
+  "id": "turn-90",
+  "label": "Turn 90",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "69_16.bvh",
+    "subject": "69",
+    "trial": "16",
+    "range120": [
+      40,
+      190
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/069/69_16.bvh"
+  },
+  "kind": "oneshot",
+  "travel": "in-place",
+  "view": "side",
+  "expect": {
+    "pose": "facing-to-camera",
+    "contacts": [
+      "lFoot",
+      "rFoot"
+    ],
+    "travel": "in-place",
+    "facingChange": 90
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot"
+  ],
+  "prop": null,
+  "aim": null,
+  "facingChange": 90,
+  "mirrorable": false,
+  "tags": [
+    "turn",
+    "in",
+    "place",
+    "extracted",
+    "90",
+    "ish",
+    "pivot",
+    "from",
+    "turn",
+    "in",
+    "place",
+    "trial"
+  ],
+  "notes": "Extracted 90-ish pivot from turn-in-place trial; low root travel and fully planted pivot feet.",
+  "approvedBaseline": false
+}

@@ -1,0 +1,56 @@
+{
+  "id": "push-walk",
+  "label": "Push Walk",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "82_06.bvh",
+    "subject": "82",
+    "trial": "06",
+    "range120": [
+      250,
+      900
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/082/82_06.bvh"
+  },
+  "kind": "loop",
+  "travel": "travel",
+  "view": "side",
+  "expect": {
+    "pose": "cyclic-readable-human-motion",
+    "contacts": [
+      "lFoot",
+      "rFoot",
+      "lHand",
+      "rHand"
+    ],
+    "travel": "travel",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot",
+    "lHand",
+    "rHand"
+  ],
+  "prop": "box",
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "pushing",
+    "on",
+    "heavy",
+    "object",
+    "long",
+    "sustained",
+    "pushing",
+    "walk",
+    "use",
+    "root",
+    "normalized",
+    "section"
+  ],
+  "notes": "Long sustained pushing walk; use root-normalized section as push-walk loop.",
+  "approvedBaseline": false
+}

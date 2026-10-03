@@ -1,6 +1,7 @@
 import type { CompiledAnimation, PlaybackMode, SampledFrame } from "./contract.js";
 import { sampleAnimation } from "./compiler.js";
-import { MOTION_CLIP_LIBRARY, sampleClipMotion } from "./motion-clips.js";
+import { sampleClipMotion } from "./motion-clips.js";
+import { RUNTIME_MOTION_LIBRARY } from "./motion-library.js";
 
 function xml(value: string): string {
   return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&apos;");
@@ -29,18 +30,19 @@ export function frameGeometry(frame: SampledFrame) {
   if (!Number.isFinite(scale) || scale <= 0) throw new Error("Pose has an invalid torso length.");
   const headRadius = 11 * scale;
   const strokeWidth = Math.max(2.5, headRadius * 2 * 0.09);
-  const torsoDirection = torso.x2 - torso.x1;
+  const torsoDirection = frame.facing ?? (torso.x2 - torso.x1);
   const kneeDirection = (leftThigh.x2 + rightThigh.x2) / 2 - torso.x1;
   const direction = Math.abs(torsoDirection) > 0.1 * scale ? torsoDirection : kneeDirection;
   const nearSide = direction < 0 ? "left" : "right";
   const farSide = nearSide === "left" ? "right" : "left";
+  const frontView = frame.facing !== undefined && Math.abs(frame.facing) < 0.3;
   const frontArm = frame.action === "point" ? "right" : nearSide;
   const backArm = frontArm === "left" ? "right" : "left";
   const farLeg = `${farSide}-leg`;
   const nearLeg = `${nearSide}-leg`;
   const farArm = `${backArm}-arm`;
   const nearArm = `${frontArm}-arm`;
-  const segmentOrder = [farArm, farLeg, "torso", nearLeg, nearArm];
+  const segmentOrder = frontView ? ["left-leg", "right-leg", "torso", "left-arm", "right-arm"] : [farArm, farLeg, "torso", nearLeg, nearArm];
   const format = (value: number): string => Number(value.toFixed(3)).toString();
   const path = (x1: number, y1: number, x2: number, y2: number): string =>
     `M${format(x1)} ${format(y1)}L${format(x2)} ${format(y2)}`;
@@ -191,7 +193,7 @@ export function renderHtml(program: CompiledAnimation): string {
   const { canvas } = program.spec;
   const svg = frameMarkup(sampleAnimation(program, 0), program.spec.actor?.color ?? "#202124", canvas.width, canvas.height);
   const controls = `<label>Motion mode <select id="mode"><option value="normal">Normal</option><option value="reduced">Reduced</option><option value="static">Static</option></select></label><label>Playhead <input id="seek" type="range" min="0" max="${program.spec.durationMs}" step="1" value="0"></label><button id="toggle" type="button">Pause</button>`;
-  const script = `(()=>{"use strict";const program=${scriptJson(program)};const geometry=${frameGeometry.toString()};const sample=(program,timeMs,mode)=>{const MOTION_CLIP_LIBRARY=${scriptJson(MOTION_CLIP_LIBRARY)};const sampleClipMotion=${sampleClipMotion.toString()};const __vite_ssr_import_1__={MOTION_CLIP_LIBRARY,sampleClipMotion};return (${sampleAnimation.toString()})(program,timeMs,mode);};const svg=document.querySelector("#stage svg");
+  const script = `(()=>{"use strict";const program=${scriptJson(program)};const geometry=${frameGeometry.toString()};const sample=(program,timeMs,mode)=>{const RUNTIME_MOTION_LIBRARY=${scriptJson(RUNTIME_MOTION_LIBRARY)};globalThis.__stickmanMotionLibrary=RUNTIME_MOTION_LIBRARY;const sampleClipMotion=${sampleClipMotion.toString()};return (${sampleAnimation.toString()})(program,timeMs,mode);};const svg=document.querySelector("#stage svg");
 const modeSelect=document.querySelector("#mode"),seek=document.querySelector("#seek"),toggle=document.querySelector("#toggle");
 const duration=program.spec.durationMs;
 let mode=matchMedia("(prefers-reduced-motion: reduce)").matches?"reduced":"normal";

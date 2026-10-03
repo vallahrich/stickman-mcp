@@ -1,0 +1,56 @@
+{
+  "id": "open-door",
+  "label": "Open Door",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "56_08.bvh",
+    "subject": "56",
+    "trial": "08",
+    "range120": [
+      180,
+      780
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/056/56_08.bvh"
+  },
+  "kind": "oneshot",
+  "travel": "in-place",
+  "view": "side",
+  "expect": {
+    "pose": "readable-human-key-poses",
+    "contacts": [
+      "lFoot",
+      "rFoot",
+      "lHand",
+      "rHand"
+    ],
+    "travel": "in-place",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot",
+    "lHand",
+    "rHand"
+  ],
+  "prop": "door",
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "vignettes",
+    "lift",
+    "open",
+    "window",
+    "smash",
+    "against",
+    "wall",
+    "hop",
+    "walk",
+    "run",
+    "jog",
+    "yawn"
+  ],
+  "notes": "No literal CMU door clip found; closest is lift-open-window / push-wall vignette with clear arm extension.",
+  "approvedBaseline": false
+}

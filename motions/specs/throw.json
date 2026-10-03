@@ -1,0 +1,51 @@
+{
+  "id": "throw",
+  "label": "Throw",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "111_33.bvh",
+    "subject": "111",
+    "trial": "33",
+    "range120": [
+      1450,
+      1740
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/111/111_33.bvh"
+  },
+  "kind": "oneshot",
+  "travel": "in-place",
+  "view": "side",
+  "expect": {
+    "pose": "arm-over-shoulder",
+    "contacts": [
+      "lFoot",
+      "rFoot"
+    ],
+    "travel": "in-place",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot"
+  ],
+  "prop": null,
+  "aim": "hand",
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "throwing",
+    "clean",
+    "single",
+    "throwing",
+    "action",
+    "hand",
+    "height",
+    "peak",
+    "at",
+    "frame",
+    "1636"
+  ],
+  "notes": "Clean single throwing action; hand-height peak at frame 1636.",
+  "approvedBaseline": false
+}

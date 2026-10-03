@@ -1,0 +1,53 @@
+{
+  "id": "walk-turn",
+  "label": "Walk Turn",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "16_17.bvh",
+    "subject": "16",
+    "trial": "17",
+    "range120": [
+      1,
+      260
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/016/16_17.bvh",
+    "alternativeFor": "walk-turn"
+  },
+  "kind": "oneshot",
+  "travel": "travel",
+  "view": "side",
+  "expect": {
+    "pose": "readable-human-key-poses",
+    "contacts": [
+      "lFoot",
+      "rFoot"
+    ],
+    "travel": "travel",
+    "facingChange": 180
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot"
+  ],
+  "prop": null,
+  "aim": null,
+  "facingChange": 180,
+  "mirrorable": false,
+  "tags": [
+    "walk",
+    "forward",
+    "turn",
+    "around",
+    "walk",
+    "back",
+    "readable",
+    "walking",
+    "180",
+    "degree",
+    "turn",
+    "around"
+  ],
+  "notes": "Readable walking 180-degree turn-around with approach and walk-back. Re-picked alternative trial 16_17.",
+  "approvedBaseline": false
+}

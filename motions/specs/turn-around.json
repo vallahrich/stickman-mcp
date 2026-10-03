@@ -1,0 +1,52 @@
+{
+  "id": "turn-around",
+  "label": "Turn Around",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "69_16.bvh",
+    "subject": "69",
+    "trial": "16",
+    "range120": [
+      60,
+      300
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/069/69_16.bvh"
+  },
+  "kind": "oneshot",
+  "travel": "in-place",
+  "view": "side",
+  "expect": {
+    "pose": "facing-1-to--1",
+    "contacts": [
+      "lFoot",
+      "rFoot"
+    ],
+    "travel": "in-place",
+    "facingChange": 180
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot"
+  ],
+  "prop": null,
+  "aim": null,
+  "facingChange": 180,
+  "mirrorable": false,
+  "tags": [
+    "turn",
+    "in",
+    "place",
+    "best",
+    "pure",
+    "cmu",
+    "turn",
+    "in",
+    "place",
+    "candidate",
+    "selected",
+    "first"
+  ],
+  "notes": "Best pure CMU turn-in-place candidate; selected first half-turn from repeated turning capture; feet planted during pivots.",
+  "approvedBaseline": false
+}

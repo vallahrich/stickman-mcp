@@ -1,0 +1,54 @@
+{
+  "id": "run-start",
+  "label": "Run Start",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "143_03.bvh",
+    "subject": "143",
+    "trial": "03",
+    "range120": [
+      90,
+      230
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/143/143_03.bvh",
+    "alternativeFor": "run-start"
+  },
+  "kind": "oneshot",
+  "travel": "travel",
+  "view": "side",
+  "expect": {
+    "pose": "readable-human-key-poses",
+    "contacts": [
+      "lFoot",
+      "rFoot"
+    ],
+    "travel": "travel",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot"
+  ],
+  "prop": null,
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "start",
+    "to",
+    "run",
+    "clean",
+    "standing",
+    "start",
+    "into",
+    "run",
+    "acceleration",
+    "large",
+    "root",
+    "travel"
+  ],
+  "notes": "Clean standing start into run acceleration; large root travel after frame 140. Re-picked alternative trial 143_03.",
+  "reason": "Alternative 143_03 still fails strict run-calibrated max joint acceleration.",
+  "approvedBaseline": false
+}

@@ -1,0 +1,53 @@
+{
+  "id": "kick",
+  "label": "Kick",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "10_01.bvh",
+    "subject": "10",
+    "trial": "01",
+    "range120": [
+      470,
+      720
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/010/10_01.bvh",
+    "alternativeFor": "kick"
+  },
+  "kind": "oneshot",
+  "travel": "travel",
+  "view": "side",
+  "expect": {
+    "pose": "foot-above-hip",
+    "contacts": [
+      "lFoot",
+      "rFoot"
+    ],
+    "travel": "travel",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot"
+  ],
+  "prop": "ball",
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "soccer",
+    "kick",
+    "ball",
+    "readable",
+    "soccer",
+    "kick",
+    "after",
+    "approach",
+    "foot",
+    "planting",
+    "drops",
+    "during"
+  ],
+  "notes": "Readable soccer kick after approach; foot planting drops during kick follow-through but one support foot remains stable. Re-picked alternative trial 74_03. Re-picked alternative trial 86_06.",
+  "approvedBaseline": false
+}

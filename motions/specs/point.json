@@ -1,0 +1,41 @@
+{
+  "id": "point",
+  "label": "Point",
+  "status": "user-approved",
+  "source": {
+    "dataset": "CMU",
+    "file": "13_27.bvh",
+    "subject": "13",
+    "trial": "27",
+    "range120": null,
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/013/13_27.bvh"
+  },
+  "kind": "oneshot",
+  "travel": "in-place",
+  "view": "side",
+  "expect": {
+    "pose": "arm-aims",
+    "contacts": [
+      "lFoot",
+      "rFoot"
+    ],
+    "travel": "in-place",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot"
+  ],
+  "prop": null,
+  "aim": "hand",
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "direct",
+    "traffic",
+    "wave",
+    "point"
+  ],
+  "notes": "Long gesture capture: direct traffic/wave/point. Frame 1 is the conversion T-pose; frames 2-4170 are valid; subclip after visual review for point-only gesture.",
+  "approvedBaseline": true
+}

@@ -1,0 +1,56 @@
+{
+  "id": "hang-swing",
+  "label": "Hang Swing",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "43_02.bvh",
+    "subject": "43",
+    "trial": "02",
+    "range120": [
+      2,
+      700
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/043/43_02.bvh"
+  },
+  "kind": "loop",
+  "travel": "in-place",
+  "view": "side",
+  "expect": {
+    "pose": "hands-fixed-overhead-feet-airborne",
+    "contacts": [
+      "lFoot",
+      "rFoot",
+      "lHand",
+      "rHand"
+    ],
+    "travel": "in-place",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot",
+    "lHand",
+    "rHand"
+  ],
+  "prop": "platform",
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "playground",
+    "grip",
+    "bar",
+    "swing",
+    "body",
+    "good",
+    "hang",
+    "and",
+    "swing",
+    "playground",
+    "clip",
+    "hands"
+  ],
+  "notes": "Good hang-and-swing playground clip; hands remain high and feet intentionally not planted.",
+  "approvedBaseline": false
+}

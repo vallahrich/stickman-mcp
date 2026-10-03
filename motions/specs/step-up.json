@@ -1,0 +1,53 @@
+{
+  "id": "step-up",
+  "label": "Step Up",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "111_31.bvh",
+    "subject": "111",
+    "trial": "31",
+    "range120": [
+      1,
+      500
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/111/111_31.bvh",
+    "alternativeFor": "step-up"
+  },
+  "kind": "oneshot",
+  "travel": "travel",
+  "view": "side",
+  "expect": {
+    "pose": "readable-human-key-poses",
+    "contacts": [
+      "lFoot",
+      "rFoot"
+    ],
+    "travel": "travel",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot"
+  ],
+  "prop": "stairs",
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "walk",
+    "forward",
+    "stepping",
+    "up",
+    "stairs",
+    "clear",
+    "stair",
+    "ascent",
+    "hip",
+    "height",
+    "rises",
+    "from"
+  ],
+  "notes": "Clear stair ascent; hip height rises from ~16 to ~23 through the range. Re-picked alternative trial 111_31.",
+  "approvedBaseline": false
+}

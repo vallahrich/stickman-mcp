@@ -1,0 +1,52 @@
+{
+  "id": "sit-down",
+  "label": "Sit Down",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "113_15.bvh",
+    "subject": "113",
+    "trial": "15",
+    "range120": [
+      90,
+      430
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/113/113_15.bvh"
+  },
+  "kind": "oneshot",
+  "travel": "in-place",
+  "view": "side",
+  "expect": {
+    "pose": "ends-seated",
+    "contacts": [
+      "lFoot",
+      "rFoot"
+    ],
+    "travel": "in-place",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot"
+  ],
+  "prop": "chair",
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "sit",
+    "in",
+    "chair",
+    "and",
+    "get",
+    "up",
+    "chair",
+    "sit",
+    "down",
+    "segment",
+    "hip",
+    "drops"
+  ],
+  "notes": "Chair sit-down segment; hip drops from standing to seated with stable feet.",
+  "approvedBaseline": false
+}

@@ -1,6 +1,6 @@
 export const CONTRACT_VERSION = "stickman.animation/v1" as const;
 
-export type ActionName = "walk" | "run" | "wave" | "point" | "jump" | "push";
+export type ActionName = string;
 export type PlaybackMode = "normal" | "reduced" | "static";
 
 export interface Point2D {
@@ -13,6 +13,7 @@ export interface AnimationAction {
   startMs: number;
   durationMs: number;
   target?: string;
+  speed?: number;
 }
 
 export interface PropSpec {
@@ -67,6 +68,7 @@ export interface SampledFrame {
   head: Point2D;
   segments: Segment[];
   prop: null | { id: string; x: number; y: number; width: number; height: number; handleX: number; handleY: number };
+  facing?: number;
 }
 
 export interface CompileResult extends ValidationResult {

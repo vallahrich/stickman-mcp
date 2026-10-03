@@ -1,0 +1,57 @@
+{
+  "id": "clap",
+  "label": "Clap",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "141_28.bvh",
+    "subject": "141",
+    "trial": "28",
+    "range120": [
+      75,
+      250
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/141/141_28.bvh"
+  },
+  "kind": "oneshot",
+  "travel": "in-place",
+  "view": "side",
+  "expect": {
+    "pose": "wrists-meet",
+    "contacts": [
+      "lFoot",
+      "rFoot",
+      "lHand",
+      "rHand"
+    ],
+    "travel": "in-place",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot",
+    "lHand",
+    "rHand"
+  ],
+  "prop": null,
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "slap",
+    "hands",
+    "throw",
+    "it",
+    "back",
+    "no",
+    "literal",
+    "clap",
+    "found",
+    "closest",
+    "is",
+    "single"
+  ],
+  "notes": "No literal clap found; closest is single-subject slap-hands/high-five style contact gesture, not self-applause.",
+  "reason": "Semantic gate failed: selected CMU slap-hands/high-five source never produces two self-clap wrist meetings.",
+  "approvedBaseline": false
+}

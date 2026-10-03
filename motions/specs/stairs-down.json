@@ -1,0 +1,54 @@
+{
+  "id": "stairs-down",
+  "label": "Stairs Down",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "114_07.bvh",
+    "subject": "114",
+    "trial": "07",
+    "range120": [
+      1,
+      600
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/114/114_07.bvh",
+    "alternativeFor": "stairs-down"
+  },
+  "kind": "oneshot",
+  "travel": "travel",
+  "view": "side",
+  "expect": {
+    "pose": "readable-human-key-poses",
+    "contacts": [
+      "lFoot",
+      "rFoot"
+    ],
+    "travel": "travel",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot"
+  ],
+  "prop": "stairs",
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "walking",
+    "up",
+    "and",
+    "down",
+    "stairs",
+    "down",
+    "stairs",
+    "segment",
+    "after",
+    "the",
+    "ascent",
+    "hip"
+  ],
+  "notes": "Down-stairs segment after the ascent; hip height drops from ~20.8 to ~15.5. Re-picked alternative trial 114_07.",
+  "reason": "Alternative 114_07 still fails strict run-calibrated max joint acceleration; needs stair prop retarget.",
+  "approvedBaseline": false
+}

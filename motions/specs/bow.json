@@ -1,0 +1,52 @@
+{
+  "id": "bow",
+  "label": "Bow",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "111_02.bvh",
+    "subject": "111",
+    "trial": "02",
+    "range120": [
+      90,
+      320
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/111/111_02.bvh"
+  },
+  "kind": "oneshot",
+  "travel": "in-place",
+  "view": "side",
+  "expect": {
+    "pose": "forward-bend",
+    "contacts": [
+      "lFoot",
+      "rFoot"
+    ],
+    "travel": "in-place",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot"
+  ],
+  "prop": null,
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "bow",
+    "clear",
+    "bow",
+    "foot",
+    "planted",
+    "detector",
+    "is",
+    "borderline",
+    "because",
+    "feet",
+    "slide",
+    "during"
+  ],
+  "notes": "Clear bow; foot-planted detector is borderline because feet slide during balance correction.",
+  "approvedBaseline": false
+}

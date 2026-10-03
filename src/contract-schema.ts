@@ -1,4 +1,5 @@
 import { CONTRACT_VERSION } from "./contract.js";
+import { RUNTIME_ACTION_NAMES } from "./motion-library.js";
 
 export const animationSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -54,9 +55,10 @@ export const animationSchema = {
         additionalProperties: false,
         required: ["action", "startMs", "durationMs"],
         properties: {
-          action: { enum: ["walk", "run", "wave", "point", "jump", "push"] },
+          action: { enum: RUNTIME_ACTION_NAMES },
           startMs: { type: "integer", minimum: 0 },
           durationMs: { type: "integer", minimum: 300 },
+          speed: { type: "number", minimum: 0.5, maximum: 2 },
           target: { type: "string", minLength: 1 }
         }
       }

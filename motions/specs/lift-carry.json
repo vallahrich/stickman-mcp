@@ -1,0 +1,56 @@
+{
+  "id": "lift-carry",
+  "label": "Lift Carry",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "115_06.bvh",
+    "subject": "115",
+    "trial": "06",
+    "range120": [
+      50,
+      300
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/115/115_06.bvh"
+  },
+  "kind": "oneshot",
+  "travel": "in-place",
+  "view": "side",
+  "expect": {
+    "pose": "readable-human-key-poses",
+    "contacts": [
+      "lFoot",
+      "rFoot",
+      "lHand",
+      "rHand"
+    ],
+    "travel": "in-place",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot",
+    "lHand",
+    "rHand"
+  ],
+  "prop": "box",
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "picking",
+    "box",
+    "up",
+    "bending",
+    "knees",
+    "best",
+    "box",
+    "specific",
+    "lift",
+    "includes",
+    "bend",
+    "knees"
+  ],
+  "notes": "Best box-specific lift; includes bend-knees pickup but not a carry-away segment.",
+  "approvedBaseline": false
+}

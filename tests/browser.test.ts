@@ -92,6 +92,7 @@ describe("browser coordinate mapping", () => {
     const anchor = mapElementAnchor(projection, {
       getBoundingClientRect: () => ({ left: 290, top: 360, width: 40, height: 40 })
     });
+
     expect(anchor).toEqual({ x: 300, y: 100 });
     expect(sceneToViewport(projection, anchor)).toEqual({ x: 310, y: 380 });
     expect(() => viewportToScene(projection, { x: 20, y: 100 })).toThrow(/letterbox/);
@@ -184,6 +185,29 @@ describe("browser coordinate mapping", () => {
     expect(() => projectTravelAnchor({ x: 100, y: 100 }, 361, spec.canvas)).toThrow();
     expect(() => projectTravelAnchor({ x: NaN, y: 100 }, 290, spec.canvas)).toThrow();
     expect(() => viewportToScene(createSceneProjection({ left: 0, top: 0, width: 640, height: 360 }, spec.canvas), { x: Infinity, y: 0 })).toThrow();
+  });
+});
+
+describe("browser motion sampler", () => {
+  it("matches renderer joint positions through side, three-quarter, front, and mirrored turn frames", () => {
+    const program = compile({
+      version: "stickman.animation/v1",
+      canvas: { width: 1600, height: 900, fps: 60 },
+      actor: { x: 760, groundY: 720 },
+      durationMs: 900,
+      actions: [{ action: "turn-around", startMs: 0, durationMs: 900 }]
+    });
+    const port = new FakePort();
+    port.rect = { left: 0, top: 0, width: 1000, height: 700 };
+    const clock = new FakeClock();
+    const player = createBrowserPlayer(program, port, clock, { clock: "external" });
+    for (const [time, expectedFacing] of [[0, 1], [300, 0.5], [450, 0], [900, -1]] as const) {
+      player.seek(time);
+      const browserFrame = port.frames.at(-1)!;
+      const rendererFrame = sampleAnimation(program, time);
+      expect(browserFrame).toEqual(rendererFrame);
+      expect(browserFrame.facing).toBeCloseTo(expectedFacing, 3);
+    }
   });
 });
 

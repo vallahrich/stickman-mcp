@@ -1,0 +1,52 @@
+{
+  "id": "present",
+  "label": "Present",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "139_25.bvh",
+    "subject": "139",
+    "trial": "25",
+    "range120": [
+      430,
+      640
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/139/139_25.bvh"
+  },
+  "kind": "oneshot",
+  "travel": "in-place",
+  "view": "side",
+  "expect": {
+    "pose": "readable-human-key-poses",
+    "contacts": [
+      "lFoot",
+      "rFoot"
+    ],
+    "travel": "in-place",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot"
+  ],
+  "prop": null,
+  "aim": "hand",
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "giving",
+    "directions",
+    "clear",
+    "open",
+    "arm",
+    "explaining",
+    "directions",
+    "gesture",
+    "modest",
+    "crouched",
+    "leaned",
+    "posture"
+  ],
+  "notes": "Clear open-arm explaining/directions gesture; modest crouched/leaned posture late in clip.",
+  "approvedBaseline": false
+}

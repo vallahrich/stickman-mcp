@@ -1,0 +1,57 @@
+{
+  "id": "climb-down",
+  "label": "Climb Down",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "01_06.bvh",
+    "subject": "1",
+    "trial": "06",
+    "range120": [
+      3600,
+      5130
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/001/01_06.bvh"
+  },
+  "kind": "oneshot",
+  "travel": "travel",
+  "view": "side",
+  "expect": {
+    "pose": "readable-human-key-poses",
+    "contacts": [
+      "lFoot",
+      "rFoot",
+      "lHand",
+      "rHand"
+    ],
+    "travel": "travel",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot",
+    "lHand",
+    "rHand"
+  ],
+  "prop": "platform",
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "playground",
+    "climb",
+    "sit",
+    "dangle",
+    "legs",
+    "descend",
+    "playground",
+    "climb",
+    "down",
+    "descend",
+    "segment",
+    "includes"
+  ],
+  "notes": "Playground climb-down/descend segment; includes dangle/settle before returning to ground.",
+  "reason": "Visual review: side projection curls the body/head during the descent; excluded until a cleaner range or prop-aware retarget is added.",
+  "approvedBaseline": false
+}

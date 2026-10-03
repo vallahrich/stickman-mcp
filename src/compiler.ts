@@ -9,10 +9,14 @@ import {
   type Segment,
   type ValidationResult
 } from "./contract.js";
-import { MOTION_CLIP_LIBRARY, sampleClipMotion } from "./motion-clips.js";
+import { sampleClipMotion } from "./motion-clips.js";
+import { RUNTIME_ACTION_NAMES, RUNTIME_MOTION_LIBRARY, getMotionMeta } from "./motion-library.js";
 
-const actionNames = new Set(["walk", "run", "wave", "point", "jump", "push"]);
+const actionNames = new Set<string>(RUNTIME_ACTION_NAMES);
 const hexColor = /^#[0-9a-fA-F]{6}$/;
+const isTravelAction = (action: string): boolean => action === "walk" || action === "run" || (getMotionMeta(action)?.travel === "travel" && action !== "push");
+const motionGlobal = globalThis as typeof globalThis & { __stickmanMotionLibrary?: typeof RUNTIME_MOTION_LIBRARY };
+motionGlobal.__stickmanMotionLibrary = RUNTIME_MOTION_LIBRARY;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -26,6 +30,21 @@ function hasOnlyKeys(value: Record<string, unknown>, keys: string[], path: strin
 
 function finiteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
+}
+
+function closestActions(value: string): string[] {
+  const distance = (a: string, b: string): number => {
+    const rows = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array<number>(b.length).fill(0)]);
+    for (let j = 1; j <= b.length; j++) rows[0]![j] = j;
+    for (let i = 1; i <= a.length; i++) {
+      for (let j = 1; j <= b.length; j++) {
+        rows[i]![j] = Math.min(rows[i - 1]![j]! + 1, rows[i]![j - 1]! + 1, rows[i - 1]![j - 1]! + (a[i - 1] === b[j - 1] ? 0 : 1));
+      }
+    }
+    return rows[a.length]![b.length]!;
+  };
+  return [...actionNames].map((id) => ({ id, score: distance(value.toLowerCase(), id.toLowerCase()) }))
+    .sort((a, b) => a.score - b.score || a.id.localeCompare(b.id)).slice(0, 3).map((item) => item.id);
 }
 
 // A real structural narrowing, independent of the path-specific diagnostics
@@ -52,6 +71,7 @@ function hasAnimationSpecStructure(value: unknown): value is AnimationSpec {
   return actions.every((action) => isRecord(action)
     && typeof action.action === "string" && actionNames.has(action.action)
     && finiteNumber(action.startMs) && finiteNumber(action.durationMs)
+    && (action.speed === undefined || finiteNumber(action.speed))
     && (action.target === undefined || typeof action.target === "string"));
 }
 
@@ -152,10 +172,12 @@ export function validateAnimation(input: unknown): ValidationResult {
         diagnostics.push({ path, code: "invalid_type", message: "Each action must be an object." });
         continue;
       }
-      hasOnlyKeys(action, ["action", "startMs", "durationMs", "target"], path, diagnostics);
+      hasOnlyKeys(action, ["action", "startMs", "durationMs", "target", "speed"], path, diagnostics);
       if (typeof action.action !== "string" || !actionNames.has(action.action)) {
-        diagnostics.push({ path: `${path}.action`, code: "unsupported_action", message: `Unsupported action. Supported actions: ${[...actionNames].join(", ")}.` });
+        const supplied = typeof action.action === "string" ? action.action : "";
+        diagnostics.push({ path: `${path}.action`, code: "unsupported_action", message: `Unsupported action "${supplied}". Did you mean ${closestActions(supplied).join(", ")}? Supported actions: ${[...actionNames].join(", ")}.` });
       }
+      if (action.speed !== undefined && (!finiteNumber(action.speed) || action.speed < 0.5 || action.speed > 2)) diagnostics.push({ path: `${path}.speed`, code: "out_of_range", message: "speed must be a number from 0.5 to 2." });
       if (!finiteNumber(action.startMs) || !Number.isInteger(action.startMs) || action.startMs < 0) diagnostics.push({ path: `${path}.startMs`, code: "invalid_time", message: "startMs must be a non-negative integer." });
       if (!finiteNumber(action.durationMs) || !Number.isInteger(action.durationMs) || action.durationMs < 300) diagnostics.push({ path: `${path}.durationMs`, code: "invalid_duration", message: "durationMs must be an integer of at least 300." });
       if (typeof action.startMs === "number" && typeof action.durationMs === "number" && Number.isFinite(action.startMs) && Number.isFinite(action.durationMs)) {
@@ -164,9 +186,12 @@ export function validateAnimation(input: unknown): ValidationResult {
         if (typeof input.durationMs === "number" && end > input.durationMs) diagnostics.push({ path, code: "action_exceeds_duration", message: "The action ends after the animation duration." });
         lastEnd = Math.max(lastEnd, end);
       }
-      if (["walk", "run", "point"].includes(String(action.action))) {
+      const actionName = String(action.action);
+      const motionMeta = getMotionMeta(actionName);
+      const needsTarget = actionName === "walk" || actionName === "run" || actionName === "point" || (motionMeta !== undefined && (motionMeta.travel === "travel" || motionMeta.aim !== null) && actionName !== "push");
+      if (needsTarget) {
         if (typeof action.target !== "string" || !Object.hasOwn(targets, action.target)) {
-          diagnostics.push({ path: `${path}.target`, code: "unbound_target", message: `${String(action.action)} requires a target ID declared under targets.` });
+          diagnostics.push({ path: `${path}.target`, code: "unbound_target", message: `${actionName} requires a target ID declared under targets.` });
         }
       } else if (action.action === "push") {
         pushCount++;
@@ -218,7 +243,7 @@ function validateMotion(spec: AnimationSpec, diagnostics: Diagnostic[]): void {
     const path = `$.actions[${index}]`;
     let distance = 0;
     let availableWindow = (durationMs: number): number => durationMs;
-    if (item.action === "walk" || item.action === "run") {
+    if (isTravelAction(item.action)) {
       const target = spec.targets![item.target!]!;
       if (Math.abs(target.y - ground) > 0.001) {
         diagnostics.push({ path: `${path}.target`, code: "non_flat_ground", message: `v1 locomotion uses one world floor at y=${ground}. Set target "${item.target}" y to ${ground}; a different y would require a terrain/path contract, not a moving floor.` });
@@ -231,7 +256,7 @@ function validateMotion(spec: AnimationSpec, diagnostics: Diagnostic[]): void {
       const changesFacing = direction !== 0 && direction !== plannedFacing;
       const next = spec.actions[index + 1];
       const continuation = next?.startMs === item.startMs + item.durationMs
-        && (next.action === "walk" || next.action === "run" || next.action === "jump");
+        && (isTravelAction(next.action) || next.action === "jump");
       availableWindow = durationMs => durationMs
         - (continuing ? 0 : reversing ? Math.min(durationMs * 0.35, 400)
           : changesFacing ? Math.min(durationMs * 0.16, 240) : Math.min(durationMs * 0.08, 120))
@@ -254,7 +279,7 @@ function validateMotion(spec: AnimationSpec, diagnostics: Diagnostic[]): void {
       priorTravel = undefined;
     }
     if (distance > 0) {
-      const stride = (item.action === "run" ? 90 : item.action === "push" ? 28 : 40) * scale;
+      const stride = (item.action === "run" ? 90 : item.action === "push" ? 28 : (getMotionMeta(item.action)?.travel === "travel" ? 60 : 40)) * scale;
       const baseSteps = Math.max(item.action === "run" && distance > 120 * scale ? 4 : 2, Math.ceil(distance / stride));
       const steps = item.action === "run" ? baseSteps + baseSteps % 2 : baseSteps;
       // Reserve time for anticipation/turning and landing/release. These are
@@ -514,6 +539,7 @@ export function sampleAnimation(
   if (mode !== "normal" && mode !== "reduced" && mode !== "static") throw new TypeError('mode must be "normal", "reduced", or "static".');
   if (intent !== undefined && mode !== "normal") throw new TypeError("Motion intent requires normal playback mode.");
   const spec = program.spec;
+  const runtimeLibrary = ((globalThis as typeof globalThis & { __stickmanMotionLibrary?: typeof RUNTIME_MOTION_LIBRARY }).__stickmanMotionLibrary ?? { clips: {} }) as typeof RUNTIME_MOTION_LIBRARY;
   const t = intent !== undefined ? Math.max(0, timeMs)
     : mode === "normal" ? Math.min(spec.durationMs, Math.max(0, timeMs)) : spec.durationMs;
   const authoredGroundY = spec.actor?.groundY ?? spec.canvas.height * 0.8;
@@ -704,7 +730,8 @@ export function sampleAnimation(
       t < item.startMs + item.durationMs
       || (index === spec.actions.length - 1 && t <= spec.durationMs)
     )) { active = item; activeIndex = index; break; }
-    if (item.action === "walk" || item.action === "run") {
+    const itemMeta = runtimeLibrary.clips[item.action]?.meta;
+    if (item.action === "walk" || item.action === "run" || (itemMeta?.travel === "travel" && item.action !== "push")) {
       const target = spec.targets?.[item.target ?? ""];
       if (target) {
         facing = Math.sign(target.x - rootX) || facing;
@@ -716,46 +743,70 @@ export function sampleAnimation(
       propX = spec.prop.toX;
       facing = 1;
     }
-    if (item.action === "point") {
+    if (item.action === "point" || itemMeta?.aim) {
       const target = spec.targets?.[item.target ?? ""];
       if (target) facing = Math.sign(target.x - rootX) || facing;
     }
+    if (itemMeta?.facingChange === 180) facing = -facing;
     previous = item;
   }
   const useClipEngine = spec.canvas.width > 1000;
-  if (useClipEngine && intent === undefined && active && (active.action === "walk" || active.action === "run" || active.action === "jump" || active.action === "point")) {
+  const activeMeta = active ? runtimeLibrary.clips[active.action]?.meta : undefined;
+  const canUseClip = active && activeMeta && !(active.action === "push" && spec.prop);
+  if (useClipEngine && intent === undefined && active && canUseClip) {
     const p = clamp01((t - active.startMs) / active.durationMs);
     const startX = rootX;
     const target = active.target ? spec.targets?.[active.target] : undefined;
-    const direction = active.action === "point" && target ? Math.sign(target.x - startX) || facing
-      : active.action === "walk" || active.action === "run" ? Math.sign((target?.x ?? startX) - startX) || facing : facing;
-    const clip = sampleClipMotion(MOTION_CLIP_LIBRARY, {
-      action: active.action === "walk" || active.action === "run" || active.action === "jump" || active.action === "point" ? active.action : "idle",
+    const direction = activeMeta!.aim && target ? Math.sign(target.x - startX) || facing
+      : activeMeta!.travel === "travel" ? Math.sign((target?.x ?? startX) - startX) || facing : facing;
+    const clip = sampleClipMotion(runtimeLibrary, {
+      action: active.action,
+      clipId: active.action,
       progress: p,
       startX,
-      endX: active.action === "walk" || active.action === "run" ? target?.x ?? startX : startX,
+      endX: activeMeta!.travel === "travel" ? target?.x ?? startX : startX,
       groundY,
       facing: direction as -1 | 1,
       scale,
-      ...(active.action === "point" && target ? { pointTarget: target } : {})
+      ...(activeMeta!.aim && target ? { pointTarget: target } : {}),
+      ...(active.speed !== undefined ? { speed: active.speed } : {})
     });
     if (clip.segments && clip.headPoint) {
       const prop = spec.prop ? {
         id: spec.prop.id, x: propX, y: spec.prop.y, width: spec.prop.width, height: spec.prop.height,
         handleX: propX + spec.prop.handle.x, handleY: spec.prop.y + spec.prop.handle.y
       } : null;
-      return { timeMs: t, action: active.action, x: clip.rootX, groundY, head: clip.headPoint, segments: clip.segments, prop };
+      let frame = { timeMs: t, action: active.action, x: clip.rootX, groundY, head: clip.headPoint, segments: clip.segments, prop, ...(clip.facing !== undefined ? { facing: clip.facing } : {}) };
+      if (previous && previous.startMs + previous.durationMs === active.startMs && t < active.startMs + 200) {
+        const prior = sampleAnimation(program, active.startMs - 1e-3, "normal");
+        const w = smooth((t - active.startMs) / 200);
+        const byId = new Map(prior.segments.map((segment) => [segment.id, segment]));
+        frame = {
+          ...frame,
+          x: mix(prior.x, frame.x, w),
+          head: { x: mix(prior.head.x, frame.head.x, w), y: mix(prior.head.y, frame.head.y, w) },
+          segments: frame.segments.map((segment) => {
+            const before = byId.get(segment.id);
+            return before ? {
+              id: segment.id,
+              x1: mix(before.x1, segment.x1, w), y1: mix(before.y1, segment.y1, w),
+              x2: mix(before.x2, segment.x2, w), y2: mix(before.y2, segment.y2, w)
+            } : segment;
+          })
+        };
+      }
+      return frame;
     }
   } else if (useClipEngine && intent === undefined && !active && mode === "normal") {
     const nearActionBoundary = spec.actions.some(item =>
       Math.abs(t - item.startMs) < 250 || Math.abs(t - (item.startMs + item.durationMs)) < 250
     );
     if (!nearActionBoundary) {
-      const clip = sampleClipMotion(MOTION_CLIP_LIBRARY, {
+      const clip = sampleClipMotion(runtimeLibrary, {
         action: "idle", progress: ((t / 1000) % 2) / 2, startX: rootX, endX: rootX,
         groundY, facing: facing as -1 | 1, scale
       });
-      if (clip.segments && clip.headPoint) return { timeMs: t, action: "idle", x: clip.rootX, groundY, head: clip.headPoint, segments: clip.segments, prop: null };
+      if (clip.segments && clip.headPoint) return { timeMs: t, action: "idle", x: clip.rootX, groundY, head: clip.headPoint, segments: clip.segments, prop: null, ...(clip.facing !== undefined ? { facing: clip.facing } : {}) };
     }
   }
   let hipHeight = restHeight;
@@ -1154,8 +1205,8 @@ export function sampleAnimation(
     direction: -1 | 1,
     target?: Point
   ): void => {
-    if (!useClipEngine) return;
-    const clip = sampleClipMotion(MOTION_CLIP_LIBRARY, {
+    if (!useClipEngine || !runtimeLibrary.clips[action]) return;
+    const clip = sampleClipMotion(runtimeLibrary, {
       action, progress, startX, endX, groundY, facing: direction, scale,
       ...(target ? { pointTarget: target } : {})
     });

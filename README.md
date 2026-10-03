@@ -62,7 +62,7 @@ Exports are written only to a relative path under the explicit `--root`; existin
 
 ## Contract and catalog
 
-Documents use the strict, versioned `stickman.animation/v1` JSON Schema, available from `src/contract-schema.ts` or `stickman schema`. Unknown fields and unsupported actions produce path-specific diagnostics. See [the wave](examples/wave.json), [walk-and-wave sequence](examples/walk-and-wave.json), and [bound prop push](examples/push-crate.json) examples.
+Documents use the strict, versioned `stickman.animation/v1` JSON Schema, available from `src/contract-schema.ts` or `stickman schema`. Unknown fields and unsupported actions produce path-specific diagnostics with closest valid motion IDs. See [the wave](examples/wave.json), [walk-and-wave sequence](examples/walk-and-wave.json), and [bound prop push](examples/push-crate.json) examples.
 
 | Action ID | Meaning | Binding |
 |---|---|---|
@@ -72,6 +72,14 @@ Documents use the strict, versioned `stickman.animation/v1` JSON Schema, availab
 | `point@1.0.0` | Directional extension toward a named point | Named canvas target |
 | `jump@1.0.0` | Anticipation arc and landing | None |
 | `push@1.0.0` | Actor and visible prop translate rightward together in two-hand handle contact | Bound prop ID and local handle |
+
+The action enum and `stickman_discover` catalog are now derived from the runtime
+motion library. In addition to the six legacy IDs above, any generated clip ID
+(for example `idle`, `stop`, `turn-around`, `hold-pose`, and future factory
+motions) can be used as an action. Clip metadata declares whether an action is a
+travel loop, in-place loop, one-shot, or hold; travel clips require a named
+target and are root-motion warped to hit it exactly, aim clips use their target
+for hand/head IK, and one-shots may specify `speed` from `0.5` to `2`.
 
 Actions are ordered and non-overlapping and use one deterministic playhead. Walk, run, and point infer left/right facing from their existing target coordinates; no facing field is required. The quality rebuild uses fixed-length skeletal poses and explicit world-space foot contacts, not a facing scale that flattens the rig during turns.
 

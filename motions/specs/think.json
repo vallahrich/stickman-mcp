@@ -1,0 +1,53 @@
+{
+  "id": "think",
+  "label": "Think",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "13_04.bvh",
+    "subject": "13",
+    "trial": "04",
+    "range120": [
+      1700,
+      2050
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/013/13_04.bvh"
+  },
+  "kind": "hold",
+  "travel": "in-place",
+  "view": "side",
+  "expect": {
+    "pose": "hand-near-head",
+    "contacts": [
+      "lFoot",
+      "rFoot"
+    ],
+    "travel": "in-place",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot"
+  ],
+  "prop": null,
+  "aim": "head",
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "sit",
+    "on",
+    "stepstool",
+    "chin",
+    "in",
+    "hand",
+    "good",
+    "contemplative",
+    "hold",
+    "left",
+    "hand",
+    "near"
+  ],
+  "notes": "Good contemplative hold; left hand near chin with stable seated pose.",
+  "reason": "Semantic gate failed: selected 13_04 range projects as floor-level/sitting with hip below standing threshold; needs new trial/range.",
+  "approvedBaseline": false
+}

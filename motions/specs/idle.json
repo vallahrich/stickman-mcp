@@ -1,0 +1,38 @@
+{
+  "id": "idle",
+  "label": "Idle",
+  "status": "user-approved",
+  "source": {
+    "dataset": "CMU",
+    "file": "140_06.bvh",
+    "subject": "140",
+    "trial": "06",
+    "range120": null,
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/140/140_06.bvh"
+  },
+  "kind": "loop",
+  "travel": "in-place",
+  "view": "side",
+  "expect": {
+    "pose": "cyclic-readable-human-motion",
+    "contacts": [
+      "lFoot",
+      "rFoot"
+    ],
+    "travel": "in-place",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot"
+  ],
+  "prop": null,
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "idle"
+  ],
+  "notes": "Long idle capture. Frame 1 is the conversion T-pose; frames 2-3563 are useful idle motion.",
+  "approvedBaseline": true
+}

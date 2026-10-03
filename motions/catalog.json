@@ -1,0 +1,256 @@
+{
+  "version": 1,
+  "generatedFrom": "motions/specs/*.json",
+  "motions": [
+    {
+      "id": "balance",
+      "status": "draft",
+      "spec": "motions/specs/balance.json"
+    },
+    {
+      "id": "bow",
+      "status": "draft",
+      "spec": "motions/specs/bow.json"
+    },
+    {
+      "id": "cheer",
+      "status": "draft",
+      "spec": "motions/specs/cheer.json"
+    },
+    {
+      "id": "clap",
+      "status": "draft",
+      "spec": "motions/specs/clap.json"
+    },
+    {
+      "id": "climb-down",
+      "status": "draft",
+      "spec": "motions/specs/climb-down.json"
+    },
+    {
+      "id": "climb-ladder",
+      "status": "draft",
+      "spec": "motions/specs/climb-ladder.json"
+    },
+    {
+      "id": "climb-ledge",
+      "status": "draft",
+      "spec": "motions/specs/climb-ledge.json"
+    },
+    {
+      "id": "crawl",
+      "status": "draft",
+      "spec": "motions/specs/crawl.json"
+    },
+    {
+      "id": "crouch",
+      "status": "draft",
+      "spec": "motions/specs/crouch.json"
+    },
+    {
+      "id": "dance",
+      "status": "draft",
+      "spec": "motions/specs/dance.json"
+    },
+    {
+      "id": "fall-get-up",
+      "status": "draft",
+      "spec": "motions/specs/fall-get-up.json"
+    },
+    {
+      "id": "hang-swing",
+      "status": "draft",
+      "spec": "motions/specs/hang-swing.json"
+    },
+    {
+      "id": "hop",
+      "status": "draft",
+      "spec": "motions/specs/hop.json"
+    },
+    {
+      "id": "hurdle",
+      "status": "draft",
+      "spec": "motions/specs/hurdle.json"
+    },
+    {
+      "id": "idle",
+      "status": "user-approved",
+      "spec": "motions/specs/idle.json"
+    },
+    {
+      "id": "jump",
+      "status": "user-approved",
+      "spec": "motions/specs/jump.json"
+    },
+    {
+      "id": "kick",
+      "status": "draft",
+      "spec": "motions/specs/kick.json"
+    },
+    {
+      "id": "lift-carry",
+      "status": "draft",
+      "spec": "motions/specs/lift-carry.json"
+    },
+    {
+      "id": "long-jump",
+      "status": "draft",
+      "spec": "motions/specs/long-jump.json"
+    },
+    {
+      "id": "look-around",
+      "status": "draft",
+      "spec": "motions/specs/look-around.json"
+    },
+    {
+      "id": "open-door",
+      "status": "draft",
+      "spec": "motions/specs/open-door.json"
+    },
+    {
+      "id": "pick-up",
+      "status": "draft",
+      "spec": "motions/specs/pick-up.json"
+    },
+    {
+      "id": "point",
+      "status": "user-approved",
+      "spec": "motions/specs/point.json"
+    },
+    {
+      "id": "present",
+      "status": "draft",
+      "spec": "motions/specs/present.json"
+    },
+    {
+      "id": "pull",
+      "status": "draft",
+      "spec": "motions/specs/pull.json"
+    },
+    {
+      "id": "push-walk",
+      "status": "draft",
+      "spec": "motions/specs/push-walk.json"
+    },
+    {
+      "id": "push",
+      "status": "draft",
+      "spec": "motions/specs/push.json"
+    },
+    {
+      "id": "put-down",
+      "status": "draft",
+      "spec": "motions/specs/put-down.json"
+    },
+    {
+      "id": "roll",
+      "status": "draft",
+      "spec": "motions/specs/roll.json"
+    },
+    {
+      "id": "run-start",
+      "status": "draft",
+      "spec": "motions/specs/run-start.json"
+    },
+    {
+      "id": "run",
+      "status": "user-approved",
+      "spec": "motions/specs/run.json"
+    },
+    {
+      "id": "shrug",
+      "status": "draft",
+      "spec": "motions/specs/shrug.json"
+    },
+    {
+      "id": "sidestep",
+      "status": "draft",
+      "spec": "motions/specs/sidestep.json"
+    },
+    {
+      "id": "sit-down",
+      "status": "draft",
+      "spec": "motions/specs/sit-down.json"
+    },
+    {
+      "id": "sneak",
+      "status": "draft",
+      "spec": "motions/specs/sneak.json"
+    },
+    {
+      "id": "stairs-down",
+      "status": "draft",
+      "spec": "motions/specs/stairs-down.json"
+    },
+    {
+      "id": "stand-up",
+      "status": "draft",
+      "spec": "motions/specs/stand-up.json"
+    },
+    {
+      "id": "static-pose",
+      "status": "rejected",
+      "spec": "motions/specs/static-pose.json"
+    },
+    {
+      "id": "step-up",
+      "status": "draft",
+      "spec": "motions/specs/step-up.json"
+    },
+    {
+      "id": "stop",
+      "status": "user-approved",
+      "spec": "motions/specs/stop.json"
+    },
+    {
+      "id": "think",
+      "status": "draft",
+      "spec": "motions/specs/think.json"
+    },
+    {
+      "id": "throw",
+      "status": "draft",
+      "spec": "motions/specs/throw.json"
+    },
+    {
+      "id": "trip",
+      "status": "draft",
+      "spec": "motions/specs/trip.json"
+    },
+    {
+      "id": "turn-90",
+      "status": "draft",
+      "spec": "motions/specs/turn-90.json"
+    },
+    {
+      "id": "turn-around",
+      "status": "draft",
+      "spec": "motions/specs/turn-around.json"
+    },
+    {
+      "id": "vault",
+      "status": "draft",
+      "spec": "motions/specs/vault.json"
+    },
+    {
+      "id": "walk-backwards",
+      "status": "draft",
+      "spec": "motions/specs/walk-backwards.json"
+    },
+    {
+      "id": "walk-turn",
+      "status": "draft",
+      "spec": "motions/specs/walk-turn.json"
+    },
+    {
+      "id": "walk",
+      "status": "user-approved",
+      "spec": "motions/specs/walk.json"
+    },
+    {
+      "id": "wave",
+      "status": "draft",
+      "spec": "motions/specs/wave.json"
+    }
+  ]
+}

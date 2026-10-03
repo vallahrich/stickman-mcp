@@ -1,0 +1,52 @@
+{
+  "id": "roll",
+  "label": "Roll",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "128_09.bvh",
+    "subject": "128",
+    "trial": "09",
+    "range120": [
+      40,
+      170
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/128/128_09.bvh"
+  },
+  "kind": "oneshot",
+  "travel": "travel",
+  "view": "side",
+  "expect": {
+    "pose": "low-roll-rotation",
+    "contacts": [
+      "lFoot",
+      "rFoot"
+    ],
+    "travel": "travel",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot"
+  ],
+  "prop": null,
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "run",
+    "roll",
+    "underneath",
+    "closest",
+    "roll",
+    "somersault",
+    "action",
+    "fast",
+    "run",
+    "in",
+    "then",
+    "low"
+  ],
+  "notes": "Closest roll/somersault action; fast run-in then low roll-underneath, ending still low.",
+  "approvedBaseline": false
+}

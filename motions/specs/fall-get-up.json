@@ -1,0 +1,53 @@
+{
+  "id": "fall-get-up",
+  "label": "Fall Get Up",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "113_08.bvh",
+    "subject": "113",
+    "trial": "08",
+    "range120": [
+      120,
+      1720
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/113/113_08.bvh"
+  },
+  "kind": "oneshot",
+  "travel": "in-place",
+  "view": "side",
+  "expect": {
+    "pose": "ground-to-standing",
+    "contacts": [
+      "lFoot",
+      "rFoot"
+    ],
+    "travel": "in-place",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot"
+  ],
+  "prop": null,
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "lay",
+    "down",
+    "and",
+    "get",
+    "up",
+    "no",
+    "clean",
+    "single",
+    "person",
+    "fall",
+    "down",
+    "plus"
+  ],
+  "notes": "No clean single-person fall-down-plus-get-up CMU clip found; closest is controlled lay-down/get-up with very low hip floor contact.",
+  "reason": "Strict run-calibrated jitter/rootY gate failed; source has floor contact transitions too abrupt for factory quality.",
+  "approvedBaseline": false
+}

@@ -1,0 +1,52 @@
+{
+  "id": "hurdle",
+  "label": "Hurdle",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "127_25.bvh",
+    "subject": "127",
+    "trial": "25",
+    "range120": [
+      25,
+      160
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/127/127_25.bvh"
+  },
+  "kind": "oneshot",
+  "travel": "travel",
+  "view": "side",
+  "expect": {
+    "pose": "readable-human-key-poses",
+    "contacts": [
+      "lFoot",
+      "rFoot"
+    ],
+    "travel": "travel",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot"
+  ],
+  "prop": "hurdle",
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "run",
+    "jump",
+    "over",
+    "action",
+    "adventure",
+    "run",
+    "jump",
+    "over",
+    "airborne",
+    "phase",
+    "peaks",
+    "around"
+  ],
+  "notes": "Action-adventure run-jump-over; airborne phase peaks around frame 97.",
+  "approvedBaseline": false
+}

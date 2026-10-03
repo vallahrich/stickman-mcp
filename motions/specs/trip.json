@@ -1,0 +1,53 @@
+{
+  "id": "trip",
+  "label": "Trip",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "22_12.bvh",
+    "subject": "22",
+    "trial": "12",
+    "range120": [
+      2,
+      180
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/022/22_12.bvh"
+  },
+  "kind": "oneshot",
+  "travel": "travel",
+  "view": "side",
+  "expect": {
+    "pose": "readable-human-key-poses",
+    "contacts": [
+      "lFoot",
+      "rFoot"
+    ],
+    "travel": "travel",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot"
+  ],
+  "prop": null,
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "a",
+    "stumbles",
+    "into",
+    "b",
+    "2",
+    "subjects",
+    "subject",
+    "a",
+    "no",
+    "explicit",
+    "trip",
+    "clip"
+  ],
+  "notes": "No explicit trip clip found; closest stumble clip. This is a two-subject capture using subject A only.",
+  "reason": "Strict run-calibrated jitter gate failed; stumble source is too abrupt.",
+  "approvedBaseline": false
+}

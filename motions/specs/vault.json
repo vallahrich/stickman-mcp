@@ -1,0 +1,56 @@
+{
+  "id": "vault",
+  "label": "Vault",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "127_33.bvh",
+    "subject": "127",
+    "trial": "33",
+    "range120": [
+      50,
+      180
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/127/127_33.bvh"
+  },
+  "kind": "oneshot",
+  "travel": "travel",
+  "view": "side",
+  "expect": {
+    "pose": "readable-human-key-poses",
+    "contacts": [
+      "lFoot",
+      "rFoot",
+      "lHand",
+      "rHand"
+    ],
+    "travel": "travel",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot",
+    "lHand",
+    "rHand"
+  ],
+  "prop": "wall",
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "run",
+    "over",
+    "no",
+    "literal",
+    "vault",
+    "clip",
+    "found",
+    "closest",
+    "low",
+    "wall",
+    "run",
+    "over"
+  ],
+  "notes": "No literal vault clip found; closest low-wall/run-over obstacle action, with airborne/high-hip frames around 134.",
+  "approvedBaseline": false
+}

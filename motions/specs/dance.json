@@ -1,0 +1,52 @@
+{
+  "id": "dance",
+  "label": "Dance",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "141_12.bvh",
+    "subject": "141",
+    "trial": "12",
+    "range120": [
+      120,
+      450
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/141/141_12.bvh"
+  },
+  "kind": "loop",
+  "travel": "in-place",
+  "view": "side",
+  "expect": {
+    "pose": "cyclic-readable-human-motion",
+    "contacts": [
+      "lFoot",
+      "rFoot"
+    ],
+    "travel": "in-place",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot"
+  ],
+  "prop": null,
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "dance",
+    "twist",
+    "short",
+    "twist",
+    "dance",
+    "loop",
+    "candidate",
+    "not",
+    "perfectly",
+    "cyclic",
+    "should",
+    "be"
+  ],
+  "notes": "Short twist-dance loop candidate; not perfectly cyclic, should be root-normalized/cross-faded.",
+  "approvedBaseline": false
+}

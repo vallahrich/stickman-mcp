@@ -53,7 +53,7 @@ it("compiles the deck scene through real stdio MCP and confines the local previe
     });
     const invalid = await fetch(`${url}api/compile`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...animation, actions: [{ action: "dance", startMs: 0, durationMs: 1000 }] })
+      body: JSON.stringify({ ...animation, actions: [{ action: "fly", startMs: 0, durationMs: 1000 }] })
     });
     expect(invalid.status).toBe(422);
     expect(await invalid.json()).toMatchObject({

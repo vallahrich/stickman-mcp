@@ -1,0 +1,52 @@
+{
+  "id": "long-jump",
+  "label": "Long Jump",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "83_42.bvh",
+    "subject": "83",
+    "trial": "42",
+    "range120": [
+      240,
+      430
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/083/83_42.bvh"
+  },
+  "kind": "oneshot",
+  "travel": "travel",
+  "view": "side",
+  "expect": {
+    "pose": "long-jump-flight",
+    "contacts": [
+      "lFoot",
+      "rFoot"
+    ],
+    "travel": "travel",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot"
+  ],
+  "prop": "gap",
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "long",
+    "jump",
+    "forward",
+    "clear",
+    "forward",
+    "long",
+    "jump",
+    "crouch",
+    "at",
+    "frame",
+    "302",
+    "and"
+  ],
+  "notes": "Clear forward long jump; crouch at frame 302 and flight/hip peak at frame 347.",
+  "approvedBaseline": false
+}

@@ -1,0 +1,57 @@
+{
+  "id": "pull",
+  "label": "Pull",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "81_07.bvh",
+    "subject": "81",
+    "trial": "07",
+    "range120": [
+      120,
+      1100
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/081/81_07.bvh"
+  },
+  "kind": "oneshot",
+  "travel": "travel",
+  "view": "side",
+  "expect": {
+    "pose": "readable-human-key-poses",
+    "contacts": [
+      "lFoot",
+      "rFoot",
+      "lHand",
+      "rHand"
+    ],
+    "travel": "travel",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot",
+    "lHand",
+    "rHand"
+  ],
+  "prop": "box",
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "pull",
+    "heavy",
+    "object",
+    "sustained",
+    "heavy",
+    "pull",
+    "with",
+    "crouched",
+    "start",
+    "and",
+    "backward",
+    "walking"
+  ],
+  "notes": "Sustained heavy pull with crouched start and backward walking pull; good counterpart to push-heavy-object.",
+  "reason": "Visual review: heavy-pull side projection collapses into a triangular crouch; excluded until hand/prop constraints are improved.",
+  "approvedBaseline": false
+}

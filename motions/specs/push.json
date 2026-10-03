@@ -1,0 +1,57 @@
+{
+  "id": "push",
+  "label": "Push",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "82_06.bvh",
+    "subject": "82",
+    "trial": "06",
+    "range120": [
+      250,
+      900
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/082/82_06.bvh",
+    "alternativeFor": "push"
+  },
+  "kind": "loop",
+  "travel": "travel",
+  "view": "side",
+  "expect": {
+    "pose": "readable-human-key-poses",
+    "contacts": [
+      "lFoot",
+      "rFoot",
+      "lHand",
+      "rHand"
+    ],
+    "travel": "travel",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot",
+    "lHand",
+    "rHand"
+  ],
+  "prop": "box",
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "push",
+    "heavy",
+    "object",
+    "strong",
+    "heavy",
+    "push",
+    "read",
+    "with",
+    "sustained",
+    "forward",
+    "lean",
+    "and"
+  ],
+  "notes": "Strong heavy-push read with sustained forward lean and hands high/forward; large root travel. Re-picked alternative trial 82_06.",
+  "approvedBaseline": false
+}

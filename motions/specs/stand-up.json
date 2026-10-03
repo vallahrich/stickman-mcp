@@ -1,0 +1,52 @@
+{
+  "id": "stand-up",
+  "label": "Stand Up",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "113_15.bvh",
+    "subject": "113",
+    "trial": "15",
+    "range120": [
+      520,
+      760
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/113/113_15.bvh"
+  },
+  "kind": "oneshot",
+  "travel": "in-place",
+  "view": "side",
+  "expect": {
+    "pose": "rises-to-stand",
+    "contacts": [
+      "lFoot",
+      "rFoot"
+    ],
+    "travel": "in-place",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot"
+  ],
+  "prop": "chair",
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "sit",
+    "in",
+    "chair",
+    "and",
+    "get",
+    "up",
+    "uses",
+    "same",
+    "trial",
+    "as",
+    "sit",
+    "down"
+  ],
+  "notes": "Uses same trial as sit-down; hip rises from seated to standing/walking away.",
+  "approvedBaseline": false
+}

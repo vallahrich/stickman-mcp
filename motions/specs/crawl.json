@@ -1,0 +1,58 @@
+{
+  "id": "crawl",
+  "label": "Crawl",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "111_03.bvh",
+    "subject": "111",
+    "trial": "03",
+    "range120": [
+      350,
+      1250
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/111/111_03.bvh",
+    "alternativeFor": "crawl"
+  },
+  "kind": "loop",
+  "travel": "travel",
+  "view": "side",
+  "expect": {
+    "pose": "prone-hands-knees",
+    "contacts": [
+      "lFoot",
+      "rFoot",
+      "lHand",
+      "rHand"
+    ],
+    "travel": "travel",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot",
+    "lHand",
+    "rHand"
+  ],
+  "prop": null,
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "crawling",
+    "clear",
+    "low",
+    "crawl",
+    "sequence",
+    "hip",
+    "stays",
+    "near",
+    "6",
+    "6",
+    "8",
+    "0"
+  ],
+  "notes": "Clear low crawl sequence; hip stays near 6.6-8.0 and hands/feet alternate. Re-picked alternative trial 111_03.",
+  "reason": "Alternative 111_03 still fails strict run-calibrated max joint acceleration after smoothing; needs dedicated crawl retarget.",
+  "approvedBaseline": false
+}

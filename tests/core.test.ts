@@ -34,7 +34,7 @@ describe("strict animation contract", () => {
     const result = validateAnimation({
       ...base,
       unsafeCode: "alert(1)",
-      actions: [{ action: "dance", startMs: 0, durationMs: 500 }]
+      actions: [{ action: "fly", startMs: 0, durationMs: 500 }]
     });
     expect(result.valid).toBe(false);
     expect(result.diagnostics.map((item) => item.code)).toContain("unknown_field");

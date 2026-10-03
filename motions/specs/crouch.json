@@ -1,0 +1,52 @@
+{
+  "id": "crouch",
+  "label": "Crouch",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "139_09.bvh",
+    "subject": "139",
+    "trial": "09",
+    "range120": [
+      130,
+      450
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/139/139_09.bvh"
+  },
+  "kind": "oneshot",
+  "travel": "in-place",
+  "view": "side",
+  "expect": {
+    "pose": "hip-drop",
+    "contacts": [
+      "lFoot",
+      "rFoot"
+    ],
+    "travel": "in-place",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot"
+  ],
+  "prop": null,
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "ducking",
+    "clean",
+    "duck",
+    "crouch",
+    "and",
+    "recovery",
+    "hip",
+    "head",
+    "minima",
+    "identify",
+    "the",
+    "duck"
+  ],
+  "notes": "Clean duck/crouch and recovery; hip/head minima identify the duck center around frame 322.",
+  "approvedBaseline": false
+}

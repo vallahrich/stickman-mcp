@@ -1,0 +1,56 @@
+{
+  "id": "climb-ledge",
+  "label": "Climb Ledge",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "01_02.bvh",
+    "subject": "1",
+    "trial": "02",
+    "range120": [
+      180,
+      900
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/001/01_02.bvh"
+  },
+  "kind": "oneshot",
+  "travel": "travel",
+  "view": "side",
+  "expect": {
+    "pose": "readable-human-key-poses",
+    "contacts": [
+      "lFoot",
+      "rFoot",
+      "lHand",
+      "rHand"
+    ],
+    "travel": "travel",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot",
+    "lHand",
+    "rHand"
+  ],
+  "prop": "wall",
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "playground",
+    "climb",
+    "best",
+    "high",
+    "ledge",
+    "scramble",
+    "up",
+    "alternative",
+    "from",
+    "playground",
+    "set",
+    "large"
+  ],
+  "notes": "Best high-ledge/scramble-up alternative from playground set; large travel and hand reach, not a clean wall-vault.",
+  "approvedBaseline": false
+}

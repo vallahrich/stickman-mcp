@@ -19,9 +19,10 @@ type DefinedTool = Omit<Tool, "inputSchema" | "outputSchema"> & {
 
 const descriptionSchema: ObjectSchema = {
   type: "object", additionalProperties: false,
-  required: ["id", "action", "summary", "requiredBinding", "reducedMotion"],
+  required: ["id", "action", "label", "summary", "kind", "travel", "prop", "requiredBinding", "reducedMotion"],
   properties: {
-    id: { type: "string" }, action: { type: "string" }, summary: { type: "string" },
+    id: { type: "string" }, action: { type: "string" }, label: { type: "string" }, summary: { type: "string" },
+    kind: { type: "string" }, travel: { type: "string" }, prop: { oneOf: [{ type: "string" }, { type: "null" }] },
     requiredBinding: { type: "string" }, reducedMotion: { type: "string" }
   }
 };

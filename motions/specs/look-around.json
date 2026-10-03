@@ -1,0 +1,52 @@
+{
+  "id": "look-around",
+  "label": "Look Around",
+  "status": "draft",
+  "source": {
+    "dataset": "CMU",
+    "file": "139_01.bvh",
+    "subject": "139",
+    "trial": "01",
+    "range120": [
+      100,
+      690
+    ],
+    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/139/139_01.bvh"
+  },
+  "kind": "oneshot",
+  "travel": "in-place",
+  "view": "side",
+  "expect": {
+    "pose": "readable-human-key-poses",
+    "contacts": [
+      "lFoot",
+      "rFoot"
+    ],
+    "travel": "in-place",
+    "facingChange": 0
+  },
+  "contacts": [
+    "lFoot",
+    "rFoot"
+  ],
+  "prop": null,
+  "aim": "head",
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": [
+    "looking",
+    "around",
+    "readable",
+    "head",
+    "torso",
+    "search",
+    "motion",
+    "includes",
+    "lowered",
+    "cautious",
+    "posture",
+    "rather"
+  ],
+  "notes": "Readable head/torso search motion; includes lowered cautious posture rather than neutral idle.",
+  "approvedBaseline": false
+}
