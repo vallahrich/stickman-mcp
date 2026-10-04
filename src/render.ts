@@ -58,8 +58,8 @@ export function frameGeometry(frame: SampledFrame) {
     const limitedDistance = Math.max(-0.15 * length, Math.min(0.15 * length, signedDistance));
     const midX = (root.x + end.x) / 2;
     const midY = (root.y + end.y) / 2;
-    const cx = midX - dy / length * limitedDistance * 2;
-    const cy = midY + dx / length * limitedDistance * 2;
+    const cx = midX + dy / length * limitedDistance * 2;
+    const cy = midY - dx / length * limitedDistance * 2;
     return `M${format(root.x)} ${format(root.y)}Q${format(cx)} ${format(cy)} ${format(end.x)} ${format(end.y)}`;
   };
   // Passes through the real joint with a softly rounded corner, so deep knee/elbow bends stay readable.

@@ -11,7 +11,11 @@ export async function loadEngineRenderer() {
       import(pathToFileURL(path.join(repo, "dist", "motion-clips.js")).href),
       import(pathToFileURL(path.join(repo, "dist", "motion-library.js")).href)
     ]);
-    return { ...render, ...clips, runtimeLibrary: lib.RUNTIME_MOTION_LIBRARY };
+    const [compiler, contract] = await Promise.all([
+      import(pathToFileURL(path.join(repo, "dist", "compiler.js")).href),
+      import(pathToFileURL(path.join(repo, "dist", "contract.js")).href)
+    ]);
+    return { ...render, ...clips, runtimeLibrary: lib.RUNTIME_MOTION_LIBRARY, compileAnimation: compiler.compileAnimation, sampleAnimation: compiler.sampleAnimation, CONTRACT_VERSION: contract.CONTRACT_VERSION };
   } catch (error) {
     throw new Error(`Review pages use the shipping renderer. Run "npm run build" first so dist/render.js and dist/motion-clips.js exist. ${error.message}`);
   }
@@ -132,10 +136,25 @@ export async function renderStaticSvg({ clip, spec, propsCatalog, frameIndex = 0
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${viewBoxFor(sample)}" role="img" aria-label="${xml(clip.name)} frame ${frameIndex}"><rect x="-10000" y="-10000" width="20000" height="20000" fill="#fff"/><path id="ground" d="M-10000 ${num(sample.groundY)}H10000" stroke="#d8dbe0" stroke-width="1"/>${propMarkup(prop, geometry.strokeWidth, "#202124")}${onionMarkup}${figureMarkup(sample, geometry)}<text x="${num(Number(viewBoxFor(sample).split(" ")[0]) + 6)}" y="-42" font-size="9" fill="#888">${xml(clip.name)} f${frameIndex}</text></svg>`;
 }
 
+/** The approved run exactly as the product ships it: a compiled scene (root motion, planted feet) sampled at 30 fps. */
+export async function shippingRunFrames() {
+  const { compileAnimation, sampleAnimation, CONTRACT_VERSION } = await loadEngineRenderer();
+  const durationMs = 2600, groundY = 640;
+  const result = compileAnimation({
+    version: CONTRACT_VERSION, canvas: { width: 1600, height: 800, fps: 30 }, durationMs,
+    actor: { x: 280, groundY }, targets: { travel: { x: 1320, y: groundY } },
+    actions: [{ action: "run", startMs: 0, durationMs, target: "travel" }]
+  });
+  if (!result.program) throw new Error(`Reference run failed to compile: ${JSON.stringify(result.errors ?? result)}`);
+  const frames = [];
+  for (let t = 0; t <= durationMs; t += 1000 / 30) frames.push(sampleAnimation(result.program, t));
+  return frames;
+}
+
 export async function renderReviewHtml({ clip, spec, report, propsCatalog }) {
-  const { frameGeometry, sampleMotionClip, sampleClipMotion, runtimeLibrary } = await loadEngineRenderer();
-  const runClip = runtimeLibrary.clips.run;
-  const data = JSON.stringify({ clip, spec, report, runClip, propsCatalog }).replaceAll("<", "\\u003c");
+  const { frameGeometry, sampleMotionClip, sampleClipMotion } = await loadEngineRenderer();
+  const runFrames = await shippingRunFrames();
+  const data = JSON.stringify({ clip, spec, report, runFrames, propsCatalog }).replaceAll("<", "\\u003c");
   return `<!doctype html><html><meta charset="utf-8"><title>${xml(clip.name)} motion review</title><style>
 body{font:14px system-ui;margin:0;background:#f7f7f8;color:#1f2328}.bar{position:sticky;top:0;background:white;border-bottom:1px solid #ddd;padding:10px;z-index:3}.bare .bar,.bare h3,.bare .film{display:none}main{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px}.bare main{display:block;padding:0}.panel{background:white;border:1px solid #ddd;border-radius:12px;padding:10px}.bare .panel{border:0;border-radius:0;padding:0}svg.stage{width:100%;height:440px}.bare svg.stage{width:100vw;height:100vh}.film{display:grid;grid-template-columns:repeat(8,1fr);gap:6px}.film svg{height:90px;background:#fafafa;border-radius:8px}button,select,input{vertical-align:middle}</style><body><div class="bar"><b>${xml(clip.name)}</b> <button id="play">pause</button> speed <select id="speed"><option value=".1">0.1x</option><option value=".25">0.25x</option><option value=".5">0.5x</option><option value="1" selected>1x</option></select> onion <input id="onion" type="checkbox"> frame <input id="scrub" type="range" min="0" max="${clip.frames.length - 1}" value="0"> <span id="frameNo">0</span></div><main><section class="panel"><h3>Candidate (shipping engine)</h3><svg id="stage" class="stage"></svg><div id="film" class="film"></div></section><section class="panel" id="refPanel"><h3>Approved run (shipping engine)</h3><svg id="ref" class="stage"></svg></section></main><script id="data" type="application/json">${data}</script><script>
 const ENGINE_FRAME_GEOMETRY=${frameGeometry.toString()};
@@ -147,8 +166,9 @@ const layoutProp=${layoutProp.toString()};
 const propMarkup=${propMarkup.toString()};
 const viewBoxFor=${viewBoxFor.toString()};
 const xml=${xml.toString()}; const num=${num.toString()}; const line=${line.toString()};
-const D=JSON.parse(document.getElementById('data').textContent),clip=D.clip,runClip=D.runClip,spec=D.spec,propsCatalog=D.propsCatalog; let f=0,playing=true,last=performance.now();
+const D=JSON.parse(document.getElementById('data').textContent),clip=D.clip,runFrames=D.runFrames,spec=D.spec,propsCatalog=D.propsCatalog; let f=0,playing=true,last=performance.now();
+function drawRef(){const s=runFrames[Math.floor(performance.now()/1000*30)%runFrames.length],g=ENGINE_FRAME_GEOMETRY(s);ref.setAttribute('viewBox','200 '+num(s.groundY-260)+' 1200 330');ref.innerHTML='<rect x="-10000" y="-10000" width="20000" height="20000" fill="#fff"/><path d="M-10000 '+num(s.groundY)+'H10000" stroke="#d8dbe0"/>'+figureMarkup(s,g);}
 const params=new URLSearchParams(location.search); if(params.get('bare')==='1')document.body.classList.add('bare'); if(params.has('onion'))onion.checked=params.get('onion')!=='0'; if(params.has('frame')){f=Number(params.get('frame'))||0;playing=false;play.textContent='play';scrub.value=Math.max(0,Math.min(clip.frames.length-1,Math.round(f)));}
 function drawSvg(svg,c,ix,onionMode,withProp){const sample=engineSampledFrame(sampleClipMotion,c,ix),g=ENGINE_FRAME_GEOMETRY(sample);svg.setAttribute('viewBox',viewBoxFor(sample));let h='<rect x="-10000" y="-10000" width="20000" height="20000" fill="#fff"/><path d="M-10000 '+num(sample.groundY)+'H10000" stroke="#d8dbe0"/>';if(withProp)h+=propMarkup(layoutProp(spec,propsCatalog,ix),g.strokeWidth,'#202124');if(onionMode){for(const d of [-6,-3,3,6]){const oi=ix+d;if(oi>=0&&oi<c.frames.length){const os=engineSampledFrame(sampleClipMotion,c,oi);h+=figureMarkup(os,ENGINE_FRAME_GEOMETRY(os),'#202124',.18);}}}h+=figureMarkup(sample,g);svg.innerHTML=h;}
-for(let k=0;k<8;k++){const s=document.createElementNS('http://www.w3.org/2000/svg','svg');drawSvg(s,clip,Math.round(k*(clip.frames.length-1)/7),false,true);film.append(s)}play.onclick=()=>{playing=!playing;play.textContent=playing?'pause':'play'};scrub.oninput=()=>{playing=false;play.textContent='play';f=Number(scrub.value);draw()};function draw(){const ix=Math.max(0,Math.min(clip.frames.length-1,f));scrub.value=Math.floor(ix);frameNo.textContent=String(Math.floor(ix));drawSvg(stage,clip,ix,onion.checked,true);drawSvg(ref,runClip,(performance.now()/1000*runClip.fps)%runClip.frames.length,false,false)}function tick(t){const dt=(t-last)/1000;last=t;if(playing){f=f+dt*clip.fps*Number(speed.value);if(f>clip.frames.length-1)f=clip.loop?f%clip.frames.length:(f>clip.frames.length-1+20?0:f);}draw();requestAnimationFrame(tick)}draw();if(params.get('bare')!=='1')requestAnimationFrame(tick);</script></body></html>`;
+for(let k=0;k<8;k++){const s=document.createElementNS('http://www.w3.org/2000/svg','svg');drawSvg(s,clip,Math.round(k*(clip.frames.length-1)/7),false,true);film.append(s)}play.onclick=()=>{playing=!playing;play.textContent=playing?'pause':'play'};scrub.oninput=()=>{playing=false;play.textContent='play';f=Number(scrub.value);draw()};function draw(){const ix=Math.max(0,Math.min(clip.frames.length-1,f));scrub.value=Math.floor(ix);frameNo.textContent=String(Math.floor(ix));drawSvg(stage,clip,ix,onion.checked,true);drawRef()}function tick(t){const dt=(t-last)/1000;last=t;if(playing){f=f+dt*clip.fps*Number(speed.value);if(f>clip.frames.length-1)f=clip.loop?f%clip.frames.length:(f>clip.frames.length-1+20?0:f);}draw();requestAnimationFrame(tick)}draw();if(params.get('bare')!=='1')requestAnimationFrame(tick);</script></body></html>`;
 }
