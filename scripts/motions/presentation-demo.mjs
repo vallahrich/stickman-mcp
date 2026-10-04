@@ -128,13 +128,12 @@ h1, h2 { margin: 0; font-weight: 650; letter-spacing: -.01em; }
 @keyframes blink { 50% { opacity: 0; } }
 .screen-glow { position: absolute; pointer-events: none; }
 /* slide 3: card */
-.slots { position: absolute; right: 5cqw; top: 26cqh; display: grid; grid-template-columns: repeat(2, 21cqw); gap: 2cqw; }
-.slot { height: 22cqh; border: 2px dashed var(--cp-border); border-radius: 16px; display: grid; place-items: center; color: var(--cp-text-soft); font-size: 1.4cqw; }
-.fly-card { position: fixed; z-index: 10; background: var(--cp-surface); border: 2px solid var(--cp-accent); border-radius: 16px; display: grid; align-content: center; padding: 0 1.4vw; box-shadow: var(--cp-shadow); transition: all .75s cubic-bezier(.3,1.3,.5,1); overflow: hidden; }
-.fly-card b { color: var(--cp-accent); font-size: 1.6vw; display: block; }
-.fly-card span { color: var(--cp-text-muted); font-size: 1vw; }
-.slot.filled { border-style: solid; border-color: var(--cp-accent); background: var(--cp-accent-soft); color: var(--cp-text); display: grid; align-content: center; justify-items: start; padding: 0 1.4cqw; }
-.slot.filled b { color: var(--cp-accent); font-size: 2.4cqw; }
+.showcase { position: absolute; right: 5cqw; top: 22cqh; width: 52cqw; height: 64cqh; border: 2px dashed var(--cp-border); border-radius: 16px; display: grid; place-items: center; color: var(--cp-text-soft); font-size: 1.6cqw; transition: opacity .3s; }
+.showcase.used { opacity: 0; }
+.bigcard { position: absolute; z-index: 5; box-sizing: border-box; background: var(--cp-surface); border: 2px solid var(--cp-accent); border-radius: 16px; padding: 5cqh 3.4cqw; box-shadow: var(--cp-shadow); transform-origin: 0 0; transition: transform .95s cubic-bezier(.3,1.22,.5,1); overflow: hidden; }
+.bigcard b { display: block; color: var(--cp-accent); font-size: 10cqw; line-height: 1; letter-spacing: -.02em; }
+.bigcard .t { font-size: 2.6cqw; font-weight: 600; margin-top: 1.4cqh; }
+.bigcard ul { margin: 3cqh 0 0; padding-left: 2cqw; font-size: 1.8cqw; line-height: 1.7; color: var(--cp-text-muted); }
 /* slide 4: board ink */
 .ink path { fill: none; stroke: var(--cp-accent); stroke-linecap: round; stroke-linejoin: round; }
 .ink .draw { transition: stroke-dashoffset .5s ease-out; }
@@ -153,21 +152,21 @@ h1, h2 { margin: 0; font-weight: 650; letter-spacing: -.01em; }
 .ripple { position: fixed; z-index: 10; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; border: 3px solid var(--cp-accent); pointer-events: none; animation: ripple .7s ease-out forwards; }
 @keyframes ripple { to { transform: scale(9); opacity: 0; } }
 /* slide 6: idea */
-.bulb { position: absolute; left: 33cqw; top: 14cqh; width: 9cqw; transition: transform .4s cubic-bezier(.2,1.8,.4,1); }
+.bulb { position: absolute; left: 20cqw; top: 20cqh; width: 7cqw; opacity: 0; transform: translate(-50%, -100%) scale(.3); transform-origin: 50% 100%; transition: transform .45s cubic-bezier(.2,1.8,.4,1), opacity .2s; }
 .bulb .glass { fill: var(--cp-surface); stroke: var(--cp-text); transition: fill .25s; }
 .bulb .rays { stroke: var(--cp-warning); opacity: 0; transition: opacity .3s; }
-.bulb.on { transform: scale(1.15); }
+.bulb.on { opacity: 1; transform: translate(-50%, -100%) scale(1); }
 .bulb.on .glass { fill: var(--cp-warning); }
 .bulb.on .rays { opacity: 1; }
 .insight { position: absolute; left: 48cqw; top: 30cqh; width: 46cqw; font-size: 2.4cqw; opacity: 0; transform: translateY(2cqh); transition: all .5s; }
 .insight.on { opacity: 1; transform: none; }
 .insight small { display: block; color: var(--cp-text-muted); font-size: 1.5cqw; margin-top: 1.6cqh; }
-.thinking { position: absolute; left: 30cqw; top: 26cqh; font-size: 3cqw; color: var(--cp-text-soft); opacity: 0; transition: opacity .3s; }
+.thinking { position: absolute; left: 30cqw; top: 26cqh; transform: translateY(-100%); font-size: 3cqw; color: var(--cp-text-soft); opacity: 0; transition: opacity .3s; }
 .thinking.on { opacity: 1; }
 /* slide 7: banner */
-.headline { position: absolute; left: 0; right: 0; top: 30cqh; margin: 0 auto; width: 54cqw; margin-left: 40cqw; background: var(--cp-accent); color: var(--cp-accent-fg); border-radius: 0.625rem; padding: 3cqh 2.4cqw; font-size: 3.4cqw; font-weight: 700; transform: translateY(-60cqh); transition: transform .7s cubic-bezier(.3,1.5,.5,1); }
+.headline { position: absolute; top: 30cqh; width: 54cqw; left: 40cqw; box-sizing: border-box; background: var(--cp-accent); color: var(--cp-accent-fg); border-radius: 0.625rem; padding: 3cqh 2.4cqw; font-size: 3.4cqw; font-weight: 700; opacity: 0; transform-origin: 0 0; transition: transform .8s cubic-bezier(.3,1.25,.5,1), opacity .25s; }
 .headline small { display: block; font-size: 1.5cqw; font-weight: 500; opacity: .85; margin-top: 1cqh; }
-.headline.on { transform: none; }
+.headline.on { opacity: 1; }
 /* slide 8 + 9 */
 .agenda { position: absolute; right: 6cqw; top: 26cqh; font-size: 2.2cqw; line-height: 1.9; color: var(--cp-text-muted); }
 .agenda b { color: var(--cp-text); }
@@ -198,8 +197,8 @@ h1, h2 { margin: 0; font-weight: 650; letter-spacing: -.01em; }
 
   <section class="slide" data-motion="present-card" data-actor="4,22,36,76">
     <div class="kicker">Business case</div>
-    <h2>Three numbers that matter</h2>
-    <div class="slots"><div class="slot" id="slotA">TCO reduction</div><div class="slot">Time to deploy</div><div class="slot">Availability</div><div class="slot">Carbon</div></div>
+    <h2>The number that matters</h2>
+    <div class="showcase" id="showcase">the number that matters…</div>
   </section>
 
   <section class="slide" data-motion="write-board" data-actor="3,20,56,76">
@@ -298,17 +297,20 @@ const reactions = {
     }
   },
   "present-card": {
-    reset(s) { const slot = s.querySelector("#slotA"); slot.className = "slot"; slot.textContent = "TCO reduction"; document.querySelectorAll(".fly-card").forEach((e) => e.remove()); this.flown = false; },
+    reset(s) { s.querySelectorAll(".bigcard").forEach((e) => e.remove()); s.querySelector("#showcase").classList.remove("used"); this.flown = false; },
+    // The hand-held card grows out of the hand into a full-size, readable card on the slide.
     cardPlaced(s, svg, sample) {
       this.flown = true;
-      const drawn = svg.querySelector('[data-prop="card"]'), from = drawn ? drawn.getBoundingClientRect() : null;
-      const hand = from ? { x: from.left + from.width / 2, y: from.top + from.height / 2 } : svgPointToScreen(svg, handFromSample(sample, "right"));
-      const slot = s.querySelector("#slotA"), r = slot.getBoundingClientRect();
-      const card = document.createElement("div"); card.className = "fly-card"; card.innerHTML = "<b>−31%</b><span>3-year TCO</span>";
-      Object.assign(card.style, { left: hand.x - 20 + "px", top: hand.y - 14 + "px", width: "40px", height: "28px" });
-      document.body.append(card);
-      requestAnimationFrame(() => requestAnimationFrame(() => Object.assign(card.style, { left: r.left + "px", top: r.top + "px", width: r.width + "px", height: r.height + "px" })));
-      setTimeout(() => { card.remove(); slot.className = "slot filled"; slot.innerHTML = "<b>−31%</b><span>3-year TCO</span>"; }, 800);
+      const sr = s.getBoundingClientRect(), target = s.querySelector("#showcase").getBoundingClientRect();
+      const drawn = svg.querySelector('[data-prop="card"]');
+      const hand = svgPointToScreen(svg, handFromSample(sample, "right"));
+      const from = drawn ? drawn.getBoundingClientRect() : { left: hand.x - 20, top: hand.y - 14, width: 40, height: 28 };
+      const card = document.createElement("div"); card.className = "bigcard";
+      card.innerHTML = "<b>−31%</b><div class=\\"t\\">3-year total cost of ownership</div><ul><li>Reserved capacity −12%</li><li>Licence mobility −11%</li><li>Ops automation −8%</li></ul>";
+      Object.assign(card.style, { left: target.left - sr.left + "px", top: target.top - sr.top + "px", width: target.width + "px", height: target.height + "px", transition: "none",
+        transform: "translate(" + (from.left - target.left) + "px," + (from.top - target.top) + "px) scale(" + from.width / target.width + "," + from.height / target.height + ")" });
+      s.append(card); s.querySelector("#showcase").classList.add("used");
+      requestAnimationFrame(() => requestAnimationFrame(() => { card.style.transition = ""; card.style.transform = "none"; }));
     },
     hideProp() { return this.flown; }
   },
@@ -332,12 +334,29 @@ const reactions = {
   },
   "idea": {
     reset(s) { ["#bulb", "#insight", "#thinking"].forEach((q) => s.querySelector(q).classList.remove("on")); },
+    hideProp() { return true; },
     think(s) { s.querySelector("#thinking").classList.add("on"); },
-    idea(s) { s.querySelector("#thinking").classList.remove("on"); s.querySelector("#bulb").classList.add("on"); setTimeout(() => s.querySelector("#insight").classList.add("on"), 250); }
+    idea(s) { s.querySelector("#thinking").classList.remove("on"); s.querySelector("#bulb").classList.add("on"); setTimeout(() => s.querySelector("#insight").classList.add("on"), 250); },
+    // Keep the bulb and the thinking cue pinned just above the head as the body rises.
+    frame(s, svg, sample) {
+      const sr = s.getBoundingClientRect(), top = svgPointToScreen(svg, { x: sample.head.x, y: sample.head.y - 16.5 * STAGE.scale });
+      const bulb = s.querySelector("#bulb"), th = s.querySelector("#thinking");
+      bulb.style.left = top.x - sr.left + "px"; bulb.style.top = top.y - sr.top - sr.height * 0.015 + "px";
+      th.style.left = top.x - sr.left + sr.width * 0.025 + "px"; th.style.top = top.y - sr.top + "px";
+    }
   },
   "pull-banner": {
-    reset(s) { s.querySelector("#headline").classList.remove("on"); },
-    reveal(s) { s.querySelector("#headline").classList.add("on"); }
+    reset(s) { const h = s.querySelector("#headline"); h.classList.remove("on"); h.style.transition = ""; h.style.transform = ""; this.done = false; },
+    // Once the stickman lets go, the pulled banner grows into the full-size headline.
+    release(s, svg) {
+      if (this.done) return; this.done = true;
+      const h = s.querySelector("#headline"), drawn = svg.querySelector('[data-prop="banner"]');
+      h.style.transition = "none"; h.style.transform = "none";
+      if (drawn) { const from = drawn.getBoundingClientRect(), to = h.getBoundingClientRect(); h.style.transform = "translate(" + (from.left - to.left) + "px," + (from.top - to.top) + "px) scale(" + from.width / to.width + "," + from.height / to.height + ")"; }
+      h.classList.add("on"); void h.offsetWidth;
+      requestAnimationFrame(() => requestAnimationFrame(() => { h.style.transition = ""; h.style.transform = "none"; }));
+    },
+    hideProp() { return this.done; }
   },
   "swipe-next": {
     reset() {},
@@ -362,11 +381,13 @@ function drawActor(slide, ix) {
   const prevInk = ix === 0 ? [] : [...svg.querySelectorAll(".ink path")].map((p) => p.style.strokeDashoffset);
   svg.innerHTML = themed(h);
   svg.querySelectorAll(".ink path").forEach((p, i) => { p.style.strokeDashoffset = prevInk[i] ?? p.getAttribute("data-len"); });
+  if (react.frame) react.frame(slide, svg, sample);
   return { svg, sample };
 }
 function inkMarkup(sw, board) {
   if (!board) return "";
-  const ph = board.h * 0.62, pt = (u, v) => num(board.x + u * board.w) + " " + num(board.y + v * ph);
+  // ink is squeezed into the band the writing hand actually reaches (u 0.14-0.6 of the panel)
+  const ph = board.h * 0.62, pt = (u, v) => num(board.x + (0.12 + u * 0.5) * board.w) + " " + num(board.y + v * ph);
   const paths = boardInk.map((cmds) => cmds.map(([c, u, v]) => (c ? c + " " : "") + pt(u, v)).join(" "));
   return '<g class="ink" stroke-width="' + num(sw * 0.8) + '">' + paths.map((d, i) => '<path class="draw" data-i="' + i + '" data-len="400" d="' + d + '" stroke-dasharray="400" style="stroke-dashoffset:400"/>').join("") + "</g>";
 }

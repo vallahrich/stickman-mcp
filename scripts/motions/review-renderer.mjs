@@ -99,7 +99,7 @@ function propMarkup(prop, strokeWidth, color) {
   }
   if (prop.type === "desk") {
     // Desk with a monitor (screen lines) and a keyboard on the front edge; x..x+w is the tabletop.
-    const top = y + h * 0.42, mw = w * 0.46, mx = x + w * 0.5, my = y, mh = h * 0.3;
+    const top = y + h * 0.42, mw = w * 0.56, mx = x + w * 0.42, mh = h * 0.46, my = top - h * 0.1 - mh;
     return `<g data-prop="desk" ${attrs}><path d="${line({ x, y: top }, { x: x + w, y: top })}"/><path d="${line({ x: x + w * 0.08, y: top }, { x: x + w * 0.08, y: y + h })}"/><path d="${line({ x: x + w * 0.92, y: top }, { x: x + w * 0.92, y: y + h })}"/><rect x="${num(mx)}" y="${num(my)}" width="${num(mw)}" height="${num(mh)}" rx="2"/><path d="${line({ x: mx + mw / 2, y: my + mh }, { x: mx + mw / 2, y: top })}"/><path d="${line({ x: mx + mw * 0.15, y: my + mh * 0.3 }, { x: mx + mw * 0.7, y: my + mh * 0.3 })}" stroke-width="${num(strokeWidth * 0.5)}"/><path d="${line({ x: mx + mw * 0.15, y: my + mh * 0.55 }, { x: mx + mw * 0.55, y: my + mh * 0.55 })}" stroke-width="${num(strokeWidth * 0.5)}"/><path d="${line({ x: x + w * 0.04, y: top - strokeWidth }, { x: x + w * 0.38, y: top - strokeWidth })}"/></g>`;
   }
   if (prop.type === "board") {
@@ -107,7 +107,8 @@ function propMarkup(prop, strokeWidth, color) {
     return `<g data-prop="board" ${attrs}><rect x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(bh)}" rx="2"/><path d="${line({ x: x + w * 0.2, y: y + bh }, { x: x + w * 0.12, y: y + h })}"/><path d="${line({ x: x + w * 0.8, y: y + bh }, { x: x + w * 0.88, y: y + h })}"/><path d="${line({ x: x + w * 0.25, y: y + bh + strokeWidth }, { x: x + w * 0.75, y: y + bh + strokeWidth })}"/></g>`;
   }
   if (prop.type === "card") return `<g data-prop="card" ${attrs}><rect x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" rx="2"/><path d="${line({ x: x + w * 0.15, y: y + h * 0.35 }, { x: x + w * 0.8, y: y + h * 0.35 })}" stroke-width="${num(strokeWidth * 0.5)}"/><path d="${line({ x: x + w * 0.15, y: y + h * 0.62 }, { x: x + w * 0.6, y: y + h * 0.62 })}" stroke-width="${num(strokeWidth * 0.5)}"/></g>`;
-  if (prop.type === "banner") return `<g data-prop="banner" ${attrs}><path d="${line({ x: x + w * 0.85, y: y + h }, { x: x + w * 0.85, y: y + h + 40 })}" stroke-width="${num(strokeWidth * 0.5)}"/><rect x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" rx="2"/><path d="${line({ x: x + w * 0.12, y: y + h * 0.45 }, { x: x + w * 0.88, y: y + h * 0.45 })}"/><path d="${line({ x: x + w * 0.2, y: y + h * 0.7 }, { x: x + w * 0.7, y: y + h * 0.7 })}" stroke-width="${num(strokeWidth * 0.5)}"/></g>`;
+  if (prop.type === "bulb") return `<g data-prop="bulb" ${attrs}><path d="M${num(x + w / 2)} ${num(y)}a${num(w / 2)} ${num(w / 2)} 0 0 0-${num(w * 0.3)} ${num(w * 0.9)}c${num(w * 0.08)} ${num(w * 0.08)} ${num(w * 0.1)} ${num(w * 0.16)} ${num(w * 0.1)} ${num(w * 0.26)}h${num(w * 0.4)}c0-${num(w * 0.1)} ${num(w * 0.02)}-${num(w * 0.18)} ${num(w * 0.1)}-${num(w * 0.26)}A${num(w / 2)} ${num(w / 2)} 0 0 0 ${num(x + w / 2)} ${num(y)}z" style="fill:#ffd23f"/><path d="${line({ x: x + w * 0.32, y: y + h * 0.88 }, { x: x + w * 0.68, y: y + h * 0.88 })}"/><path d="${line({ x: x + w / 2, y: y - w * 0.3 }, { x: x + w / 2, y: y - w * 0.5 })}"/><path d="${line({ x: x - w * 0.15, y: y + w * 0.1 }, { x: x - w * 0.32, y: y - w * 0.04 })}"/><path d="${line({ x: x + w * 1.15, y: y + w * 0.1 }, { x: x + w * 1.32, y: y - w * 0.04 })}"/></g>`;
+  if (prop.type === "banner") return `<g data-prop="banner" ${attrs}><rect x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" rx="2"/><path d="${line({ x: x + w * 0.12, y: y + h * 0.45 }, { x: x + w * 0.88, y: y + h * 0.45 })}"/><path d="${line({ x: x + w * 0.2, y: y + h * 0.7 }, { x: x + w * 0.7, y: y + h * 0.7 })}" stroke-width="${num(strokeWidth * 0.5)}"/></g>`;
   if (prop.type === "door") return `<g data-prop="door" ${attrs}><rect x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" rx="2"/><circle cx="${num(x + w * 0.82)}" cy="${num(y + h * 0.52)}" r="${num(Math.max(2, strokeWidth))}"/></g>`;
   if (prop.type === "sign") return `<g data-prop="sign" ${attrs}><rect x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h * 0.55)}" rx="3"/><path d="${line({ x: x + w / 2, y: y + h * 0.55 }, { x: x + w / 2, y: y + h })}"/></g>`;
   return `<rect data-prop="${xml(prop.type)}" x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" rx="3" ${attrs}/>`;
@@ -141,7 +142,7 @@ function layoutScene(spec, propsCatalog, frameIndex, handAt, stage = { rootX: 16
     const from = attach.from ?? 0, to = attach.to ?? Infinity;
     if (!(frameIndex < from && attach.hiddenBefore)) {
       if (frameIndex >= from) {
-        const hand = handAt(Math.min(frameIndex, to), attach.hand === "l" ? "left" : "right");
+        const hand = handAt(Math.min(frameIndex, to), attach.hand === "head" ? "head" : attach.hand === "l" ? "left" : "right");
         main.x = hand.x - main.w / 2 + (attach.dx ?? 0) * stage.scale;
         main.y = hand.y - main.h / 2 - (attach.dy ?? 0) * stage.scale;
         main.front = true;
@@ -157,13 +158,14 @@ function layoutScene(spec, propsCatalog, frameIndex, handAt, stage = { rootX: 16
 }
 
 function handFromSample(sample, side) {
+  if (side === "head") return { x: sample.head.x, y: sample.head.y };
   const fore = sample.segments.find((s) => s.id === `${side}-forearm`);
   return { x: fore.x2, y: fore.y2 };
 }
 
 function viewBoxFor(sample) {
-  const torso = sample.segments.find((segment) => segment.id === "torso");
-  const cx = torso ? (torso.x1 + torso.x2) / 2 : 160;
+  // Camera locks to the root so static props never appear to move when the body sways.
+  const cx = Number.isFinite(sample.x) ? sample.x : 160;
   return `${num(cx - 160)} -54 320 224`;
 }
 

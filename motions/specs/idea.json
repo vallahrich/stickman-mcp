@@ -18,7 +18,7 @@
     "lFoot",
     "rFoot"
   ],
-  "prop": null,
+  "prop": "bulb",
   "aim": null,
   "facingChange": 0,
   "mirrorable": true,
@@ -75,7 +75,7 @@
         },
         "lHand": {
           "x": 27.8,
-          "y": 72.0
+          "y": 72
         }
       },
       "ease": "inOut"
@@ -719,7 +719,7 @@
         },
         "lHand": {
           "x": 27.8,
-          "y": 72.0
+          "y": 72
         }
       }
     }
@@ -728,6 +728,17 @@
     "maxJointStep": 20
   },
   "review": {
-    "prop": null
+    "prop": {
+      "x": 0,
+      "y": 0,
+      "w": 20,
+      "h": 27,
+      "attach": {
+        "hand": "head",
+        "from": 38,
+        "dy": 38,
+        "hiddenBefore": true
+      }
+    }
   }
 }

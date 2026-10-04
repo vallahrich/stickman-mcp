@@ -282,9 +282,9 @@ export function sampleClipMotion(library: MotionClipLibrary, request: ClipMotion
     { id: "left-forearm", x1: lElbow.x, y1: lElbow.y, x2: lHand.x, y2: lHand.y },
     { id: "right-upper-arm", x1: rShoulder.x, y1: rShoulder.y, x2: rElbow.x, y2: rElbow.y },
     { id: "right-forearm", x1: rElbow.x, y1: rElbow.y, x2: rHand.x, y2: rHand.y },
-    { id: "left-thigh", x1: lHip.x, y1: lHip.y, x2: lKnee.x, y2: lKnee.y },
+    { id: "left-thigh", x1: pelvis.x, y1: lHip.y, x2: lKnee.x, y2: lKnee.y },
     { id: "left-shin", x1: lKnee.x, y1: lKnee.y, x2: lAnkle.x, y2: lAnkle.y },
-    { id: "right-thigh", x1: rHip.x, y1: rHip.y, x2: rKnee.x, y2: rKnee.y },
+    { id: "right-thigh", x1: pelvis.x, y1: rHip.y, x2: rKnee.x, y2: rKnee.y },
     { id: "right-shin", x1: rKnee.x, y1: rKnee.y, x2: rAnkle.x, y2: rAnkle.y }
   ];
   const joints = { pelvis, chest, head: headPoint, leftKnee: lKnee, leftAnkle: lAnkle, rightKnee: rKnee, rightAnkle: rAnkle, leftElbow: lElbow, leftHand: lHand, rightElbow: rElbow, rightHand: rHand };

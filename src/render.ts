@@ -119,7 +119,7 @@ export function frameGeometry(frame: SampledFrame) {
           const dx = rightForearm.x2 - torso.x2, dy = rightForearm.y2 - torso.y2;
           const reach = Math.hypot(dx, dy);
           if (!Number.isFinite(reach) || reach <= 0) throw new Error("Pointing pose has an invalid arm reach.");
-          const extension = frame.action === "point" ? 7 * scale : 0;
+          const extension = frame.action === "point" || frame.action === "tap-element" ? 7 * scale : 0;
           return path(rightForearm.x2, rightForearm.y2,
             rightForearm.x2 + dx / reach * extension, rightForearm.y2 + dy / reach * extension);
         })(),
