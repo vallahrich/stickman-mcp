@@ -62,9 +62,25 @@ export function frameGeometry(frame: SampledFrame) {
     const cy = midY + dx / length * limitedDistance * 2;
     return `M${format(root.x)} ${format(root.y)}Q${format(cx)} ${format(cy)} ${format(end.x)} ${format(end.y)}`;
   };
+  // Passes through the real joint with a softly rounded corner, so deep knee/elbow bends stay readable.
+  const jointed = (
+    root: { x: number; y: number }, joint: { x: number; y: number }, end: { x: number; y: number }
+  ): string => {
+    const l1 = Math.hypot(joint.x - root.x, joint.y - root.y), l2 = Math.hypot(end.x - joint.x, end.y - joint.y);
+    const dx = end.x - root.x, dy = end.y - root.y, length = Math.hypot(dx, dy);
+    if (l1 <= 1e-6 || l2 <= 1e-6 || length <= 1e-6) return path(root.x, root.y, end.x, end.y);
+    const signedDistance = ((joint.x - root.x) * dy - (joint.y - root.y) * dx) / length;
+    if (Math.abs(signedDistance) < 0.85 * scale) return path(root.x, root.y, end.x, end.y);
+    const r = Math.min(l1, l2) * 0.22;
+    const a = { x: joint.x + (root.x - joint.x) * r / l1, y: joint.y + (root.y - joint.y) * r / l1 };
+    const b = { x: joint.x + (end.x - joint.x) * r / l2, y: joint.y + (end.y - joint.y) * r / l2 };
+    return `M${format(root.x)} ${format(root.y)}L${format(a.x)} ${format(a.y)}Q${format(joint.x)} ${format(joint.y)} ${format(b.x)} ${format(b.y)}L${format(end.x)} ${format(end.y)}`;
+  };
   const limb = (id: string, upper: typeof leftUpperArm, lower: typeof leftForearm, kind: "arm" | "leg", near: boolean) => ({
     id, kind, near,
-    d: curve({ x: upper.x1, y: upper.y1 }, { x: upper.x2, y: upper.y2 }, { x: lower.x2, y: lower.y2 })
+    d: frame.articulated
+      ? jointed({ x: upper.x1, y: upper.y1 }, { x: upper.x2, y: upper.y2 }, { x: lower.x2, y: lower.y2 })
+      : curve({ x: upper.x1, y: upper.y1 }, { x: upper.x2, y: upper.y2 }, { x: lower.x2, y: lower.y2 })
   });
   const headVectorLength = Math.hypot(frame.head.x - torso.x2, frame.head.y - torso.y2);
   const head = headVectorLength > 1e-6

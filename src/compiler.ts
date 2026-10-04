@@ -776,7 +776,7 @@ export function sampleAnimation(
         id: spec.prop.id, x: propX, y: spec.prop.y, width: spec.prop.width, height: spec.prop.height,
         handleX: propX + spec.prop.handle.x, handleY: spec.prop.y + spec.prop.handle.y
       } : null;
-      let frame = { timeMs: t, action: active.action, x: clip.rootX, groundY, head: clip.headPoint, segments: clip.segments, prop, ...(clip.facing !== undefined ? { facing: clip.facing } : {}) };
+      let frame = { timeMs: t, action: active.action, x: clip.rootX, groundY, head: clip.headPoint, segments: clip.segments, prop, ...(clip.facing !== undefined ? { facing: clip.facing } : {}), ...(clip.articulated ? { articulated: true } : {}) };
       if (previous && previous.startMs + previous.durationMs === active.startMs && t < active.startMs + 200) {
         const prior = sampleAnimation(program, active.startMs - 1e-3, "normal");
         const w = smooth((t - active.startMs) / 200);

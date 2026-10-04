@@ -36,7 +36,7 @@ export function engineSampledFrame(sampleClipMotion, clip, frameIndex, stage = {
   const n = clip.frames.length;
   const progress = clip.loop ? frameIndex / n : frameIndex / Math.max(1, n - 1);
   const pose = sampleClipMotion({ clips: { [clip.name]: clip } }, { action: clip.name, clipId: clip.name, progress, startX: stage.rootX, endX: stage.rootX, groundY: stage.groundY, facing: 1, scale: stage.scale });
-  return { timeMs: Math.round(frameIndex / clip.fps * 1000), action: clip.name, x: pose.rootX, groundY: stage.groundY, head: pose.headPoint, segments: pose.segments, prop: null, ...(pose.facing !== undefined ? { facing: pose.facing } : {}) };
+  return { timeMs: Math.round(frameIndex / clip.fps * 1000), action: clip.name, x: pose.rootX, groundY: stage.groundY, head: pose.headPoint, segments: pose.segments, prop: null, ...(pose.facing !== undefined ? { facing: pose.facing } : {}), ...(pose.articulated ? { articulated: true } : {}) };
 }
 
 export async function clipFrameToSampledFrame(clip, frameIndex) {

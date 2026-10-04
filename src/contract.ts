@@ -69,6 +69,8 @@ export interface SampledFrame {
   segments: Segment[];
   prop: null | { id: string; x: number; y: number; width: number; height: number; handleX: number; handleY: number };
   facing?: number;
+  /** Draw limbs through the actual knee/elbow (key-pose motions with deep bends). */
+  articulated?: boolean;
 }
 
 export interface CompileResult extends ValidationResult {
