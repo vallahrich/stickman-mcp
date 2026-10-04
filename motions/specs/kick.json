@@ -1,7 +1,7 @@
 {
   "id": "kick",
   "label": "Kick",
-  "status": "draft",
+  "status": "candidate",
   "source": {
     "dataset": "CMU",
     "file": "10_01.bvh",
@@ -15,7 +15,7 @@
     "alternativeFor": "kick"
   },
   "kind": "oneshot",
-  "travel": "travel",
+  "travel": "in-place",
   "view": "side",
   "expect": {
     "pose": "foot-above-hip",
@@ -33,10 +33,10 @@
   "prop": "ball",
   "review": {
     "prop": {
-      "x": 139,
-      "y": 111,
-      "w": 12,
-      "h": 12
+      "x": 45,
+      "y": 0,
+      "w": 30,
+      "h": 30
     },
     "propMotion": [
       {
@@ -45,18 +45,23 @@
         "y": 0
       },
       {
-        "frame": 49,
+        "frame": 19,
         "x": 0,
         "y": 0
       },
       {
-        "frame": 58,
-        "x": 95,
-        "y": -42
+        "frame": 24,
+        "x": 46,
+        "y": 16
       },
       {
-        "frame": 80,
-        "x": 210,
+        "frame": 32,
+        "x": 110,
+        "y": 28
+      },
+      {
+        "frame": 45,
+        "x": 180,
         "y": 0
       }
     ]
@@ -90,5 +95,378 @@
     "during"
   ],
   "notes": "Readable soccer kick after approach; foot planting drops during kick follow-through but one support foot remains stable. Re-picked alternative trial 74_03. Re-picked alternative trial 86_06.",
-  "approvedBaseline": false
+  "approvedBaseline": false,
+  "frames": 46,
+  "loop": false,
+  "markers": {
+    "shift": 10,
+    "chamber": 16,
+    "contact": 20,
+    "recoil": 28,
+    "stand": 45
+  },
+  "poseKeys": [
+    {
+      "frame": 0,
+      "pose": {
+        "anchor": "both",
+        "lean": 2,
+        "neck": -1,
+        "bob": 0,
+        "rLeg": {
+          "hip": 5,
+          "knee": 13
+        },
+        "lLeg": {
+          "hip": -8,
+          "knee": 14
+        },
+        "rArm": {
+          "shoulder": -8,
+          "elbow": 45
+        },
+        "lArm": {
+          "shoulder": 8,
+          "elbow": 45
+        },
+        "rFoot": {
+          "x": 5,
+          "y": 0
+        },
+        "lFoot": {
+          "x": -7,
+          "y": 0
+        }
+      },
+      "ease": "inOut"
+    },
+    {
+      "frame": 5,
+      "pose": {
+        "anchor": "both",
+        "lean": 4,
+        "neck": -3,
+        "bob": -1,
+        "dx": -1,
+        "rLeg": {
+          "hip": 2,
+          "knee": 16
+        },
+        "lLeg": {
+          "hip": -10,
+          "knee": 18
+        },
+        "rArm": {
+          "shoulder": -18,
+          "elbow": 52
+        },
+        "lArm": {
+          "shoulder": 20,
+          "elbow": 48
+        },
+        "rFoot": {
+          "x": 5,
+          "y": 0
+        },
+        "lFoot": {
+          "x": -7,
+          "y": 0
+        }
+      },
+      "ease": "inOut"
+    },
+    {
+      "frame": 10,
+      "pose": {
+        "anchor": "l",
+        "lean": -2,
+        "neck": 2,
+        "bob": 2,
+        "dx": -8,
+        "lPlant": 0,
+        "lFoot": {
+          "x": -7,
+          "y": 0
+        },
+        "rLeg": {
+          "hip": 26,
+          "knee": 62,
+          "lift": 8
+        },
+        "lLeg": {
+          "hip": -9,
+          "knee": 20
+        },
+        "rArm": {
+          "shoulder": -38,
+          "elbow": 58
+        },
+        "lArm": {
+          "shoulder": 38,
+          "elbow": 54
+        },
+        "rFoot": {
+          "x": 10,
+          "y": 7
+        }
+      },
+      "ease": "inOut"
+    },
+    {
+      "frame": 16,
+      "pose": {
+        "anchor": "l",
+        "lean": -7,
+        "neck": 6,
+        "bob": 4,
+        "dx": -9,
+        "lPlant": 0,
+        "lFoot": {
+          "x": -7,
+          "y": 0
+        },
+        "rLeg": {
+          "hip": 84,
+          "knee": 112,
+          "lift": 25
+        },
+        "lLeg": {
+          "hip": -8,
+          "knee": 22
+        },
+        "rArm": {
+          "shoulder": -58,
+          "elbow": 64
+        },
+        "lArm": {
+          "shoulder": 58,
+          "elbow": 58
+        },
+        "rFoot": {
+          "x": 20,
+          "y": 47
+        }
+      },
+      "ease": "out"
+    },
+    {
+      "frame": 20,
+      "pose": {
+        "anchor": "l",
+        "lean": -14,
+        "neck": 11,
+        "bob": 5,
+        "dx": -10,
+        "lPlant": 0,
+        "lFoot": {
+          "x": -7,
+          "y": 0
+        },
+        "rLeg": {
+          "hip": 86,
+          "knee": 9,
+          "lift": 32
+        },
+        "lLeg": {
+          "hip": -7,
+          "knee": 24
+        },
+        "rArm": {
+          "shoulder": -72,
+          "elbow": 66
+        },
+        "lArm": {
+          "shoulder": 72,
+          "elbow": 60
+        },
+        "rFoot": {
+          "x": 58,
+          "y": 42
+        }
+      },
+      "ease": "hold"
+    },
+    {
+      "frame": 23,
+      "pose": {
+        "anchor": "l",
+        "lean": -13,
+        "neck": 10,
+        "bob": 5,
+        "dx": -10,
+        "lPlant": 0,
+        "lFoot": {
+          "x": -7,
+          "y": 0
+        },
+        "rLeg": {
+          "hip": 88,
+          "knee": 8,
+          "lift": 32
+        },
+        "lLeg": {
+          "hip": -7,
+          "knee": 24
+        },
+        "rArm": {
+          "shoulder": -74,
+          "elbow": 66
+        },
+        "lArm": {
+          "shoulder": 74,
+          "elbow": 60
+        },
+        "rFoot": {
+          "x": 60,
+          "y": 42
+        }
+      },
+      "ease": "in"
+    },
+    {
+      "frame": 28,
+      "pose": {
+        "anchor": "l",
+        "lean": -7,
+        "neck": 6,
+        "bob": 4,
+        "dx": -9,
+        "lPlant": 0,
+        "lFoot": {
+          "x": -7,
+          "y": 0
+        },
+        "rLeg": {
+          "hip": 82,
+          "knee": 112,
+          "lift": 24
+        },
+        "lLeg": {
+          "hip": -8,
+          "knee": 22
+        },
+        "rArm": {
+          "shoulder": -50,
+          "elbow": 62
+        },
+        "lArm": {
+          "shoulder": 52,
+          "elbow": 56
+        },
+        "rFoot": {
+          "x": 20,
+          "y": 46
+        }
+      },
+      "ease": "inOut"
+    },
+    {
+      "frame": 34,
+      "pose": {
+        "anchor": "l",
+        "lean": 0,
+        "neck": 1,
+        "bob": 2,
+        "dx": -6,
+        "lPlant": 0,
+        "lFoot": {
+          "x": -7,
+          "y": 0
+        },
+        "rLeg": {
+          "hip": 22,
+          "knee": 54,
+          "lift": 8
+        },
+        "lLeg": {
+          "hip": -9,
+          "knee": 20
+        },
+        "rArm": {
+          "shoulder": -26,
+          "elbow": 54
+        },
+        "lArm": {
+          "shoulder": 30,
+          "elbow": 50
+        },
+        "rFoot": {
+          "x": 9,
+          "y": 6
+        }
+      },
+      "ease": "inOut"
+    },
+    {
+      "frame": 40,
+      "pose": {
+        "anchor": "both",
+        "lean": 4,
+        "neck": -2,
+        "bob": -1,
+        "dx": -2,
+        "rLeg": {
+          "hip": 6,
+          "knee": 16
+        },
+        "lLeg": {
+          "hip": -9,
+          "knee": 17
+        },
+        "rArm": {
+          "shoulder": -12,
+          "elbow": 48
+        },
+        "lArm": {
+          "shoulder": 14,
+          "elbow": 47
+        },
+        "rFoot": {
+          "x": 5,
+          "y": 0
+        },
+        "lFoot": {
+          "x": -7,
+          "y": 0
+        }
+      },
+      "ease": "inOut"
+    },
+    {
+      "frame": 45,
+      "pose": {
+        "anchor": "both",
+        "lean": 2,
+        "neck": -1,
+        "bob": 0,
+        "rLeg": {
+          "hip": 5,
+          "knee": 13
+        },
+        "lLeg": {
+          "hip": -8,
+          "knee": 14
+        },
+        "rArm": {
+          "shoulder": -8,
+          "elbow": 45
+        },
+        "lArm": {
+          "shoulder": 8,
+          "elbow": 45
+        },
+        "rFoot": {
+          "x": 5,
+          "y": 0
+        },
+        "lFoot": {
+          "x": -7,
+          "y": 0
+        }
+      }
+    }
+  ],
+  "gates": {
+    "maxJointStep": 20
+  }
 }
