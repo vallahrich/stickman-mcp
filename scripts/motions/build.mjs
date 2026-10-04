@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import * as helpers from "./helpers.mjs";
 import { renderReviewHtml } from "./review-renderer.mjs";
+import { buildKeyPoseClip, keyPoseGates } from "./keypose.mjs";
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const sessionFiles = process.env.STICKMAN_SESSION_FILES ?? process.env.MOTION_SESSION_FILES ?? "C:\\Users\\t-vwallerich\\.copilot\\session-state\\5151d75e-0e30-46ad-99e0-e3d1bf08e105\\files";
@@ -72,6 +73,17 @@ async function currentGeneratedClip(id) {
     return JSON.parse(m[1]).clips?.[id] ?? null;
   } catch { return null; }
 }
+if (Array.isArray(spec.poseKeys) && spec.poseKeys.length) {
+  const clip = buildKeyPoseClip(spec, idleClip.frames[0]);
+  const gates = await keyPoseGates(clip, spec);
+  const report = { id: only, status: spec.status, source: "authored key poses (shipping engine)", builtAt: "1970-01-01T00:00:00.000Z", frames: clip.frames.length, keys: clip.poseKeys.length, passed: gates.passed, failures: gates.failures };
+  const propsCatalog = JSON.parse(await readFile(path.join(sessionFiles, "design", "props.json"), "utf8"));
+  await writeFile(path.join(outDir, "clip.json"), JSON.stringify(clip, null, 2));
+  await writeFile(path.join(outDir, "report.json"), JSON.stringify(report, null, 2));
+  await writeFile(path.join(outDir, "review.html"), await renderReviewHtml({ clip, spec, report, propsCatalog }));
+  console.log(JSON.stringify({ id: only, passed: report.passed, failures: report.failures }, null, 1));
+  process.exit(report.passed ? 0 : 1);
+}
 let clip = null;
 let source = "";
 const hook = baselineIds.has(only) ? {} : await loadHook(only);
@@ -117,8 +129,7 @@ if (!baselineIds.has(only)) {
 }
 await writeFile(path.join(outDir, "clip.json"), JSON.stringify(clip, null, 2));
 await writeFile(path.join(outDir, "report.json"), JSON.stringify(report, null, 2));
-const runClip = JSON.parse(await readFile(path.join(approvedDir, "run.json"), "utf8"));
 const propsCatalog = JSON.parse(await readFile(path.join(sessionFiles, "design", "props.json"), "utf8"));
-const html = await renderReviewHtml({ clip, spec, report, runClip, propsCatalog });
+const html = await renderReviewHtml({ clip, spec, report, propsCatalog });
 await writeFile(path.join(outDir, "review.html"), html);
 console.log(`${only}: wrote ${outDir}`);
