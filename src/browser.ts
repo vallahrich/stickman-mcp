@@ -214,7 +214,7 @@ function canonicalProgram(input: unknown): CompiledAnimation {
   if (typeof input !== "object" || input === null || !("contractVersion" in input) || input.contractVersion !== CONTRACT_VERSION || !("spec" in input)) {
     throw new TypeError("Mount requires a compiled stickman.animation/v1 program, not authored JavaScript or HTML.");
   }
-  if (Object.keys(input).some(key => key !== "contractVersion" && key !== "spec")) throw new TypeError("Compiled program may contain only contractVersion and spec.");
+  if (Object.keys(input).some(key => key !== "contractVersion" && key !== "spec" && key !== "events")) throw new TypeError("Compiled program may contain only contractVersion, spec and derived events.");
   const result = compileAnimation(input.spec);
   if (!result.valid || !result.program) {
     throw new TypeError(`Invalid compiled program: ${result.diagnostics.map(item => `${item.path}: ${item.message}`).join("; ")}`);

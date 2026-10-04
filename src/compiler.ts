@@ -10,6 +10,7 @@ import {
   type ValidationResult
 } from "./contract.js";
 import { sampleClipMotion } from "./motion-clips.js";
+import { markerEvents } from "./events.js";
 import { RUNTIME_ACTION_NAMES, RUNTIME_MOTION_LIBRARY, getMotionMeta } from "./motion-library.js";
 
 const actionNames = new Set<string>(RUNTIME_ACTION_NAMES);
@@ -422,6 +423,8 @@ export function compileAnimation(input: unknown): CompileResult {
   const spec = structuredClone(input);
   spec.actions.sort((a, b) => a.startMs - b.startMs);
   const program: CompiledAnimation = { contractVersion: CONTRACT_VERSION, spec };
+  const events = markerEvents(spec, RUNTIME_MOTION_LIBRARY);
+  if (events.length > 0) program.events = events;
   return { valid: true, diagnostics: [], program };
 }
 
@@ -763,6 +766,7 @@ export function sampleAnimation(
       action: active.action,
       clipId: active.action,
       progress: p,
+      durationMs: active.durationMs,
       startX,
       endX: activeMeta!.travel === "travel" ? target?.x ?? startX : startX,
       groundY,

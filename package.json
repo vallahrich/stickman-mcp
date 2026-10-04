@@ -47,7 +47,8 @@
     "motions:build": "node scripts/motions/build.mjs",
     "motions:check": "node scripts/motions/quality.mjs",
     "motions:assemble": "node scripts/motions/assemble.mjs",
-    "motions:shots": "node scripts/motions/shots.mjs"
+    "motions:shots": "node scripts/motions/shots.mjs",
+    "motions:demo": "node scripts/motions/presentation-demo.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.25.2"

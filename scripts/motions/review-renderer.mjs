@@ -97,6 +97,17 @@ function propMarkup(prop, strokeWidth, color) {
     const d = Array.from({ length: steps }, (_, i) => `H${num(x + w * (i + 1) / steps)}V${num(y + h * (1 - (i + 1) / steps))}`).join("");
     return `<path data-prop="stairs" d="M${num(x)} ${num(y + h)}${d}" ${attrs}/>`;
   }
+  if (prop.type === "desk") {
+    // Desk with a monitor (screen lines) and a keyboard on the front edge; x..x+w is the tabletop.
+    const top = y + h * 0.42, mw = w * 0.46, mx = x + w * 0.5, my = y, mh = h * 0.3;
+    return `<g data-prop="desk" ${attrs}><path d="${line({ x, y: top }, { x: x + w, y: top })}"/><path d="${line({ x: x + w * 0.08, y: top }, { x: x + w * 0.08, y: y + h })}"/><path d="${line({ x: x + w * 0.92, y: top }, { x: x + w * 0.92, y: y + h })}"/><rect x="${num(mx)}" y="${num(my)}" width="${num(mw)}" height="${num(mh)}" rx="2"/><path d="${line({ x: mx + mw / 2, y: my + mh }, { x: mx + mw / 2, y: top })}"/><path d="${line({ x: mx + mw * 0.15, y: my + mh * 0.3 }, { x: mx + mw * 0.7, y: my + mh * 0.3 })}" stroke-width="${num(strokeWidth * 0.5)}"/><path d="${line({ x: mx + mw * 0.15, y: my + mh * 0.55 }, { x: mx + mw * 0.55, y: my + mh * 0.55 })}" stroke-width="${num(strokeWidth * 0.5)}"/><path d="${line({ x: x + w * 0.04, y: top - strokeWidth }, { x: x + w * 0.38, y: top - strokeWidth })}"/></g>`;
+  }
+  if (prop.type === "board") {
+    const bh = h * 0.62;
+    return `<g data-prop="board" ${attrs}><rect x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(bh)}" rx="2"/><path d="${line({ x: x + w * 0.2, y: y + bh }, { x: x + w * 0.12, y: y + h })}"/><path d="${line({ x: x + w * 0.8, y: y + bh }, { x: x + w * 0.88, y: y + h })}"/><path d="${line({ x: x + w * 0.25, y: y + bh + strokeWidth }, { x: x + w * 0.75, y: y + bh + strokeWidth })}"/></g>`;
+  }
+  if (prop.type === "card") return `<g data-prop="card" ${attrs}><rect x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" rx="2"/><path d="${line({ x: x + w * 0.15, y: y + h * 0.35 }, { x: x + w * 0.8, y: y + h * 0.35 })}" stroke-width="${num(strokeWidth * 0.5)}"/><path d="${line({ x: x + w * 0.15, y: y + h * 0.62 }, { x: x + w * 0.6, y: y + h * 0.62 })}" stroke-width="${num(strokeWidth * 0.5)}"/></g>`;
+  if (prop.type === "banner") return `<g data-prop="banner" ${attrs}><path d="${line({ x: x + w * 0.85, y: y + h }, { x: x + w * 0.85, y: y + h + 40 })}" stroke-width="${num(strokeWidth * 0.5)}"/><rect x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" rx="2"/><path d="${line({ x: x + w * 0.12, y: y + h * 0.45 }, { x: x + w * 0.88, y: y + h * 0.45 })}"/><path d="${line({ x: x + w * 0.2, y: y + h * 0.7 }, { x: x + w * 0.7, y: y + h * 0.7 })}" stroke-width="${num(strokeWidth * 0.5)}"/></g>`;
   if (prop.type === "door") return `<g data-prop="door" ${attrs}><rect x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" rx="2"/><circle cx="${num(x + w * 0.82)}" cy="${num(y + h * 0.52)}" r="${num(Math.max(2, strokeWidth))}"/></g>`;
   if (prop.type === "sign") return `<g data-prop="sign" ${attrs}><rect x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h * 0.55)}" rx="3"/><path d="${line({ x: x + w / 2, y: y + h * 0.55 }, { x: x + w / 2, y: y + h })}"/></g>`;
   return `<rect data-prop="${xml(prop.type)}" x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" rx="3" ${attrs}/>`;
@@ -117,6 +128,39 @@ export function figureMarkup(frame, geometry, color = "#202124", opacity = 1) {
   return `<g data-stickman="exact-pivot" fill="none" stroke="${xml(color)}" stroke-width="${num(geometry.strokeWidth)}" stroke-linecap="round" stroke-linejoin="round" opacity="${num(opacity)}">${limb(geometry.segmentOrder[0])}${limb(geometry.segmentOrder[1])}<path id="torso" d="${detailById.get("torso").d}"/><circle id="head" cx="${num(geometry.head.x)}" cy="${num(geometry.head.y)}" r="${num(geometry.headRadius)}" fill="#fff" stroke="${xml(color)}" stroke-width="${num(geometry.strokeWidth)}"/>${limb(geometry.segmentOrder[3])}${limb(geometry.segmentOrder[4])}${detailById.get("point-finger") ? `<path id="point-finger" d="${detailById.get("point-finger").d}"/>` : ""}</g>`;
 }
 
+/**
+ * All props for a review frame: the main prop (optionally carried by a hand via review.prop.attach =
+ * {hand:"r"|"l", from, to, dx, dy, hiddenBefore}) plus static review.extraProps [{type,x,y,w,h}].
+ * handAt(frame, side) returns the world-space hand point; it is only needed for attached props.
+ */
+function layoutScene(spec, propsCatalog, frameIndex, handAt, stage = { rootX: 160, groundY: 150, scale: 0.75 }) {
+  const out = [];
+  const main = layoutProp(spec, propsCatalog, frameIndex, stage);
+  const attach = spec.review?.prop?.attach;
+  if (main && attach && handAt) {
+    const from = attach.from ?? 0, to = attach.to ?? Infinity;
+    if (!(frameIndex < from && attach.hiddenBefore)) {
+      if (frameIndex >= from) {
+        const hand = handAt(Math.min(frameIndex, to), attach.hand === "l" ? "left" : "right");
+        main.x = hand.x - main.w / 2 + (attach.dx ?? 0) * stage.scale;
+        main.y = hand.y - main.h / 2 - (attach.dy ?? 0) * stage.scale;
+        main.front = true;
+      }
+      out.push(main);
+    }
+  } else if (main) out.push(main);
+  for (const extra of spec.review?.extraProps ?? []) {
+    const p = layoutProp({ prop: extra.type, review: { prop: extra } }, propsCatalog, frameIndex, stage);
+    if (p) out.push(p);
+  }
+  return out;
+}
+
+function handFromSample(sample, side) {
+  const fore = sample.segments.find((s) => s.id === `${side}-forearm`);
+  return { x: fore.x2, y: fore.y2 };
+}
+
 function viewBoxFor(sample) {
   const torso = sample.segments.find((segment) => segment.id === "torso");
   const cx = torso ? (torso.x1 + torso.x2) / 2 : 160;
@@ -132,8 +176,11 @@ export async function renderStaticSvg({ clip, spec, propsCatalog, frameIndex = 0
     const f = engineSampledFrame(sampleClipMotion, clip, ix);
     return figureMarkup(f, frameGeometry(f), "#202124", 0.18);
   }).join("");
-  const prop = layoutProp(spec, propsCatalog, frameIndex);
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${viewBoxFor(sample)}" role="img" aria-label="${xml(clip.name)} frame ${frameIndex}"><rect x="-10000" y="-10000" width="20000" height="20000" fill="#fff"/><path id="ground" d="M-10000 ${num(sample.groundY)}H10000" stroke="#d8dbe0" stroke-width="1"/>${propMarkup(prop, geometry.strokeWidth, "#202124")}${onionMarkup}${figureMarkup(sample, geometry)}<text x="${num(Number(viewBoxFor(sample).split(" ")[0]) + 6)}" y="-42" font-size="9" fill="#888">${xml(clip.name)} f${frameIndex}</text></svg>`;
+  const handAt = (ix, side) => handFromSample(engineSampledFrame(sampleClipMotion, clip, ix), side);
+  const props = layoutScene(spec, propsCatalog, frameIndex, handAt);
+  const back = props.filter((p) => !p.front).map((p) => propMarkup(p, geometry.strokeWidth, "#202124")).join("");
+  const front = props.filter((p) => p.front).map((p) => propMarkup(p, geometry.strokeWidth, "#202124")).join("");
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${viewBoxFor(sample)}" role="img" aria-label="${xml(clip.name)} frame ${frameIndex}"><rect x="-10000" y="-10000" width="20000" height="20000" fill="#fff"/><path id="ground" d="M-10000 ${num(sample.groundY)}H10000" stroke="#d8dbe0" stroke-width="1"/>${back}${onionMarkup}${figureMarkup(sample, geometry)}${front}<text x="${num(Number(viewBoxFor(sample).split(" ")[0]) + 6)}" y="-42" font-size="9" fill="#888">${xml(clip.name)} f${frameIndex}</text></svg>`;
 }
 
 /** The approved run exactly as the product ships it: a compiled scene (root motion, planted feet) sampled at 30 fps. */
@@ -151,6 +198,21 @@ export async function shippingRunFrames() {
   return frames;
 }
 
+/** Browser-side source of the shipping engine sampler + figure/prop drawing, for self-contained pages (demo decks). */
+export async function stageKitSource() {
+  const { frameGeometry, sampleMotionClip, sampleClipMotion } = await loadEngineRenderer();
+  return `const ENGINE_FRAME_GEOMETRY=${frameGeometry.toString()};
+${sampleMotionClip.toString()}
+${sampleClipMotion.toString()}
+const engineSampledFrame=${engineSampledFrame.toString()};
+const figureMarkup=${figureMarkup.toString()};
+const layoutProp=${layoutProp.toString()};
+const layoutScene=${layoutScene.toString()};
+const handFromSample=${handFromSample.toString()};
+const propMarkup=${propMarkup.toString()};
+const xml=${xml.toString()}; const num=${num.toString()}; const line=${line.toString()};`;
+}
+
 export async function renderReviewHtml({ clip, spec, report, propsCatalog }) {
   const { frameGeometry, sampleMotionClip, sampleClipMotion } = await loadEngineRenderer();
   const runFrames = await shippingRunFrames();
@@ -163,12 +225,14 @@ ${sampleClipMotion.toString()}
 const engineSampledFrame=${engineSampledFrame.toString()};
 const figureMarkup=${figureMarkup.toString()};
 const layoutProp=${layoutProp.toString()};
+const layoutScene=${layoutScene.toString()};
+const handFromSample=${handFromSample.toString()};
 const propMarkup=${propMarkup.toString()};
 const viewBoxFor=${viewBoxFor.toString()};
 const xml=${xml.toString()}; const num=${num.toString()}; const line=${line.toString()};
 const D=JSON.parse(document.getElementById('data').textContent),clip=D.clip,runFrames=D.runFrames,spec=D.spec,propsCatalog=D.propsCatalog; let f=0,playing=true,last=performance.now();
 function drawRef(){const s=runFrames[Math.floor(performance.now()/1000*30)%runFrames.length],g=ENGINE_FRAME_GEOMETRY(s);ref.setAttribute('viewBox','200 '+num(s.groundY-260)+' 1200 330');ref.innerHTML='<rect x="-10000" y="-10000" width="20000" height="20000" fill="#fff"/><path d="M-10000 '+num(s.groundY)+'H10000" stroke="#d8dbe0"/>'+figureMarkup(s,g);}
 const params=new URLSearchParams(location.search); if(params.get('bare')==='1')document.body.classList.add('bare'); if(params.has('onion'))onion.checked=params.get('onion')!=='0'; if(params.has('frame')){f=Number(params.get('frame'))||0;playing=false;play.textContent='play';scrub.value=Math.max(0,Math.min(clip.frames.length-1,Math.round(f)));}
-function drawSvg(svg,c,ix,onionMode,withProp){const sample=engineSampledFrame(sampleClipMotion,c,ix),g=ENGINE_FRAME_GEOMETRY(sample);svg.setAttribute('viewBox',viewBoxFor(sample));let h='<rect x="-10000" y="-10000" width="20000" height="20000" fill="#fff"/><path d="M-10000 '+num(sample.groundY)+'H10000" stroke="#d8dbe0"/>';if(withProp)h+=propMarkup(layoutProp(spec,propsCatalog,ix),g.strokeWidth,'#202124');if(onionMode){for(const d of [-6,-3,3,6]){const oi=ix+d;if(oi>=0&&oi<c.frames.length){const os=engineSampledFrame(sampleClipMotion,c,oi);h+=figureMarkup(os,ENGINE_FRAME_GEOMETRY(os),'#202124',.18);}}}h+=figureMarkup(sample,g);svg.innerHTML=h;}
+function drawSvg(svg,c,ix,onionMode,withProp){const sample=engineSampledFrame(sampleClipMotion,c,ix),g=ENGINE_FRAME_GEOMETRY(sample);svg.setAttribute('viewBox',viewBoxFor(sample));let h='<rect x="-10000" y="-10000" width="20000" height="20000" fill="#fff"/><path d="M-10000 '+num(sample.groundY)+'H10000" stroke="#d8dbe0"/>';const scene=withProp?layoutScene(spec,propsCatalog,ix,(j,side)=>handFromSample(engineSampledFrame(sampleClipMotion,c,j),side)):[];for(const p of scene)if(!p.front)h+=propMarkup(p,g.strokeWidth,'#202124');if(onionMode){for(const d of [-6,-3,3,6]){const oi=ix+d;if(oi>=0&&oi<c.frames.length){const os=engineSampledFrame(sampleClipMotion,c,oi);h+=figureMarkup(os,ENGINE_FRAME_GEOMETRY(os),'#202124',.18);}}}h+=figureMarkup(sample,g);for(const p of scene)if(p.front)h+=propMarkup(p,g.strokeWidth,'#202124');svg.innerHTML=h;}
 for(let k=0;k<8;k++){const s=document.createElementNS('http://www.w3.org/2000/svg','svg');drawSvg(s,clip,Math.round(k*(clip.frames.length-1)/7),false,true);film.append(s)}play.onclick=()=>{playing=!playing;play.textContent=playing?'pause':'play'};scrub.oninput=()=>{playing=false;play.textContent='play';f=Number(scrub.value);draw()};function draw(){const ix=Math.max(0,Math.min(clip.frames.length-1,f));scrub.value=Math.floor(ix);frameNo.textContent=String(Math.floor(ix));drawSvg(stage,clip,ix,onion.checked,true);drawRef()}function tick(t){const dt=(t-last)/1000;last=t;if(playing){f=f+dt*clip.fps*Number(speed.value);if(f>clip.frames.length-1)f=clip.loop?f%clip.frames.length:(f>clip.frames.length-1+20?0:f);}draw();requestAnimationFrame(tick)}draw();if(params.get('bare')!=='1')requestAnimationFrame(tick);</script></body></html>`;
 }

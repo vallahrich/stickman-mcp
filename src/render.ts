@@ -234,10 +234,11 @@ seek.value=String(frame.timeMs);
 }
 function stop(){playing=false;previous=0;if(requestId!==null){cancelAnimationFrame(requestId);requestId=null;}toggle.textContent="Play";}
 function schedule(){if(playing&&requestId===null)requestId=requestAnimationFrame(tick);}
-function tick(now){requestId=null;if(!playing)return;if(previous)time+=now-previous;previous=now;if(time>=duration){time=duration;stop();}draw();schedule();}
-function start(){if(mode!=="normal"){mode="normal";modeSelect.value=mode;}if(time>=duration)time=0;playing=true;previous=0;toggle.textContent="Pause";draw();schedule();}
+const events=program.events||[];let emitted=-1;function emit(from,to){for(const e of events){if(e.timeMs>from&&e.timeMs<=to){const detail={...e};document.dispatchEvent(new CustomEvent("stickman:marker",{detail}));if(window.parent&&window.parent!==window)window.parent.postMessage({type:"stickman:marker",...detail},"*");}}}
+function tick(now){requestId=null;if(!playing)return;if(previous)time+=now-previous;previous=now;if(time>=duration){time=duration;stop();}const before=emitted;emitted=time;emit(before,time);draw();schedule();}
+function start(){if(mode!=="normal"){mode="normal";modeSelect.value=mode;}if(time>=duration)time=0;emitted=time>0?time:-1;playing=true;previous=0;toggle.textContent="Pause";draw();schedule();}
 modeSelect.addEventListener("change",()=>{stop();mode=modeSelect.value;if(mode==="normal"){time=0;start();}else{time=duration;draw();}});
-seek.addEventListener("input",()=>{time=Number(seek.value);previous=0;draw();});
+seek.addEventListener("input",()=>{time=Number(seek.value);emitted=time;previous=0;draw();});
 toggle.addEventListener("click",()=>{if(playing)stop();else start();});
 draw();schedule();})();`;
   return `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Stickman animation</title>

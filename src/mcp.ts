@@ -46,7 +46,16 @@ const compileSchema: ObjectSchema = {
     ...validationSchema.properties,
     program: {
       type: "object", additionalProperties: false, required: ["contractVersion", "spec"],
-      properties: { contractVersion: { const: "stickman.animation/v1" }, spec: { type: "object" } }
+      properties: {
+        contractVersion: { const: "stickman.animation/v1" }, spec: { type: "object" },
+        events: {
+          type: "array", description: "Timed motion markers (e.g. key, reveal, cardPlaced) to sync slide content; the HTML player dispatches each as a 'stickman:marker' CustomEvent.",
+          items: {
+            type: "object", additionalProperties: false, required: ["timeMs", "actionIndex", "action", "marker", "frame"],
+            properties: { timeMs: { type: "number" }, actionIndex: { type: "integer" }, action: { type: "string" }, marker: { type: "string" }, frame: { type: "number" } }
+          }
+        }
+      }
     }
   }
 };

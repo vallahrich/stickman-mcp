@@ -50,6 +50,16 @@ export interface ValidationResult {
 export interface CompiledAnimation {
   contractVersion: typeof CONTRACT_VERSION;
   spec: AnimationSpec;
+  /** Timed motion markers for syncing host content (slides) to the figure. */
+  events?: MarkerEvent[];
+}
+
+export interface MarkerEvent {
+  timeMs: number;
+  actionIndex: number;
+  action: ActionName;
+  marker: string;
+  frame: number;
 }
 
 export interface Segment {
