@@ -1,7 +1,7 @@
 {
   "id": "push",
   "label": "Push",
-  "status": "draft",
+  "status": "ai-reviewed",
   "source": {
     "dataset": "CMU",
     "file": "82_06.bvh",
@@ -37,6 +37,11 @@
   "prop": "box",
   "aim": null,
   "facingChange": 0,
+  "processing": {
+    "smoothingCutoff": false,
+    "timeScale": 1,
+    "view": "side"
+  },
   "mirrorable": true,
   "tags": [
     "push",
@@ -52,6 +57,6 @@
     "lean",
     "and"
   ],
-  "notes": "Strong heavy-push read with sustained forward lean and hands high/forward; large root travel. Re-picked alternative trial 82_06.",
+  "notes": "Strong heavy-push loop from 82_06 with motion-specific hook cleanup: stable box-face hand contact, forward lean, alternating leg drive, and prop travel for review.",
   "approvedBaseline": false
 }

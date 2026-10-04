@@ -1,7 +1,7 @@
 {
   "id": "stand-up",
   "label": "Stand Up",
-  "status": "draft",
+  "status": "ai-reviewed",
   "source": {
     "dataset": "CMU",
     "file": "113_15.bvh",
@@ -30,8 +30,29 @@
     "rFoot"
   ],
   "prop": "chair",
+  "review": {
+    "prop": {
+      "x": 40,
+      "y": 67.6,
+      "w": 42,
+      "h": 55
+    }
+  },
   "aim": null,
   "facingChange": 0,
+  "processing": {
+    "smoothingCutoff": 1,
+    "lockEaseFrames": 4,
+    "easeInFrames": 0,
+    "easeOutFrames": 0,
+    "timeScale": 1,
+    "view": "side",
+    "axis": "auto",
+    "trim": [
+      520,
+      760
+    ]
+  },
   "mirrorable": true,
   "tags": [
     "sit",

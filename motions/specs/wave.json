@@ -1,7 +1,7 @@
 {
   "id": "wave",
   "label": "Wave",
-  "status": "draft",
+  "status": "ai-reviewed",
   "source": {
     "dataset": "CMU",
     "file": "141_16.bvh",
@@ -47,6 +47,12 @@
     "frame",
     "62"
   ],
-  "notes": "Clean short greeting wave; right hand peaks at frame 62; feet mostly planted.",
+  "notes": "AI-reviewed polished greeting wave: planted idle start, anticipatory weight shift, right hand raises above shoulder, three visible side-view oscillations, then lowers and settles back to idle.",
+  "processing": {
+    "smoothingCutoff": false,
+    "easeInFrames": 0,
+    "easeOutFrames": 0,
+    "timeScale": 1
+  },
   "approvedBaseline": false
 }

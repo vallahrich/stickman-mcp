@@ -46,7 +46,8 @@
     "preview:deck": "npm run build && node scripts/preview-deck.mjs",
     "motions:build": "node scripts/motions/build.mjs",
     "motions:check": "node scripts/motions/quality.mjs",
-    "motions:assemble": "node scripts/motions/assemble.mjs"
+    "motions:assemble": "node scripts/motions/assemble.mjs",
+    "motions:shots": "node scripts/motions/shots.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.25.2"

@@ -1,7 +1,7 @@
 {
   "id": "turn-around",
   "label": "Turn Around",
-  "status": "draft",
+  "status": "ai-reviewed",
   "source": {
     "dataset": "CMU",
     "file": "69_16.bvh",
@@ -47,6 +47,10 @@
     "selected",
     "first"
   ],
-  "notes": "Best pure CMU turn-in-place candidate; selected first half-turn from repeated turning capture; feet planted during pivots.",
-  "approvedBaseline": false
+  "notes": "AI-reviewed stylized step-turn built from CMU 69_16 timing: head/shoulders lead, weight shifts through two small steps, readable front-view blend, then settle into opposite-facing idle.",
+  "approvedBaseline": false,
+  "processing": {
+    "smoothingCutoff": false,
+    "timeScale": 1
+  }
 }

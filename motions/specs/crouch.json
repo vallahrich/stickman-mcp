@@ -1,7 +1,7 @@
 {
   "id": "crouch",
   "label": "Crouch",
-  "status": "draft",
+  "status": "ai-reviewed",
   "source": {
     "dataset": "CMU",
     "file": "139_09.bvh",

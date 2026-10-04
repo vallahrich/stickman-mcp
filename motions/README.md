@@ -31,6 +31,21 @@ Build one motion review package:
 npm run motions:build -- --only <id>
 ```
 
+This emits the standard `review.html` using the shipping Pivot renderer (`dist/render.js` geometry plus the `dist/motion-clips.js` clip-frame sampler). The page includes the candidate, prop overlay, run reference at the same scale, play/pause, speed `0.1x/0.25x/0.5x/1x`, onion skin, frame slider, and frame number. Deterministic review URLs support:
+
+```text
+review.html?frame=N&onion=0&bare=1
+```
+
+Generate standard screenshots instead of hand-rolling Playwright:
+
+```powershell
+npm run motions:shots -- --only <id> --frames 0,20,40
+npm run motions:shots -- --only <id> --frames 0,20,40 --strip
+```
+
+JPEGs are written to `S\motion-factory\clips\<id>\shots\` at about `1000x700`, quality 70. `--strip` also writes one horizontal filmstrip JPEG for the requested frames. Set `STICKMAN_SESSION_FILES` (or `MOTION_SESSION_FILES`) to override `S`; otherwise the local session-state path is used.
+
 Assemble the shipped library (baselines + `user-approved` specs only):
 
 ```powershell
@@ -57,7 +72,7 @@ Per-motion builds write only to that motion's output directory, so separate agen
 2. Adjust `source.range120`, `view`, `expect`, and `processing`.
 3. If that is not enough, add `scripts/motions/hooks/<id>.mjs` for motion-specific fixes.
 4. Run `npm run motions:build -- --only <id>`.
-5. Open `S\motion-factory\clips\<id>\review.html`; inspect normal speed, `0.25x`, scrub, onion skin, filmstrip, and the run reference.
+5. Open `S\motion-factory\clips\<id>\review.html`; inspect normal speed, `0.25x`, scrub, onion skin, prop alignment, filmstrip, and the run reference.
 6. Add/adjust `extraGates` until the motion-specific promise is measurable.
 7. Move `status` from `draft` to `ai-reviewed`, then to `user-approved` only after user approval.
 8. Run `npm run motions:assemble` and `npm run motions:check`.
@@ -106,3 +121,21 @@ export function extraGates(clip, ctx) {
 ```
 
 `ctx` includes `spec`, `processing`, per-motion paths, approved `idle`, and `helpers`: FK notes, wrap-aware angle math, smoothing, contact-lock placeholder, idle ease-in/out, two-bone IK, resampling, and cloning utilities.
+
+## Review props
+
+If a spec declares `prop`, the standard review page draws the matching entry from `S\design\props.json` in the same Pivot stroke style. Optional review placement:
+
+```json
+{
+  "review": {
+    "prop": { "x": 145, "y": 64, "w": 82, "h": 62 },
+    "propMotion": [
+      { "frame": 0, "x": 0, "y": 0 },
+      { "frame": 30, "x": 24, "y": 0 }
+    ]
+  }
+}
+```
+
+When omitted, the page uses the prop's default size and a deterministic default position.

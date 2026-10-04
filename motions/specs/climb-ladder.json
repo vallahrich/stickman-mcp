@@ -1,7 +1,7 @@
 {
   "id": "climb-ladder",
   "label": "Climb Ladder",
-  "status": "draft",
+  "status": "ai-reviewed",
   "source": {
     "dataset": "CMU",
     "file": "143_37.bvh",
@@ -38,6 +38,12 @@
   "aim": null,
   "facingChange": 0,
   "mirrorable": true,
+  "processing": {
+    "smoothingCutoff": false,
+    "easeInFrames": 0,
+    "easeOutFrames": 0,
+    "timeScale": 1
+  },
   "tags": [
     "climb",
     "ladder",
@@ -52,6 +58,6 @@
     "to",
     "35"
   ],
-  "notes": "Clear ladder-climb ascent; hip rises from ~19 to ~35. Treat as rung-cycle loop after root/height normalization. Re-picked alternative trial 143_37.",
+  "notes": "AI-reviewed stylized ladder cycle from 143_37: hook regularizes the mocap into a loopable side-view climb with alternating hand/foot rung targets, close body line, steady vertical root rise and prop-relative gates.",
   "approvedBaseline": false
 }

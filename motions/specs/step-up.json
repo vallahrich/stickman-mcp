@@ -1,7 +1,7 @@
 {
   "id": "step-up",
   "label": "Step Up",
-  "status": "draft",
+  "status": "ai-reviewed",
   "source": {
     "dataset": "CMU",
     "file": "111_31.bvh",
@@ -48,6 +48,13 @@
     "rises",
     "from"
   ],
-  "notes": "Clear stair ascent; hip height rises from ~16 to ~23 through the range. Re-picked alternative trial 111_31.",
+  "processing": {
+    "smoothingCutoff": false,
+    "easeInFrames": 0,
+    "easeOutFrames": 0,
+    "timeScale": 1,
+    "view": "side"
+  },
+  "notes": "Clear step-up refined with a motion-specific hook: low platform height ~23% of figure height, right lead foot plants on top, body weight rises over support, left trail foot joins, then settles.",
   "approvedBaseline": false
 }

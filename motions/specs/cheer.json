@@ -1,7 +1,7 @@
 {
   "id": "cheer",
   "label": "Cheer",
-  "status": "draft",
+  "status": "ai-reviewed",
   "source": {
     "dataset": "CMU",
     "file": "05_12.bvh",
@@ -15,7 +15,7 @@
   },
   "kind": "oneshot",
   "travel": "in-place",
-  "view": "side",
+  "view": "front",
   "expect": {
     "pose": "both-hands-above-head",
     "contacts": [
@@ -47,6 +47,6 @@
     "rotation",
     "no"
   ],
-  "notes": "No literal CMU cheer found; closest clean arms-up celebration pose/action, with hand-height peak at frame 1269.",
+  "notes": "Procedural cheer tuned from CMU 05_12 inspiration: idle ease-in, front-readable planted stance, anticipation dip, small bounce, wide overhead V with straight elbows, two fist-pump bounces, and idle settle. Uses facing 0 during the peak because the shipping renderer scales front-view lateral offsets by (1 - |facing|); facing 0.8-1.0 collapses the V in this engine.",
   "approvedBaseline": false
 }

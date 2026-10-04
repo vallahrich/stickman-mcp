@@ -1,7 +1,7 @@
 {
   "id": "sit-down",
   "label": "Sit Down",
-  "status": "draft",
+  "status": "ai-reviewed",
   "source": {
     "dataset": "CMU",
     "file": "113_15.bvh",
@@ -24,6 +24,10 @@
     ],
     "travel": "in-place",
     "facingChange": 0
+  },
+  "processing": {
+    "smoothingCutoff": false,
+    "timeScale": 1
   },
   "contacts": [
     "lFoot",
