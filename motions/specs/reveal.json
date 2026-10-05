@@ -583,7 +583,7 @@
           "elbow": 8
         },
         "lArm": {
-          "shoulder": -78,
+          "shoulder": -84,
           "elbow": 10
         },
         "rFoot": {
@@ -621,7 +621,7 @@
           "elbow": 7
         },
         "lArm": {
-          "shoulder": -94,
+          "shoulder": -102,
           "elbow": 9
         },
         "rFoot": {
@@ -645,21 +645,21 @@
         "bob": 5,
         "facing": 0.4,
         "rLeg": {
-          "hip": 2,
-          "knee": 14,
+          "hip": 1,
+          "knee": 10,
           "lift": 4
         },
         "lLeg": {
-          "hip": -28,
-          "knee": 16,
+          "hip": -20,
+          "knee": 12,
           "lift": 4
         },
         "rArm": {
-          "shoulder": 132,
+          "shoulder": 126,
           "elbow": 6
         },
         "lArm": {
-          "shoulder": -112,
+          "shoulder": -116,
           "elbow": 8
         },
         "rFoot": {
@@ -683,21 +683,21 @@
         "bob": 5,
         "facing": 0.4,
         "rLeg": {
-          "hip": 2,
-          "knee": 14,
+          "hip": 0,
+          "knee": 6,
           "lift": 4
         },
         "lLeg": {
-          "hip": -28,
-          "knee": 16,
+          "hip": -16,
+          "knee": 8,
           "lift": 4
         },
         "rArm": {
-          "shoulder": 135,
+          "shoulder": 125,
           "elbow": 6
         },
         "lArm": {
-          "shoulder": -130,
+          "shoulder": -125,
           "elbow": 6
         },
         "rFoot": {
@@ -721,21 +721,21 @@
         "bob": 3,
         "facing": 0.41,
         "rLeg": {
-          "hip": 8,
-          "knee": 20,
+          "hip": 3,
+          "knee": 12,
           "lift": 4
         },
         "lLeg": {
-          "hip": -24,
-          "knee": 22,
+          "hip": -19,
+          "knee": 14,
           "lift": 4
         },
         "rArm": {
-          "shoulder": 131,
+          "shoulder": 123,
           "elbow": 8
         },
         "lArm": {
-          "shoulder": -132,
+          "shoulder": -123,
           "elbow": 7
         },
         "rFoot": {
@@ -759,21 +759,21 @@
         "bob": 3,
         "facing": 0.42,
         "rLeg": {
-          "hip": 8,
-          "knee": 20,
+          "hip": 6,
+          "knee": 16,
           "lift": 4
         },
         "lLeg": {
-          "hip": -24,
-          "knee": 22,
+          "hip": -22,
+          "knee": 18,
           "lift": 4
         },
         "rArm": {
-          "shoulder": 126,
+          "shoulder": 120,
           "elbow": 10
         },
         "lArm": {
-          "shoulder": -126,
+          "shoulder": -120,
           "elbow": 8
         },
         "rFoot": {
@@ -807,11 +807,11 @@
           "lift": 4
         },
         "rArm": {
-          "shoulder": 120,
+          "shoulder": 114,
           "elbow": 12
         },
         "lArm": {
-          "shoulder": -108,
+          "shoulder": -112,
           "elbow": 10
         },
         "rFoot": {
@@ -845,11 +845,11 @@
           "lift": 4
         },
         "rArm": {
-          "shoulder": 112,
+          "shoulder": 106,
           "elbow": 14
         },
         "lArm": {
-          "shoulder": -78,
+          "shoulder": -90,
           "elbow": 14
         },
         "rFoot": {
@@ -887,7 +887,7 @@
           "elbow": 16
         },
         "lArm": {
-          "shoulder": -60,
+          "shoulder": -74,
           "elbow": 16
         },
         "rFoot": {
@@ -925,7 +925,7 @@
           "elbow": 19
         },
         "lArm": {
-          "shoulder": -40,
+          "shoulder": -54,
           "elbow": 18
         },
         "rFoot": {
@@ -962,7 +962,7 @@
           "elbow": 22
         },
         "lArm": {
-          "shoulder": -20,
+          "shoulder": -34,
           "elbow": 22
         },
         "rFoot": {
@@ -999,7 +999,7 @@
           "elbow": 30
         },
         "lArm": {
-          "shoulder": 4,
+          "shoulder": -10,
           "elbow": 28
         },
         "rFoot": {
@@ -1037,8 +1037,8 @@
           "elbow": 34
         },
         "lArm": {
-          "shoulder": 18,
-          "elbow": 34
+          "shoulder": 8,
+          "elbow": 32
         },
         "rFoot": {
           "x": 15,
@@ -1075,8 +1075,8 @@
           "elbow": 39
         },
         "lArm": {
-          "shoulder": 34,
-          "elbow": 38
+          "shoulder": 26,
+          "elbow": 37
         },
         "rFoot": {
           "x": 13,
@@ -1112,7 +1112,7 @@
           "elbow": 44
         },
         "lArm": {
-          "shoulder": 48,
+          "shoulder": 42,
           "elbow": 42
         },
         "rFoot": {
