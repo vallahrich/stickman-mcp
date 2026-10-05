@@ -119,7 +119,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `type-at-desk` | user-approved | W2 | batch 5: 9/10 approved (polish: still body) |
 | `open-laptop` | planned | W6 |  |
 | `video-call` | planned | W6 |  |
-| `phone-call` | rework | W6 | 4/10: arm crosses face, phone too small |
+| `phone-call` | candidate | W6 | batch 13: review |
 | `plug-cable` | planned | W6 |  |
 | `rack-server` | planned | W6 | slide a server out of a rack |
 | `drag-window` | planned | W6 | grab and move a UI window on the slide |
@@ -164,14 +164,14 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `climb-down` | draft | W10 |  |
 | `climb-ledge` | draft | W10 |  |
 | `hang-swing` | draft | W10 |  |
-| `crawl` | rework | W10 | 6/10: straight arms, head up |
+| `crawl` | candidate | W10 | batch 13: review |
 | `fall-get-up` | candidate | W10 | batch 13: review |
 
 ## Totals
 
 - user-approved: 63
-- rework: 4
+- rework: 2
 - planned: 16
-- candidate: 9
+- candidate: 11
 - draft: 8
 - **total: 100**
