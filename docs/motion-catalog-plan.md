@@ -103,7 +103,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `write-board` | user-approved | W2 | user 8+ |
 | `tap-element` | user-approved | W2 | approved |
 | `idea` | user-approved | W2 | approved; bulb to be yellow |
-| `pull-banner` | candidate | W2 | batch 8: top/bottom variants (left/right in rework) |
+| `pull-banner` | candidate | W2 | batch 8: top/bottom/left/right variants |
 | `swipe-next` | user-approved | W2 | batch 5: 9/10 approved |
 | `walk-on` | planned | W5 |  |
 | `walk-off` | planned | W5 |  |
