@@ -162,12 +162,12 @@
         },
         "facing": 1,
         "rHand": {
-          "x": 22,
-          "y": 103
+          "x": 30,
+          "y": 108
         },
         "lHand": {
-          "x": 22,
-          "y": 90
+          "x": 30,
+          "y": 96
         }
       },
       "ease": "inOut"
@@ -206,12 +206,12 @@
         },
         "facing": 1,
         "rHand": {
-          "x": 16,
-          "y": 123
+          "x": 32,
+          "y": 135
         },
         "lHand": {
-          "x": 16,
-          "y": 109
+          "x": 32,
+          "y": 124
         }
       },
       "ease": "inOut"
@@ -233,12 +233,12 @@
           "knee": 16
         },
         "rArm": {
-          "shoulder": 102,
-          "elbow": 32
+          "shoulder": 124,
+          "elbow": 18
         },
         "lArm": {
-          "shoulder": 108,
-          "elbow": 40
+          "shoulder": 130,
+          "elbow": 22
         },
         "rFoot": {
           "x": 5,
@@ -250,12 +250,12 @@
         },
         "facing": 1,
         "rHand": {
-          "x": 10,
-          "y": 145
+          "x": 34,
+          "y": 160
         },
         "lHand": {
-          "x": 10,
-          "y": 130
+          "x": 34,
+          "y": 151
         }
       },
       "ease": "out"
@@ -277,12 +277,12 @@
           "knee": 17
         },
         "rArm": {
-          "shoulder": 98,
-          "elbow": 34
+          "shoulder": 118,
+          "elbow": 18
         },
         "lArm": {
-          "shoulder": 104,
-          "elbow": 42
+          "shoulder": 124,
+          "elbow": 22
         },
         "rFoot": {
           "x": 5,
@@ -294,12 +294,12 @@
         },
         "facing": 1,
         "rHand": {
-          "x": 10,
-          "y": 143
+          "x": 36,
+          "y": 158
         },
         "lHand": {
-          "x": 10,
-          "y": 128
+          "x": 36,
+          "y": 150
         }
       },
       "ease": "linear"
@@ -321,12 +321,12 @@
           "knee": 16
         },
         "rArm": {
-          "shoulder": 104,
-          "elbow": 31
+          "shoulder": 124,
+          "elbow": 18
         },
         "lArm": {
-          "shoulder": 110,
-          "elbow": 39
+          "shoulder": 130,
+          "elbow": 22
         },
         "rFoot": {
           "x": 5,
@@ -338,12 +338,12 @@
         },
         "facing": 1,
         "rHand": {
-          "x": 10,
-          "y": 146
+          "x": 30,
+          "y": 160
         },
         "lHand": {
-          "x": 10,
-          "y": 131
+          "x": 30,
+          "y": 151
         }
       },
       "ease": "inOut"
@@ -365,12 +365,12 @@
           "knee": 17
         },
         "rArm": {
-          "shoulder": 98,
-          "elbow": 34
+          "shoulder": 118,
+          "elbow": 18
         },
         "lArm": {
-          "shoulder": 104,
-          "elbow": 42
+          "shoulder": 124,
+          "elbow": 22
         },
         "rFoot": {
           "x": 5,
@@ -382,12 +382,12 @@
         },
         "facing": 1,
         "rHand": {
-          "x": 10,
-          "y": 143
+          "x": 36,
+          "y": 158
         },
         "lHand": {
-          "x": 10,
-          "y": 128
+          "x": 36,
+          "y": 150
         }
       },
       "ease": "linear"
@@ -426,12 +426,12 @@
         },
         "facing": 1,
         "rHand": {
-          "x": 18,
-          "y": 114
+          "x": 30,
+          "y": 124
         },
         "lHand": {
-          "x": 18,
-          "y": 100
+          "x": 30,
+          "y": 113
         }
       },
       "ease": "inOut"
@@ -471,7 +471,7 @@
         "facing": 1,
         "rHand": {
           "x": 25,
-          "y": 84
+          "y": 86
         },
         "lHand": {
           "x": 25,
@@ -515,7 +515,7 @@
         "facing": 1,
         "rHand": {
           "x": 25,
-          "y": 82
+          "y": 84
         },
         "lHand": {
           "x": 25,
@@ -607,13 +607,18 @@
             "scale": 1
           },
           {
-            "frame": 62,
-            "rot": 0,
+            "frame": 50,
+            "rot": 2,
             "scale": 1
           },
           {
-            "frame": 86,
-            "rot": 0,
+            "frame": 62,
+            "rot": -2,
+            "scale": 1
+          },
+          {
+            "frame": 74,
+            "rot": 1,
             "scale": 1
           },
           {
