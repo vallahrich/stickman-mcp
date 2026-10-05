@@ -4,7 +4,7 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { stageKitSource } from "./review-renderer.mjs";
+import { stageKitSource, loadEngineRenderer } from "./review-renderer.mjs";
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const sessionFiles = process.env.STICKMAN_SESSION_FILES ?? process.env.MOTION_SESSION_FILES ?? "C:\\Users\\t-vwallerich\\.copilot\\session-state\\5151d75e-0e30-46ad-99e0-e3d1bf08e105\\files";
@@ -25,7 +25,24 @@ for (const id of motionIds) {
 }
 const propsCatalog = await readJson(path.join(sessionFiles, "design", "props.json"));
 const kit = await stageKitSource();
-const data = JSON.stringify({ motions, propsCatalog }).replaceAll("<", "\\u003c");
+
+// Slide-to-slide transition: the approved shipping run (accelerate from a stand, brake back to a stand),
+// compiled at rig scale 1 and drawn at the deck's stage scale through the viewBox.
+async function transitionRunFrames() {
+  const { compileAnimation, sampleAnimation, CONTRACT_VERSION } = await loadEngineRenderer();
+  const durationMs = 1600, groundY = 640, x = 200;
+  const result = compileAnimation({
+    version: CONTRACT_VERSION, canvas: { width: 1600, height: 800, fps: 30 }, durationMs,
+    actor: { x, groundY }, targets: { travel: { x: x + 500, y: groundY } },
+    actions: [{ action: "run", startMs: 0, durationMs, target: "travel" }]
+  });
+  if (!result.program) throw new Error(`Transition run failed to compile: ${JSON.stringify(result.errors ?? result)}`);
+  const frames = [];
+  for (let t = 0; t <= durationMs + 1e-6; t += 1000 / 30) frames.push(sampleAnimation(result.program, t));
+  return { frames, groundY, startX: x, endX: x + 500 };
+}
+const transition = await transitionRunFrames();
+const data = JSON.stringify({ motions, propsCatalog, transition }).replaceAll("<", "\\u003c");
 
 const html = `<!doctype html>
 <html lang="en">
@@ -108,7 +125,7 @@ h1, h2 { margin: 0; font-weight: 650; letter-spacing: -.01em; }
 .actor { position: absolute; color: var(--cp-text); overflow: visible; }
 .actor svg { width: 100%; height: 100%; overflow: visible; }
 .mono { font-family: Consolas, "Courier New", Courier, monospace; }
-.footer { position: absolute; left: 5cqw; bottom: 3.5cqh; font-size: 1.2cqw; color: var(--cp-text-soft); }
+.footer { position: absolute; right: 5cqw; bottom: 3.5cqh; font-size: 1.2cqw; color: var(--cp-text-soft); }
 /* slide 1: reveal */
 .title-big { position: absolute; left: 44cqw; top: 30cqh; width: 52cqw; transform: scale(.6); opacity: 0; transition: transform .6s cubic-bezier(.2,1.6,.4,1), opacity .4s; transform-origin: left center; }
 .title-big h1 { font-size: 6cqw; line-height: 1.05; }
@@ -128,8 +145,7 @@ h1, h2 { margin: 0; font-weight: 650; letter-spacing: -.01em; }
 @keyframes blink { 50% { opacity: 0; } }
 .screen-glow { position: absolute; pointer-events: none; }
 /* slide 3: card */
-.showcase { position: absolute; right: 5cqw; top: 22cqh; width: 52cqw; height: 64cqh; border: 2px dashed var(--cp-border); border-radius: 16px; display: grid; place-items: center; color: var(--cp-text-soft); font-size: 1.6cqw; transition: opacity .3s; }
-.showcase.used { opacity: 0; }
+.showcase { position: absolute; right: 5cqw; top: 22cqh; width: 52cqw; height: 64cqh; pointer-events: none; }
 .bigcard { position: absolute; z-index: 5; box-sizing: border-box; background: var(--cp-surface); border: 2px solid var(--cp-accent); border-radius: 16px; padding: 5cqh 3.4cqw; box-shadow: var(--cp-shadow); transform-origin: 0 0; transition: transform .95s cubic-bezier(.3,1.22,.5,1); overflow: hidden; }
 .bigcard b { display: block; color: var(--cp-accent); font-size: 10cqw; line-height: 1; letter-spacing: -.02em; }
 .bigcard .t { font-size: 2.6cqw; font-weight: 600; margin-top: 1.4cqh; }
@@ -141,7 +157,7 @@ h1, h2 { margin: 0; font-weight: 650; letter-spacing: -.01em; }
 .legend li { opacity: .25; transition: opacity .4s, color .4s; margin-bottom: 1.4cqh; }
 .legend li.on { opacity: 1; color: var(--cp-text); }
 /* slide 5: tap */
-.kpis { position: absolute; left: 39.5cqw; top: 66cqh; display: grid; grid-template-columns: repeat(4, 13cqw); gap: 1.4cqw; }
+.kpis { position: absolute; left: 39.5cqw; top: 74cqh; display: grid; grid-template-columns: repeat(4, 13cqw); gap: 1.4cqw; }
 .kpi-note { position: absolute; left: 5cqw; top: 24cqh; width: 60cqw; font-size: 1.9cqw; color: var(--cp-text-muted); }
 .kpi { background: var(--cp-surface-soft); border: 1px solid var(--cp-border); border-radius: 16px; padding: 2.4cqh 1.6cqw; position: relative; }
 .kpi .v { font-size: 3.4cqw; font-weight: 700; }
@@ -152,11 +168,14 @@ h1, h2 { margin: 0; font-weight: 650; letter-spacing: -.01em; }
 .ripple { position: fixed; z-index: 10; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; border: 3px solid var(--cp-accent); pointer-events: none; animation: ripple .7s ease-out forwards; }
 @keyframes ripple { to { transform: scale(9); opacity: 0; } }
 /* slide 6: idea */
-.bulb { position: absolute; left: 20cqw; top: 20cqh; width: 7cqw; opacity: 0; transform: translate(-50%, -100%) scale(.3); transform-origin: 50% 100%; transition: transform .45s cubic-bezier(.2,1.8,.4,1), opacity .2s; }
-.bulb .glass { fill: var(--cp-surface); stroke: var(--cp-text); transition: fill .25s; }
-.bulb .rays { stroke: var(--cp-warning); opacity: 0; transition: opacity .3s; }
-.bulb.on { opacity: 1; transform: translate(-50%, -100%) scale(1); }
+.bulb { position: absolute; left: 20cqw; top: 20cqh; width: 6cqw; opacity: 0; transform: translate(-50%, -100%) scale(.3); transform-origin: 50% 100%; transition: transform .45s cubic-bezier(.2,1.8,.4,1), opacity .2s, filter .3s; overflow: visible; }
+.bulb .glass { fill: var(--cp-surface); stroke: var(--cp-text); stroke-width: 3; stroke-linejoin: round; transition: fill .25s; }
+.bulb .filament { fill: none; stroke: var(--cp-text-muted); stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
+.bulb .base { stroke: var(--cp-text); stroke-width: 3.5; stroke-linecap: round; }
+.bulb .rays { stroke: var(--cp-warning); stroke-width: 3.5; stroke-linecap: round; opacity: 0; transition: opacity .3s; }
+.bulb.on { opacity: 1; transform: translate(-50%, -100%) scale(1); filter: drop-shadow(0 0 1.2cqw var(--cp-warning)); }
 .bulb.on .glass { fill: var(--cp-warning); }
+.bulb.on .filament { stroke: var(--cp-surface); }
 .bulb.on .rays { opacity: 1; }
 .insight { position: absolute; left: 48cqw; top: 30cqh; width: 46cqw; font-size: 2.4cqw; opacity: 0; transform: translateY(2cqh); transition: all .5s; }
 .insight.on { opacity: 1; transform: none; }
@@ -164,9 +183,17 @@ h1, h2 { margin: 0; font-weight: 650; letter-spacing: -.01em; }
 .thinking { position: absolute; left: 30cqw; top: 26cqh; transform: translateY(-100%); font-size: 3cqw; color: var(--cp-text-soft); opacity: 0; transition: opacity .3s; }
 .thinking.on { opacity: 1; }
 /* slide 7: banner */
-.headline { position: absolute; top: 30cqh; width: 54cqw; left: 40cqw; box-sizing: border-box; background: var(--cp-accent); color: var(--cp-accent-fg); border-radius: 0.625rem; padding: 3cqh 2.4cqw; font-size: 3.4cqw; font-weight: 700; opacity: 0; transform-origin: 0 0; transition: transform .8s cubic-bezier(.3,1.25,.5,1), opacity .25s; }
+.headline { position: absolute; left: 104cqw; top: 66cqh; width: 54cqw; box-sizing: border-box; background: var(--cp-accent); color: var(--cp-accent-fg); border-radius: 0.625rem; padding: 3cqh 2.4cqw; font-size: 3.4cqw; font-weight: 700; transform-origin: 0 50%; }
 .headline small { display: block; font-size: 1.5cqw; font-weight: 500; opacity: .85; margin-top: 1cqh; }
-.headline.on { opacity: 1; }
+.headline.settle { animation: settle .5s cubic-bezier(.3,1.6,.5,1); }
+@keyframes settle { 0% { transform: translateX(-1.2cqw) scaleX(.97); } 100% { transform: none; } }
+.rope { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.rope path { fill: none; stroke: var(--cp-text); stroke-width: 2.5; stroke-linecap: round; }
+.traveller { position: absolute; z-index: 20; color: var(--cp-text); pointer-events: none; display: none; }
+.traveller svg { width: 100%; height: 100%; overflow: visible; }
+.deck.travelling { overflow: hidden; border-radius: 16px; }
+.deck.travelling .slide { transition: none; }
+.deck.travelling .slide .actor { visibility: hidden; }
 /* slide 8 + 9 */
 .agenda { position: absolute; right: 6cqw; top: 26cqh; font-size: 2.2cqw; line-height: 1.9; color: var(--cp-text-muted); }
 .agenda b { color: var(--cp-text); }
@@ -182,50 +209,50 @@ h1, h2 { margin: 0; font-weight: 650; letter-spacing: -.01em; }
 <body>
 <div class="deck" id="deck">
 
-  <section class="slide" data-motion="reveal" data-actor="4,20,34,74">
+  <section class="slide" data-motion="reveal" data-x="6">
     <div class="kicker">Customer briefing</div>
     <div class="sparks" id="sparks"></div>
     <div class="title-big" id="title"><h1>Cloud Modernisation<br>Roadmap 2025</h1><p>From legacy estate to an AI-ready platform in three waves</p></div>
     <div class="footer">Press → or click to advance · R to replay</div>
   </section>
 
-  <section class="slide" data-motion="type-at-desk" data-actor="3,24,46,74" data-loop="1">
+  <section class="slide" data-motion="type-at-desk" data-x="9" data-loop="1">
     <div class="kicker">Live build</div>
     <h2>We script the landing zone — live</h2>
     <div class="terminal mono" id="term"><div class="dots"><i></i><i></i><i></i></div><span id="typed"></span><span class="caret"></span></div>
   </section>
 
-  <section class="slide" data-motion="present-card" data-actor="4,22,36,76">
+  <section class="slide" data-motion="present-card" data-x="6.7">
     <div class="kicker">Business case</div>
     <h2>The number that matters</h2>
-    <div class="showcase" id="showcase">the number that matters…</div>
+    <div class="showcase" id="showcase"></div>
   </section>
 
-  <section class="slide" data-motion="write-board" data-actor="3,20,56,76">
+  <section class="slide" data-motion="write-board" data-x="12.3">
     <div class="kicker">Growth model</div>
     <h2>Consumption ramps as workloads land</h2>
     <ol class="legend" id="legend"><li>Baseline: today’s estate</li><li>Waves 1–3 migrate</li><li>+38% capacity headroom</li></ol>
   </section>
 
-  <section class="slide" data-motion="tap-element" data-actor="22.7,22,36,74">
+  <section class="slide" data-motion="tap-element" data-x="27.9">
     <div class="kicker">Results</div>
     <h2>Pilot outcomes</h2><p class="kpi-note">Six-week pilot across two business units — measured, not modelled.</p>
     <div class="kpis"><div class="kpi" id="kpi1"><div class="v" data-to="42">0</div><div class="l">% lower run cost</div></div><div class="kpi" id="kpi2"><div class="v" data-to="7">0</div><div class="l">min average deploy</div></div><div class="kpi"><div class="v">99.95</div><div class="l">% availability</div></div><div class="kpi"><div class="v">3</div><div class="l">regions active</div></div></div>
   </section>
 
-  <section class="slide" data-motion="idea" data-actor="6,24,34,74">
+  <section class="slide" data-motion="idea" data-x="8">
     <div class="kicker">The insight</div>
     <div class="thinking" id="thinking">…?</div>
-    <svg class="bulb" id="bulb" viewBox="0 0 60 80"><g class="rays" stroke-width="3" stroke-linecap="round"><path d="M30 2v-0M6 14l4 4M54 14l-4 4M0 34h5M60 34h-5"/></g><path class="glass" stroke-width="3" d="M30 8a20 20 0 0 0-12 36c3 3 4 6 4 10h16c0-4 1-7 4-10A20 20 0 0 0 30 8z"/><path d="M23 62h14M24 68h12" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+    <svg class="bulb" id="bulb" viewBox="0 -4 80 88"><path class="rays" d="M40 8V0M56.1 13.1l4.5-6.6M23.9 13.1l-4.5-6.6M66.3 26.4l7.5-2.7M13.7 26.4l-7.5-2.7"/><path class="glass" d="M26.9 53.7A22 22 0 1 1 53.1 53.7C50.1 56.3 48.5 59.7 48.5 63H31.5C31.5 59.7 29.9 56.3 26.9 53.7Z"/><path class="filament" d="M35 63V54l2.5-6 2.5 6 2.5-6 2.5 6v9"/><path class="base" d="M31.5 68h17M32.5 73.5h15M36 79h8"/></svg>
     <div class="insight" id="insight"><b>Modernise the data layer first.</b><small>Every later wave gets cheaper once data is cloud-native.</small></div>
   </section>
 
-  <section class="slide" data-motion="pull-banner" data-actor="3,22,36,76">
+  <section class="slide" data-motion="pull-banner" data-x="5.7">
     <div class="kicker">Announcement</div>
-    <div class="headline" id="headline">Go-live: Q3 — on budget<small>All three waves green across the programme</small></div>
+    <svg class="rope" id="rope"><path d=""/></svg><div class="headline" id="headline">Go-live: Q3 — on budget<small>All three waves green across the programme</small></div>
   </section>
 
-  <section class="slide" data-motion="swipe-next" data-actor="6,22,34,76">
+  <section class="slide" data-motion="swipe-next" data-x="8">
     <div class="kicker">Wrap-up</div>
     <h2>Next steps</h2>
     <div class="agenda"><b>1.</b> Architecture workshop<br><b>2.</b> Pilot sign-off<br><b>3.</b> Wave 1 kickoff</div>
@@ -243,16 +270,17 @@ ${kit}
 const D = JSON.parse(document.getElementById("data").textContent);
 const slides = [...document.querySelectorAll(".slide")];
 const FPS = 30, STAGE = { rootX: 160, groundY: 150, scale: 0.75 };
-let current = 0, frame = 0, lastT = 0, held = false, run = null;
+// One co-presenter: the same actor box (and therefore the same figure size) on every slide; only x differs.
+const ACTOR = { w: 28, h: 62, top: 34 };
+let current = 0, frame = 0, lastT = 0, held = false, run = null, travelling = false, armed = false;
 
 function themed(markup) { return markup.replaceAll('fill="#fff"', 'style="fill:var(--cp-surface)"'); }
 function svgPointToScreen(svg, p) { const pt = svg.createSVGPoint(); pt.x = p.x; pt.y = p.y; const r = pt.matrixTransform(svg.getScreenCTM()); return { x: r.x, y: r.y }; }
 function slideActor(slide) {
   let host = slide.querySelector(".actor");
   if (!host) {
-    const [l, t, w, h] = slide.dataset.actor.split(",").map(Number);
     host = document.createElement("div"); host.className = "actor";
-    Object.assign(host.style, { left: l + "cqw", top: t + "cqh", width: w + "cqw", height: h + "cqh" });
+    Object.assign(host.style, { left: slide.dataset.x + "cqw", top: ACTOR.top + "cqh", width: ACTOR.w + "cqw", height: ACTOR.h + "cqh" });
     host.innerHTML = '<svg viewBox="70 -40 270 196" preserveAspectRatio="xMidYMax meet"></svg>';
     slide.append(host);
   }
@@ -297,7 +325,7 @@ const reactions = {
     }
   },
   "present-card": {
-    reset(s) { s.querySelectorAll(".bigcard").forEach((e) => e.remove()); s.querySelector("#showcase").classList.remove("used"); this.flown = false; },
+    reset(s) { s.querySelectorAll(".bigcard").forEach((e) => e.remove()); this.flown = false; },
     // The hand-held card grows out of the hand into a full-size, readable card on the slide.
     cardPlaced(s, svg, sample) {
       this.flown = true;
@@ -309,7 +337,7 @@ const reactions = {
       card.innerHTML = "<b>−31%</b><div class=\\"t\\">3-year total cost of ownership</div><ul><li>Reserved capacity −12%</li><li>Licence mobility −11%</li><li>Ops automation −8%</li></ul>";
       Object.assign(card.style, { left: target.left - sr.left + "px", top: target.top - sr.top + "px", width: target.width + "px", height: target.height + "px", transition: "none",
         transform: "translate(" + (from.left - target.left) + "px," + (from.top - target.top) + "px) scale(" + from.width / target.width + "," + from.height / target.height + ")" });
-      s.append(card); s.querySelector("#showcase").classList.add("used");
+      s.append(card);
       requestAnimationFrame(() => requestAnimationFrame(() => { card.style.transition = ""; card.style.transform = "none"; }));
     },
     hideProp() { return this.flown; }
@@ -346,17 +374,22 @@ const reactions = {
     }
   },
   "pull-banner": {
-    reset(s) { const h = s.querySelector("#headline"); h.classList.remove("on"); h.style.transition = ""; h.style.transform = ""; this.done = false; },
-    // Once the stickman lets go, the pulled banner grows into the full-size headline.
-    release(s, svg) {
-      if (this.done) return; this.done = true;
-      const h = s.querySelector("#headline"), drawn = svg.querySelector('[data-prop="banner"]');
-      h.style.transition = "none"; h.style.transform = "none";
-      if (drawn) { const from = drawn.getBoundingClientRect(), to = h.getBoundingClientRect(); h.style.transform = "translate(" + (from.left - to.left) + "px," + (from.top - to.top) + "px) scale(" + from.width / to.width + "," + from.height / to.height + ")"; }
-      h.classList.add("on"); void h.offsetWidth;
-      requestAnimationFrame(() => requestAnimationFrame(() => { h.style.transition = ""; h.style.transform = "none"; }));
+    reset(s) { const h = s.querySelector("#headline"); h.classList.remove("settle"); h.style.left = ""; h.style.top = ""; s.querySelector("#rope path").setAttribute("d", ""); this.done = false; },
+    // The stickman hauls the headline in from the right edge on a rope at hand height; it stays where it lands.
+    frame(s, svg, sample, ix) {
+      if (this.done) return;
+      const m = D.motions["pull-banner"].spec.markers, sr = s.getBoundingClientRect(), h = s.querySelector("#headline");
+      const hr = handFromSample(sample, "right"), hl = handFromSample(sample, "left");
+      const hand = svgPointToScreen(svg, { x: Math.max(hr.x, hl.x), y: (hr.y + hl.y) / 2 });
+      const hx = hand.x - sr.left, hy = hand.y - sr.top;
+      const p = Math.min(1, Math.max(0, (ix - m.grab) / (m.reveal - m.grab))), e = 1 - Math.pow(1 - p, 3);
+      const start = sr.width * 1.04, land = hx + sr.width * 0.035;
+      const left = start + (land - start) * e;
+      h.style.left = left + "px"; h.style.top = hy - h.offsetHeight / 2 + "px";
+      s.querySelector("#rope path").setAttribute("d", ix >= m.grab ? "M" + hx + " " + hy + " Q" + (hx + left) / 2 + " " + (hy + sr.height * 0.03 * (1 - e)) + " " + left + " " + hy : "");
     },
-    hideProp() { return this.done; }
+    release(s) { this.done = true; s.querySelector("#rope path").setAttribute("d", ""); s.querySelector("#headline").classList.add("settle"); },
+    hideProp() { return true; }
   },
   "swipe-next": {
     reset() {},
@@ -381,7 +414,7 @@ function drawActor(slide, ix) {
   const prevInk = ix === 0 ? [] : [...svg.querySelectorAll(".ink path")].map((p) => p.style.strokeDashoffset);
   svg.innerHTML = themed(h);
   svg.querySelectorAll(".ink path").forEach((p, i) => { p.style.strokeDashoffset = prevInk[i] ?? p.getAttribute("data-len"); });
-  if (react.frame) react.frame(slide, svg, sample);
+  if (react.frame) react.frame(slide, svg, sample, ix);
   return { svg, sample };
 }
 function inkMarkup(sw, board) {
@@ -411,6 +444,8 @@ function start() {
 function tick(t) {
   const slide = slides[current], id = slide.dataset.motion;
   if (!id) return;
+  // swipe-next is the exit gesture: it waits on its first frame until the presenter presses next.
+  if (id === "swipe-next" && !armed) { drawActor(slide, 0); return; }
   const { clip, spec } = D.motions[id];
   const n = clip.frames.length, prev = frame;
   if (held !== true) frame += (t - lastT) / 1000 * FPS;
@@ -429,23 +464,58 @@ function tick(t) {
   }
   if (held !== true || clip.loop) run = requestAnimationFrame(tick);
 }
-function go(i, swipe = false) {
-  if (i < 0 || i >= slides.length || i === current) return;
-  const from = slides[current], to = slides[i];
-  if (swipe) { from.classList.add("swipe-out"); to.classList.add("swipe-in"); requestAnimationFrame(() => requestAnimationFrame(() => to.classList.remove("swipe-in"))); setTimeout(() => from.classList.remove("swipe-out"), 600); }
-  from.classList.remove("active"); to.classList.add("active"); current = i;
+function setPage(i) {
+  current = i;
   document.getElementById("pageNo").textContent = (i + 1) + " / " + slides.length;
   history.replaceState(null, "", "#" + (i + 1));
+}
+function go(i, swipe = false) {
+  if (travelling || i < 0 || i >= slides.length || i === current) return;
+  const from = slides[current], to = slides[i];
+  if (!swipe && i === current + 1 && from.dataset.motion && to.dataset.motion) return travel(i);
+  if (swipe) { from.classList.add("swipe-out"); to.classList.add("swipe-in"); requestAnimationFrame(() => requestAnimationFrame(() => to.classList.remove("swipe-in"))); setTimeout(() => from.classList.remove("swipe-out"), 600); }
+  from.classList.remove("active"); to.classList.add("active");
+  setPage(i); armed = false;
   start();
 }
+// The same stickman runs from one slide into the next; the slides scroll past like a side-scroller camera
+// that follows the run's own speed profile, so the figure never changes size or identity between slides.
+function travel(i) {
+  travelling = true; cancelAnimationFrame(run);
+  const deck = document.getElementById("deck"), from = slides[current], to = slides[i], T = D.transition, n = T.frames.length;
+  const r = reactions[to.dataset.motion]; if (r) r.reset(to);
+  let host = deck.querySelector(".traveller");
+  if (!host) { host = document.createElement("div"); host.className = "traveller"; host.innerHTML = '<svg preserveAspectRatio="xMidYMax meet"></svg>'; deck.append(host); }
+  Object.assign(host.style, { display: "block", top: ACTOR.top + "%", width: ACTOR.w + "%", height: ACTOR.h + "%" });
+  const svg = host.querySelector("svg"), ax = Number(from.dataset.x), bx = Number(to.dataset.x), span = T.endX - T.startX, k = STAGE.scale;
+  deck.classList.add("travelling"); to.classList.add("active");
+  const t0 = performance.now();
+  (function step(t) {
+    const f = Math.min(n - 1, Math.max(0, Math.floor((t - t0) / 1000 * FPS))), s = T.frames[f], e = (s.x - T.startX) / span;
+    from.style.transform = "translateX(" + (-100 * e) + "%)"; to.style.transform = "translateX(" + (100 - 100 * e) + "%)";
+    host.style.left = ax + (bx - ax) * e + 9 * Math.sin(Math.PI * e) + "%";
+    svg.setAttribute("viewBox", [s.x - (STAGE.rootX - 70) / k, T.groundY - (STAGE.groundY + 40) / k, 270 / k, 196 / k].join(" "));
+    svg.innerHTML = themed(figureMarkup(s, ENGINE_FRAME_GEOMETRY(s), "currentColor"));
+    if (f < n - 1) { run = requestAnimationFrame(step); return; }
+    from.classList.remove("active"); from.style.transform = ""; to.style.transform = ""; host.style.display = "none";
+    void deck.offsetWidth; deck.classList.remove("travelling");
+    travelling = false; armed = false; setPage(i); start();
+  })(t0);
+}
+function next() {
+  if (travelling) return;
+  const s = slides[current];
+  if (s.dataset.motion === "swipe-next" && !armed) { armed = true; frame = 0; held = false; lastT = performance.now(); cancelAnimationFrame(run); run = requestAnimationFrame(tick); return; }
+  go(current + 1);
+}
 document.getElementById("prev").onclick = () => go(current - 1);
-document.getElementById("next").onclick = () => go(current + 1);
-document.getElementById("replay").onclick = () => start();
-document.getElementById("deck").onclick = () => go(current + 1);
+document.getElementById("next").onclick = () => next();
+document.getElementById("replay").onclick = () => { armed = false; start(); };
+document.getElementById("deck").onclick = () => next();
 addEventListener("keydown", (e) => {
-  if (["ArrowRight", "PageDown", " "].includes(e.key)) go(current + 1);
+  if (["ArrowRight", "PageDown", " "].includes(e.key)) next();
   if (["ArrowLeft", "PageUp"].includes(e.key)) go(current - 1);
-  if (e.key === "r" || e.key === "R") start();
+  if (e.key === "r" || e.key === "R") { armed = false; start(); }
 });
 addEventListener("hashchange", () => go((Number(location.hash.slice(1)) || 1) - 1));
 const startAt = Math.max(0, Math.min(slides.length - 1, (Number(location.hash.slice(1)) || 1) - 1));
