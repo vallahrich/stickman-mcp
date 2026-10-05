@@ -108,6 +108,25 @@ describe("motion review renderer uses the shipping engine", () => {
     expect(svg).toContain('fill="#dfe5ee"');
   });
 
+  it("renders attachable sign with centered text and stick grip anchor", async () => {
+    const clip = keyed([{ frame: 0, pose: { ...stand, rHand: { x: 24, y: 96 } } }, { frame: 20, pose: { ...stand, rHand: { x: 24, y: 96 } } }]);
+    const spec = {
+      id: "sign-addon-test",
+      review: {
+        addons: [
+          { id: "sign", type: "sign", color: "#ffeeaa", text: "GO", attach: [{ to: "right-hand", from: 0, until: 20 }] }
+        ]
+      }
+    };
+    const svg = await renderStaticSvg({ clip, spec, propsCatalog: { props: [] }, frameIndex: 10 });
+    expect(svg).toContain('data-addon="sign"');
+    expect(svg).toContain('fill="#ffeeaa"');
+    expect(svg).toContain(">GO</text>");
+    expect(svg).toContain('stroke="#8B5A2B"');
+    // Right-hand target is at (178, 78) in review-stage pixels; default sign grip is 4 units above stick bottom.
+    expect(svg).toContain('L178 81');
+  });
+
   it("computes add-on flight parabola endpoints and apex", () => {
     const start = { x: 10, y: 100 };
     const end = { x: 70, y: 100 };

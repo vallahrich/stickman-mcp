@@ -34,7 +34,7 @@ function line(a, b) {
 }
 
 export const REVIEW_STAGE = { rootX: 160, groundY: 150, scale: 0.75 };
-const ADDON_TYPES = new Set(["ball", "football", "basketball", "goal", "hoop", "hurdle", "spear", "card", "cone", "target", "sand-pit", "board", "sand-puff", "phone"]);
+const ADDON_TYPES = new Set(["ball", "football", "basketball", "goal", "hoop", "hurdle", "spear", "card", "cone", "target", "sand-pit", "board", "sand-puff", "phone", "sign"]);
 
 const clamp01 = (value) => Math.max(0, Math.min(1, value));
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -373,7 +373,8 @@ function addonColor(prop, fallback = "#202124") {
     target: "#D62828",
     card: "#B11F4B",
     "sand-pit": "#e8c872",
-    "sand-puff": "#e8c872"
+    "sand-puff": "#e8c872",
+    sign: "#fff7d6"
   }[prop.type] ?? fallback);
 }
 
@@ -421,6 +422,14 @@ function addonMarkup(prop, strokeWidth, color) {
   if (prop.type === "phone") {
     const rx = Math.min(w * 0.22, h * 0.13);
     return `<g data-addon="phone" stroke="${xml(color)}" stroke-width="${num(strokeWidth * 0.45)}" stroke-linecap="round" stroke-linejoin="round"><rect x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" rx="${num(rx)}" fill="${xml(c)}"/><rect x="${num(x + w * 0.18)}" y="${num(y + h * 0.14)}" width="${num(w * 0.64)}" height="${num(h * 0.72)}" rx="${num(rx * 0.45)}" fill="#dfe5ee" stroke="none"/><path d="${line({ x: x + w * 0.18, y: y + h * 0.12 }, { x: x + w * 0.82, y: y + h * 0.12 })}" stroke="#f8fafc" stroke-width="${num(strokeWidth * 0.3)}"/><circle cx="${num(x + w * 0.5)}" cy="${num(y + h * 0.93)}" r="${num(Math.max(0.45, w * 0.08))}" fill="#dfe5ee" stroke="none"/></g>`;
+  }
+  if (prop.type === "sign") {
+    const stickLen = prop.stickLen ?? h * 1.125;
+    const cx = x + w / 2;
+    const text = String(prop.text ?? "").slice(0, 24);
+    const fontSize = text ? Math.max(3, Math.min(h * 0.46, w / Math.max(1, text.length * 0.62))) : 0;
+    const label = text ? `<text x="${num(cx)}" y="${num(y + h * 0.53)}" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-weight="700" font-size="${num(fontSize)}" fill="#202124" stroke="none">${xml(text)}</text>` : "";
+    return `<g data-addon="sign" stroke="${xml(color)}" stroke-linecap="round" stroke-linejoin="round"><path d="${line({ x: cx, y: y + h }, { x: cx, y: y + h + stickLen })}" stroke="#8B5A2B" stroke-width="${num(Math.max(strokeWidth * 0.8, w * 0.08))}"/><rect x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" rx="${num(Math.min(h * 0.14, 2))}" fill="${xml(c)}" stroke-width="${num(strokeWidth * 0.5)}"/>${label}</g>`;
   }
   if (prop.type === "sand-pit") {
     const outline = prop.color ? color : "#9b7b35";
@@ -587,7 +596,7 @@ function addonDefaultSize(type) {
   return ({
     ball: { w: 10, h: 10 }, football: { w: 14, h: 14 }, basketball: { w: 14, h: 14 }, goal: { w: 46, h: 34 }, hoop: { w: 32, h: 38 },
     hurdle: { w: 34, h: 22 }, spear: { w: 48, h: 6 }, card: { w: 24, h: 16 }, cone: { w: 14, h: 18 }, target: { w: 24, h: 24 },
-    "sand-pit": { w: 82, h: 16 }, board: { w: 28, h: 5 }, "sand-puff": { w: 24, h: 16 }, phone: { w: 4, h: 7 }
+    "sand-pit": { w: 82, h: 16 }, board: { w: 28, h: 5 }, "sand-puff": { w: 24, h: 16 }, phone: { w: 4, h: 7 }, sign: { w: 26, h: 16 }
   })[type] ?? { w: 16, h: 16 };
 }
 
@@ -599,9 +608,11 @@ function layoutAddonRaw(addon, frameIndex, stage = REVIEW_STAGE) {
   const xLocal = (addon.x ?? 0) + (key.x ?? 0);
   const yLocal = (addon.y ?? 0) + (key.y ?? 0);
   return {
-    id: addon.id, type: addon.type, addon: true, color: addon.color, w: wLocal * k, h: hLocal * k,
+    id: addon.id, type: addon.type, addon: true, color: addon.color, text: addon.text, w: wLocal * k, h: hLocal * k,
     x: stage.rootX + xLocal * k,
     y: stage.groundY - (yLocal + hLocal) * k,
+    stickLen: addon.type === "sign" ? (addon.stickLen ?? 18) * k : undefined,
+    gripOffset: addon.type === "sign" ? (addon.gripOffset ?? 4) * k : undefined,
     rot: key.rot ?? 0,
     drawScale: key.scale ?? 1,
     enter: addon.enter,
@@ -628,8 +639,10 @@ function layoutAddon(addon, frameIndex, pointAt, addonDefs, stage = REVIEW_STAGE
   if (activeAttach && pointAt) {
     const pt = pointAt(frameIndex, activeAttach.to);
     p.x = pt.x - p.w / 2 + (activeAttach.dx ?? 0) * stage.scale;
-    p.y = pt.y - p.h / 2 - (activeAttach.dy ?? 0) * stage.scale;
-    if (pt.angle !== undefined) p.rot += pt.angle * 180 / Math.PI;
+    p.y = p.type === "sign"
+      ? pt.y - (p.h + (p.stickLen ?? 0) - (p.gripOffset ?? 0)) - (activeAttach.dy ?? 0) * stage.scale
+      : pt.y - p.h / 2 - (activeAttach.dy ?? 0) * stage.scale;
+    if (pt.angle !== undefined && p.type !== "sign") p.rot += pt.angle * 180 / Math.PI;
     p.front = true;
   }
   if (addon.flight && frameIndex >= (addon.flight.from ?? 0) && !opts.skipFlight) {

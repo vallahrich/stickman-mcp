@@ -119,7 +119,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `type-at-desk` | user-approved | W2 | batch 5: 9/10 approved (polish: still body) |
 | `open-laptop` | planned | W6 |  |
 | `video-call` | planned | W6 |  |
-| `phone-call` | draft | W6 | wave 12: phone add-on, fixing ear position |
+| `phone-call` | candidate | W6 | batch 12: review |
 | `plug-cable` | planned | W6 |  |
 | `rack-server` | planned | W6 | slide a server out of a rack |
 | `drag-window` | planned | W6 | grab and move a UI window on the slide |
@@ -171,7 +171,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 
 - user-approved: 62
 - rework: 2
-- candidate: 9
+- candidate: 10
 - planned: 16
-- draft: 11
+- draft: 10
 - **total: 100**
