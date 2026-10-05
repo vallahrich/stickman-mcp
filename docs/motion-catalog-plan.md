@@ -54,7 +54,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `sit-down` | user-approved | W1 | 8/10 |
 | `stand-up` | user-approved | W1 | 8/10 |
 | `open-door` | user-approved | W1 | batch 10 re-review: 9/10 approved (occlusion) |
-| `jog` | rework | W4 | 6/10: slower run, derive from approved run |
+| `jog` | candidate | W4 | batch 12: upright rework, review |
 | `walk-backwards` | user-approved | W4 | user 8+ |
 | `walk-turn` | user-approved | W4 | batch 11: 8/10 approved |
 | `turn-90` | user-approved | W4 | batch 5: 9/10 approved |
@@ -105,11 +105,11 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `idea` | user-approved | W2 | approved; bulb to be yellow |
 | `pull-banner` | user-approved | W2 | batch 10: all four directions approved (left/right = box pulls) 8/10 |
 | `swipe-next` | user-approved | W2 | batch 5: 9/10 approved |
-| `walk-on` | planned | W5 |  |
-| `walk-off` | planned | W5 |  |
+| `walk-on` | candidate | W5 | batch 12: review |
+| `walk-off` | candidate | W5 | batch 12: review |
 | `enter-door` | planned | W5 | appear through a door on the next slide |
 | `exit-door` | planned | W5 | leave the slide through a door |
-| `hold-sign` | planned | W5 |  |
+| `hold-sign` | draft | W5 | wave 12: authoring |
 | `inspect-magnifier` | planned | W5 |  |
 
 ### IT (9)
@@ -119,7 +119,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `type-at-desk` | user-approved | W2 | batch 5: 9/10 approved (polish: still body) |
 | `open-laptop` | planned | W6 |  |
 | `video-call` | planned | W6 |  |
-| `phone-call` | planned | W6 |  |
+| `phone-call` | draft | W6 | wave 12: phone add-on, fixing ear position |
 | `plug-cable` | planned | W6 |  |
 | `rack-server` | planned | W6 | slide a server out of a rack |
 | `drag-window` | planned | W6 | grab and move a UI window on the slide |
@@ -164,14 +164,14 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `climb-down` | draft | W10 |  |
 | `climb-ledge` | draft | W10 |  |
 | `hang-swing` | draft | W10 |  |
-| `crawl` | draft | W10 |  |
-| `fall-get-up` | draft | W10 |  |
+| `crawl` | draft | W10 | wave 12: authoring |
+| `fall-get-up` | candidate | W10 | batch 12: review |
 
 ## Totals
 
 - user-approved: 62
-- rework: 3
-- planned: 20
-- candidate: 4
-- draft: 11
+- rework: 2
+- candidate: 8
+- planned: 16
+- draft: 12
 - **total: 100**

@@ -92,6 +92,22 @@ describe("motion review renderer uses the shipping engine", () => {
     expect(during).toContain("#e8c872");
   });
 
+  it("renders attachable phone add-on with custom color", async () => {
+    const clip = keyed([{ frame: 0, pose: { ...stand, rHand: { x: 24, y: 96 } } }, { frame: 20, pose: { ...stand, rHand: { x: 24, y: 96 } } }]);
+    const spec = {
+      id: "phone-addon-test",
+      review: {
+        addons: [
+          { id: "phone", type: "phone", color: "#123456", attach: [{ to: "right-hand", from: 0, until: 20 }] }
+        ]
+      }
+    };
+    const svg = await renderStaticSvg({ clip, spec, propsCatalog: { props: [] }, frameIndex: 10 });
+    expect(svg).toContain('data-addon="phone"');
+    expect(svg).toContain('fill="#123456"');
+    expect(svg).toContain('fill="#dfe5ee"');
+  });
+
   it("computes add-on flight parabola endpoints and apex", () => {
     const start = { x: 10, y: 100 };
     const end = { x: 70, y: 100 };

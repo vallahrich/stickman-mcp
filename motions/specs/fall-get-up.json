@@ -1,53 +1,803 @@
 {
   "id": "fall-get-up",
   "label": "Fall Get Up",
-  "status": "draft",
+  "status": "candidate",
   "source": {
-    "dataset": "CMU",
-    "file": "113_08.bvh",
-    "subject": "113",
-    "trial": "08",
-    "range120": [
-      120,
-      1720
-    ],
-    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/113/113_08.bvh"
+    "dataset": "authored",
+    "file": "keypose",
+    "subject": "manual",
+    "trial": "fall-get-up"
   },
   "kind": "oneshot",
   "travel": "in-place",
   "view": "side",
   "expect": {
-    "pose": "ground-to-standing",
+    "pose": "walk-trip-forward-fall-recover-stand-shrug",
     "contacts": [
       "lFoot",
-      "rFoot"
+      "rFoot",
+      "lHand",
+      "rHand"
     ],
     "travel": "in-place",
     "facingChange": 0
   },
   "contacts": [
     "lFoot",
-    "rFoot"
+    "rFoot",
+    "lHand",
+    "rHand"
   ],
   "prop": null,
   "aim": null,
   "facingChange": 0,
   "mirrorable": true,
   "tags": [
-    "lay",
-    "down",
-    "and",
-    "get",
-    "up",
-    "no",
-    "clean",
-    "single",
-    "person",
+    "presentation",
+    "comedy",
+    "trip",
     "fall",
-    "down",
-    "plus"
+    "hands-and-knees",
+    "get-up",
+    "dust-off",
+    "shrug"
   ],
-  "notes": "No clean single-person fall-down-plus-get-up CMU clip found; closest is controlled lay-down/get-up with very low hip floor contact.",
-  "reason": "Strict run-calibrated jitter/rootY gate failed; source has floor contact transitions too abrupt for factory quality.",
-  "approvedBaseline": false
+  "notes": "Comedic side-view oops beat: a short approved-style walk-in-place step catches on the front foot, arms shoot forward to break the fall, the body settles on hands/chest/knees for a beat, then pushes through hands and feet using get-up/kneel-up recovery mechanics before a quick thigh dust-off and embarrassed shrug.",
+  "approvedBaseline": false,
+  "frames": 150,
+  "loop": false,
+  "markers": {
+    "walkStep": 10,
+    "tripCatch": 24,
+    "armsOut": 34,
+    "handPlant": 44,
+    "chestKnees": 62,
+    "floorBeat": 74,
+    "handsAndKnees": 86,
+    "squat": 101,
+    "stand": 119,
+    "dustOff": 130,
+    "shrug": 140,
+    "settle": 149
+  },
+  "poseKeys": [
+    {
+      "frame": 0,
+      "pose": {
+        "anchor": "both",
+        "lean": 2,
+        "neck": -1,
+        "bob": 0,
+        "rLeg": {
+          "hip": 5,
+          "knee": 13
+        },
+        "lLeg": {
+          "hip": -8,
+          "knee": 14
+        },
+        "rArm": {
+          "shoulder": -8,
+          "elbow": 45
+        },
+        "lArm": {
+          "shoulder": 8,
+          "elbow": 45
+        },
+        "rFoot": {
+          "x": 5,
+          "y": 0
+        },
+        "lFoot": {
+          "x": -7,
+          "y": 0
+        },
+        "dx": -24,
+        "facing": 1
+      },
+      "ease": "inOut"
+    },
+    {
+      "frame": 8,
+      "pose": {
+        "anchor": "r",
+        "lean": 4,
+        "neck": -2,
+        "bob": 1,
+        "rLeg": {
+          "hip": 10,
+          "knee": 16
+        },
+        "lLeg": {
+          "hip": 28,
+          "knee": 42,
+          "lift": 12
+        },
+        "rArm": {
+          "shoulder": 18,
+          "elbow": 50
+        },
+        "lArm": {
+          "shoulder": -20,
+          "elbow": 54
+        },
+        "rFoot": {
+          "x": 5,
+          "y": 0
+        },
+        "lFoot": {
+          "x": 8,
+          "y": 12
+        },
+        "dx": -15,
+        "facing": 1
+      },
+      "ease": "inOut"
+    },
+    {
+      "frame": 16,
+      "pose": {
+        "anchor": "l",
+        "lean": 3,
+        "neck": -1,
+        "bob": 0,
+        "rLeg": {
+          "hip": -18,
+          "knee": 34,
+          "lift": 12
+        },
+        "lLeg": {
+          "hip": -5,
+          "knee": 16
+        },
+        "rArm": {
+          "shoulder": -26,
+          "elbow": 54
+        },
+        "lArm": {
+          "shoulder": 22,
+          "elbow": 52
+        },
+        "rFoot": {
+          "x": -4,
+          "y": 12
+        },
+        "lFoot": {
+          "x": 18,
+          "y": 0
+        },
+        "dx": -6,
+        "facing": 0.96
+      },
+      "ease": "inOut"
+    },
+    {
+      "frame": 24,
+      "pose": {
+        "anchor": "l",
+        "lean": 18,
+        "neck": -12,
+        "bob": -3,
+        "rLeg": {
+          "hip": 4,
+          "knee": 40,
+          "lift": 10
+        },
+        "lLeg": {
+          "hip": -3,
+          "knee": 22
+        },
+        "rArm": {
+          "shoulder": 18,
+          "elbow": 72
+        },
+        "lArm": {
+          "shoulder": 26,
+          "elbow": 70
+        },
+        "rFoot": {
+          "x": 5,
+          "y": 10
+        },
+        "lFoot": {
+          "x": 24,
+          "y": 0
+        },
+        "dx": 0,
+        "facing": 0.96
+      },
+      "ease": "linear"
+    },
+    {
+      "frame": 34,
+      "pose": {
+        "anchor": "l",
+        "lean": 42,
+        "neck": -28,
+        "bob": -12,
+        "rLeg": {
+          "hip": 38,
+          "knee": 72,
+          "lift": 10
+        },
+        "lLeg": {
+          "hip": 12,
+          "knee": 46
+        },
+        "rArm": {
+          "shoulder": 66,
+          "elbow": 64
+        },
+        "lArm": {
+          "shoulder": 58,
+          "elbow": 66
+        },
+        "rFoot": {
+          "x": 10,
+          "y": 12
+        },
+        "lFoot": {
+          "x": 24,
+          "y": 0
+        },
+        "dx": 6,
+        "facing": 0.96
+      },
+      "ease": "inOut"
+    },
+    {
+      "frame": 44,
+      "pose": {
+        "anchor": null,
+        "lean": 64,
+        "neck": -42,
+        "bob": 0,
+        "dy": -22,
+        "rLeg": {
+          "hip": 74,
+          "knee": 96
+        },
+        "lLeg": {
+          "hip": 36,
+          "knee": 78
+        },
+        "rArm": {
+          "shoulder": 72,
+          "elbow": 36
+        },
+        "lArm": {
+          "shoulder": 66,
+          "elbow": 38
+        },
+        "rFoot": {
+          "x": 18,
+          "y": 6
+        },
+        "lFoot": {
+          "x": 24,
+          "y": 0
+        },
+        "dx": 10,
+        "facing": 0.96
+      },
+      "ease": "inOut"
+    },
+    {
+      "frame": 54,
+      "pose": {
+        "anchor": null,
+        "lean": 78,
+        "neck": -50,
+        "bob": 0,
+        "dy": -39,
+        "rLeg": {
+          "hip": 102,
+          "knee": 118
+        },
+        "lLeg": {
+          "hip": 70,
+          "knee": 104
+        },
+        "rArm": {
+          "shoulder": 82,
+          "elbow": 44
+        },
+        "lArm": {
+          "shoulder": 76,
+          "elbow": 46
+        },
+        "rFoot": {
+          "x": 24,
+          "y": 0
+        },
+        "lFoot": {
+          "x": 25,
+          "y": 0
+        },
+        "dx": 12,
+        "facing": 0.96
+      },
+      "ease": "out"
+    },
+    {
+      "frame": 64,
+      "pose": {
+        "anchor": null,
+        "lean": 82,
+        "neck": -56,
+        "bob": 0,
+        "dy": -45,
+        "rLeg": {
+          "hip": 126,
+          "knee": 124
+        },
+        "lLeg": {
+          "hip": 98,
+          "knee": 118
+        },
+        "rArm": {
+          "shoulder": 96,
+          "elbow": 34
+        },
+        "lArm": {
+          "shoulder": 90,
+          "elbow": 36
+        },
+        "rFoot": {
+          "x": 24,
+          "y": 0
+        },
+        "lFoot": {
+          "x": 25,
+          "y": 0
+        },
+        "dx": 10,
+        "facing": 0.96
+      },
+      "ease": "hold"
+    },
+    {
+      "frame": 76,
+      "pose": {
+        "anchor": null,
+        "lean": 82,
+        "neck": -56,
+        "bob": 0,
+        "dy": -45,
+        "rLeg": {
+          "hip": 126,
+          "knee": 124
+        },
+        "lLeg": {
+          "hip": 98,
+          "knee": 118
+        },
+        "rArm": {
+          "shoulder": 96,
+          "elbow": 34
+        },
+        "lArm": {
+          "shoulder": 90,
+          "elbow": 36
+        },
+        "rFoot": {
+          "x": 24,
+          "y": 0
+        },
+        "lFoot": {
+          "x": 25,
+          "y": 0
+        },
+        "dx": 10,
+        "facing": 0.96
+      },
+      "ease": "inOut"
+    },
+    {
+      "frame": 88,
+      "pose": {
+        "anchor": null,
+        "lean": 58,
+        "neck": -44,
+        "bob": 0,
+        "dy": -34,
+        "rLeg": {
+          "hip": 108,
+          "knee": 126
+        },
+        "lLeg": {
+          "hip": 90,
+          "knee": 120
+        },
+        "rArm": {
+          "shoulder": 62,
+          "elbow": 56
+        },
+        "lArm": {
+          "shoulder": 54,
+          "elbow": 58
+        },
+        "rFoot": {
+          "x": 32,
+          "y": 0
+        },
+        "lFoot": {
+          "x": 30,
+          "y": 0
+        },
+        "dx": 7,
+        "facing": 0.96
+      },
+      "ease": "inOut"
+    },
+    {
+      "frame": 96,
+      "pose": {
+        "anchor": "both",
+        "lean": 48,
+        "neck": -38,
+        "bob": -25,
+        "rLeg": {
+          "hip": 96,
+          "knee": 136
+        },
+        "lLeg": {
+          "hip": 84,
+          "knee": 128
+        },
+        "rArm": {
+          "shoulder": 28,
+          "elbow": 72
+        },
+        "lArm": {
+          "shoulder": 18,
+          "elbow": 72
+        },
+        "rFoot": {
+          "x": 32,
+          "y": 0
+        },
+        "lFoot": {
+          "x": 28,
+          "y": 0
+        },
+        "dx": 4,
+        "facing": 0.96
+      },
+      "ease": "out"
+    },
+    {
+      "frame": 104,
+      "pose": {
+        "anchor": "both",
+        "lean": 38,
+        "neck": -29,
+        "bob": -19,
+        "rLeg": {
+          "hip": 72,
+          "knee": 104
+        },
+        "lLeg": {
+          "hip": 58,
+          "knee": 94
+        },
+        "rArm": {
+          "shoulder": -18,
+          "elbow": 88
+        },
+        "lArm": {
+          "shoulder": 4,
+          "elbow": 84
+        },
+        "rFoot": {
+          "x": 31,
+          "y": 0
+        },
+        "lFoot": {
+          "x": 25,
+          "y": 0
+        },
+        "dx": 8,
+        "facing": 0.96
+      },
+      "ease": "inOut"
+    },
+    {
+      "frame": 112,
+      "pose": {
+        "anchor": "both",
+        "lean": 18,
+        "neck": -12,
+        "bob": -8,
+        "rLeg": {
+          "hip": 38,
+          "knee": 68
+        },
+        "lLeg": {
+          "hip": 26,
+          "knee": 58
+        },
+        "rArm": {
+          "shoulder": -22,
+          "elbow": 70
+        },
+        "lArm": {
+          "shoulder": -8,
+          "elbow": 68
+        },
+        "rFoot": {
+          "x": 30,
+          "y": 0
+        },
+        "lFoot": {
+          "x": 21,
+          "y": 0
+        },
+        "dx": 14,
+        "facing": 0.96
+      },
+      "ease": "out"
+    },
+    {
+      "frame": 120,
+      "pose": {
+        "anchor": "both",
+        "lean": -2,
+        "neck": 3,
+        "bob": 1,
+        "rLeg": {
+          "hip": 2,
+          "knee": 10
+        },
+        "lLeg": {
+          "hip": -12,
+          "knee": 13
+        },
+        "rArm": {
+          "shoulder": -18,
+          "elbow": 50
+        },
+        "lArm": {
+          "shoulder": 0,
+          "elbow": 50
+        },
+        "rFoot": {
+          "x": 29,
+          "y": 0
+        },
+        "lFoot": {
+          "x": 17,
+          "y": 0
+        },
+        "dx": 20,
+        "facing": 1
+      },
+      "ease": "inOut"
+    },
+    {
+      "frame": 128,
+      "pose": {
+        "anchor": "both",
+        "lean": 5,
+        "neck": -4,
+        "bob": -2,
+        "rLeg": {
+          "hip": 8,
+          "knee": 18
+        },
+        "lLeg": {
+          "hip": -6,
+          "knee": 16
+        },
+        "rArm": {
+          "shoulder": -54,
+          "elbow": 90
+        },
+        "lArm": {
+          "shoulder": -2,
+          "elbow": 52
+        },
+        "rFoot": {
+          "x": 29,
+          "y": 0
+        },
+        "lFoot": {
+          "x": 17,
+          "y": 0
+        },
+        "dx": 21,
+        "facing": 1
+      },
+      "ease": "out"
+    },
+    {
+      "frame": 134,
+      "pose": {
+        "anchor": "both",
+        "lean": 2,
+        "neck": 6,
+        "bob": 0,
+        "rLeg": {
+          "hip": 6,
+          "knee": 15
+        },
+        "lLeg": {
+          "hip": -8,
+          "knee": 15
+        },
+        "rArm": {
+          "shoulder": -8,
+          "elbow": 62
+        },
+        "lArm": {
+          "shoulder": -22,
+          "elbow": 70
+        },
+        "rFoot": {
+          "x": 29,
+          "y": 0
+        },
+        "lFoot": {
+          "x": 17,
+          "y": 0
+        },
+        "dx": 21,
+        "facing": 1
+      },
+      "ease": "inOut"
+    },
+    {
+      "frame": 141,
+      "pose": {
+        "anchor": "both",
+        "lean": -3,
+        "neck": -10,
+        "bob": 4,
+        "rLeg": {
+          "hip": 4,
+          "knee": 12
+        },
+        "lLeg": {
+          "hip": -4,
+          "knee": 12
+        },
+        "rArm": {
+          "shoulder": 10,
+          "elbow": 72
+        },
+        "lArm": {
+          "shoulder": 10,
+          "elbow": 72
+        },
+        "rFoot": {
+          "x": 29,
+          "y": 0
+        },
+        "lFoot": {
+          "x": 17,
+          "y": 0
+        },
+        "dx": 21,
+        "facing": 1
+      },
+      "ease": "hold"
+    },
+    {
+      "frame": 145,
+      "pose": {
+        "anchor": "both",
+        "lean": -3,
+        "neck": -10,
+        "bob": 4,
+        "rLeg": {
+          "hip": 4,
+          "knee": 12
+        },
+        "lLeg": {
+          "hip": -4,
+          "knee": 12
+        },
+        "rArm": {
+          "shoulder": 10,
+          "elbow": 72
+        },
+        "lArm": {
+          "shoulder": 10,
+          "elbow": 72
+        },
+        "rFoot": {
+          "x": 29,
+          "y": 0
+        },
+        "lFoot": {
+          "x": 17,
+          "y": 0
+        },
+        "dx": 21,
+        "facing": 1
+      },
+      "ease": "in"
+    },
+    {
+      "frame": 149,
+      "pose": {
+        "anchor": "both",
+        "lean": 2,
+        "neck": 0,
+        "bob": 0,
+        "rLeg": {
+          "hip": 5,
+          "knee": 13
+        },
+        "lLeg": {
+          "hip": -8,
+          "knee": 14
+        },
+        "rArm": {
+          "shoulder": -4,
+          "elbow": 52
+        },
+        "lArm": {
+          "shoulder": 6,
+          "elbow": 52
+        },
+        "rFoot": {
+          "x": 29,
+          "y": 0
+        },
+        "lFoot": {
+          "x": 17,
+          "y": 0
+        },
+        "dx": 21,
+        "facing": 1
+      }
+    }
+  ],
+  "gates": {
+    "maxJointStep": 14
+  },
+  "review": {
+    "prop": null,
+    "addons": [
+      {
+        "id": "oops-dust",
+        "type": "sand-puff",
+        "x": 54,
+        "y": 0,
+        "w": 32,
+        "h": 16,
+        "color": "#d7c6a0",
+        "enter": {
+          "frame": 54,
+          "style": "pop",
+          "dur": 5
+        },
+        "exit": {
+          "frame": 86,
+          "style": "fade",
+          "dur": 12
+        }
+      },
+      {
+        "id": "dust-off-puff",
+        "type": "sand-puff",
+        "x": 31,
+        "y": 24,
+        "w": 18,
+        "h": 12,
+        "color": "#d7c6a0",
+        "enter": {
+          "frame": 126,
+          "style": "pop",
+          "dur": 3
+        },
+        "exit": {
+          "frame": 138,
+          "style": "fade",
+          "dur": 8
+        }
+      }
+    ]
+  }
 }

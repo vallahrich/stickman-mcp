@@ -34,7 +34,7 @@ function line(a, b) {
 }
 
 export const REVIEW_STAGE = { rootX: 160, groundY: 150, scale: 0.75 };
-const ADDON_TYPES = new Set(["ball", "football", "basketball", "goal", "hoop", "hurdle", "spear", "card", "cone", "target", "sand-pit", "board", "sand-puff"]);
+const ADDON_TYPES = new Set(["ball", "football", "basketball", "goal", "hoop", "hurdle", "spear", "card", "cone", "target", "sand-pit", "board", "sand-puff", "phone"]);
 
 const clamp01 = (value) => Math.max(0, Math.min(1, value));
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -418,6 +418,10 @@ function addonMarkup(prop, strokeWidth, color) {
     const cx = x + w / 2, cy = y + h / 2, r = Math.min(w, h) / 2;
     return `<g data-addon="target" ${attrs}><circle cx="${num(cx)}" cy="${num(cy)}" r="${num(r)}" fill="${xml(c)}"/><circle cx="${num(cx)}" cy="${num(cy)}" r="${num(r * 0.66)}" fill="#fff"/><circle cx="${num(cx)}" cy="${num(cy)}" r="${num(r * 0.34)}" fill="${xml(c)}"/></g>`;
   }
+  if (prop.type === "phone") {
+    const rx = Math.min(w * 0.22, h * 0.13);
+    return `<g data-addon="phone" stroke="${xml(color)}" stroke-width="${num(strokeWidth * 0.45)}" stroke-linecap="round" stroke-linejoin="round"><rect x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" rx="${num(rx)}" fill="${xml(c)}"/><rect x="${num(x + w * 0.18)}" y="${num(y + h * 0.14)}" width="${num(w * 0.64)}" height="${num(h * 0.72)}" rx="${num(rx * 0.45)}" fill="#dfe5ee" stroke="none"/><path d="${line({ x: x + w * 0.18, y: y + h * 0.12 }, { x: x + w * 0.82, y: y + h * 0.12 })}" stroke="#f8fafc" stroke-width="${num(strokeWidth * 0.3)}"/><circle cx="${num(x + w * 0.5)}" cy="${num(y + h * 0.93)}" r="${num(Math.max(0.45, w * 0.08))}" fill="#dfe5ee" stroke="none"/></g>`;
+  }
   if (prop.type === "sand-pit") {
     const outline = prop.color ? color : "#9b7b35";
     const grains = [
@@ -583,7 +587,7 @@ function addonDefaultSize(type) {
   return ({
     ball: { w: 10, h: 10 }, football: { w: 14, h: 14 }, basketball: { w: 14, h: 14 }, goal: { w: 46, h: 34 }, hoop: { w: 32, h: 38 },
     hurdle: { w: 34, h: 22 }, spear: { w: 48, h: 6 }, card: { w: 24, h: 16 }, cone: { w: 14, h: 18 }, target: { w: 24, h: 24 },
-    "sand-pit": { w: 82, h: 16 }, board: { w: 28, h: 5 }, "sand-puff": { w: 24, h: 16 }
+    "sand-pit": { w: 82, h: 16 }, board: { w: 28, h: 5 }, "sand-puff": { w: 24, h: 16 }, phone: { w: 4, h: 7 }
   })[type] ?? { w: 16, h: 16 };
 }
 
