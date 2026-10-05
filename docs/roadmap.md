@@ -23,6 +23,34 @@ instructions in the README.
 family, their status and the wave each one is built in. Motions ship only at a
 user rating of 8/10 or higher; chaining across slides comes after the catalog.
 
+**Add-ons: props that appear, get used and disappear.** Many motions only read
+clearly with an object, for example the light bulb for `idea`, the desk and
+monitor for `type-at-desk`, the door, a watch, glasses or boxing gloves. Sport
+and action motions especially need them. Add-ons follow one lifecycle, so the
+stickman can stand alone on a slide, act, and be alone again:
+
+1. **Appear:** the add-on pops in from nothing (scale 0 → 110% → 100% over
+   about 8 frames, with a small puff), fades in, or slides in. The stickman is
+   already there.
+2. **Use:** the motion interacts with it. A held add-on is attached to a hand
+   or foot until a release frame. A thrown or kicked add-on then follows a
+   ballistic arc to a target add-on (goal, hoop or target), which reacts (net
+   bulge, swish).
+3. **Celebrate (optional):** chain an approved reaction such as `cheer` or
+   `fist-pump`.
+4. **Disappear:** add-ons fade and shrink, or move away (a door tips forward
+   slightly and fades), leaving the stickman alone.
+
+The stickman stays black. Add-ons get flat, readable colours (orange
+basketball, black-and-white football, red-and-white hurdle, wooden door, yellow
+bulb), with a theme override for corporate colours. First sport and action
+set: `hurdle` (a hurdle appears; run, clear it, land), `kick-ball` (football
+and goal; kick into the net, then celebrate), `throw-ball`, `throw-spear`,
+`basketball-shot` (ball into a hoop) and `throw-card` (a presentation card
+thrown onto the slide). In the MCP, an action names its add-ons, for example
+`{do:"kick", prop:"football", target:"goal"}`, and the runtime handles the
+appear, use and disappear steps.
+
 **Scripted motion milestone: provisionally accepted V7.**
 The [scored development cycle](motion-quality-plan.md) replaced the rejected
 approximately 3/10 coordinate-motion baseline with fixed-length FK/IK,
