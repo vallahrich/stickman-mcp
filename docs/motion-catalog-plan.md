@@ -56,7 +56,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `open-door` | user-approved | W1 | batch 10 re-review: 9/10 approved (occlusion) |
 | `jog` | rework | W4 | 6/10: slower run, derive from approved run |
 | `walk-backwards` | user-approved | W4 | user 8+ |
-| `walk-turn` | candidate | W4 | batch 11: ready for review |
+| `walk-turn` | user-approved | W4 | batch 11: 8/10 approved |
 | `turn-90` | user-approved | W4 | batch 5: 9/10 approved |
 | `sidestep` | user-approved | W4 | user 8+ |
 | `sneak` | user-approved | W4 | batch 4: approved |
@@ -150,7 +150,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `jump` | user-approved | done |  |
 | `hop` | user-approved | W8 | batch 6: 9/10 approved |
 | `kick` | candidate | W8 | kick-ball reworked shot leg/no back-lean, batch 11 |
-| `long-jump` | candidate | W8 | batch 11: ready for review |
+| `long-jump` | user-approved | W8 | batch 11: 8/10 approved |
 | `hurdle` | user-approved | W8 | batch 10: 8/10 approved |
 | `vault` | draft | W8 | wave 11: authoring in progress |
 | `skip` | user-approved | W8 | user 8+ |
@@ -169,9 +169,9 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 
 ## Totals
 
-- user-approved: 60
+- user-approved: 62
 - rework: 3
-- candidate: 6
 - planned: 20
+- candidate: 4
 - draft: 11
 - **total: 100**
