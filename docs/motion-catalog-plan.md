@@ -152,7 +152,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `kick` | candidate | W8 | kick-ball reworked shot leg/no back-lean, batch 11 |
 | `long-jump` | user-approved | W8 | batch 11: 8/10 approved |
 | `hurdle` | user-approved | W8 | batch 10: 8/10 approved |
-| `vault` | draft | W8 | wave 11: authoring in progress |
+| `vault` | candidate | W8 | batch 12: review |
 | `skip` | user-approved | W8 | user 8+ |
 | `punch` | user-approved | W8 | batch 9: 9/10 approved (gloves) |
 | `dodge` | user-approved | W8 | user 8+ |
@@ -171,7 +171,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 
 - user-approved: 62
 - rework: 2
-- candidate: 8
+- candidate: 9
 - planned: 16
-- draft: 12
+- draft: 11
 - **total: 100**
