@@ -152,8 +152,8 @@
           "y": 0
         },
         "lFoot": {
-          "x": 8,
-          "y": 30
+          "x": 32,
+          "y": 34
         }
       },
       "ease": "linear"
@@ -189,6 +189,88 @@
         "rFoot": {
           "x": 22,
           "y": 0
+        },
+        "lFoot": {
+          "x": 34,
+          "y": 32
+        }
+      },
+      "ease": "linear"
+    },
+    {
+      "frame": 11,
+      "pose": {
+        "anchor": "r",
+        "lean": 6,
+        "neck": -2,
+        "bob": 6,
+        "dy": 8,
+        "dx": 10,
+        "facing": 0.96,
+        "rLeg": {
+          "hip": 0,
+          "knee": 22,
+          "lift": 6
+        },
+        "lLeg": {
+          "hip": 38,
+          "knee": 82,
+          "lift": 25
+        },
+        "rArm": {
+          "shoulder": 27,
+          "elbow": 84
+        },
+        "lArm": {
+          "shoulder": -28,
+          "elbow": 84
+        },
+        "rFoot": {
+          "x": 22,
+          "y": 0
+        },
+        "lFoot": {
+          "x": 34,
+          "y": 28
+        }
+      },
+      "ease": "linear"
+    },
+    {
+      "frame": 12,
+      "pose": {
+        "anchor": "r",
+        "lean": 6,
+        "neck": -2,
+        "bob": 7,
+        "dy": 9,
+        "dx": 9,
+        "facing": 0.96,
+        "rLeg": {
+          "hip": -2,
+          "knee": 26,
+          "lift": 8
+        },
+        "lLeg": {
+          "hip": 37,
+          "knee": 70,
+          "lift": 16
+        },
+        "rArm": {
+          "shoulder": 30,
+          "elbow": 85
+        },
+        "lArm": {
+          "shoulder": -30,
+          "elbow": 85
+        },
+        "rFoot": {
+          "x": 22,
+          "y": 0
+        },
+        "lFoot": {
+          "x": 32,
+          "y": 20
         }
       },
       "ease": "linear"
@@ -222,8 +304,12 @@
           "elbow": 86
         },
         "rFoot": {
-          "x": -12,
-          "y": 12
+          "x": 16,
+          "y": 8
+        },
+        "lFoot": {
+          "x": 28,
+          "y": 10
         }
       },
       "ease": "linear"
@@ -331,8 +417,8 @@
           "y": 0
         },
         "rFoot": {
-          "x": 8,
-          "y": 30
+          "x": 32,
+          "y": 34
         }
       },
       "ease": "linear"
@@ -368,6 +454,88 @@
         "lFoot": {
           "x": 22,
           "y": 0
+        },
+        "rFoot": {
+          "x": 34,
+          "y": 32
+        }
+      },
+      "ease": "linear"
+    },
+    {
+      "frame": 26,
+      "pose": {
+        "anchor": "l",
+        "lean": 6,
+        "neck": -2,
+        "bob": 6,
+        "dy": 8,
+        "dx": 10,
+        "facing": 0.96,
+        "rLeg": {
+          "hip": 38,
+          "knee": 82,
+          "lift": 25
+        },
+        "lLeg": {
+          "hip": 0,
+          "knee": 22,
+          "lift": 6
+        },
+        "rArm": {
+          "shoulder": -28,
+          "elbow": 84
+        },
+        "lArm": {
+          "shoulder": 27,
+          "elbow": 84
+        },
+        "lFoot": {
+          "x": 22,
+          "y": 0
+        },
+        "rFoot": {
+          "x": 34,
+          "y": 28
+        }
+      },
+      "ease": "linear"
+    },
+    {
+      "frame": 27,
+      "pose": {
+        "anchor": "l",
+        "lean": 6,
+        "neck": -2,
+        "bob": 7,
+        "dy": 9,
+        "dx": 9,
+        "facing": 0.96,
+        "rLeg": {
+          "hip": 37,
+          "knee": 70,
+          "lift": 16
+        },
+        "lLeg": {
+          "hip": -2,
+          "knee": 26,
+          "lift": 8
+        },
+        "rArm": {
+          "shoulder": -30,
+          "elbow": 85
+        },
+        "lArm": {
+          "shoulder": 30,
+          "elbow": 85
+        },
+        "lFoot": {
+          "x": 22,
+          "y": 0
+        },
+        "rFoot": {
+          "x": 32,
+          "y": 20
         }
       },
       "ease": "linear"
@@ -401,8 +569,12 @@
           "elbow": 86
         },
         "lFoot": {
-          "x": -12,
-          "y": 12
+          "x": 16,
+          "y": 8
+        },
+        "rFoot": {
+          "x": 28,
+          "y": 10
         }
       },
       "ease": "linear"
