@@ -53,8 +53,8 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `crouch` | user-approved | W1 | 8/10 |
 | `sit-down` | user-approved | W1 | 8/10 |
 | `stand-up` | user-approved | W1 | 8/10 |
-| `open-door` | rework | W1 | batch 10: 7, hide by occlusion not transparency |
-| `jog` | rework | W4 | batch 9: 7, swing leg crosses behind |
+| `open-door` | user-approved | W1 | batch 10 re-review: 9/10 approved (occlusion) |
+| `jog` | candidate | W4 | reworked (knee forward); awaiting rating |
 | `walk-backwards` | user-approved | W4 | user 8+ |
 | `walk-turn` | draft | W4 |  |
 | `turn-90` | user-approved | W4 | batch 5: 9/10 approved |
@@ -136,7 +136,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `pick-up` | draft | W7 |  |
 | `put-down` | draft | W7 |  |
 | `lift-carry` | draft | W7 |  |
-| `throw` | rework | W7 | batch 9: basketball-shot 9 approved; throw-ball 7 |
+| `throw` | candidate | W7 | basketball-shot 9 approved; throw-ball reworked, awaiting rating |
 | `catch` | planned | W7 |  |
 | `hand-over` | planned | W7 |  |
 | `drag-object` | planned | W7 |  |
@@ -149,7 +149,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | --- | --- | --- | --- |
 | `jump` | user-approved | done |  |
 | `hop` | user-approved | W8 | batch 6: 9/10 approved |
-| `kick` | rework | W8 | batch 9: kick-ball 7, ball contact/flight |
+| `kick` | candidate | W8 | kick-ball reworked (ball rests, longer arc); awaiting rating |
 | `long-jump` | draft | W8 |  |
 | `hurdle` | user-approved | W8 | batch 10: 8/10 approved |
 | `vault` | draft | W8 |  |
@@ -169,9 +169,9 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 
 ## Totals
 
-- user-approved: 57
-- rework: 5
+- user-approved: 58
+- rework: 1
+- candidate: 5
 - draft: 16
 - planned: 20
-- candidate: 2
 - **total: 100**
