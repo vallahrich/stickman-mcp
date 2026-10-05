@@ -61,10 +61,10 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `sidestep` | candidate | W4 | batch 5: awaiting rating |
 | `sneak` | user-approved | W4 | batch 4: approved |
 | `stairs-up` | candidate | W4 | batch 5: awaiting rating |
-| `stairs-down` | draft | W4 |  |
+| `stairs-down` | candidate | W4 | batch 6: awaiting rating |
 | `seated-idle` | planned | W4 |  |
-| `kneel-down` | planned | W9 |  |
-| `kneel-up` | planned | W9 |  |
+| `kneel-down` | candidate | W9 | batch 6: awaiting rating |
+| `kneel-up` | candidate | W9 | batch 6: awaiting rating |
 | `sit-floor` | planned | W9 |  |
 | `lie-down` | planned | W9 |  |
 | `get-up` | planned | W9 |  |
@@ -86,10 +86,10 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `think` | user-approved | W3 | 8/10 |
 | `look-around` | candidate | W3 | batch 5: awaiting rating |
 | `cheer` | candidate | W2 | batch 5: awaiting rating |
-| `fist-pump` | planned | W9 |  |
-| `scratch-head` | planned | W9 |  |
-| `arms-crossed` | planned | W9 |  |
-| `facepalm` | planned | W9 |  |
+| `fist-pump` | candidate | W9 | batch 6: awaiting rating |
+| `scratch-head` | candidate | W9 | batch 6: awaiting rating |
+| `arms-crossed` | candidate | W9 | batch 6: awaiting rating |
+| `facepalm` | candidate | W9 | batch 6: awaiting rating |
 | `surprised` | planned | W9 |  |
 | `sad-slump` | planned | W9 |  |
 
@@ -148,7 +148,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | Motion | Status | Wave | Note |
 | --- | --- | --- | --- |
 | `jump` | user-approved | done |  |
-| `hop` | draft | W8 |  |
+| `hop` | candidate | W8 | batch 6: awaiting rating |
 | `kick` | candidate | W8 |  |
 | `long-jump` | draft | W8 |  |
 | `hurdle` | draft | W8 |  |
@@ -171,7 +171,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 
 - user-approved: 25
 - rework: 1
-- candidate: 20
-- draft: 20
-- planned: 34
+- candidate: 28
+- draft: 18
+- planned: 28
 - **total: 100**
