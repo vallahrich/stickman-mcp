@@ -104,6 +104,19 @@ Per-motion builds write only to that motion's output directory, so separate agen
 - `axis`: optional projection-axis override when `auto` chooses poorly.
 - `trim`: frame range within the current candidate clip after projection/retarget.
 
+## Authored key-pose arm spread
+
+Authored `poseKeys` support optional per-arm frontal-plane abduction:
+
+```json
+"rArm": { "shoulder": 35, "elbow": 55, "spread": 35, "elbowSpread": 20 }
+```
+
+- `spread` is the upper-arm angle out sideways from the body, in degrees.
+- `elbowSpread` adds extra sideways angle to the forearm.
+- Both values interpolate like `shoulder` and `elbow`.
+- The spread is fully visible in front view (`facing: 0`), fades in three-quarter views, and vanishes in pure side view. Omit both fields to preserve the legacy sagittal-plane arm projection exactly.
+
 ## Per-motion hooks
 
 Optional hooks live at `scripts/motions/hooks/<id>.mjs` and may export:
@@ -139,3 +152,31 @@ If a spec declares `prop`, the standard review page draws the matching entry fro
 ```
 
 When omitted, the page uses the prop's default size and a deterministic default position.
+
+Door props render as a static doorway frame plus a hinged leaf. Add `review.prop.hinge:
+"left"|"right"` to choose the hinge edge (default is the far edge from the approaching
+figure). Door `propMotion` keys may also include `open` (0 = closed, 1 ≈ 90° open);
+`open` interpolates between keys like `x`/`y` while existing sliding `x`/`y` behavior
+continues to work for all props. For through-door review shots, door keys may include
+`fade` (1 visible, 0 hidden) to fade the stick figure as it enters the doorway.
+
+Hand-owned props can use `review.prop.attach`. In addition to `hand:"r"|"l"|"head"`,
+`hand:"both"` centers the prop between both hands; this is intended for small props
+such as `binoculars`, drawn as two short barrels and a bridge.
+`palm` is another hand-owned prop for stop/wait poses: it draws a short open-hand bar
+at the wrist, perpendicular to the forearm, with small finger ticks. Use
+`hiddenBefore`/`hiddenAfter` with `from`/`to` to limit it to the hold beats.
+`thumb` is a compact thumbs-up hand prop: a small fist circle at the wrist with a
+short thumb stroke perpendicular to the forearm, intended for `attach.hand:"r"` or
+`"l"` on thumbs-up holds.
+
+Board props support `propMotion` key `ink` (0..1), revealing a handwritten scribble,
+underline, and checkmark over time. Author the writing hand targets at the current
+ink tip so the visible stroke and hand stay connected.
+
+Desk props support optional `review.prop.monitorW` and `review.prop.monitorH`
+values (in authored motion units) to override the monitor screen size while leaving
+the tabletop, chair, keyboard, and default monitor proportions unchanged when omitted.
+
+Bulb props support `propMotion` key `scale`, useful for an idea pop
+(`0 -> 1.1 -> 1`). The bulb is drawn as glass, screw base, filament, and glow rays.

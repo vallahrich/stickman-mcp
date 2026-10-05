@@ -30,7 +30,7 @@
     "desk",
     "keyboard"
   ],
-  "notes": "Seated at a desk with a PC; typing loop. Slide hook: key markers drive a typewriter text reveal.",
+  "notes": "Seated at a desk with a larger monitor; typing loop. Slide hook: key markers drive a typewriter text reveal.",
   "approvedBaseline": false,
   "frames": 48,
   "loop": true,
@@ -742,7 +742,9 @@
       "x": -4,
       "y": 0,
       "w": 110,
-      "h": 92
+      "h": 92,
+      "monitorW": 92,
+      "monitorH": 63
     },
     "extraProps": [
       {

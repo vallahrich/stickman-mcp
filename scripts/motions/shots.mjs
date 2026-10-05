@@ -41,6 +41,7 @@ $png.Dispose()
 const frames = frameList.split(",").map((item) => Number(item.trim())).filter(Number.isFinite)
   .map((frame) => Math.max(0, Math.min(clip.frames.length - 1, Math.round(frame))));
 const rendered = [];
+const jpgPaths = [];
 
 for (const safeFrame of frames) {
   const svg = await renderStaticSvg({ clip, spec, propsCatalog, frameIndex: safeFrame, onion: false, width: 1000, height: 700 });
@@ -51,23 +52,41 @@ for (const safeFrame of frames) {
   await writeFile(pngPath, png);
   convertPngToJpeg(pngPath, jpgPath);
   await unlink(pngPath);
+  jpgPaths.push(jpgPath);
   console.log(jpgPath);
 }
 
-if (strip && rendered.length) {
-  const panelWidth = 1000;
-  const panelHeight = 700;
-  const nested = rendered.map(({ frame, svg }, index) => {
-    const inner = svg.replace("<svg ", `<svg x="${index * panelWidth}" y="0" `);
-    return `<g><title>frame ${frame}</title>${inner}</g>`;
-  }).join("");
-  const stripSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${panelWidth * rendered.length}" height="${panelHeight}" viewBox="0 0 ${panelWidth * rendered.length} ${panelHeight}">${nested}</svg>`;
-  const png = new Resvg(stripSvg, { fitTo: { mode: "width", value: panelWidth * rendered.length } }).render().asPng();
+if (strip && jpgPaths.length) {
   const names = rendered.map(({ frame }) => frame).join("-");
-  const pngPath = path.join(shotsDir, `strip-${names}.png`);
   const jpgPath = path.join(shotsDir, `strip-${names}.jpg`);
-  await writeFile(pngPath, png);
-  convertPngToJpeg(pngPath, jpgPath);
-  await unlink(pngPath);
+  const quotedInputs = jpgPaths.map((item) => `'${item.replaceAll("'", "''")}'`).join(",");
+  const script = `
+Add-Type -AssemblyName System.Drawing
+$files = @(${quotedInputs})
+$images = @($files | ForEach-Object { [System.Drawing.Image]::FromFile($_) })
+try {
+  $width = ($images | Measure-Object -Property Width -Sum).Sum
+  $height = ($images | Measure-Object -Property Height -Maximum).Maximum
+  $bmp = New-Object System.Drawing.Bitmap([int]$width, [int]$height)
+  $gfx = [System.Drawing.Graphics]::FromImage($bmp)
+  $gfx.Clear([System.Drawing.Color]::White)
+  $x = 0
+  foreach ($img in $images) {
+    if ($img.Width -gt 0 -and $img.Height -gt 0) {
+      $gfx.DrawImage($img, $x, 0, $img.Width, $img.Height)
+      $x += $img.Width
+    }
+  }
+  $codec = [System.Drawing.Imaging.ImageCodecInfo]::GetImageEncoders() | Where-Object { $_.MimeType -eq 'image/jpeg' }
+  $params = New-Object System.Drawing.Imaging.EncoderParameters(1)
+  $params.Param[0] = New-Object System.Drawing.Imaging.EncoderParameter([System.Drawing.Imaging.Encoder]::Quality, 72L)
+  $bmp.Save('${jpgPath.replaceAll("'", "''")}', $codec, $params)
+  $gfx.Dispose()
+  $bmp.Dispose()
+} finally {
+  foreach ($img in $images) { $img.Dispose() }
+}
+`;
+  execFileSync("powershell", ["-NoProfile", "-Command", script], { stdio: "pipe" });
   console.log(jpgPath);
 }

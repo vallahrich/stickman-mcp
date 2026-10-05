@@ -202,11 +202,11 @@
           "lift": 2
         },
         "rArm": {
-          "shoulder": 72,
-          "elbow": 58
+          "shoulder": 66,
+          "elbow": 64
         },
         "lArm": {
-          "shoulder": 32,
+          "shoulder": 28,
           "elbow": 84
         },
         "rFoot": {
@@ -241,12 +241,12 @@
           "lift": 2
         },
         "rArm": {
-          "shoulder": 98,
-          "elbow": 30
+          "shoulder": 86,
+          "elbow": 52
         },
         "lArm": {
-          "shoulder": -4,
-          "elbow": 34
+          "shoulder": -10,
+          "elbow": 42
         },
         "rFoot": {
           "x": 5,
@@ -280,12 +280,12 @@
           "lift": 2
         },
         "rArm": {
-          "shoulder": 116,
-          "elbow": 14
+          "shoulder": 88,
+          "elbow": 58
         },
         "lArm": {
-          "shoulder": -58,
-          "elbow": 15
+          "shoulder": -66,
+          "elbow": 26
         },
         "rFoot": {
           "x": 5,
@@ -319,12 +319,12 @@
           "lift": 2
         },
         "rArm": {
-          "shoulder": 126,
-          "elbow": 7
+          "shoulder": 86,
+          "elbow": 60
         },
         "lArm": {
-          "shoulder": -116,
-          "elbow": 8
+          "shoulder": -90,
+          "elbow": 14
         },
         "rFoot": {
           "x": 5,
@@ -358,12 +358,12 @@
           "lift": 2
         },
         "rArm": {
-          "shoulder": 104,
-          "elbow": 12
+          "shoulder": 82,
+          "elbow": 54
         },
         "lArm": {
-          "shoulder": -90,
-          "elbow": 14
+          "shoulder": -78,
+          "elbow": 22
         },
         "rFoot": {
           "x": 5,
@@ -397,12 +397,12 @@
           "lift": 2
         },
         "rArm": {
-          "shoulder": 88,
-          "elbow": 18
+          "shoulder": 70,
+          "elbow": 48
         },
         "lArm": {
-          "shoulder": -72,
-          "elbow": 20
+          "shoulder": -58,
+          "elbow": 30
         },
         "rFoot": {
           "x": 5,
@@ -436,12 +436,12 @@
           "lift": 2
         },
         "rArm": {
-          "shoulder": 48,
-          "elbow": 34
+          "shoulder": 44,
+          "elbow": 38
         },
         "lArm": {
-          "shoulder": -36,
-          "elbow": 32
+          "shoulder": -32,
+          "elbow": 34
         },
         "rFoot": {
           "x": 5,

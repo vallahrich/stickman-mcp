@@ -1,7 +1,7 @@
 {
   "id": "turn-90",
   "label": "Turn 90",
-  "status": "draft",
+  "status": "candidate",
   "source": {
     "dataset": "CMU",
     "file": "69_16.bvh",
@@ -47,6 +47,209 @@
     "place",
     "trial"
   ],
-  "notes": "Extracted 90-ish pivot from turn-in-place trial; low root travel and fully planted pivot feet.",
-  "approvedBaseline": false
+  "notes": "Head-led quarter turn to the audience: small anticipation, weight shifts to the right foot while the left foot lifts and pivots inward, shoulders follow through to front view, then the body overshoots and settles into a front-facing neutral stand.",
+  "approvedBaseline": false,
+  "frames": 36,
+  "loop": false,
+  "markers": {
+    "anticipation": 5,
+    "headLead": 8,
+    "footLift": 11,
+    "frontView": 22,
+    "footPlant": 25,
+    "overshoot": 29,
+    "settle": 35
+  },
+  "poseKeys": [
+    {
+      "frame": 0,
+      "pose": {
+        "anchor": "both",
+        "lean": 2,
+        "neck": -1,
+        "bob": 0,
+        "dx": 0,
+        "facing": 1,
+        "rLeg": { "hip": 5, "knee": 13 },
+        "lLeg": { "hip": -8, "knee": 14 },
+        "rArm": { "shoulder": -8, "elbow": 45 },
+        "lArm": { "shoulder": 8, "elbow": 45 },
+        "rFoot": { "x": 5, "y": 0 },
+        "lFoot": { "x": -7, "y": 0 }
+      },
+      "ease": "out"
+    },
+    {
+      "frame": 5,
+      "pose": {
+        "anchor": "both",
+        "lean": -2,
+        "neck": 10,
+        "bob": -1,
+        "dx": -0.6,
+        "facing": 0.96,
+        "rLeg": { "hip": 3, "knee": 18 },
+        "lLeg": { "hip": -12, "knee": 19 },
+        "rArm": { "shoulder": -20, "elbow": 52 },
+        "lArm": { "shoulder": 18, "elbow": 50 },
+        "rFoot": { "x": 5, "y": 0 },
+        "lFoot": { "x": -7, "y": 0 }
+      },
+      "ease": "inOut"
+    },
+    {
+      "frame": 8,
+      "pose": {
+        "anchor": null,
+        "lean": 2,
+        "neck": 9,
+        "bob": 0,
+        "dx": 0.1,
+        "dy": 25,
+        "facing": 0.72,
+        "rLeg": { "hip": 5, "knee": 14 },
+        "lLeg": { "hip": 0, "knee": 16, "lift": 7 },
+        "rArm": { "shoulder": -6, "elbow": 50 },
+        "lArm": { "shoulder": 6, "elbow": 50 },
+        "rFoot": { "x": 5, "y": 2 },
+        "lFoot": { "x": 0, "y": 7 }
+      },
+      "ease": "linear"
+    },
+    {
+      "frame": 12,
+      "pose": {
+        "anchor": null,
+        "lean": 1,
+        "neck": 4,
+        "bob": -1,
+        "dx": 0.1,
+        "dy": 25,
+        "facing": 0.36,
+        "rLeg": { "hip": 5, "knee": 16 },
+        "lLeg": { "hip": 3, "knee": 18, "lift": 9 },
+        "rArm": { "shoulder": -2, "elbow": 48 },
+        "lArm": { "shoulder": 2, "elbow": 48 },
+        "rFoot": { "x": 5, "y": 2 },
+        "lFoot": { "x": 2, "y": 9 }
+      },
+      "ease": "inOut"
+    },
+    {
+      "frame": 16,
+      "pose": {
+        "anchor": null,
+        "lean": 0,
+        "neck": 3,
+        "bob": -2,
+        "dx": 0.1,
+        "dy": 24,
+        "facing": 0.12,
+        "rLeg": { "hip": 6, "knee": 20 },
+        "lLeg": { "hip": -6, "knee": 20, "lift": 6 },
+        "rArm": { "shoulder": -3, "elbow": 48, "spread": 4, "elbowSpread": 0 },
+        "lArm": { "shoulder": 4, "elbow": 48, "spread": 4, "elbowSpread": 0 },
+        "rFoot": { "x": 6, "y": 2 },
+        "lFoot": { "x": -6, "y": 6 }
+      },
+      "ease": "inOut"
+    },
+    {
+      "frame": 22,
+      "pose": {
+        "anchor": null,
+        "lean": 0,
+        "neck": 0,
+        "bob": -1,
+        "dx": 0,
+        "dy": 24,
+        "facing": 0,
+        "rLeg": { "hip": 5, "knee": 17 },
+        "lLeg": { "hip": -4, "knee": 18, "lift": 6 },
+        "rArm": { "shoulder": -2, "elbow": 46, "spread": 6, "elbowSpread": 1 },
+        "lArm": { "shoulder": 2, "elbow": 46, "spread": 6, "elbowSpread": 1 },
+        "rFoot": { "x": 5.5, "y": 2 },
+        "lFoot": { "x": -7, "y": 2 }
+      },
+      "ease": "inOut"
+    },
+    {
+      "frame": 25,
+      "pose": {
+        "anchor": "both",
+        "lean": -1,
+        "neck": 1,
+        "bob": 0,
+        "dx": 0,
+        "facing": 0,
+        "rLeg": { "hip": 5, "knee": 16 },
+        "lLeg": { "hip": -6, "knee": 17 },
+        "rArm": { "shoulder": 0, "elbow": 47, "spread": 5, "elbowSpread": 1 },
+        "lArm": { "shoulder": 1, "elbow": 47, "spread": 5, "elbowSpread": 1 },
+        "rFoot": { "x": 5, "y": 0 },
+        "lFoot": { "x": -7, "y": 0 }
+      },
+      "ease": "out"
+    },
+    {
+      "frame": 29,
+      "pose": {
+        "anchor": "both",
+        "lean": -3,
+        "neck": 4,
+        "bob": 1,
+        "dx": -0.2,
+        "facing": -0.08,
+        "rLeg": { "hip": 3, "knee": 15 },
+        "lLeg": { "hip": -7, "knee": 16 },
+        "rArm": { "shoulder": 5, "elbow": 47, "spread": 5, "elbowSpread": 1 },
+        "lArm": { "shoulder": -4, "elbow": 47, "spread": 5, "elbowSpread": 1 },
+        "rFoot": { "x": 5, "y": 0 },
+        "lFoot": { "x": -7, "y": 0 }
+      },
+      "ease": "inOut"
+    },
+    {
+      "frame": 32,
+      "pose": {
+        "anchor": "both",
+        "lean": 3,
+        "neck": -3,
+        "bob": 0,
+        "dx": 0.1,
+        "facing": 0.02,
+        "rLeg": { "hip": 5, "knee": 14 },
+        "lLeg": { "hip": -8, "knee": 15 },
+        "rArm": { "shoulder": -5, "elbow": 46, "spread": 3, "elbowSpread": 0 },
+        "lArm": { "shoulder": 6, "elbow": 46, "spread": 3, "elbowSpread": 0 },
+        "rFoot": { "x": 5, "y": 0 },
+        "lFoot": { "x": -7, "y": 0 }
+      },
+      "ease": "out"
+    },
+    {
+      "frame": 35,
+      "pose": {
+        "anchor": "both",
+        "lean": 2,
+        "neck": -1,
+        "bob": 0,
+        "dx": 0,
+        "facing": 0,
+        "rLeg": { "hip": 5, "knee": 13 },
+        "lLeg": { "hip": -8, "knee": 14 },
+        "rArm": { "shoulder": -8, "elbow": 45 },
+        "lArm": { "shoulder": 8, "elbow": 45 },
+        "rFoot": { "x": 5, "y": 0 },
+        "lFoot": { "x": -7, "y": 0 }
+      },
+      "ease": "inOut"
+    }
+  ],
+  "gates": {
+    "maxJointStep": 14
+  },
+  "review": {
+    "prop": null
+  }
 }

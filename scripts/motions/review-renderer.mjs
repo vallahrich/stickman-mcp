@@ -61,6 +61,10 @@ function layoutProp(spec, propsCatalog, frameIndex = 0, stage = { rootX: 160, gr
   const h = base.h ?? size.h ?? (size.r ? size.r * 2 : 40);
   let x = base.x ?? 40;
   let y = base.y ?? 0;
+  let open = base.open ?? 0;
+  let ink = base.ink ?? 0;
+  let scale = base.scale ?? 1;
+  let fade = base.fade ?? 1;
   const keys = review.propMotion;
   if (Array.isArray(keys) && keys.length) {
     const sorted = [...keys].sort((a, b) => a.frame - b.frame);
@@ -71,9 +75,154 @@ function layoutProp(spec, propsCatalog, frameIndex = 0, stage = { rootX: 160, gr
     const t = b.frame === a.frame ? 0 : Math.max(0, Math.min(1, (frameIndex - a.frame) / (b.frame - a.frame)));
     x += (a.x ?? 0) + ((b.x ?? a.x ?? 0) - (a.x ?? 0)) * t;
     y += (a.y ?? 0) + ((b.y ?? a.y ?? 0) - (a.y ?? 0)) * t;
+    if (a.open !== undefined || b.open !== undefined) open = (a.open ?? open) + ((b.open ?? a.open ?? open) - (a.open ?? open)) * t;
+    if (a.ink !== undefined || b.ink !== undefined) ink = (a.ink ?? ink) + ((b.ink ?? a.ink ?? ink) - (a.ink ?? ink)) * t;
+    if (a.scale !== undefined || b.scale !== undefined) scale = (a.scale ?? scale) + ((b.scale ?? a.scale ?? scale) - (a.scale ?? scale)) * t;
+    if (a.fade !== undefined || b.fade !== undefined) fade = (a.fade ?? fade) + ((b.fade ?? a.fade ?? fade) - (a.fade ?? fade)) * t;
   }
   const k = stage.scale;
-  return { type: def.type ?? type, x: stage.rootX + x * k, y: stage.groundY - (y + h) * k, w: w * k, h: h * k, r: size.r, steps: base.steps ?? size.steps, rungs: base.rungs ?? size.rungs };
+  const hinge = base.hinge ?? (x >= 0 ? "right" : "left");
+  const monitorW = base.monitorW !== undefined ? base.monitorW * k : undefined;
+  const monitorH = base.monitorH !== undefined ? base.monitorH * k : undefined;
+  return { type: def.type ?? type, x: stage.rootX + x * k, y: stage.groundY - (y + h) * k, w: w * k, h: h * k, r: size.r, steps: base.steps ?? size.steps, rungs: base.rungs ?? size.rungs, open, ink, scale, fade, hinge, monitorW, monitorH };
+}
+
+function doorMarkup(prop, strokeWidth, color, layer = "all") {
+  const sw = num(strokeWidth);
+  const attrs = `fill="#fff" stroke="${xml(color)}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"`;
+  const x = prop.x, y = prop.y, w = prop.w, h = prop.h;
+  const open = Math.max(0, Math.min(1, prop.open ?? 0));
+  const hingeLeft = prop.hinge === "left";
+  const hingeX = hingeLeft ? x : x + w;
+  const angle = open * Math.PI / 2;
+  const depth = w * 0.18 * Math.sin(angle);
+  const swing = w * 0.85 * Math.sin(angle);
+  const freeX = hingeLeft ? x + w + swing + depth : x - swing - depth;
+  const skew = h * 0.06 * Math.sin(angle);
+  const grow = h * 0.035 * Math.sin(angle);
+  const nearTop = { x: hingeX, y };
+  const nearBottom = { x: hingeX, y: y + h };
+  const farTop = { x: freeX, y: y + skew - grow };
+  const farBottom = { x: freeX, y: y + h - skew + grow };
+  const handleInset = Math.min(w * 0.18, Math.max(strokeWidth, w * 0.1));
+  const handleX = hingeLeft ? freeX - handleInset : freeX + handleInset;
+  const handleY = y + h * 0.52;
+  const opening = open > 0.05 ? `<rect data-prop="door-opening" x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" fill="#e4e7eb" opacity="0.9"/>` : "";
+  const hatch = open > 0.05 ? Array.from({ length: 7 }, (_, i) => {
+    const xx = x + w * (i + 0.5) / 7;
+    return `<path d="${line({ x: xx - w * 0.08, y: y + h * 0.12 }, { x: xx + w * 0.08, y: y + h * 0.88 })}" stroke="#bdc3cc" stroke-width="${num(Math.max(0.8, strokeWidth * 0.28))}" stroke-linecap="round"/>`;
+  }).join("") : "";
+  const frame = `<rect data-prop="door-frame" x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" rx="2" fill="none" stroke="${xml(color)}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"/>`;
+  const leaf = `<path data-prop="door-leaf" d="M${num(nearTop.x)} ${num(nearTop.y)}L${num(farTop.x)} ${num(farTop.y)}L${num(farBottom.x)} ${num(farBottom.y)}L${num(nearBottom.x)} ${num(nearBottom.y)}Z" ${attrs}/>`;
+  const hinge = `<path d="${line(nearTop, nearBottom)}" stroke="${xml(color)}" stroke-width="${num(strokeWidth * 1.15)}" stroke-linecap="round"/>`;
+  const handle = `<circle data-prop="door-handle" cx="${num(handleX)}" cy="${num(handleY)}" r="${num(Math.max(2, strokeWidth))}" fill="#fff" stroke="${xml(color)}" stroke-width="${sw}"/>`;
+  const rightPost = `<path data-prop="door-right-post" d="${line({ x: x + w, y }, { x: x + w, y: y + h })}" stroke="${xml(color)}" stroke-width="${num(strokeWidth * 1.25)}" stroke-linecap="round"/>`;
+  if (layer === "back") return `<g data-prop="door">${leaf}${opening}${hatch}${handle}</g>`;
+  if (layer === "front") return `<g data-prop="door-frame-front">${frame}${rightPost}</g>`;
+  return `<g data-prop="door">${opening}${hatch}${leaf}${handle}${frame}${rightPost}</g>`;
+}
+
+function partialPolyline(points, amount) {
+  const t = Math.max(0, Math.min(1, amount ?? 0));
+  if (t <= 0 || points.length < 2) return "";
+  const lengths = [];
+  let total = 0;
+  for (let i = 0; i < points.length - 1; i++) {
+    const d = Math.hypot(points[i + 1].x - points[i].x, points[i + 1].y - points[i].y);
+    lengths.push(d);
+    total += d;
+  }
+  let remaining = total * t;
+  let d = `M${num(points[0].x)} ${num(points[0].y)}`;
+  for (let i = 0; i < lengths.length; i++) {
+    if (remaining >= lengths[i]) {
+      d += `L${num(points[i + 1].x)} ${num(points[i + 1].y)}`;
+      remaining -= lengths[i];
+    } else {
+      const u = lengths[i] === 0 ? 0 : remaining / lengths[i];
+      d += `L${num(points[i].x + (points[i + 1].x - points[i].x) * u)} ${num(points[i].y + (points[i + 1].y - points[i].y) * u)}`;
+      break;
+    }
+  }
+  return d;
+}
+
+function boardInkMarkup(prop, strokeWidth, color) {
+  const ink = Math.max(0, Math.min(1, prop.ink ?? 0));
+  if (ink <= 0) return "";
+  const x = prop.x, y = prop.y, w = prop.w, h = prop.h, bh = h * 0.62;
+  const sx = (v) => x + w * v;
+  const sy = (v) => y + bh * v;
+  const strokes = [
+    [{ x: sx(0), y: sy(0.62) }, { x: sx(0.1), y: sy(0.2) }, { x: sx(0.2), y: sy(0.62) }],
+    [{ x: sx(0.05), y: sy(0.43) }, { x: sx(0.16), y: sy(0.43) }],
+    [{ x: sx(0.24), y: sy(0.22) }, { x: sx(0.37), y: sy(0.22) }],
+    [{ x: sx(0.32), y: sy(0.22) }, { x: sx(0.32), y: sy(0.62) }],
+    [{ x: sx(0.24), y: sy(0.62) }, { x: sx(0.4), y: sy(0.62) }],
+    [{ x: sx(0), y: sy(0.7) }, { x: sx(0.36), y: sy(0.7) }],
+    [{ x: sx(0.34), y: sy(0.58) }, { x: sx(0.4), y: sy(0.68) }, { x: sx(0.46), y: sy(0.5) }]
+  ];
+  const ranges = [0.3, 0.1, 0.14, 0.11, 0.08, 0.13, 0.14];
+  let used = 0;
+  const parts = [];
+  for (let i = 0; i < strokes.length; i++) {
+    const local = Math.max(0, Math.min(1, (ink - used) / ranges[i]));
+    if (local > 0) parts.push(`<path d="${partialPolyline(strokes[i], local)}" fill="none" stroke="${xml(color)}" stroke-width="${num(strokeWidth * 0.55)}" stroke-linecap="round" stroke-linejoin="round"/>`);
+    used += ranges[i];
+  }
+  return parts.join("");
+}
+
+function binocularsMarkup(prop, strokeWidth, color) {
+  const sw = num(strokeWidth);
+  const x = prop.x, y = prop.y, w = prop.w, h = prop.h;
+  const cy = y + h / 2;
+  const barrelH = h * 0.34;
+  const barrelW = w * 0.5;
+  const leftY = cy - barrelH * 0.65;
+  const rightY = cy + barrelH * 0.65;
+  const start = x + w * 0.18;
+  const end = x + w * 0.82;
+  const bridgeX1 = x + w * 0.44;
+  const bridgeX2 = x + w * 0.56;
+  return `<g data-prop="binoculars" fill="#fff" stroke="${xml(color)}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"><rect x="${num(start)}" y="${num(leftY - barrelH / 2)}" width="${num(barrelW)}" height="${num(barrelH)}" rx="${num(barrelH / 2)}"/><rect x="${num(start)}" y="${num(rightY - barrelH / 2)}" width="${num(barrelW)}" height="${num(barrelH)}" rx="${num(barrelH / 2)}"/><path d="${line({ x: bridgeX1, y: cy }, { x: bridgeX2, y: cy })}"/></g>`;
+}
+
+function palmMarkup(prop, strokeWidth, color) {
+  const cx = prop.x + prop.w / 2, cy = prop.y + prop.h / 2;
+  const fore = prop.angle ?? -Math.PI / 2;
+  const nx = -Math.sin(fore), ny = Math.cos(fore);
+  const fx = Math.cos(fore), fy = Math.sin(fore);
+  const bar = Math.max(prop.w, 12);
+  const finger = Math.max(prop.h * 0.65, 6);
+  const a = { x: cx - nx * bar / 2, y: cy - ny * bar / 2 };
+  const b = { x: cx + nx * bar / 2, y: cy + ny * bar / 2 };
+  const ticks = [-0.34, -0.11, 0.11, 0.34].map((t) => {
+    const p = { x: cx + nx * bar * t, y: cy + ny * bar * t };
+    return `<path d="${line(p, { x: p.x + fx * finger, y: p.y + fy * finger })}"/>`;
+  }).join("");
+  return `<g data-prop="palm" fill="none" stroke="${xml(color)}" stroke-width="${num(strokeWidth * 0.75)}" stroke-linecap="round" stroke-linejoin="round"><path d="${line(a, b)}"/>${ticks}</g>`;
+}
+
+function thumbMarkup(prop, strokeWidth, color) {
+  const cx = prop.x + prop.w / 2, cy = prop.y + prop.h / 2;
+  const r = Math.max(prop.w, 7 * 0.75) / 2;
+  const thumb = Math.max(prop.h, 10 * 0.75);
+  const base = { x: cx, y: cy - r };
+  const tip = { x: cx, y: cy - r - thumb };
+  return `<g data-prop="thumb" fill="#fff" stroke="${xml(color)}" stroke-width="${num(strokeWidth)}" stroke-linecap="round" stroke-linejoin="round"><circle cx="${num(cx)}" cy="${num(cy)}" r="${num(r)}"/><path d="${line(base, tip)}"/></g>`;
+}
+
+function bulbMarkup(prop, strokeWidth, color) {
+  const s = Math.max(0, prop.scale ?? 1);
+  if (s <= 0.01) return "";
+  const cx = prop.x + prop.w / 2, cy = prop.y + prop.h * 0.4, w = prop.w * s, h = prop.h * s;
+  const x = cx - w / 2, y = cy - h * 0.4;
+  const sw = num(strokeWidth);
+  const glassR = w * 0.32;
+  const baseY = y + h * 0.63;
+  const ray = (a, b) => `<path d="${line(a, b)}" fill="none" stroke="#F2B705" stroke-width="${num(strokeWidth * 0.75)}" stroke-linecap="round"/>`;
+  return `<g data-prop="bulb" stroke="${xml(color)}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"><circle cx="${num(cx)}" cy="${num(y + h * 0.34)}" r="${num(glassR)}" fill="#FFD43B"/><path d="M${num(cx - glassR * 0.48)} ${num(y + h * 0.52)}Q${num(cx)} ${num(y + h * 0.62)} ${num(cx + glassR * 0.48)} ${num(y + h * 0.52)}" fill="#FFD43B"/><path d="${line({ x: cx - w * 0.18, y: baseY }, { x: cx + w * 0.18, y: baseY })}" fill="none" stroke="#4a4a4a"/><path d="${line({ x: cx - w * 0.16, y: baseY + h * 0.1 }, { x: cx + w * 0.16, y: baseY + h * 0.1 })}" fill="none" stroke="#4a4a4a"/><path d="${line({ x: cx - w * 0.12, y: baseY + h * 0.2 }, { x: cx + w * 0.12, y: baseY + h * 0.2 })}" fill="none" stroke="#4a4a4a"/><path d="M${num(cx - w * 0.11)} ${num(y + h * 0.34)}Q${num(cx)} ${num(y + h * 0.45)} ${num(cx + w * 0.11)} ${num(y + h * 0.34)}" fill="none" stroke="${xml(color)}" stroke-width="${num(strokeWidth * 0.6)}"/>${ray({ x: cx, y: y - h * 0.08 }, { x: cx, y: y - h * 0.26 })}${ray({ x: x + w * 0.1, y: y + h * 0.16 }, { x: x - w * 0.08, y: y + h * 0.05 })}${ray({ x: x + w * 0.9, y: y + h * 0.16 }, { x: x + w * 1.08, y: y + h * 0.05 })}</g>`;
 }
 
 function propMarkup(prop, strokeWidth, color) {
@@ -99,17 +248,20 @@ function propMarkup(prop, strokeWidth, color) {
   }
   if (prop.type === "desk") {
     // Desk with a monitor (screen lines) and a keyboard on the front edge; x..x+w is the tabletop.
-    const top = y + h * 0.42, mw = w * 0.56, mx = x + w * 0.42, mh = h * 0.46, my = top - h * 0.1 - mh;
+    const top = y + h * 0.42, mw = prop.monitorW ?? w * 0.56, mh = prop.monitorH ?? h * 0.46, mx = x + w * 0.42, my = top - h * 0.1 - mh;
     return `<g data-prop="desk" ${attrs}><path d="${line({ x, y: top }, { x: x + w, y: top })}"/><path d="${line({ x: x + w * 0.08, y: top }, { x: x + w * 0.08, y: y + h })}"/><path d="${line({ x: x + w * 0.92, y: top }, { x: x + w * 0.92, y: y + h })}"/><rect x="${num(mx)}" y="${num(my)}" width="${num(mw)}" height="${num(mh)}" rx="2"/><path d="${line({ x: mx + mw / 2, y: my + mh }, { x: mx + mw / 2, y: top })}"/><path d="${line({ x: mx + mw * 0.15, y: my + mh * 0.3 }, { x: mx + mw * 0.7, y: my + mh * 0.3 })}" stroke-width="${num(strokeWidth * 0.5)}"/><path d="${line({ x: mx + mw * 0.15, y: my + mh * 0.55 }, { x: mx + mw * 0.55, y: my + mh * 0.55 })}" stroke-width="${num(strokeWidth * 0.5)}"/><path d="${line({ x: x + w * 0.04, y: top - strokeWidth }, { x: x + w * 0.38, y: top - strokeWidth })}"/></g>`;
   }
   if (prop.type === "board") {
     const bh = h * 0.62;
-    return `<g data-prop="board" ${attrs}><rect x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(bh)}" rx="2"/><path d="${line({ x: x + w * 0.2, y: y + bh }, { x: x + w * 0.12, y: y + h })}"/><path d="${line({ x: x + w * 0.8, y: y + bh }, { x: x + w * 0.88, y: y + h })}"/><path d="${line({ x: x + w * 0.25, y: y + bh + strokeWidth }, { x: x + w * 0.75, y: y + bh + strokeWidth })}"/></g>`;
+    return `<g data-prop="board" ${attrs}><rect x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(bh)}" rx="2"/>${boardInkMarkup(prop, strokeWidth, color)}<path d="${line({ x: x + w * 0.2, y: y + bh }, { x: x + w * 0.12, y: y + h })}"/><path d="${line({ x: x + w * 0.8, y: y + bh }, { x: x + w * 0.88, y: y + h })}"/><path d="${line({ x: x + w * 0.25, y: y + bh + strokeWidth }, { x: x + w * 0.75, y: y + bh + strokeWidth })}"/></g>`;
   }
   if (prop.type === "card") return `<g data-prop="card" ${attrs}><rect x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" rx="2"/><path d="${line({ x: x + w * 0.15, y: y + h * 0.35 }, { x: x + w * 0.8, y: y + h * 0.35 })}" stroke-width="${num(strokeWidth * 0.5)}"/><path d="${line({ x: x + w * 0.15, y: y + h * 0.62 }, { x: x + w * 0.6, y: y + h * 0.62 })}" stroke-width="${num(strokeWidth * 0.5)}"/></g>`;
-  if (prop.type === "bulb") return `<g data-prop="bulb" ${attrs}><path d="M${num(x + w / 2)} ${num(y)}a${num(w / 2)} ${num(w / 2)} 0 0 0-${num(w * 0.3)} ${num(w * 0.9)}c${num(w * 0.08)} ${num(w * 0.08)} ${num(w * 0.1)} ${num(w * 0.16)} ${num(w * 0.1)} ${num(w * 0.26)}h${num(w * 0.4)}c0-${num(w * 0.1)} ${num(w * 0.02)}-${num(w * 0.18)} ${num(w * 0.1)}-${num(w * 0.26)}A${num(w / 2)} ${num(w / 2)} 0 0 0 ${num(x + w / 2)} ${num(y)}z" style="fill:#ffd23f"/><path d="${line({ x: x + w * 0.32, y: y + h * 0.88 }, { x: x + w * 0.68, y: y + h * 0.88 })}"/><path d="${line({ x: x + w / 2, y: y - w * 0.3 }, { x: x + w / 2, y: y - w * 0.5 })}"/><path d="${line({ x: x - w * 0.15, y: y + w * 0.1 }, { x: x - w * 0.32, y: y - w * 0.04 })}"/><path d="${line({ x: x + w * 1.15, y: y + w * 0.1 }, { x: x + w * 1.32, y: y - w * 0.04 })}"/></g>`;
+  if (prop.type === "bulb") return bulbMarkup(prop, strokeWidth, color);
+  if (prop.type === "binoculars") return binocularsMarkup(prop, strokeWidth, color);
+  if (prop.type === "palm") return palmMarkup(prop, strokeWidth, color);
+  if (prop.type === "thumb") return thumbMarkup(prop, strokeWidth, color);
   if (prop.type === "banner") return `<g data-prop="banner" ${attrs}><rect x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" rx="2"/><path d="${line({ x: x + w * 0.12, y: y + h * 0.45 }, { x: x + w * 0.88, y: y + h * 0.45 })}"/><path d="${line({ x: x + w * 0.2, y: y + h * 0.7 }, { x: x + w * 0.7, y: y + h * 0.7 })}" stroke-width="${num(strokeWidth * 0.5)}"/></g>`;
-  if (prop.type === "door") return `<g data-prop="door" ${attrs}><rect x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" rx="2"/><circle cx="${num(x + w * 0.82)}" cy="${num(y + h * 0.52)}" r="${num(Math.max(2, strokeWidth))}"/></g>`;
+  if (prop.type === "door") return doorMarkup(prop, strokeWidth, color);
   if (prop.type === "sign") return `<g data-prop="sign" ${attrs}><rect x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h * 0.55)}" rx="3"/><path d="${line({ x: x + w / 2, y: y + h * 0.55 }, { x: x + w / 2, y: y + h })}"/></g>`;
   return `<rect data-prop="${xml(prop.type)}" x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" rx="3" ${attrs}/>`;
 }
@@ -131,7 +283,7 @@ export function figureMarkup(frame, geometry, color = "#202124", opacity = 1) {
 
 /**
  * All props for a review frame: the main prop (optionally carried by a hand via review.prop.attach =
- * {hand:"r"|"l", from, to, dx, dy, hiddenBefore}) plus static review.extraProps [{type,x,y,w,h}].
+ * {hand:"r"|"l", from, to, dx, dy, hiddenBefore, hiddenAfter}) plus static review.extraProps [{type,x,y,w,h}].
  * handAt(frame, side) returns the world-space hand point; it is only needed for attached props.
  */
 function layoutScene(spec, propsCatalog, frameIndex, handAt, stage = { rootX: 160, groundY: 150, scale: 0.75 }) {
@@ -140,11 +292,16 @@ function layoutScene(spec, propsCatalog, frameIndex, handAt, stage = { rootX: 16
   const attach = spec.review?.prop?.attach;
   if (main && attach && handAt) {
     const from = attach.from ?? 0, to = attach.to ?? Infinity;
-    if (!(frameIndex < from && attach.hiddenBefore)) {
+    if (!(frameIndex < from && attach.hiddenBefore) && !(frameIndex > to && attach.hiddenAfter)) {
       if (frameIndex >= from) {
-        const hand = handAt(Math.min(frameIndex, to), attach.hand === "head" ? "head" : attach.hand === "l" ? "left" : "right");
+        const ix = Math.min(frameIndex, to);
+        const hand = attach.hand === "both"
+          ? (() => { const l = handAt(ix, "left"), r = handAt(ix, "right"); return { x: (l.x + r.x) / 2, y: (l.y + r.y) / 2, facing: r.facing ?? l.facing }; })()
+          : handAt(ix, attach.hand === "head" ? "head" : attach.hand === "l" ? "left" : "right");
         main.x = hand.x - main.w / 2 + (attach.dx ?? 0) * stage.scale;
         main.y = hand.y - main.h / 2 - (attach.dy ?? 0) * stage.scale;
+        if (hand.facing !== undefined) main.facing = hand.facing;
+        if (hand.angle !== undefined) main.angle = hand.angle;
         main.front = true;
       }
       out.push(main);
@@ -158,9 +315,9 @@ function layoutScene(spec, propsCatalog, frameIndex, handAt, stage = { rootX: 16
 }
 
 function handFromSample(sample, side) {
-  if (side === "head") return { x: sample.head.x, y: sample.head.y };
+  if (side === "head") return { x: sample.head.x, y: sample.head.y, facing: sample.facing ?? 1 };
   const fore = sample.segments.find((s) => s.id === `${side}-forearm`);
-  return { x: fore.x2, y: fore.y2 };
+  return { x: fore.x2, y: fore.y2, facing: sample.facing ?? 1, angle: Math.atan2(fore.y2 - fore.y1, fore.x2 - fore.x1) };
 }
 
 function viewBoxFor(sample) {
@@ -180,9 +337,10 @@ export async function renderStaticSvg({ clip, spec, propsCatalog, frameIndex = 0
   }).join("");
   const handAt = (ix, side) => handFromSample(engineSampledFrame(sampleClipMotion, clip, ix), side);
   const props = layoutScene(spec, propsCatalog, frameIndex, handAt);
-  const back = props.filter((p) => !p.front).map((p) => propMarkup(p, geometry.strokeWidth, "#202124")).join("");
-  const front = props.filter((p) => p.front).map((p) => propMarkup(p, geometry.strokeWidth, "#202124")).join("");
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${viewBoxFor(sample)}" role="img" aria-label="${xml(clip.name)} frame ${frameIndex}"><rect x="-10000" y="-10000" width="20000" height="20000" fill="#fff"/><path id="ground" d="M-10000 ${num(sample.groundY)}H10000" stroke="#d8dbe0" stroke-width="1"/>${back}${onionMarkup}${figureMarkup(sample, geometry)}${front}<text x="${num(Number(viewBoxFor(sample).split(" ")[0]) + 6)}" y="-42" font-size="9" fill="#888">${xml(clip.name)} f${frameIndex}</text></svg>`;
+  const figureOpacity = props.find((p) => p.type === "door")?.fade ?? 1;
+  const back = props.filter((p) => !p.front).map((p) => p.type === "door" ? doorMarkup(p, geometry.strokeWidth, "#202124", "back") : propMarkup(p, geometry.strokeWidth, "#202124")).join("");
+  const front = props.map((p) => p.type === "door" ? doorMarkup(p, geometry.strokeWidth, "#202124", "front") : p.front ? propMarkup(p, geometry.strokeWidth, "#202124") : "").join("");
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${viewBoxFor(sample)}" role="img" aria-label="${xml(clip.name)} frame ${frameIndex}"><rect x="-10000" y="-10000" width="20000" height="20000" fill="#fff"/><path id="ground" d="M-10000 ${num(sample.groundY)}H10000" stroke="#d8dbe0" stroke-width="1"/>${back}${onionMarkup}${figureOpacity > 0.01 ? figureMarkup(sample, geometry, "#202124", figureOpacity) : ""}${front}<text x="${num(Number(viewBoxFor(sample).split(" ")[0]) + 6)}" y="-42" font-size="9" fill="#888">${xml(clip.name)} f${frameIndex}</text></svg>`;
 }
 
 /** The approved run exactly as the product ships it: a compiled scene (root motion, planted feet) sampled at 30 fps. */
@@ -209,6 +367,13 @@ ${sampleClipMotion.toString()}
 const engineSampledFrame=${engineSampledFrame.toString()};
 const figureMarkup=${figureMarkup.toString()};
 const layoutProp=${layoutProp.toString()};
+const doorMarkup=${doorMarkup.toString()};
+const partialPolyline=${partialPolyline.toString()};
+const boardInkMarkup=${boardInkMarkup.toString()};
+const binocularsMarkup=${binocularsMarkup.toString()};
+const palmMarkup=${palmMarkup.toString()};
+const thumbMarkup=${thumbMarkup.toString()};
+const bulbMarkup=${bulbMarkup.toString()};
 const layoutScene=${layoutScene.toString()};
 const handFromSample=${handFromSample.toString()};
 const propMarkup=${propMarkup.toString()};
@@ -227,6 +392,13 @@ ${sampleClipMotion.toString()}
 const engineSampledFrame=${engineSampledFrame.toString()};
 const figureMarkup=${figureMarkup.toString()};
 const layoutProp=${layoutProp.toString()};
+const doorMarkup=${doorMarkup.toString()};
+const partialPolyline=${partialPolyline.toString()};
+const boardInkMarkup=${boardInkMarkup.toString()};
+const binocularsMarkup=${binocularsMarkup.toString()};
+const palmMarkup=${palmMarkup.toString()};
+const thumbMarkup=${thumbMarkup.toString()};
+const bulbMarkup=${bulbMarkup.toString()};
 const layoutScene=${layoutScene.toString()};
 const handFromSample=${handFromSample.toString()};
 const propMarkup=${propMarkup.toString()};
@@ -235,6 +407,6 @@ const xml=${xml.toString()}; const num=${num.toString()}; const line=${line.toSt
 const D=JSON.parse(document.getElementById('data').textContent),clip=D.clip,runFrames=D.runFrames,spec=D.spec,propsCatalog=D.propsCatalog; let f=0,playing=true,last=performance.now();
 function drawRef(){const s=runFrames[Math.floor(performance.now()/1000*30)%runFrames.length],g=ENGINE_FRAME_GEOMETRY(s);ref.setAttribute('viewBox','200 '+num(s.groundY-260)+' 1200 330');ref.innerHTML='<rect x="-10000" y="-10000" width="20000" height="20000" fill="#fff"/><path d="M-10000 '+num(s.groundY)+'H10000" stroke="#d8dbe0"/>'+figureMarkup(s,g);}
 const params=new URLSearchParams(location.search); if(params.get('bare')==='1')document.body.classList.add('bare'); if(params.has('onion'))onion.checked=params.get('onion')!=='0'; if(params.has('frame')){f=Number(params.get('frame'))||0;playing=false;play.textContent='play';scrub.value=Math.max(0,Math.min(clip.frames.length-1,Math.round(f)));}
-function drawSvg(svg,c,ix,onionMode,withProp){const sample=engineSampledFrame(sampleClipMotion,c,ix),g=ENGINE_FRAME_GEOMETRY(sample);svg.setAttribute('viewBox',viewBoxFor(sample));let h='<rect x="-10000" y="-10000" width="20000" height="20000" fill="#fff"/><path d="M-10000 '+num(sample.groundY)+'H10000" stroke="#d8dbe0"/>';const scene=withProp?layoutScene(spec,propsCatalog,ix,(j,side)=>handFromSample(engineSampledFrame(sampleClipMotion,c,j),side)):[];for(const p of scene)if(!p.front)h+=propMarkup(p,g.strokeWidth,'#202124');if(onionMode){for(const d of [-6,-3,3,6]){const oi=ix+d;if(oi>=0&&oi<c.frames.length){const os=engineSampledFrame(sampleClipMotion,c,oi);h+=figureMarkup(os,ENGINE_FRAME_GEOMETRY(os),'#202124',.18);}}}h+=figureMarkup(sample,g);for(const p of scene)if(p.front)h+=propMarkup(p,g.strokeWidth,'#202124');svg.innerHTML=h;}
+function drawSvg(svg,c,ix,onionMode,withProp){const sample=engineSampledFrame(sampleClipMotion,c,ix),g=ENGINE_FRAME_GEOMETRY(sample);svg.setAttribute('viewBox',viewBoxFor(sample));let h='<rect x="-10000" y="-10000" width="20000" height="20000" fill="#fff"/><path d="M-10000 '+num(sample.groundY)+'H10000" stroke="#d8dbe0"/>';const scene=withProp?layoutScene(spec,propsCatalog,ix,(j,side)=>handFromSample(engineSampledFrame(sampleClipMotion,c,j),side)):[];const figureOpacity=(scene.find(p=>p.type==='door')||{}).fade??1;for(const p of scene)if(!p.front)h+=p.type==='door'?doorMarkup(p,g.strokeWidth,'#202124','back'):propMarkup(p,g.strokeWidth,'#202124');if(onionMode){for(const d of [-6,-3,3,6]){const oi=ix+d;if(oi>=0&&oi<c.frames.length){const os=engineSampledFrame(sampleClipMotion,c,oi);h+=figureMarkup(os,ENGINE_FRAME_GEOMETRY(os),'#202124',.18);}}}if(figureOpacity>.01)h+=figureMarkup(sample,g,'#202124',figureOpacity);for(const p of scene)h+=p.type==='door'?doorMarkup(p,g.strokeWidth,'#202124','front'):(p.front?propMarkup(p,g.strokeWidth,'#202124'):'');svg.innerHTML=h;}
 for(let k=0;k<8;k++){const s=document.createElementNS('http://www.w3.org/2000/svg','svg');drawSvg(s,clip,Math.round(k*(clip.frames.length-1)/7),false,true);film.append(s)}play.onclick=()=>{playing=!playing;play.textContent=playing?'pause':'play'};scrub.oninput=()=>{playing=false;play.textContent='play';f=Number(scrub.value);draw()};function draw(){const ix=Math.max(0,Math.min(clip.frames.length-1,f));scrub.value=Math.floor(ix);frameNo.textContent=String(Math.floor(ix));drawSvg(stage,clip,ix,onion.checked,true);drawRef()}function tick(t){const dt=(t-last)/1000;last=t;if(playing){f=f+dt*clip.fps*Number(speed.value);if(f>clip.frames.length-1)f=clip.loop?f%clip.frames.length:(f>clip.frames.length-1+20?0:f);}draw();requestAnimationFrame(tick)}draw();if(params.get('bare')!=='1')requestAnimationFrame(tick);</script></body></html>`;
 }

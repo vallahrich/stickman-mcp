@@ -122,6 +122,38 @@ describe("mocap clip library", () => {
     expect(Math.abs(Math.atan2(Math.sin(handAngle - targetAngle), Math.cos(handAngle - targetAngle))) * 180 / Math.PI).toBeLessThan(10);
   });
 
+  it("projects authored arm spread in front view and removes it in side view", () => {
+    const base = MOTION_CLIP_LIBRARY.clips.idle;
+    const spreadClip: MotionClip = {
+      ...base,
+      name: "spread-test",
+      loop: false,
+      frames: base.frames.slice(0, 2),
+      poseKeys: [{
+        frame: 0,
+        pose: {
+          anchor: "both",
+          lean: 0,
+          neck: 0,
+          bob: 0,
+          facing: 0,
+          rLeg: { hip: 5, knee: 13 },
+          lLeg: { hip: -8, knee: 14 },
+          rArm: { shoulder: 0, elbow: 0, spread: 60, elbowSpread: 10 },
+          lArm: { shoulder: 0, elbow: 0, spread: 60, elbowSpread: 10 }
+        }
+      }]
+    };
+    const library = { ...MOTION_CLIP_LIBRARY, clips: { ...MOTION_CLIP_LIBRARY.clips, "spread-test": spreadClip } };
+    const front = sampleClipMotion(library, { action: "spread-test", progress: 0, startX: 100, endX: 100, groundY: 290, facing: 1, scale: 1, clipId: "spread-test" });
+    const sideClip = { ...spreadClip, poseKeys: [{ ...spreadClip.poseKeys![0]!, pose: { ...spreadClip.poseKeys![0]!.pose, facing: 1 } }] };
+    const side = sampleClipMotion({ ...MOTION_CLIP_LIBRARY, clips: { ...MOTION_CLIP_LIBRARY.clips, "spread-test": sideClip } }, { action: "spread-test", progress: 0, startX: 100, endX: 100, groundY: 290, facing: 1, scale: 1, clipId: "spread-test" });
+    expect(front.joints!.rightElbow.x - front.joints!.chest.x).toBeGreaterThan(30);
+    expect(front.joints!.chest.x - front.joints!.leftElbow.x).toBeGreaterThan(30);
+    expect(Math.abs(side.joints!.rightElbow.x - side.joints!.chest.x)).toBeLessThan(1);
+    expect(Math.abs(side.joints!.leftElbow.x - side.joints!.chest.x)).toBeLessThan(1);
+  });
+
   it("places pointing about one body height before the target when requested", () => {
     const pose = sampleClipMotion(MOTION_CLIP_LIBRARY, {
       action: "point", progress: 0.5, startX: 120, endX: 120, groundY: 290, facing: 1, scale: 1,
