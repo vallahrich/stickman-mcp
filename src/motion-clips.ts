@@ -10,7 +10,7 @@ export interface MotionClipFrame { root: { x: number; y: number }; angles: { tor
 export interface PoseKeyLeg { hip: number; knee: number; lift?: number }
 export interface PoseKeyArm { shoulder: number; elbow: number; spread?: number; elbowSpread?: number }
 /** Authored key pose in the engine's style space: angles in degrees from straight down, positive = forward; lengths in engine local units (pelvis rests at y=46, figure ~144 tall). */
-export interface PoseKey { anchor: "l" | "r" | "both" | null; lean: number; neck: number; bob: number; rLeg: PoseKeyLeg; lLeg: PoseKeyLeg; rArm: PoseKeyArm; lArm: PoseKeyArm; dx?: number; dy?: number; facing?: number; lPlant?: number; rPlant?: number; lFoot?: { x: number; y: number }; rFoot?: { x: number; y: number }; lHand?: { x: number; y: number }; rHand?: { x: number; y: number } }
+export interface PoseKey { anchor: "l" | "r" | "both" | null; lean: number; neck: number; bob: number; rLeg: PoseKeyLeg; lLeg: PoseKeyLeg; rArm: PoseKeyArm; lArm: PoseKeyArm; dx?: number; dy?: number; facing?: number; headShift?: number; sway?: number; lPlant?: number; rPlant?: number; lFoot?: { x: number; y: number }; rFoot?: { x: number; y: number }; lHand?: { x: number; y: number }; rHand?: { x: number; y: number } }
 export interface PoseKeyFrame { frame: number; pose: PoseKey; ease?: "inOut" | "linear" | "in" | "out" | "hold" }
 export interface MotionClip { name: MotionClipName; fps: number; loop: boolean; frames: MotionClipFrame[]; strideLength: number; markers: Record<string, number>; rig: { units: string; height: number; thigh: number; shin: number; foot: number; torso: number; neck: number; headRadius: number; upperArm: number; forearm: number }; source?: unknown; license?: unknown; meta?: MotionClipMeta; poseKeys?: PoseKeyFrame[] }
 export interface MotionClipLibrary { importedAt?: string; source?: string; index?: unknown; version?: number; fps?: number; rig?: MotionClip["rig"]; clips: Record<string, MotionClip> }
@@ -60,7 +60,7 @@ export function sampleClipMotion(library: MotionClipLibrary, request: ClipMotion
   type Point = { x: number; y: number };
   type StyleLeg = { hip: number; knee: number; lift?: number };
   type StyleArm = { shoulder: number; elbow: number; spread?: number; elbowSpread?: number };
-  type StyleKey = { anchor: "l" | "r" | "both" | null; lean: number; neck: number; bob: number; rLeg: StyleLeg; lLeg: StyleLeg; rArm: StyleArm; lArm: StyleArm; dx?: number; dy?: number; facing?: number; lPlant?: number; rPlant?: number; lFoot?: Point; rFoot?: Point; lHand?: Point; rHand?: Point; lw?: number; rw?: number; lFootW?: number; rFootW?: number; lHandW?: number; rHandW?: number };
+  type StyleKey = { anchor: "l" | "r" | "both" | null; lean: number; neck: number; bob: number; rLeg: StyleLeg; lLeg: StyleLeg; rArm: StyleArm; lArm: StyleArm; dx?: number; dy?: number; facing?: number; headShift?: number; sway?: number; lPlant?: number; rPlant?: number; lFoot?: Point; rFoot?: Point; lHand?: Point; rHand?: Point; lw?: number; rw?: number; lFootW?: number; rFootW?: number; lHandW?: number; rHandW?: number };
   const add = (a: Point, b: Point): Point => ({ x: a.x + b.x, y: a.y + b.y });
   const sub = (a: Point, b: Point): Point => ({ x: a.x - b.x, y: a.y - b.y });
   const mul = (a: Point, s: number): Point => ({ x: a.x * s, y: a.y * s });
@@ -151,7 +151,7 @@ export function sampleClipMotion(library: MotionClipLibrary, request: ClipMotion
     const u = ease === "linear" ? t : ease === "hold" ? 0 : ease === "in" ? t * t : ease === "out" ? 1 - (1 - t) * (1 - t) : easeInOut(t);
     const a = ka.pose as StyleKey, b = kb.pose as StyleKey;
     const num = (x: number | undefined, y: number | undefined, d: number): number => lerp(x ?? y ?? d, y ?? x ?? d, u);
-    const out: StyleKey = { anchor: u < 0.5 ? a.anchor : b.anchor, lean: lerp(a.lean, b.lean, u), neck: lerp(a.neck, b.neck, u), bob: lerp(a.bob, b.bob, u), rLeg: interpObj(a.rLeg, b.rLeg, u), lLeg: interpObj(a.lLeg, b.lLeg, u), rArm: interpObj(a.rArm, b.rArm, u), lArm: interpObj(a.lArm, b.lArm, u), dx: num(a.dx, b.dx, 0), dy: num(a.dy, b.dy, 0), lPlant: num(a.lPlant, b.lPlant, 0), rPlant: num(a.rPlant, b.rPlant, 0), lw: lerp(sideWeight(a, "l"), sideWeight(b, "l"), u), rw: lerp(sideWeight(a, "r"), sideWeight(b, "r"), u) };
+    const out: StyleKey = { anchor: u < 0.5 ? a.anchor : b.anchor, lean: lerp(a.lean, b.lean, u), neck: lerp(a.neck, b.neck, u), bob: lerp(a.bob, b.bob, u), rLeg: interpObj(a.rLeg, b.rLeg, u), lLeg: interpObj(a.lLeg, b.lLeg, u), rArm: interpObj(a.rArm, b.rArm, u), lArm: interpObj(a.lArm, b.lArm, u), dx: num(a.dx, b.dx, 0), dy: num(a.dy, b.dy, 0), headShift: num(a.headShift, b.headShift, 0), sway: num(a.sway, b.sway, 0), lPlant: num(a.lPlant, b.lPlant, 0), rPlant: num(a.rPlant, b.rPlant, 0), lw: lerp(sideWeight(a, "l"), sideWeight(b, "l"), u), rw: lerp(sideWeight(a, "r"), sideWeight(b, "r"), u) };
     if (a.facing !== undefined || b.facing !== undefined) out.facing = num(a.facing, b.facing, 1);
     for (const name of ["lFoot", "rFoot", "lHand", "rHand"] as const) {
       const pa = a[name], pb = b[name];
@@ -239,6 +239,12 @@ export function sampleClipMotion(library: MotionClipLibrary, request: ClipMotion
     if (k.rHand && (k.rHandW ?? 0) > 0) rArm = solveArm(rArm, k.rHand, clamp01(k.rHandW ?? 0), k.rArm.elbow);
     if (k.lHand && (k.lHandW ?? 0) > 0) lArm = solveArm(lArm, k.lHand, clamp01(k.lHandW ?? 0), k.lArm.elbow);
     if (clip.name === "point" && targetLocal) { const v = sub(targetLocal, chest); const raw = len(v) || 1; const u = mul(v, 1 / raw); const reach = Math.min(raw, (rig.upperArm + rig.forearm) * 1.05); const bend = { x: -u.y, y: u.x }; rArm = { shoulder: chest, elbow: add(chest, add(mul(u, rig.upperArm), mul(bend, 0.45))), hand: add(chest, mul(u, reach)) }; }
+    const sway = k.sway ?? 0, headShift = k.headShift ?? 0;
+    if (sway || headShift) {
+      (chest as Point & { frontalX?: number }).frontalX = sway;
+      (head as Point & { frontalX?: number }).frontalX = sway + headShift;
+      for (const point of [rArm.elbow, rArm.hand, lArm.elbow, lArm.hand] as Array<Point & { frontalX?: number }>) point.frontalX = sway;
+    }
     return { pelvis, chest, head, rLeg, lLeg, rArm, lArm };
   };
   const direction = request.facing || 1;
@@ -273,7 +279,10 @@ export function sampleClipMotion(library: MotionClipLibrary, request: ClipMotion
   const local = poseLocal(clip, frameTime, targetLocal);
   const front = smooth(1 - Math.abs(facingScale));
   const lateral = (side: "l" | "r", width: number): number => (side === "l" ? -1 : 1) * front * width * unit;
-  const world = (point: Point): Point => ({ x: rootX + direction * facingScale * point.x * unit, y: request.groundY - point.y * unit });
+  const world = (point: Point): Point => {
+    const frontalX = (point as Point & { frontalX?: number }).frontalX;
+    return { x: rootX + direction * facingScale * point.x * unit + (frontalX !== undefined ? frontalX * front * unit : 0), y: request.groundY - point.y * unit };
+  };
   const worldSide = (point: Point, side: "l" | "r", width: number): Point => {
     const base = world(point);
     const authored = (point as Point & { lateralX?: number }).lateralX;

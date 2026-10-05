@@ -26,7 +26,7 @@
     "lFoot",
     "rFoot"
   ],
-  "prop": null,
+  "prop": "watch",
   "aim": "hand",
   "facingChange": 0,
   "mirrorable": true,
@@ -39,7 +39,7 @@
     "wrist",
     "gesture"
   ],
-  "notes": "Neutral stand, slight weight shift, near/right wrist lifts in front of the chest while the head dips forward to inspect it, impatient head cock during the hold, then arm lowers and gaze returns forward.",
+  "notes": "Neutral stand, slight weight shift, near/right wrist lifts in front of the face/chest with a readable watch face and strap; head dips to inspect it, then the arm lowers.",
   "approvedBaseline": false,
   "frames": 56,
   "loop": false,
@@ -179,8 +179,8 @@
           "knee": 19
         },
         "rArm": {
-          "shoulder": 30,
-          "elbow": 108
+          "shoulder": 36,
+          "elbow": 116
         },
         "lArm": {
           "shoulder": -18,
@@ -195,8 +195,8 @@
           "y": 0
         },
         "rHand": {
-          "x": 23,
-          "y": 101
+          "x": 22,
+          "y": 112
         }
       },
       "ease": "out"
@@ -219,8 +219,8 @@
           "knee": 20
         },
         "rArm": {
-          "shoulder": 30,
-          "elbow": 108
+          "shoulder": 36,
+          "elbow": 116
         },
         "lArm": {
           "shoulder": -20,
@@ -235,8 +235,8 @@
           "y": 0
         },
         "rHand": {
-          "x": 23,
-          "y": 101
+          "x": 22,
+          "y": 112
         }
       },
       "ease": "hold"
@@ -259,8 +259,8 @@
           "knee": 20
         },
         "rArm": {
-          "shoulder": 30,
-          "elbow": 108
+          "shoulder": 36,
+          "elbow": 116
         },
         "lArm": {
           "shoulder": -20,
@@ -275,8 +275,8 @@
           "y": 0
         },
         "rHand": {
-          "x": 23,
-          "y": 101
+          "x": 22,
+          "y": 112
         }
       },
       "ease": "inOut"
@@ -299,8 +299,8 @@
           "knee": 22
         },
         "rArm": {
-          "shoulder": 26,
-          "elbow": 112
+          "shoulder": 32,
+          "elbow": 116
         },
         "lArm": {
           "shoulder": -26,
@@ -315,8 +315,8 @@
           "y": 0
         },
         "rHand": {
-          "x": 20,
-          "y": 101
+          "x": 19,
+          "y": 112
         }
       },
       "ease": "out"
@@ -339,8 +339,8 @@
           "knee": 20
         },
         "rArm": {
-          "shoulder": 30,
-          "elbow": 108
+          "shoulder": 36,
+          "elbow": 116
         },
         "lArm": {
           "shoulder": -22,
@@ -355,8 +355,8 @@
           "y": 0
         },
         "rHand": {
-          "x": 23,
-          "y": 101
+          "x": 22,
+          "y": 112
         }
       },
       "ease": "inOut"
@@ -473,6 +473,18 @@
     "maxJointStep": 14
   },
   "review": {
-    "prop": null
+    "prop": {
+      "attach": {
+        "hand": "r",
+        "from": 14,
+        "to": 44,
+        "dx": 0,
+        "dy": 0,
+        "hiddenBefore": true,
+        "hiddenAfter": true
+      },
+      "w": 15,
+      "h": 13
+    }
   }
 }

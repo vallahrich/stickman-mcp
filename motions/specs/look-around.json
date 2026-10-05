@@ -29,7 +29,7 @@
     "lFoot",
     "rFoot"
   ],
-  "prop": "binoculars",
+  "prop": "glasses",
   "aim": "head",
   "facingChange": 0,
   "mirrorable": true,
@@ -47,7 +47,7 @@
     "posture",
     "rather"
   ],
-  "notes": "Binocular scan now uses a full side-view right hold, a quick turn through front to face left with binoculars held to the eyes, a left spotting hold, then a turn back right and lower.",
+  "notes": "Glasses scan: simple round glasses ride on the head/face throughout the side-to-side look; the right hand lifts briefly to touch the glasses during the look holds while the body keeps the approved scan timing.",
   "approvedBaseline": false,
   "frames": 136,
   "loop": false,
@@ -89,20 +89,12 @@
           "y": 0
         },
         "rArm": {
-          "shoulder": 26,
-          "elbow": 72
+          "shoulder": 18,
+          "elbow": 58
         },
         "lArm": {
           "shoulder": 8,
           "elbow": 45
-        },
-        "rHand": {
-          "x": 25,
-          "y": 100
-        },
-        "lHand": {
-          "x": 26,
-          "y": 69
         }
       },
       "ease": "inOut"
@@ -133,20 +125,12 @@
           "y": 0
         },
         "rArm": {
-          "shoulder": 54,
-          "elbow": 70
+          "shoulder": 46,
+          "elbow": 64
         },
         "lArm": {
-          "shoulder": 48,
-          "elbow": 68
-        },
-        "rHand": {
-          "x": 30,
-          "y": 120
-        },
-        "lHand": {
-          "x": 22,
-          "y": 116
+          "shoulder": 8,
+          "elbow": 45
         }
       },
       "ease": "inOut"
@@ -177,20 +161,12 @@
           "y": 0
         },
         "rArm": {
-          "shoulder": 78,
+          "shoulder": 68,
           "elbow": 58
         },
         "lArm": {
-          "shoulder": 76,
-          "elbow": 60
-        },
-        "rHand": {
-          "x": 35,
-          "y": 136
-        },
-        "lHand": {
-          "x": 27,
-          "y": 136
+          "shoulder": 8,
+          "elbow": 45
         }
       },
       "ease": "hold"
@@ -223,20 +199,12 @@
           "y": 8
         },
         "rArm": {
-          "shoulder": 78,
+          "shoulder": 68,
           "elbow": 58
         },
         "lArm": {
-          "shoulder": 76,
-          "elbow": 60
-        },
-        "rHand": {
-          "x": 35,
-          "y": 136
-        },
-        "lHand": {
-          "x": 27,
-          "y": 136
+          "shoulder": 8,
+          "elbow": 45
         },
         "dy": 22
       },
@@ -271,20 +239,12 @@
           "y": 0
         },
         "rArm": {
-          "shoulder": 82,
-          "elbow": 54
+          "shoulder": 70,
+          "elbow": 58
         },
         "lArm": {
-          "shoulder": 84,
-          "elbow": 54
-        },
-        "rHand": {
-          "x": 20,
-          "y": 136
-        },
-        "lHand": {
-          "x": 12,
-          "y": 136
+          "shoulder": 8,
+          "elbow": 45
         }
       },
       "ease": "linear"
@@ -318,20 +278,12 @@
           "y": 0
         },
         "rArm": {
-          "shoulder": 84,
-          "elbow": 54
-        },
-        "lArm": {
-          "shoulder": 78,
+          "shoulder": 70,
           "elbow": 58
         },
-        "rHand": {
-          "x": 31,
-          "y": 136
-        },
-        "lHand": {
-          "x": 23,
-          "y": 136
+        "lArm": {
+          "shoulder": 8,
+          "elbow": 45
         }
       },
       "ease": "inOut"
@@ -364,20 +316,12 @@
           "y": 8
         },
         "rArm": {
-          "shoulder": 84,
-          "elbow": 54
-        },
-        "lArm": {
-          "shoulder": 78,
+          "shoulder": 70,
           "elbow": 58
         },
-        "rHand": {
-          "x": 31,
-          "y": 136
-        },
-        "lHand": {
-          "x": 23,
-          "y": 136
+        "lArm": {
+          "shoulder": 8,
+          "elbow": 45
         },
         "dy": 20
       },
@@ -409,20 +353,12 @@
           "y": 0
         },
         "rArm": {
-          "shoulder": 84,
-          "elbow": 54
-        },
-        "lArm": {
-          "shoulder": 78,
+          "shoulder": 70,
           "elbow": 58
         },
-        "rHand": {
-          "x": 35,
-          "y": 136
-        },
-        "lHand": {
-          "x": 27,
-          "y": 136
+        "lArm": {
+          "shoulder": 8,
+          "elbow": 45
         }
       },
       "ease": "out"
@@ -453,20 +389,12 @@
           "y": 0
         },
         "rArm": {
-          "shoulder": 88,
-          "elbow": 52
+          "shoulder": 70,
+          "elbow": 58
         },
         "lArm": {
-          "shoulder": 80,
-          "elbow": 56
-        },
-        "rHand": {
-          "x": 35,
-          "y": 136
-        },
-        "lHand": {
-          "x": 27,
-          "y": 136
+          "shoulder": 8,
+          "elbow": 45
         }
       },
       "ease": "hold"
@@ -497,20 +425,12 @@
           "y": 0
         },
         "rArm": {
-          "shoulder": 88,
-          "elbow": 52
+          "shoulder": 70,
+          "elbow": 58
         },
         "lArm": {
-          "shoulder": 80,
-          "elbow": 56
-        },
-        "rHand": {
-          "x": 35,
-          "y": 136
-        },
-        "lHand": {
-          "x": 27,
-          "y": 136
+          "shoulder": 8,
+          "elbow": 45
         }
       },
       "ease": "linear"
@@ -543,20 +463,12 @@
           "y": 8
         },
         "rArm": {
-          "shoulder": 84,
-          "elbow": 54
-        },
-        "lArm": {
-          "shoulder": 78,
+          "shoulder": 70,
           "elbow": 58
         },
-        "rHand": {
-          "x": 35,
-          "y": 136
-        },
-        "lHand": {
-          "x": 27,
-          "y": 136
+        "lArm": {
+          "shoulder": 8,
+          "elbow": 45
         },
         "dy": 22
       },
@@ -591,20 +503,12 @@
           "y": 0
         },
         "rArm": {
-          "shoulder": 82,
-          "elbow": 54
+          "shoulder": 70,
+          "elbow": 58
         },
         "lArm": {
-          "shoulder": 84,
-          "elbow": 54
-        },
-        "rHand": {
-          "x": 20,
-          "y": 136
-        },
-        "lHand": {
-          "x": 12,
-          "y": 136
+          "shoulder": 8,
+          "elbow": 45
         }
       },
       "ease": "inOut"
@@ -635,20 +539,12 @@
           "y": 0
         },
         "rArm": {
-          "shoulder": 48,
-          "elbow": 74
-        },
-        "lArm": {
-          "shoulder": 34,
+          "shoulder": 46,
           "elbow": 64
         },
-        "rHand": {
-          "x": 27,
-          "y": 112
-        },
-        "lHand": {
-          "x": 24,
-          "y": 94
+        "lArm": {
+          "shoulder": 8,
+          "elbow": 45
         }
       },
       "ease": "inOut"
@@ -679,20 +575,12 @@
           "y": 0
         },
         "rArm": {
-          "shoulder": 34,
-          "elbow": 72
+          "shoulder": 18,
+          "elbow": 58
         },
         "lArm": {
-          "shoulder": 12,
-          "elbow": 48
-        },
-        "rHand": {
-          "x": 25,
-          "y": 102
-        },
-        "lHand": {
-          "x": 26,
-          "y": 74
+          "shoulder": 8,
+          "elbow": 45
         }
       },
       "ease": "inOut"
@@ -732,14 +620,6 @@
           "shoulder": 8,
           "elbow": 45
         },
-        "rHand": {
-          "x": 25,
-          "y": 100
-        },
-        "lHand": {
-          "x": 26,
-          "y": 69
-        },
         "dy": 22
       },
       "ease": "inOut"
@@ -770,20 +650,12 @@
           "y": 0
         },
         "rArm": {
-          "shoulder": 26,
-          "elbow": 72
+          "shoulder": 18,
+          "elbow": 58
         },
         "lArm": {
           "shoulder": 8,
           "elbow": 45
-        },
-        "rHand": {
-          "x": 25,
-          "y": 100
-        },
-        "lHand": {
-          "x": 26,
-          "y": 69
         }
       },
       "ease": "inOut"
@@ -794,17 +666,15 @@
   },
   "review": {
     "prop": {
-      "x": 0,
-      "y": 0,
-      "w": 42,
-      "h": 23,
       "attach": {
-        "hand": "both",
+        "hand": "head",
         "from": 0,
         "to": 135,
-        "dx": 0,
-        "dy": 0
-      }
+        "dx": 5,
+        "dy": 1
+      },
+      "w": 24,
+      "h": 11
     }
   }
 }

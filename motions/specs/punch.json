@@ -23,7 +23,7 @@
     "lFoot",
     "rFoot"
   ],
-  "prop": null,
+  "prop": "glove",
   "aim": null,
   "facingChange": 0,
   "mirrorable": true,
@@ -34,7 +34,7 @@
     "guard",
     "strike"
   ],
-  "notes": "Side-view boxing combo: step into guard, lead jab snaps out and back, rear cross rotates through, then relaxes to neutral.",
+  "notes": "Side-view boxing combo with large filled gloves on both hands: guard, lead jab, rear cross, and recover.",
   "approvedBaseline": false,
   "frames": 60,
   "loop": false,
@@ -635,6 +635,26 @@
     "maxJointStep": 14
   },
   "review": {
-    "prop": null
+    "prop": {
+      "attach": {
+        "hand": "r",
+        "from": 0,
+        "to": 59
+      },
+      "w": 16,
+      "h": 12
+    },
+    "extraProps": [
+      {
+        "type": "glove",
+        "attach": {
+          "hand": "l",
+          "from": 0,
+          "to": 59
+        },
+        "w": 16,
+        "h": 12
+      }
+    ]
   }
 }

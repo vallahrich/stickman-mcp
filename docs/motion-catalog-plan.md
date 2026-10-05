@@ -53,8 +53,8 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `crouch` | user-approved | W1 | 8/10 |
 | `sit-down` | user-approved | W1 | 8/10 |
 | `stand-up` | user-approved | W1 | 8/10 |
-| `open-door` | rework | W1 | user 7: weird lean |
-| `jog` | rework | W4 | user 7: too crouched |
+| `open-door` | candidate | W1 | batch 8: lean fixed |
+| `jog` | candidate | W4 | batch 8: upright passing pose |
 | `walk-backwards` | user-approved | W4 | user 8+ |
 | `walk-turn` | draft | W4 |  |
 | `turn-90` | user-approved | W4 | batch 5: 9/10 approved |
@@ -76,15 +76,15 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `wave` | user-approved | W1 | batch 5: 9/10 approved |
 | `point` | user-approved | done |  |
 | `nod` | user-approved | W3 | batch 4: approved |
-| `head-shake` | rework | W3 | user: wrong, redo as clear no |
-| `thumbs-up` | rework | W3 | user: reads as middle finger |
+| `head-shake` | candidate | W3 | batch 8: engine headShift |
+| `thumbs-up` | candidate | W3 | batch 8: fist + thumb redraw |
 | `beckon` | user-approved | W3 | batch 4: approved |
-| `stop-hand` | rework | W3 | user: intent unclear |
+| `stop-hand` | candidate | W3 | batch 8: clearer palm push |
 | `clap` | user-approved | W3 | batch 4: approved |
 | `bow` | user-approved | W3 | 8/10 |
 | `shrug` | user-approved | W3 | batch 4: approved |
 | `think` | user-approved | W3 | 8/10 |
-| `look-around` | rework | W3 | user: swap binoculars for glasses |
+| `look-around` | candidate | W3 | batch 8: glasses |
 | `cheer` | user-approved | W2 | batch 5: 9/10 approved |
 | `fist-pump` | user-approved | W9 | batch 6: 8/10 approved |
 | `scratch-head` | user-approved | W9 | batch 6: 9/10 approved |
@@ -103,7 +103,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `write-board` | user-approved | W2 | user 8+ |
 | `tap-element` | user-approved | W2 | approved |
 | `idea` | user-approved | W2 | approved; bulb to be yellow |
-| `pull-banner` | rework | W2 | user: add top/bottom/left/right variants |
+| `pull-banner` | candidate | W2 | batch 8: top/bottom variants (left/right in rework) |
 | `swipe-next` | user-approved | W2 | batch 5: 9/10 approved |
 | `walk-on` | planned | W5 |  |
 | `walk-off` | planned | W5 |  |
@@ -136,11 +136,11 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `pick-up` | draft | W7 |  |
 | `put-down` | draft | W7 |  |
 | `lift-carry` | draft | W7 |  |
-| `throw` | draft | W7 |  |
+| `throw` | candidate | W7 | batch 8: throw-ball + basketball-shot add-ons |
 | `catch` | planned | W7 |  |
 | `hand-over` | planned | W7 |  |
 | `drag-object` | planned | W7 |  |
-| `check-watch` | rework | W7 | user 6: needs a real watch prop |
+| `check-watch` | candidate | W7 | batch 8: watch prop |
 | `write-notes` | planned | W7 |  |
 
 ### Sport & action (19)
@@ -149,12 +149,12 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | --- | --- | --- | --- |
 | `jump` | user-approved | done |  |
 | `hop` | user-approved | W8 | batch 6: 9/10 approved |
-| `kick` | candidate | W8 |  |
+| `kick` | candidate | W8 | batch 8: + kick-ball add-on variant |
 | `long-jump` | draft | W8 |  |
-| `hurdle` | draft | W8 |  |
+| `hurdle` | candidate | W8 | batch 8: hurdle add-on |
 | `vault` | draft | W8 |  |
 | `skip` | user-approved | W8 | user 8+ |
-| `punch` | rework | W8 | user 7: add boxing gloves |
+| `punch` | candidate | W8 | batch 8: boxing gloves |
 | `dodge` | user-approved | W8 | user 8+ |
 | `roll` | draft | W8 |  |
 | `trip` | draft | W8 |  |
@@ -170,8 +170,8 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 ## Totals
 
 - user-approved: 49
-- rework: 10
-- draft: 18
+- rework: 1
+- candidate: 14
+- draft: 16
 - planned: 20
-- candidate: 3
 - **total: 100**

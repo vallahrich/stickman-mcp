@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { sampleClipMotion, type MotionClip, type PoseKey } from "../dist/motion-clips.js";
 import { RUNTIME_MOTION_LIBRARY } from "../dist/motion-library.js";
-import { clipFrameToSampledFrame, REVIEW_STAGE } from "../scripts/motions/review-renderer.mjs";
+import { addonLifecycleState, clipFrameToSampledFrame, computeAddonFlightPoint, REVIEW_STAGE } from "../scripts/motions/review-renderer.mjs";
 import { buildKeyPoseClip, keyPoseGates } from "../scripts/motions/keypose.mjs";
 
 const stand: PoseKey = { anchor: "both", lean: 2, neck: -1, bob: 0, rLeg: { hip: 5, knee: 13 }, lLeg: { hip: -8, knee: 14 }, rArm: { shoulder: -8, elbow: 45 }, lArm: { shoulder: 8, elbow: 45 } };
@@ -60,5 +60,25 @@ describe("motion review renderer uses the shipping engine", () => {
     expect(result.failures.some((f: { metric: string }) => f.metric === "kneeBendsBackward")).toBe(true);
     const ok = await keyPoseGates(keyed([{ frame: 0, pose: stand }, { frame: 20, pose: stand }]), { id: "t" });
     expect(ok.passed).toBe(true);
+  });
+
+  it("computes add-on lifecycle visibility and pop scale", () => {
+    const addOn = { enter: { frame: 10, style: "pop", dur: 8 }, exit: { frame: 30, style: "fade", dur: 6 } };
+    expect(addonLifecycleState(addOn, 9).visible).toBe(false);
+    expect(addonLifecycleState(addOn, 10).scale).toBeCloseTo(0, 5);
+    expect(addonLifecycleState(addOn, 14).scale).toBeCloseTo(1.1, 5);
+    expect(addonLifecycleState(addOn, 18).scale).toBeCloseTo(1, 5);
+    expect(addonLifecycleState(addOn, 36).visible).toBe(false);
+  });
+
+  it("computes add-on flight parabola endpoints and apex", () => {
+    const start = { x: 10, y: 100 };
+    const end = { x: 70, y: 100 };
+    const flight = { from: 20, to: 40, apex: 40, spin: 720 };
+    expect(computeAddonFlightPoint(start, end, flight, 20, REVIEW_STAGE)).toMatchObject({ x: 10, y: 100, rot: 0 });
+    expect(computeAddonFlightPoint(start, end, flight, 40, REVIEW_STAGE)).toMatchObject({ x: 70, y: 100, rot: 720 });
+    const mid = computeAddonFlightPoint(start, end, flight, 30, REVIEW_STAGE);
+    expect(mid.x).toBeCloseTo(40, 5);
+    expect(mid.y).toBeLessThan(100);
   });
 });

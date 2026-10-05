@@ -154,6 +154,66 @@ describe("mocap clip library", () => {
     expect(Math.abs(side.joints!.leftElbow.x - side.joints!.chest.x)).toBeLessThan(1);
   });
 
+  it("keeps authored headShift zero identical to the default pose", () => {
+    const base = MOTION_CLIP_LIBRARY.clips.idle;
+    const makeClip = (headShift?: number): MotionClip => ({
+      ...base,
+      name: "head-shift-test",
+      loop: false,
+      frames: base.frames.slice(0, 2),
+      poseKeys: [{
+        frame: 0,
+        pose: {
+          anchor: "both",
+          lean: 0,
+          neck: 0,
+          bob: 0,
+          facing: 0,
+          ...(headShift !== undefined ? { headShift } : {}),
+          rLeg: { hip: 5, knee: 13 },
+          lLeg: { hip: -8, knee: 14 },
+          rArm: { shoulder: -8, elbow: 45 },
+          lArm: { shoulder: 8, elbow: 45 }
+        }
+      }]
+    });
+    const sample = (clip: MotionClip) => sampleClipMotion({ ...MOTION_CLIP_LIBRARY, clips: { ...MOTION_CLIP_LIBRARY.clips, "head-shift-test": clip } }, {
+      action: "head-shift-test", progress: 0, startX: 100, endX: 100, groundY: 290, facing: 1, scale: 1.25, clipId: "head-shift-test"
+    });
+    expect(sample(makeClip(0))).toStrictEqual(sample(makeClip()));
+  });
+
+  it("moves authored headShift laterally in front view", () => {
+    const base = MOTION_CLIP_LIBRARY.clips.idle;
+    const makeClip = (headShift: number): MotionClip => ({
+      ...base,
+      name: "head-shift-test",
+      loop: false,
+      frames: base.frames.slice(0, 2),
+      poseKeys: [{
+        frame: 0,
+        pose: {
+          anchor: "both",
+          lean: 0,
+          neck: 0,
+          bob: 0,
+          facing: 0,
+          headShift,
+          rLeg: { hip: 5, knee: 13 },
+          lLeg: { hip: -8, knee: 14 },
+          rArm: { shoulder: -8, elbow: 45 },
+          lArm: { shoulder: 8, elbow: 45 }
+        }
+      }]
+    });
+    const sample = (clip: MotionClip) => sampleClipMotion({ ...MOTION_CLIP_LIBRARY, clips: { ...MOTION_CLIP_LIBRARY.clips, "head-shift-test": clip } }, {
+      action: "head-shift-test", progress: 0, startX: 100, endX: 100, groundY: 290, facing: 1, scale: 1.25, clipId: "head-shift-test"
+    });
+    const neutral = sample(makeClip(0));
+    const shifted = sample(makeClip(8));
+    expect(shifted.headPoint!.x - neutral.headPoint!.x).toBeCloseTo(8 * 1.25, 5);
+  });
+
   it("places pointing about one body height before the target when requested", () => {
     const pose = sampleClipMotion(MOTION_CLIP_LIBRARY, {
       action: "point", progress: 0.5, startX: 120, endX: 120, groundY: 290, facing: 1, scale: 1,
