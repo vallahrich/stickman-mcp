@@ -53,18 +53,18 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `crouch` | user-approved | W1 | 8/10 |
 | `sit-down` | user-approved | W1 | 8/10 |
 | `stand-up` | user-approved | W1 | 8/10 |
-| `open-door` | candidate | W1 | batch 5: awaiting rating |
-| `jog` | candidate | W4 | batch 5: awaiting rating |
-| `walk-backwards` | candidate | W4 | batch 5: awaiting rating |
+| `open-door` | rework | W1 | 5/10: still weak |
+| `jog` | rework | W4 | 6/10: restore first version |
+| `walk-backwards` | rework | W4 | 5/10: too slow, foot lifts weirdly |
 | `walk-turn` | draft | W4 |  |
-| `turn-90` | candidate | W4 | batch 5: awaiting rating |
+| `turn-90` | user-approved | W4 | batch 5: 9/10 approved |
 | `sidestep` | candidate | W4 | batch 5: awaiting rating |
 | `sneak` | user-approved | W4 | batch 4: approved |
-| `stairs-up` | candidate | W4 | batch 5: awaiting rating |
-| `stairs-down` | candidate | W4 | batch 6: awaiting rating |
+| `stairs-up` | user-approved | W4 | batch 5: 8/10 approved |
+| `stairs-down` | rework | W4 | 7/10: too careful, speed up |
 | `seated-idle` | planned | W4 |  |
-| `kneel-down` | candidate | W9 | batch 6: awaiting rating |
-| `kneel-up` | candidate | W9 | batch 6: awaiting rating |
+| `kneel-down` | user-approved | W9 | batch 6: 9/10 approved |
+| `kneel-up` | user-approved | W9 | batch 6: 8/10 approved |
 | `sit-floor` | planned | W9 |  |
 | `lie-down` | planned | W9 |  |
 | `get-up` | planned | W9 |  |
@@ -73,23 +73,23 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 
 | Motion | Status | Wave | Note |
 | --- | --- | --- | --- |
-| `wave` | candidate | W1 | batch 5: awaiting rating |
+| `wave` | user-approved | W1 | batch 5: 9/10 approved |
 | `point` | user-approved | done |  |
 | `nod` | user-approved | W3 | batch 4: approved |
 | `head-shake` | candidate | W3 | batch 5: awaiting rating |
 | `thumbs-up` | candidate | W3 | batch 5: awaiting rating |
 | `beckon` | user-approved | W3 | batch 4: approved |
-| `stop-hand` | candidate | W3 | batch 5: awaiting rating |
+| `stop-hand` | rework | W3 | 2/10: hand looks bad |
 | `clap` | user-approved | W3 | batch 4: approved |
 | `bow` | user-approved | W3 | 8/10 |
 | `shrug` | user-approved | W3 | batch 4: approved |
 | `think` | user-approved | W3 | 8/10 |
-| `look-around` | candidate | W3 | batch 5: awaiting rating |
-| `cheer` | candidate | W2 | batch 5: awaiting rating |
-| `fist-pump` | candidate | W9 | batch 6: awaiting rating |
-| `scratch-head` | candidate | W9 | batch 6: awaiting rating |
-| `arms-crossed` | candidate | W9 | batch 6: awaiting rating |
-| `facepalm` | candidate | W9 | batch 6: awaiting rating |
+| `look-around` | rework | W3 | 5/10: binoculars unclear, no scan |
+| `cheer` | user-approved | W2 | batch 5: 9/10 approved |
+| `fist-pump` | user-approved | W9 | batch 6: 8/10 approved |
+| `scratch-head` | user-approved | W9 | batch 6: 9/10 approved |
+| `arms-crossed` | user-approved | W9 | batch 6: 9/10 approved |
+| `facepalm` | user-approved | W9 | batch 6: 8/10 approved |
 | `surprised` | planned | W9 |  |
 | `sad-slump` | planned | W9 |  |
 
@@ -99,12 +99,12 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | --- | --- | --- | --- |
 | `present` | user-approved | W2 | approved |
 | `present-card` | user-approved | W2 | 8/10 |
-| `reveal` | candidate | W2 | batch 5: awaiting rating |
-| `write-board` | candidate | W2 | batch 5: awaiting rating |
+| `reveal` | rework | W2 | 5/10: not natural |
+| `write-board` | rework | W2 | 7/10: not centred on board |
 | `tap-element` | user-approved | W2 | approved |
 | `idea` | user-approved | W2 | approved; bulb to be yellow |
-| `pull-banner` | candidate | W2 | batch 5: awaiting rating |
-| `swipe-next` | candidate | W2 | batch 5: awaiting rating |
+| `pull-banner` | rework | W2 | 7/10: needs physical pull |
+| `swipe-next` | user-approved | W2 | batch 5: 9/10 approved |
 | `walk-on` | planned | W5 |  |
 | `walk-off` | planned | W5 |  |
 | `enter-door` | planned | W5 | appear through a door on the next slide |
@@ -116,7 +116,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 
 | Motion | Status | Wave | Note |
 | --- | --- | --- | --- |
-| `type-at-desk` | candidate | W2 | batch 5: awaiting rating |
+| `type-at-desk` | user-approved | W2 | batch 5: 9/10 approved (polish: still body) |
 | `open-laptop` | planned | W6 |  |
 | `video-call` | planned | W6 |  |
 | `phone-call` | planned | W6 |  |
@@ -148,7 +148,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | Motion | Status | Wave | Note |
 | --- | --- | --- | --- |
 | `jump` | user-approved | done |  |
-| `hop` | candidate | W8 | batch 6: awaiting rating |
+| `hop` | user-approved | W8 | batch 6: 9/10 approved |
 | `kick` | candidate | W8 |  |
 | `long-jump` | draft | W8 |  |
 | `hurdle` | draft | W8 |  |
@@ -169,9 +169,9 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 
 ## Totals
 
-- user-approved: 25
-- rework: 1
-- candidate: 28
+- user-approved: 38
+- rework: 10
 - draft: 18
+- candidate: 6
 - planned: 28
 - **total: 100**

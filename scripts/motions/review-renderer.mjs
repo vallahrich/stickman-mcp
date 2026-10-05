@@ -89,7 +89,7 @@ function layoutProp(spec, propsCatalog, frameIndex = 0, stage = { rootX: 160, gr
 
 function doorMarkup(prop, strokeWidth, color, layer = "all") {
   const sw = num(strokeWidth);
-  const attrs = `fill="#fff" stroke="${xml(color)}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"`;
+  const attrs = `fill="#fff" ${open > 0.05 ? 'fill-opacity="0.72"' : ""} stroke="${xml(color)}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"`;
   const x = prop.x, y = prop.y, w = prop.w, h = prop.h;
   const open = Math.max(0, Math.min(1, prop.open ?? 0));
   const hingeLeft = prop.hinge === "left";
@@ -117,7 +117,7 @@ function doorMarkup(prop, strokeWidth, color, layer = "all") {
   const hinge = `<path d="${line(nearTop, nearBottom)}" stroke="${xml(color)}" stroke-width="${num(strokeWidth * 1.15)}" stroke-linecap="round"/>`;
   const handle = `<circle data-prop="door-handle" cx="${num(handleX)}" cy="${num(handleY)}" r="${num(Math.max(2, strokeWidth))}" fill="#fff" stroke="${xml(color)}" stroke-width="${sw}"/>`;
   const rightPost = `<path data-prop="door-right-post" d="${line({ x: x + w, y }, { x: x + w, y: y + h })}" stroke="${xml(color)}" stroke-width="${num(strokeWidth * 1.25)}" stroke-linecap="round"/>`;
-  if (layer === "back") return `<g data-prop="door">${leaf}${opening}${hatch}${handle}</g>`;
+  if (layer === "back") return `<g data-prop="door">${opening}${hatch}${leaf}${handle}</g>`;
   if (layer === "front") return `<g data-prop="door-frame-front">${frame}${rightPost}</g>`;
   return `<g data-prop="door">${opening}${hatch}${leaf}${handle}${frame}${rightPost}</g>`;
 }
@@ -176,16 +176,15 @@ function boardInkMarkup(prop, strokeWidth, color) {
 function binocularsMarkup(prop, strokeWidth, color) {
   const sw = num(strokeWidth);
   const x = prop.x, y = prop.y, w = prop.w, h = prop.h;
-  const cy = y + h / 2;
-  const barrelH = h * 0.34;
-  const barrelW = w * 0.5;
-  const leftY = cy - barrelH * 0.65;
-  const rightY = cy + barrelH * 0.65;
-  const start = x + w * 0.18;
-  const end = x + w * 0.82;
-  const bridgeX1 = x + w * 0.44;
-  const bridgeX2 = x + w * 0.56;
-  return `<g data-prop="binoculars" fill="#fff" stroke="${xml(color)}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"><rect x="${num(start)}" y="${num(leftY - barrelH / 2)}" width="${num(barrelW)}" height="${num(barrelH)}" rx="${num(barrelH / 2)}"/><rect x="${num(start)}" y="${num(rightY - barrelH / 2)}" width="${num(barrelW)}" height="${num(barrelH)}" rx="${num(barrelH / 2)}"/><path d="${line({ x: bridgeX1, y: cy }, { x: bridgeX2, y: cy })}"/></g>`;
+  const cx = x + w / 2, cy = y + h / 2;
+  const barrelW = w * 0.35;
+  const barrelH = h * 0.74;
+  const gap = w * 0.08;
+  const leftX = cx - gap / 2 - barrelW;
+  const rightX = cx + gap / 2;
+  const by = cy - barrelH / 2;
+  const noseY = cy + barrelH * 0.22;
+  return `<g data-prop="binoculars" fill="#fff" stroke="${xml(color)}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"><rect x="${num(leftX)}" y="${num(by)}" width="${num(barrelW)}" height="${num(barrelH)}" rx="${num(barrelH * 0.34)}"/><rect x="${num(rightX)}" y="${num(by)}" width="${num(barrelW)}" height="${num(barrelH)}" rx="${num(barrelH * 0.34)}"/><path d="${line({ x: leftX + barrelW, y: cy }, { x: rightX, y: cy })}"/><path d="${line({ x: cx - gap * 0.4, y: noseY }, { x: cx + gap * 0.4, y: noseY })}" stroke-width="${num(strokeWidth * 0.55)}"/></g>`;
 }
 
 function palmMarkup(prop, strokeWidth, color) {

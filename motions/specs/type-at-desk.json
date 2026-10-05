@@ -92,8 +92,8 @@
       "frame": 4,
       "pose": {
         "anchor": "both",
-        "lean": 11,
-        "neck": -13,
+        "lean": 10,
+        "neck": -12,
         "bob": 0,
         "dx": -24,
         "rLeg": {
@@ -221,8 +221,8 @@
       "frame": 13,
       "pose": {
         "anchor": "both",
-        "lean": 9,
-        "neck": -11,
+        "lean": 10,
+        "neck": -12,
         "bob": 0,
         "dx": -24,
         "rLeg": {
@@ -307,8 +307,8 @@
       "frame": 19,
       "pose": {
         "anchor": "both",
-        "lean": 9,
-        "neck": -10,
+        "lean": 10,
+        "neck": -12,
         "bob": 0,
         "dx": -24,
         "rLeg": {
@@ -350,8 +350,8 @@
       "frame": 22,
       "pose": {
         "anchor": "both",
-        "lean": 9,
-        "neck": -8,
+        "lean": 10,
+        "neck": -12,
         "bob": 0,
         "dx": -24,
         "rLeg": {
@@ -393,8 +393,8 @@
       "frame": 25,
       "pose": {
         "anchor": "both",
-        "lean": 5,
-        "neck": 12,
+        "lean": 10,
+        "neck": -12,
         "bob": 0,
         "dx": -24,
         "rLeg": {
@@ -436,8 +436,8 @@
       "frame": 28,
       "pose": {
         "anchor": "both",
-        "lean": 4,
-        "neck": 18,
+        "lean": 10,
+        "neck": -12,
         "bob": 0,
         "dx": -24,
         "rLeg": {
@@ -479,8 +479,8 @@
       "frame": 31,
       "pose": {
         "anchor": "both",
-        "lean": 6,
-        "neck": 10,
+        "lean": 10,
+        "neck": -12,
         "bob": 0,
         "dx": -24,
         "rLeg": {
@@ -523,7 +523,7 @@
       "pose": {
         "anchor": "both",
         "lean": 10,
-        "neck": -10,
+        "neck": -12,
         "bob": 0,
         "dx": -24,
         "rLeg": {
@@ -608,8 +608,8 @@
       "frame": 40,
       "pose": {
         "anchor": "both",
-        "lean": 11,
-        "neck": -13,
+        "lean": 10,
+        "neck": -12,
         "bob": 0,
         "dx": -24,
         "rLeg": {
