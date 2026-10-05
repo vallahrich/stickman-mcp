@@ -109,7 +109,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `walk-off` | candidate | W5 | batch 12: review |
 | `enter-door` | planned | W5 | appear through a door on the next slide |
 | `exit-door` | planned | W5 | leave the slide through a door |
-| `hold-sign` | draft | W5 | wave 12: authoring |
+| `hold-sign` | candidate | W5 | batch 12: review |
 | `inspect-magnifier` | planned | W5 |  |
 
 ### IT (9)
@@ -164,14 +164,14 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `climb-down` | draft | W10 |  |
 | `climb-ledge` | draft | W10 |  |
 | `hang-swing` | draft | W10 |  |
-| `crawl` | draft | W10 | wave 12: authoring |
+| `crawl` | candidate | W10 | batch 12: review |
 | `fall-get-up` | candidate | W10 | batch 12: review |
 
 ## Totals
 
 - user-approved: 62
 - rework: 2
-- candidate: 10
+- candidate: 12
 - planned: 16
-- draft: 10
+- draft: 8
 - **total: 100**
