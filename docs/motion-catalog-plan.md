@@ -105,8 +105,8 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `idea` | user-approved | W2 | approved; bulb to be yellow |
 | `pull-banner` | user-approved | W2 | batch 10: all four directions approved (left/right = box pulls) 8/10 |
 | `swipe-next` | user-approved | W2 | batch 5: 9/10 approved |
-| `walk-on` | rework | W5 | 6/10: reuse approved walk cycle |
-| `walk-off` | rework | W5 | 6/10: reuse approved walk cycle |
+| `walk-on` | candidate | W5 | batch 13: review |
+| `walk-off` | candidate | W5 | batch 13: review |
 | `enter-door` | planned | W5 | appear through a door on the next slide |
 | `exit-door` | planned | W5 | leave the slide through a door |
 | `hold-sign` | candidate | W5 | batch 13: review |
@@ -170,8 +170,8 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 ## Totals
 
 - user-approved: 63
-- rework: 7
+- rework: 5
 - planned: 16
-- candidate: 6
+- candidate: 8
 - draft: 8
 - **total: 100**
