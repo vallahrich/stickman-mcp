@@ -18,6 +18,11 @@ corporate repository; the former mirror workflow was removed. See the mirror
 instructions in the README.
 ## Next stages
 
+**Motion catalog: 100 most-used motions.** The
+[motion catalog plan](motion-catalog-plan.md) lists the 100 target motions by
+family, their status and the wave each one is built in. Motions ship only at a
+user rating of 8/10 or higher; chaining across slides comes after the catalog.
+
 **Scripted motion milestone: provisionally accepted V7.**
 The [scored development cycle](motion-quality-plan.md) replaced the rejected
 approximately 3/10 coordinate-motion baseline with fixed-length FK/IK,
