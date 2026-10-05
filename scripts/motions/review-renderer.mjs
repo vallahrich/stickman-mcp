@@ -89,9 +89,9 @@ function layoutProp(spec, propsCatalog, frameIndex = 0, stage = { rootX: 160, gr
 
 function doorMarkup(prop, strokeWidth, color, layer = "all") {
   const sw = num(strokeWidth);
-  const attrs = `fill="#fff" ${open > 0.05 ? 'fill-opacity="0.72"' : ""} stroke="${xml(color)}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"`;
   const x = prop.x, y = prop.y, w = prop.w, h = prop.h;
   const open = Math.max(0, Math.min(1, prop.open ?? 0));
+  const attrs = `fill="#fff" ${open > 0.05 ? 'fill-opacity="0.72"' : ""} stroke="${xml(color)}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"`;
   const hingeLeft = prop.hinge === "left";
   const hingeX = hingeLeft ? x : x + w;
   const angle = open * Math.PI / 2;
@@ -151,7 +151,7 @@ function boardInkMarkup(prop, strokeWidth, color) {
   const ink = Math.max(0, Math.min(1, prop.ink ?? 0));
   if (ink <= 0) return "";
   const x = prop.x, y = prop.y, w = prop.w, h = prop.h, bh = h * 0.62;
-  const sx = (v) => x + w * v;
+  const sx = (v) => x + w * (v + 0.27);
   const sy = (v) => y + bh * v;
   const strokes = [
     [{ x: sx(0), y: sy(0.62) }, { x: sx(0.1), y: sy(0.2) }, { x: sx(0.2), y: sy(0.62) }],
