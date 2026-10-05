@@ -71,6 +71,27 @@ describe("motion review renderer uses the shipping engine", () => {
     expect(addonLifecycleState(addOn, 36).visible).toBe(false);
   });
 
+  it("renders long-jump add-on types with lifecycle visibility", async () => {
+    const clip = keyed([{ frame: 0, pose: stand }, { frame: 20, pose: stand }]);
+    const spec = {
+      id: "long-jump-addons-test",
+      review: {
+        addons: [
+          { id: "pit", type: "sand-pit", x: 30, y: 0, w: 80, h: 14, enter: { frame: 5, style: "fade", dur: 4 } },
+          { id: "board", type: "board", x: 8, y: 0, w: 20, h: 5, enter: { frame: 5, style: "fade", dur: 4 } },
+          { id: "impact", type: "sand-puff", x: 72, y: 6, w: 22, h: 16, enter: { frame: 8, style: "pop", dur: 6 }, exit: { frame: 16, style: "fade", dur: 4 } }
+        ]
+      }
+    };
+    const before = await renderStaticSvg({ clip, spec, propsCatalog: { props: [] }, frameIndex: 4 });
+    expect(before).not.toContain('data-addon="sand-pit"');
+    const during = await renderStaticSvg({ clip, spec, propsCatalog: { props: [] }, frameIndex: 10 });
+    expect(during).toContain('data-addon="sand-pit"');
+    expect(during).toContain('data-addon="board"');
+    expect(during).toContain('data-addon="sand-puff"');
+    expect(during).toContain("#e8c872");
+  });
+
   it("computes add-on flight parabola endpoints and apex", () => {
     const start = { x: 10, y: 100 };
     const end = { x: 70, y: 100 };

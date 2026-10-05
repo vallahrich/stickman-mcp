@@ -34,7 +34,7 @@ function line(a, b) {
 }
 
 export const REVIEW_STAGE = { rootX: 160, groundY: 150, scale: 0.75 };
-const ADDON_TYPES = new Set(["ball", "football", "basketball", "goal", "hoop", "hurdle", "spear", "card", "cone", "target"]);
+const ADDON_TYPES = new Set(["ball", "football", "basketball", "goal", "hoop", "hurdle", "spear", "card", "cone", "target", "sand-pit", "board", "sand-puff"]);
 
 const clamp01 = (value) => Math.max(0, Math.min(1, value));
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -371,7 +371,9 @@ function addonColor(prop, fallback = "#202124") {
     spear: "#8B5A2B",
     cone: "#F28C28",
     target: "#D62828",
-    card: "#B11F4B"
+    card: "#B11F4B",
+    "sand-pit": "#e8c872",
+    "sand-puff": "#e8c872"
   }[prop.type] ?? fallback);
 }
 
@@ -415,6 +417,25 @@ function addonMarkup(prop, strokeWidth, color) {
   if (prop.type === "target") {
     const cx = x + w / 2, cy = y + h / 2, r = Math.min(w, h) / 2;
     return `<g data-addon="target" ${attrs}><circle cx="${num(cx)}" cy="${num(cy)}" r="${num(r)}" fill="${xml(c)}"/><circle cx="${num(cx)}" cy="${num(cy)}" r="${num(r * 0.66)}" fill="#fff"/><circle cx="${num(cx)}" cy="${num(cy)}" r="${num(r * 0.34)}" fill="${xml(c)}"/></g>`;
+  }
+  if (prop.type === "sand-pit") {
+    const outline = prop.color ? color : "#9b7b35";
+    const grains = [
+      [0.16, 0.32], [0.28, 0.62], [0.42, 0.42], [0.56, 0.72], [0.7, 0.34], [0.82, 0.58],
+      [0.23, 0.82], [0.5, 0.25], [0.9, 0.78]
+    ].map(([gx, gy]) => `<circle cx="${num(x + w * gx)}" cy="${num(y + h * gy)}" r="${num(Math.max(0.7, strokeWidth * 0.22))}" fill="#b89543" stroke="none"/>`).join("");
+    return `<g data-addon="sand-pit" stroke="${xml(outline)}" stroke-width="${num(strokeWidth * 0.55)}" stroke-linecap="round" stroke-linejoin="round"><rect x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" rx="${num(Math.min(h * 0.25, 3))}" fill="${xml(c)}"/>${grains}</g>`;
+  }
+  if (prop.type === "board") {
+    return `<g data-addon="board" stroke="${xml(color)}" stroke-width="${num(strokeWidth * 0.55)}" stroke-linecap="round" stroke-linejoin="round"><rect x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" rx="${num(Math.min(h * 0.18, 2))}" fill="#fff"/></g>`;
+  }
+  if (prop.type === "sand-puff") {
+    const cx = x + w / 2, cy = y + h / 2;
+    const dots = [
+      [0, 0, 0.16], [-0.34, -0.18, 0.12], [0.34, -0.12, 0.11], [-0.22, 0.26, 0.1],
+      [0.22, 0.26, 0.12], [-0.48, 0.1, 0.08], [0.48, 0.08, 0.08], [0.02, -0.42, 0.09]
+    ].map(([dx, dy, rr]) => `<circle cx="${num(cx + w * dx)}" cy="${num(cy + h * dy)}" r="${num(Math.max(0.8, Math.min(w, h) * rr))}" fill="${xml(c)}" stroke="#b89543" stroke-width="${num(strokeWidth * 0.18)}"/>`).join("");
+    return `<g data-addon="sand-puff">${dots}</g>`;
   }
   return null;
 }
@@ -561,7 +582,8 @@ function layoutScene(spec, propsCatalog, frameIndex, handAt, stage = { rootX: 16
 function addonDefaultSize(type) {
   return ({
     ball: { w: 10, h: 10 }, football: { w: 14, h: 14 }, basketball: { w: 14, h: 14 }, goal: { w: 46, h: 34 }, hoop: { w: 32, h: 38 },
-    hurdle: { w: 34, h: 22 }, spear: { w: 48, h: 6 }, card: { w: 24, h: 16 }, cone: { w: 14, h: 18 }, target: { w: 24, h: 24 }
+    hurdle: { w: 34, h: 22 }, spear: { w: 48, h: 6 }, card: { w: 24, h: 16 }, cone: { w: 14, h: 18 }, target: { w: 24, h: 24 },
+    "sand-pit": { w: 82, h: 16 }, board: { w: 28, h: 5 }, "sand-puff": { w: 24, h: 16 }
   })[type] ?? { w: 16, h: 16 };
 }
 
