@@ -328,8 +328,8 @@
           "y": 0
         },
         "rHand": {
-          "x": 18,
-          "y": 128
+          "x": 17,
+          "y": 127
         },
         "lHand": {
           "x": 12,
@@ -725,19 +725,20 @@
     }
   ],
   "gates": {
-    "maxJointStep": 20
+    "maxJointStep": 14
   },
   "review": {
     "prop": {
       "x": 0,
       "y": 0,
-      "w": 20,
-      "h": 27,
+      "w": 24,
+      "h": 32,
       "attach": {
         "hand": "head",
         "from": 38,
-        "dy": 38,
-        "hiddenBefore": true
+        "dy": 67,
+        "hiddenBefore": true,
+        "dx": 0
       }
     }
   }
