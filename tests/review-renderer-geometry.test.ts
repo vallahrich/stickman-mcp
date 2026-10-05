@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { sampleClipMotion, type MotionClip, type PoseKey } from "../dist/motion-clips.js";
 import { RUNTIME_MOTION_LIBRARY } from "../dist/motion-library.js";
-import { addonLifecycleState, clipFrameToSampledFrame, computeAddonFlightPoint, REVIEW_STAGE } from "../scripts/motions/review-renderer.mjs";
+import { addonLifecycleState, clipFrameToSampledFrame, computeAddonFlightPoint, doorGeometry, REVIEW_STAGE } from "../scripts/motions/review-renderer.mjs";
 import { buildKeyPoseClip, keyPoseGates } from "../scripts/motions/keypose.mjs";
 
 const stand: PoseKey = { anchor: "both", lean: 2, neck: -1, bob: 0, rLeg: { hip: 5, knee: 13 }, lLeg: { hip: -8, knee: 14 }, rArm: { shoulder: -8, elbow: 45 }, lArm: { shoulder: 8, elbow: 45 } };
@@ -80,5 +80,16 @@ describe("motion review renderer uses the shipping engine", () => {
     const mid = computeAddonFlightPoint(start, end, flight, 30, REVIEW_STAGE);
     expect(mid.x).toBeCloseTo(40, 5);
     expect(mid.y).toBeLessThan(100);
+  });
+
+  it("keeps hinged door free edge inside frame when fully open", () => {
+    const right = doorGeometry({ x: 42, y: 0, w: 67, h: 185, hinge: "right", open: 1 }, 4);
+    expect(right.freeX).toBeGreaterThanOrEqual(right.x);
+    expect(right.freeX).toBeLessThanOrEqual(right.x + right.w);
+    expect(Math.abs(right.freeX - right.hingeX)).toBeLessThanOrEqual(right.w * 0.1);
+    const left = doorGeometry({ x: 42, y: 0, w: 67, h: 185, hinge: "left", open: 1 }, 4);
+    expect(left.freeX).toBeGreaterThanOrEqual(left.x);
+    expect(left.freeX).toBeLessThanOrEqual(left.x + left.w);
+    expect(Math.abs(left.freeX - left.hingeX)).toBeLessThanOrEqual(left.w * 0.1);
   });
 });

@@ -34,7 +34,7 @@ function line(a, b) {
 }
 
 export const REVIEW_STAGE = { rootX: 160, groundY: 150, scale: 0.75 };
-const ADDON_TYPES = new Set(["football", "basketball", "goal", "hoop", "hurdle", "spear", "card", "cone", "target"]);
+const ADDON_TYPES = new Set(["ball", "football", "basketball", "goal", "hoop", "hurdle", "spear", "card", "cone", "target"]);
 
 const clamp01 = (value) => Math.max(0, Math.min(1, value));
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -165,37 +165,40 @@ function layoutProp(spec, propsCatalog, frameIndex = 0, stage = { rootX: 160, gr
 
 function doorMarkup(prop, strokeWidth, color, layer = "all") {
   const sw = num(strokeWidth);
+  const g = doorGeometry(prop, strokeWidth);
+  const { x, y, w, h, open, hingeX, freeX, nearTop, nearBottom, farTop, farBottom, handleX, handleY } = g;
+  const attrs = `fill="#fff" ${open > 0.05 ? 'fill-opacity="0.88"' : ""} stroke="${xml(color)}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"`;
+  const opening = open > 0.05 ? `<rect data-prop="door-opening" x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" fill="#4a4f57" opacity="0.85"/>` : "";
+  const frame = `<rect data-prop="door-frame" x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" rx="2" fill="none" stroke="${xml(color)}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"/>`;
+  const leaf = `<path data-prop="door-leaf" d="M${num(nearTop.x)} ${num(nearTop.y)}L${num(farTop.x)} ${num(farTop.y)}L${num(farBottom.x)} ${num(farBottom.y)}L${num(nearBottom.x)} ${num(nearBottom.y)}Z" ${attrs}/>`;
+  const hinge = `<path data-prop="door-hinge" d="${line(nearTop, nearBottom)}" stroke="${xml(color)}" stroke-width="${num(strokeWidth * 1.15)}" stroke-linecap="round"/>`;
+  const handle = `<circle data-prop="door-handle" cx="${num(handleX)}" cy="${num(handleY)}" r="${num(Math.max(2, strokeWidth))}" fill="#fff" stroke="${xml(color)}" stroke-width="${sw}"/>`;
+  const rightPost = `<path data-prop="door-right-post" d="${line({ x: x + w, y }, { x: x + w, y: y + h })}" stroke="${xml(color)}" stroke-width="${num(strokeWidth * 1.25)}" stroke-linecap="round"/>`;
+  if (layer === "back") return `<g data-prop="door">${opening}${leaf}${hinge}${handle}</g>`;
+  if (layer === "front") return `<g data-prop="door-frame-front">${frame}${rightPost}</g>`;
+  return `<g data-prop="door">${opening}${leaf}${hinge}${handle}${frame}${rightPost}</g>`;
+}
+
+export function doorGeometry(prop, strokeWidth = 4) {
   const x = prop.x, y = prop.y, w = prop.w, h = prop.h;
   const open = Math.max(0, Math.min(1, prop.open ?? 0));
-  const attrs = `fill="#fff" ${open > 0.05 ? 'fill-opacity="0.72"' : ""} stroke="${xml(color)}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"`;
   const hingeLeft = prop.hinge === "left";
   const hingeX = hingeLeft ? x : x + w;
   const angle = open * Math.PI / 2;
-  const depth = w * 0.18 * Math.sin(angle);
-  const swing = w * 0.85 * Math.sin(angle);
-  const freeX = hingeLeft ? x + w + swing + depth : x - swing - depth;
-  const skew = h * 0.06 * Math.sin(angle);
-  const grow = h * 0.035 * Math.sin(angle);
+  const c = Math.cos(angle);
+  const s = Math.sin(angle);
+  const freeX = hingeLeft ? x + w * c : x + w - w * c;
+  const inset = h * 0.04 * s;
   const nearTop = { x: hingeX, y };
   const nearBottom = { x: hingeX, y: y + h };
-  const farTop = { x: freeX, y: y + skew - grow };
-  const farBottom = { x: freeX, y: y + h - skew + grow };
+  const farTop = { x: freeX, y: y + inset };
+  const farBottom = { x: freeX, y: y + h - inset };
   const handleInset = Math.min(w * 0.18, Math.max(strokeWidth, w * 0.1));
-  const handleX = hingeLeft ? freeX - handleInset : freeX + handleInset;
+  const towardHinge = hingeLeft ? -1 : 1;
+  const gap = Math.abs(hingeX - freeX);
+  const handleX = freeX + towardHinge * Math.min(handleInset, gap * 0.45);
   const handleY = y + h * 0.52;
-  const opening = open > 0.05 ? `<rect data-prop="door-opening" x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" fill="#e4e7eb" opacity="0.9"/>` : "";
-  const hatch = open > 0.05 ? Array.from({ length: 7 }, (_, i) => {
-    const xx = x + w * (i + 0.5) / 7;
-    return `<path d="${line({ x: xx - w * 0.08, y: y + h * 0.12 }, { x: xx + w * 0.08, y: y + h * 0.88 })}" stroke="#bdc3cc" stroke-width="${num(Math.max(0.8, strokeWidth * 0.28))}" stroke-linecap="round"/>`;
-  }).join("") : "";
-  const frame = `<rect data-prop="door-frame" x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" rx="2" fill="none" stroke="${xml(color)}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"/>`;
-  const leaf = `<path data-prop="door-leaf" d="M${num(nearTop.x)} ${num(nearTop.y)}L${num(farTop.x)} ${num(farTop.y)}L${num(farBottom.x)} ${num(farBottom.y)}L${num(nearBottom.x)} ${num(nearBottom.y)}Z" ${attrs}/>`;
-  const hinge = `<path d="${line(nearTop, nearBottom)}" stroke="${xml(color)}" stroke-width="${num(strokeWidth * 1.15)}" stroke-linecap="round"/>`;
-  const handle = `<circle data-prop="door-handle" cx="${num(handleX)}" cy="${num(handleY)}" r="${num(Math.max(2, strokeWidth))}" fill="#fff" stroke="${xml(color)}" stroke-width="${sw}"/>`;
-  const rightPost = `<path data-prop="door-right-post" d="${line({ x: x + w, y }, { x: x + w, y: y + h })}" stroke="${xml(color)}" stroke-width="${num(strokeWidth * 1.25)}" stroke-linecap="round"/>`;
-  if (layer === "back") return `<g data-prop="door">${opening}${hatch}${leaf}${handle}</g>`;
-  if (layer === "front") return `<g data-prop="door-frame-front">${frame}${rightPost}</g>`;
-  return `<g data-prop="door">${opening}${hatch}${leaf}${handle}${frame}${rightPost}</g>`;
+  return { x, y, w, h, open, hingeLeft, hingeX, freeX, nearTop, nearBottom, farTop, farBottom, handleX, handleY };
 }
 
 function partialPolyline(points, amount) {
@@ -253,42 +256,46 @@ function binocularsMarkup(prop, strokeWidth, color) {
   const sw = num(strokeWidth);
   const x = prop.x, y = prop.y, w = prop.w, h = prop.h;
   const cx = x + w / 2, cy = y + h / 2;
-  const barrelW = w * 0.35;
-  const barrelH = h * 0.74;
-  const gap = w * 0.08;
-  const leftX = cx - gap / 2 - barrelW;
-  const rightX = cx + gap / 2;
-  const by = cy - barrelH / 2;
-  const noseY = cy + barrelH * 0.22;
-  return `<g data-prop="binoculars" fill="#fff" stroke="${xml(color)}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"><rect x="${num(leftX)}" y="${num(by)}" width="${num(barrelW)}" height="${num(barrelH)}" rx="${num(barrelH * 0.34)}"/><rect x="${num(rightX)}" y="${num(by)}" width="${num(barrelW)}" height="${num(barrelH)}" rx="${num(barrelH * 0.34)}"/><path d="${line({ x: leftX + barrelW, y: cy }, { x: rightX, y: cy })}"/><path d="${line({ x: cx - gap * 0.4, y: noseY }, { x: cx + gap * 0.4, y: noseY })}" stroke-width="${num(strokeWidth * 0.55)}"/></g>`;
+  const barrelW = w * 0.34, barrelH = h * 0.68, gap = w * 0.12;
+  const leftX = cx - gap / 2 - barrelW, rightX = cx + gap / 2, by = cy - barrelH / 2;
+  const lensR = barrelH * 0.42;
+  const strap = `M${num(cx - w * 0.38)} ${num(cy + h * 0.16)}Q${num(cx)} ${num(cy + h * 0.78)} ${num(cx + w * 0.38)} ${num(cy + h * 0.16)}`;
+  return `<g data-prop="binoculars" fill="#fff" stroke="${xml(color)}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"><path d="${strap}" fill="none" stroke-width="${num(strokeWidth * 0.42)}"/><rect x="${num(leftX)}" y="${num(by)}" width="${num(barrelW)}" height="${num(barrelH)}" rx="${num(barrelH * 0.25)}"/><rect x="${num(rightX)}" y="${num(by)}" width="${num(barrelW)}" height="${num(barrelH)}" rx="${num(barrelH * 0.25)}"/><circle cx="${num(leftX + barrelW * 0.78)}" cy="${num(cy)}" r="${num(lensR)}"/><circle cx="${num(rightX + barrelW * 0.78)}" cy="${num(cy)}" r="${num(lensR)}"/><path d="${line({ x: leftX + barrelW, y: cy }, { x: rightX, y: cy })}" stroke-width="${num(strokeWidth * 0.8)}"/></g>`;
 }
 
 function palmMarkup(prop, strokeWidth, color) {
-  const cx = prop.x + prop.w / 2, cy = prop.y + prop.h / 2;
-  const fore = prop.angle ?? -Math.PI / 2;
-  const nx = -Math.sin(fore), ny = Math.cos(fore);
-  const fx = Math.cos(fore), fy = Math.sin(fore);
-  const bar = Math.max(prop.w, 12);
-  const finger = Math.max(prop.h * 0.65, 6);
-  const a = { x: cx - nx * bar / 2, y: cy - ny * bar / 2 };
-  const b = { x: cx + nx * bar / 2, y: cy + ny * bar / 2 };
-  const ticks = [-0.34, -0.11, 0.11, 0.34].map((t) => {
-    const p = { x: cx + nx * bar * t, y: cy + ny * bar * t };
-    return `<path d="${line(p, { x: p.x + fx * finger, y: p.y + fy * finger })}"/>`;
+  const wristX = prop.x + prop.w / 2, wristY = prop.y + prop.h / 2;
+  const palmW = Math.max(prop.w * 1.05, 14), palmH = Math.max(prop.h * 1.05, 14);
+  const fingerH = Math.max(prop.h * 0.72, 10);
+  const fingerW = palmW * 0.2, gap = palmW * 0.04;
+  const palmX = wristX - palmW / 2, palmY = wristY - palmH;
+  const fingers = [-1.5, -0.5, 0.5, 1.5].map((slot, i) => {
+    const x = wristX + slot * (fingerW + gap) - fingerW / 2;
+    const extra = (i === 1 || i === 2) ? fingerH * 0.08 : 0;
+    return `<rect x="${num(x)}" y="${num(palmY - fingerH - extra)}" width="${num(fingerW)}" height="${num(fingerH + extra + palmH * 0.22)}" rx="${num(fingerW * 0.48)}"/>`;
   }).join("");
-  return `<g data-prop="palm" fill="none" stroke="${xml(color)}" stroke-width="${num(strokeWidth * 0.75)}" stroke-linecap="round" stroke-linejoin="round"><path d="${line(a, b)}"/>${ticks}</g>`;
+  const thumbStart = { x: palmX + palmW * 0.08, y: palmY + palmH * 0.58 };
+  const thumbEnd = { x: palmX - palmW * 0.42, y: palmY + palmH * 0.28 };
+  const thumbOutline = `<path d="${line(thumbStart, thumbEnd)}" fill="none" stroke="${xml(color)}" stroke-width="${num(Math.max(strokeWidth * 2.5, palmW * 0.28))}" stroke-linecap="round"/>`;
+  const thumbFill = `<path d="${line(thumbStart, thumbEnd)}" fill="none" stroke="#fff" stroke-width="${num(Math.max(strokeWidth * 1.55, palmW * 0.18))}" stroke-linecap="round"/>`;
+  const separators = [-1, 0, 1].map((slot) => {
+    const x = wristX + slot * (fingerW + gap);
+    return `<path d="${line({ x, y: palmY - fingerH * 0.72 }, { x, y: palmY - palmH * 0.02 })}" fill="none" stroke-width="${num(strokeWidth * 0.38)}"/>`;
+  }).join("");
+  const palm = `<rect x="${num(palmX)}" y="${num(palmY)}" width="${num(palmW)}" height="${num(palmH)}" rx="${num(palmW * 0.24)}"/>`;
+  return `<g data-prop="palm" fill="#fff" stroke="${xml(color)}" stroke-width="${num(strokeWidth)}" stroke-linecap="round" stroke-linejoin="round">${thumbOutline}${fingers}${palm}${thumbFill}${separators}</g>`;
 }
 
 function thumbMarkup(prop, strokeWidth, color) {
   const cx = prop.x + prop.w / 2, cy = prop.y + prop.h / 2;
-  const fw = Math.max(prop.w, 14), fh = Math.max(prop.h * 0.68, 9);
-  const x = cx - fw / 2, y = cy - fh / 2 + prop.h * 0.08;
-  const thumbH = Math.min(6, fw * 0.42);
-  const thumbW = Math.max(strokeWidth * 1.6, fw * 0.28);
-  const tx = cx - thumbW * 0.45;
-  const ty = y - thumbH + strokeWidth * 0.2;
-  const knuckles = [0.22, 0.39, 0.56].map((t) => `<path d="${line({ x: x + fw * t, y: y + fh * 0.18 }, { x: x + fw * t, y: y + fh * 0.44 })}" stroke-width="${num(strokeWidth * 0.42)}"/>`).join("");
-  return `<g data-prop="thumb" fill="#fff" stroke="${xml(color)}" stroke-width="${num(strokeWidth)}" stroke-linecap="round" stroke-linejoin="round"><rect x="${num(x)}" y="${num(y)}" width="${num(fw)}" height="${num(fh)}" rx="${num(fh * 0.38)}"/><rect x="${num(tx)}" y="${num(ty)}" width="${num(thumbW)}" height="${num(thumbH)}" rx="${num(thumbW * 0.45)}"/><path d="${line({ x: tx + thumbW * 0.15, y }, { x: tx + thumbW * 0.9, y })}" stroke-width="${num(strokeWidth * 0.6)}"/>${knuckles}</g>`;
+  const fistW = Math.max(prop.w * 0.72, 10), fistH = Math.max(prop.h * 1.08, 18);
+  const x = cx - fistW * 0.36, y = cy - fistH * 0.38;
+  const thumbW = Math.max(fistW * 0.42, strokeWidth * 1.7), thumbH = fistH * 0.7;
+  const tx = x - thumbW * 0.62, ty = y - thumbH * 0.48;
+  const knuckles = [0.28, 0.43, 0.58, 0.73].map((t) => `<path d="${line({ x: x + fistW * 0.18, y: y + fistH * t }, { x: x + fistW * 0.76, y: y + fistH * t })}" stroke-width="${num(strokeWidth * 0.48)}"/>`).join("");
+  const thumb = `<rect x="${num(tx)}" y="${num(ty)}" width="${num(thumbW)}" height="${num(thumbH)}" rx="${num(thumbW * 0.48)}" transform="rotate(-18 ${num(x)} ${num(y)})"/>`;
+  const notch = `<path d="${line({ x: x + fistW * 0.08, y: y + fistH * 0.08 }, { x: x - fistW * 0.08, y: y + fistH * 0.18 })}" fill="none" stroke-width="${num(strokeWidth * 0.7)}"/>`;
+  return `<g data-prop="thumb" fill="#fff" stroke="${xml(color)}" stroke-width="${num(strokeWidth)}" stroke-linecap="round" stroke-linejoin="round">${thumb}<rect x="${num(x)}" y="${num(y)}" width="${num(fistW)}" height="${num(fistH)}" rx="${num(fistW * 0.42)}"/>${notch}${knuckles}</g>`;
 }
 
 function glassesMarkup(prop, strokeWidth, color) {
@@ -320,10 +327,13 @@ function watchMarkup(prop, strokeWidth, color) {
 
 function gloveMarkup(prop, strokeWidth, color) {
   const cx = prop.x + prop.w / 2, cy = prop.y + prop.h / 2;
+  const a = prop.angle ?? 0;
+  const ux = Math.cos(a), uy = Math.sin(a), px = -uy, py = ux;
   const w = Math.max(prop.w, 13), h = Math.max(prop.h, 10);
-  const x = cx - w / 2, y = cy - h / 2;
-  const cuffW = w * 0.32, cuffX = x - cuffW * 0.15;
-  return `<g data-prop="glove" fill="#202124" stroke="${xml(color)}" stroke-width="${num(strokeWidth)}" stroke-linecap="round" stroke-linejoin="round"><rect x="${num(cuffX)}" y="${num(y + h * 0.26)}" width="${num(cuffW)}" height="${num(h * 0.48)}" rx="${num(h * 0.12)}" fill="#fff"/><rect x="${num(x + w * 0.18)}" y="${num(y)}" width="${num(w * 0.72)}" height="${num(h)}" rx="${num(h * 0.42)}"/><path d="${line({ x: x + w * 0.52, y: y + h * 0.18 }, { x: x + w * 0.48, y: y + h * 0.52 })}" stroke="#fff" stroke-width="${num(strokeWidth * 0.45)}"/></g>`;
+  const p = (f, s) => ({ x: cx + ux * f + px * s, y: cy + uy * f + py * s });
+  const mittCx = cx + ux * w * 0.45, mittCy = cy + uy * w * 0.45;
+  const rot = a * 180 / Math.PI;
+  return `<g data-prop="glove" fill="#202124" stroke="${xml(color)}" stroke-width="${num(strokeWidth)}" stroke-linecap="round" stroke-linejoin="round"><rect x="${num(cx - w * 0.17)}" y="${num(cy - h * 0.28)}" width="${num(w * 0.34)}" height="${num(h * 0.56)}" rx="${num(h * 0.12)}" fill="#fff" transform="rotate(${num(rot)} ${num(cx)} ${num(cy)})"/><rect x="${num(mittCx - w * 0.35)}" y="${num(mittCy - h * 0.5)}" width="${num(w * 0.78)}" height="${num(h)}" rx="${num(h * 0.42)}" transform="rotate(${num(rot)} ${num(mittCx)} ${num(mittCy)})"/><path d="${line(p(w * 0.45, -h * 0.28), p(w * 0.42, h * 0.08))}" stroke="#fff" stroke-width="${num(strokeWidth * 0.45)}"/></g>`;
 }
 
 function wrapPropMarkup(prop, markup) {
@@ -367,6 +377,12 @@ function addonMarkup(prop, strokeWidth, color) {
   const x = prop.x, y = prop.y, w = prop.w, h = prop.h, sw = num(strokeWidth);
   const c = addonColor(prop, color);
   const attrs = `stroke="${xml(color)}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"`;
+  if (prop.type === "ball") {
+    const cx = x + w / 2, cy = y + h / 2, r = Math.min(w, h) / 2;
+    const seam = (s) => `M${num(cx + s * r * 0.34)} ${num(cy - r * 0.78)}Q${num(cx + s * r * 0.66)} ${num(cy)} ${num(cx + s * r * 0.34)} ${num(cy + r * 0.78)}`;
+    const stitches = [-0.5, -0.18, 0.18, 0.5].map((t) => `<path d="${line({ x: cx - r * 0.42, y: cy + r * t }, { x: cx - r * 0.26, y: cy + r * (t + 0.1) })}"/><path d="${line({ x: cx + r * 0.42, y: cy + r * t }, { x: cx + r * 0.26, y: cy + r * (t + 0.1) })}"/>`).join("");
+    return `<g data-addon="ball" ${attrs}><circle cx="${num(cx)}" cy="${num(cy)}" r="${num(r)}" fill="#fff"/><g fill="none" stroke="#C62828" stroke-width="${num(strokeWidth * 0.42)}">${seam(-1)}${seam(1)}${stitches}</g></g>`;
+  }
   if (prop.type === "football") {
     const cx = x + w / 2, cy = y + h / 2, r = Math.min(w, h) / 2;
     const patch = `M${num(cx)} ${num(cy - r * 0.38)}L${num(cx + r * 0.36)} ${num(cy - r * 0.12)}L${num(cx + r * 0.22)} ${num(cy + r * 0.32)}L${num(cx - r * 0.22)} ${num(cy + r * 0.32)}L${num(cx - r * 0.36)} ${num(cy - r * 0.12)}Z`;
@@ -504,7 +520,8 @@ function layoutScene(spec, propsCatalog, frameIndex, handAt, stage = { rootX: 16
         const point = target === "both"
           ? (() => { const l = pointAt(ix, "left-hand"), r = pointAt(ix, "right-hand"); return { x: (l.x + r.x) / 2, y: (l.y + r.y) / 2, facing: r.facing ?? l.facing }; })()
           : pointAt(ix, target === "head" ? "head" : target === "l" ? "left-hand" : target === "r" ? "right-hand" : target);
-        main.x = point.x - main.w / 2 + (attach.dx ?? 0) * stage.scale;
+        const offsetDir = target === "head" ? (Math.sign(point.facing ?? 1) || 1) : 1;
+        main.x = point.x - main.w / 2 + (attach.dx ?? 0) * stage.scale * offsetDir;
         main.y = point.y - main.h / 2 - (attach.dy ?? 0) * stage.scale;
         if (point.facing !== undefined) main.facing = point.facing;
         if (point.angle !== undefined) main.angle = point.angle;
@@ -534,7 +551,7 @@ function layoutScene(spec, propsCatalog, frameIndex, handAt, stage = { rootX: 16
 
 function addonDefaultSize(type) {
   return ({
-    football: { w: 14, h: 14 }, basketball: { w: 14, h: 14 }, goal: { w: 46, h: 34 }, hoop: { w: 32, h: 38 },
+    ball: { w: 10, h: 10 }, football: { w: 14, h: 14 }, basketball: { w: 14, h: 14 }, goal: { w: 46, h: 34 }, hoop: { w: 32, h: 38 },
     hurdle: { w: 34, h: 22 }, spear: { w: 48, h: 6 }, card: { w: 24, h: 16 }, cone: { w: 14, h: 18 }, target: { w: 24, h: 24 }
   })[type] ?? { w: 16, h: 16 };
 }
@@ -690,6 +707,7 @@ const lerp=${lerp.toString()};
 const addonLifecycleState=${addonLifecycleState.toString()};
 const interpAddonKeys=${interpAddonKeys.toString()};
 const computeAddonFlightPoint=${computeAddonFlightPoint.toString()};
+const doorGeometry=${doorGeometry.toString()};
 const doorMarkup=${doorMarkup.toString()};
 const partialPolyline=${partialPolyline.toString()};
 const boardInkMarkup=${boardInkMarkup.toString()};
@@ -735,6 +753,7 @@ const lerp=${lerp.toString()};
 const addonLifecycleState=${addonLifecycleState.toString()};
 const interpAddonKeys=${interpAddonKeys.toString()};
 const computeAddonFlightPoint=${computeAddonFlightPoint.toString()};
+const doorGeometry=${doorGeometry.toString()};
 const doorMarkup=${doorMarkup.toString()};
 const partialPolyline=${partialPolyline.toString()};
 const boardInkMarkup=${boardInkMarkup.toString()};

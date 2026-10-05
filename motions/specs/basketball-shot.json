@@ -189,12 +189,12 @@
           "lift": 8
         },
         "rArm": {
-          "shoulder": 102,
-          "elbow": 52
+          "shoulder": 86,
+          "elbow": 78
         },
         "lArm": {
-          "shoulder": 96,
-          "elbow": 56
+          "shoulder": 78,
+          "elbow": 74
         },
         "dx": 0,
         "facing": 0.96
@@ -220,12 +220,12 @@
           "lift": 14
         },
         "rArm": {
-          "shoulder": 94,
-          "elbow": 78
+          "shoulder": 104,
+          "elbow": 62
         },
         "lArm": {
-          "shoulder": 88,
-          "elbow": 75
+          "shoulder": 92,
+          "elbow": 70
         },
         "dx": 0,
         "facing": 0.96
@@ -251,12 +251,12 @@
           "lift": 14
         },
         "rArm": {
-          "shoulder": 98,
-          "elbow": 82
+          "shoulder": 116,
+          "elbow": 54
         },
         "lArm": {
-          "shoulder": 86,
-          "elbow": 74
+          "shoulder": 94,
+          "elbow": 72
         },
         "dx": 0,
         "facing": 0.96
@@ -282,12 +282,12 @@
           "lift": 12
         },
         "rArm": {
-          "shoulder": 108,
-          "elbow": 65
+          "shoulder": 120,
+          "elbow": 68
         },
         "lArm": {
-          "shoulder": 98,
-          "elbow": 66
+          "shoulder": 96,
+          "elbow": 72
         },
         "dx": 0,
         "facing": 0.96
@@ -313,12 +313,12 @@
           "lift": 6
         },
         "rArm": {
-          "shoulder": 90,
-          "elbow": 70
+          "shoulder": 120,
+          "elbow": 68
         },
         "lArm": {
-          "shoulder": 72,
-          "elbow": 70
+          "shoulder": 96,
+          "elbow": 72
         },
         "dx": 0,
         "facing": 0.96
@@ -341,12 +341,12 @@
           "knee": 70
         },
         "rArm": {
-          "shoulder": 38,
-          "elbow": 74
+          "shoulder": 114,
+          "elbow": 70
         },
         "lArm": {
-          "shoulder": 22,
-          "elbow": 66
+          "shoulder": 86,
+          "elbow": 72
         },
         "dx": 0,
         "facing": 0.96
@@ -369,12 +369,12 @@
           "knee": 28
         },
         "rArm": {
-          "shoulder": 50,
-          "elbow": 74
+          "shoulder": 62,
+          "elbow": 78
         },
         "lArm": {
-          "shoulder": -12,
-          "elbow": 52
+          "shoulder": 50,
+          "elbow": 70
         },
         "dx": 0,
         "facing": 0.96
@@ -397,12 +397,12 @@
           "knee": 22
         },
         "rArm": {
-          "shoulder": 92,
+          "shoulder": 94,
           "elbow": 84
         },
         "lArm": {
-          "shoulder": -8,
-          "elbow": 48
+          "shoulder": 18,
+          "elbow": 56
         },
         "dx": 0,
         "facing": 0.96
@@ -429,8 +429,8 @@
           "elbow": 86
         },
         "lArm": {
-          "shoulder": -5,
-          "elbow": 47
+          "shoulder": 2,
+          "elbow": 50
         },
         "dx": 0,
         "facing": 0.96
@@ -529,13 +529,71 @@
             "until": 54
           }
         ],
-        "flight": {
-          "from": 58,
-          "to": 78,
-          "target": "hoop",
-          "apex": 55,
-          "spin": 720
-        }
+        "keys": [
+          {
+            "frame": 58,
+            "x": 16,
+            "y": 82,
+            "rot": 0,
+            "scale": 1
+          },
+          {
+            "frame": 64,
+            "x": 64,
+            "y": 126,
+            "rot": 220,
+            "scale": 1
+          },
+          {
+            "frame": 70,
+            "x": 120,
+            "y": 126,
+            "rot": 440,
+            "scale": 1
+          },
+          {
+            "frame": 78,
+            "x": 169,
+            "y": 78,
+            "rot": 720,
+            "scale": 1
+          },
+          {
+            "frame": 82,
+            "x": 169,
+            "y": 36,
+            "rot": 850,
+            "scale": 1
+          },
+          {
+            "frame": 88,
+            "x": 169,
+            "y": -96,
+            "rot": 980,
+            "scale": 1
+          },
+          {
+            "frame": 94,
+            "x": 169,
+            "y": -58,
+            "rot": 1100,
+            "scale": 1
+          },
+          {
+            "frame": 100,
+            "x": 169,
+            "y": -96,
+            "rot": 1220,
+            "scale": 1
+          },
+          {
+            "frame": 112,
+            "x": 169,
+            "y": -96,
+            "rot": 1320,
+            "scale": 1
+          }
+        ]
       },
       {
         "id": "hoop",

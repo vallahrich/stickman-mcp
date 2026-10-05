@@ -36,7 +36,7 @@
     "gesture",
     "audience"
   ],
-  "notes": "Three-quarter audience-facing approval gesture: the near arm winds up, settles into a low chest-height bent-elbow thumbs-up, gives a small forward push with a nod/lean accent, holds, then releases to neutral. A thumb prop is attached to the right hand only during the raised-fist beats.",
+  "notes": "Three-quarter audience-facing approval gesture: the near hand rises to chest/shoulder height with a side-view thumbs-up prop shaped as a tall fist plus short back-corner thumb, holds, then releases.",
   "approvedBaseline": false,
   "frames": 54,
   "loop": false,
@@ -226,9 +226,9 @@
           "knee": 18
         },
         "rArm": {
-          "shoulder": 20,
-          "elbow": 98,
-          "spread": 18,
+          "shoulder": 38,
+          "elbow": 96,
+          "spread": 20,
           "elbowSpread": -2
         },
         "lArm": {
@@ -266,9 +266,9 @@
           "knee": 23
         },
         "rArm": {
-          "shoulder": 30,
-          "elbow": 104,
-          "spread": 22,
+          "shoulder": 38,
+          "elbow": 96,
+          "spread": 20,
           "elbowSpread": -2
         },
         "lArm": {
@@ -306,8 +306,8 @@
           "knee": 20
         },
         "rArm": {
-          "shoulder": 22,
-          "elbow": 102,
+          "shoulder": 42,
+          "elbow": 96,
           "spread": 20,
           "elbowSpread": -2
         },
@@ -346,8 +346,8 @@
           "knee": 20
         },
         "rArm": {
-          "shoulder": 22,
-          "elbow": 102,
+          "shoulder": 42,
+          "elbow": 96,
           "spread": 20,
           "elbowSpread": -2
         },
@@ -386,8 +386,8 @@
           "knee": 16
         },
         "rArm": {
-          "shoulder": 16,
-          "elbow": 76,
+          "shoulder": 26,
+          "elbow": 74,
           "spread": 10,
           "elbowSpread": -1
         },
@@ -464,8 +464,8 @@
         "hiddenBefore": true,
         "hiddenAfter": true
       },
-      "w": 17,
-      "h": 13
+      "w": 13,
+      "h": 20
     }
   }
 }

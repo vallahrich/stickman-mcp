@@ -41,7 +41,7 @@
     "decisive",
     "hold"
   ],
-  "notes": "Three-quarter stop/wait gesture: right arm snaps forward and slightly outward to shoulder height with a nearly straight elbow, body leans back with authority, then lowers cleanly.",
+  "notes": "Front-facing stop palm: right forearm extends roughly horizontal toward the target while the wrist bends up into a vertical open palm during the hold.",
   "approvedBaseline": false,
   "frames": 60,
   "loop": false,
@@ -249,7 +249,7 @@
       "frame": 10,
       "pose": {
         "anchor": "both",
-        "lean": -5,
+        "lean": -3,
         "neck": -3,
         "bob": 0,
         "rLeg": {
@@ -261,9 +261,9 @@
           "knee": 19
         },
         "rArm": {
-          "shoulder": 70,
-          "elbow": 28,
-          "spread": 42
+          "shoulder": 74,
+          "elbow": 22,
+          "spread": 30
         },
         "lArm": {
           "shoulder": 8,
@@ -287,7 +287,7 @@
       "frame": 12,
       "pose": {
         "anchor": "both",
-        "lean": -8,
+        "lean": -5,
         "neck": -4,
         "bob": -1,
         "rLeg": {
@@ -299,9 +299,9 @@
           "knee": 21
         },
         "rArm": {
-          "shoulder": 96,
-          "elbow": 18,
-          "spread": 54
+          "shoulder": 82,
+          "elbow": 12,
+          "spread": 32
         },
         "lArm": {
           "shoulder": 6,
@@ -325,7 +325,7 @@
       "frame": 14,
       "pose": {
         "anchor": "both",
-        "lean": -6,
+        "lean": -5,
         "neck": -3,
         "bob": -1,
         "rLeg": {
@@ -337,9 +337,9 @@
           "knee": 20
         },
         "rArm": {
-          "shoulder": 88,
-          "elbow": 20,
-          "spread": 45
+          "shoulder": 82,
+          "elbow": 10,
+          "spread": 32
         },
         "lArm": {
           "shoulder": 5,
@@ -363,7 +363,7 @@
       "frame": 38,
       "pose": {
         "anchor": "both",
-        "lean": -6,
+        "lean": -5,
         "neck": -3,
         "bob": -1,
         "rLeg": {
@@ -375,9 +375,9 @@
           "knee": 20
         },
         "rArm": {
-          "shoulder": 88,
-          "elbow": 20,
-          "spread": 45
+          "shoulder": 82,
+          "elbow": 10,
+          "spread": 32
         },
         "lArm": {
           "shoulder": 5,
@@ -413,9 +413,9 @@
           "knee": 18
         },
         "rArm": {
-          "shoulder": 54,
-          "elbow": 42,
-          "spread": 30
+          "shoulder": 58,
+          "elbow": 32,
+          "spread": 24
         },
         "lArm": {
           "shoulder": 6,
@@ -518,13 +518,13 @@
     "prop": {
       "x": 0,
       "y": 0,
-      "w": 18,
-      "h": 15,
+      "w": 24,
+      "h": 26,
       "attach": {
         "hand": "r",
         "from": 12,
         "to": 44,
-        "dx": 2,
+        "dx": 0,
         "dy": 0,
         "hiddenBefore": true,
         "hiddenAfter": true
