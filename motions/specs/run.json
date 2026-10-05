@@ -234,12 +234,11 @@
         "rLeg": {
           "hip": -46,
           "knee": 70,
-          "lift": 0
+          "lift": 10
         },
         "lLeg": {
           "hip": 34,
-          "knee": 16,
-          "lift": 0
+          "knee": 16
         },
         "rArm": {
           "shoulder": 50,

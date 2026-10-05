@@ -29,13 +29,13 @@
     "think",
     "insight"
   ],
-  "notes": "Hand on chin thinking, then snaps index finger up with a small rise. Slide hook: idea.",
+  "notes": "Hand on chin thinking, then snaps index finger up as a recognizable bulb pops above the head with glow rays.",
   "approvedBaseline": false,
   "frames": 64,
   "loop": false,
   "markers": {
     "think": 12,
-    "idea": 38
+    "idea": 40
   },
   "poseKeys": [
     {
@@ -739,7 +739,30 @@
         "dy": 67,
         "hiddenBefore": true,
         "dx": 0
+      },
+      "scale": 0
+    },
+    "propMotion": [
+      {
+        "frame": 0,
+        "scale": 0
+      },
+      {
+        "frame": 37,
+        "scale": 0
+      },
+      {
+        "frame": 40,
+        "scale": 1.1
+      },
+      {
+        "frame": 45,
+        "scale": 1
+      },
+      {
+        "frame": 63,
+        "scale": 1
       }
-    }
+    ]
   }
 }

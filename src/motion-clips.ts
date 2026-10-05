@@ -8,7 +8,7 @@ export type MotionClipKind = "loop" | "oneshot" | "hold";
 export interface MotionClipMeta { id: string; label: string; summary: string; kind: MotionClipKind; travel: "travel" | "in-place"; facingChange: 0 | 90 | 180; contacts: string[]; markers: Record<string, number>; aim: "hand" | "head" | null; prop: string | null; mirrorable: boolean; tags: string[]; durationS: number; quality: unknown; source: unknown; license: unknown }
 export interface MotionClipFrame { root: { x: number; y: number }; angles: { torso: number; head: number; lLeg: { thigh: number; shin: number; foot: number }; rLeg: { thigh: number; shin: number; foot: number }; lArm: { upper: number; fore: number }; rArm: { upper: number; fore: number } }; contacts: { l: boolean; r: boolean; lFoot?: boolean; rFoot?: boolean; lHand?: boolean; rHand?: boolean }; hands?: { l?: boolean; r?: boolean }; facing?: number }
 export interface PoseKeyLeg { hip: number; knee: number; lift?: number }
-export interface PoseKeyArm { shoulder: number; elbow: number }
+export interface PoseKeyArm { shoulder: number; elbow: number; spread?: number; elbowSpread?: number }
 /** Authored key pose in the engine's style space: angles in degrees from straight down, positive = forward; lengths in engine local units (pelvis rests at y=46, figure ~144 tall). */
 export interface PoseKey { anchor: "l" | "r" | "both" | null; lean: number; neck: number; bob: number; rLeg: PoseKeyLeg; lLeg: PoseKeyLeg; rArm: PoseKeyArm; lArm: PoseKeyArm; dx?: number; dy?: number; facing?: number; lPlant?: number; rPlant?: number; lFoot?: { x: number; y: number }; rFoot?: { x: number; y: number }; lHand?: { x: number; y: number }; rHand?: { x: number; y: number } }
 export interface PoseKeyFrame { frame: number; pose: PoseKey; ease?: "inOut" | "linear" | "in" | "out" | "hold" }
@@ -59,7 +59,7 @@ export function sampleClipMotion(library: MotionClipLibrary, request: ClipMotion
   const rad = (degrees: number): number => degrees * Math.PI / 180;
   type Point = { x: number; y: number };
   type StyleLeg = { hip: number; knee: number; lift?: number };
-  type StyleArm = { shoulder: number; elbow: number };
+  type StyleArm = { shoulder: number; elbow: number; spread?: number; elbowSpread?: number };
   type StyleKey = { anchor: "l" | "r" | "both" | null; lean: number; neck: number; bob: number; rLeg: StyleLeg; lLeg: StyleLeg; rArm: StyleArm; lArm: StyleArm; dx?: number; dy?: number; facing?: number; lPlant?: number; rPlant?: number; lFoot?: Point; rFoot?: Point; lHand?: Point; rHand?: Point; lw?: number; rw?: number; lFootW?: number; rFootW?: number; lHandW?: number; rHandW?: number };
   const add = (a: Point, b: Point): Point => ({ x: a.x + b.x, y: a.y + b.y });
   const sub = (a: Point, b: Point): Point => ({ x: a.x - b.x, y: a.y - b.y });
@@ -99,6 +99,20 @@ export function sampleClipMotion(library: MotionClipLibrary, request: ClipMotion
   const vDown = (angle: number, length: number): Point => ({ x: Math.sin(rad(angle)) * length, y: -Math.cos(rad(angle)) * length });
   const fkLegDirect = (pelvis: Point, spec: StyleLeg, rig: MotionClip["rig"]) => { const knee = add(pelvis, vDown(spec.hip, rig.thigh)); const ankle = add(knee, vDown(spec.hip - spec.knee, rig.shin)); return { hip: pelvis, knee, ankle, footA: { x: ankle.x - rig.foot * 0.35, y: ankle.y }, footB: { x: ankle.x + rig.foot * 0.65, y: ankle.y } }; };
   const fkArmDirect = (chest: Point, spec: StyleArm, rig: MotionClip["rig"]) => { const elbow = add(chest, vDown(spec.shoulder, rig.upperArm)); const hand = add(elbow, vDown(spec.shoulder + spec.elbow, rig.forearm)); return { shoulder: chest, elbow, hand }; };
+  const vArm = (angle: number, spread: number, length: number): Point & { lateralX: number } => {
+    const s = rad(spread), planar = Math.cos(s) * length;
+    return { x: Math.sin(rad(angle)) * planar, y: -Math.cos(rad(angle)) * planar, lateralX: Math.sin(s) * length };
+  };
+  const fkArmSpread = (chest: Point, spec: StyleArm, side: "l" | "r", rig: MotionClip["rig"]) => {
+    const sign = side === "l" ? -1 : 1;
+    const upper = vArm(spec.shoulder, spec.spread ?? 0, rig.upperArm);
+    const lower = vArm(spec.shoulder + spec.elbow, (spec.spread ?? 0) + (spec.elbowSpread ?? 0), rig.forearm);
+    const elbow = add(chest, upper) as Point & { lateralX: number };
+    const hand = add(elbow, lower) as Point & { lateralX: number };
+    elbow.lateralX = sign * (9 + upper.lateralX);
+    hand.lateralX = sign * (9 + upper.lateralX + lower.lateralX);
+    return { shoulder: chest, elbow, hand };
+  };
   const solveLeg = (hip: Point, target: Point, rawKnee: Point, rig: MotionClip["rig"], bendSide?: number) => {
     const l1 = rig.thigh, l2 = rig.shin; const v = sub(target, hip); const rawDistance = len(v) || 1; const d = clamp(rawDistance, 1, l1 + l2 - 0.001); const ux = v.x / rawDistance, uy = v.y / rawDistance;
     const a = (l1 * l1 - l2 * l2 + d * d) / (2 * d); const h = Math.sqrt(Math.max(0, l1 * l1 - a * a)); const base = { x: hip.x + ux * a, y: hip.y + uy * a }; const perp = { x: -uy, y: ux };
@@ -216,7 +230,8 @@ export function sampleClipMotion(library: MotionClipLibrary, request: ClipMotion
       if (held < 1) { const lift = k[(side + "Leg") as "rLeg" | "lLeg"].lift || 4; const low = Math.min(leg.footA.y, leg.footB.y, leg.ankle.y) - plant(side); if (low < lift * (1 - held)) { const dy = lift * (1 - held) - low; leg.knee.y += dy; leg.ankle.y += dy; leg.footA.y += dy; leg.footB.y += dy; } }
       if (side === "r") rLeg = leg; else lLeg = leg;
     }
-    let rArm = fkArmDirect(chest, k.rArm, rig); let lArm = fkArmDirect(chest, k.lArm, rig);
+    let rArm = k.rArm.spread !== undefined || k.rArm.elbowSpread !== undefined ? fkArmSpread(chest, k.rArm, "r", rig) : fkArmDirect(chest, k.rArm, rig);
+    let lArm = k.lArm.spread !== undefined || k.lArm.elbowSpread !== undefined ? fkArmSpread(chest, k.lArm, "l", rig) : fkArmDirect(chest, k.lArm, rig);
     const solveArm = (arm: ReturnType<typeof fkArmDirect>, target: Point, w: number, elbow: number) => {
       const solved = solveLeg(chest, target, arm.elbow, { ...rig, thigh: rig.upperArm, shin: rig.forearm }, elbow >= 0 ? -1 : 1);
       return { shoulder: chest, elbow: blendPoint(arm.elbow, solved.knee, w), hand: blendPoint(arm.hand, solved.ankle, w) };
@@ -262,7 +277,7 @@ export function sampleClipMotion(library: MotionClipLibrary, request: ClipMotion
   const worldSide = (point: Point, side: "l" | "r", width: number): Point => {
     const base = world(point);
     const authored = (point as Point & { lateralX?: number }).lateralX;
-    return { ...base, x: base.x + (authored !== undefined ? authored * unit : lateral(side, width)) };
+    return { ...base, x: base.x + (authored !== undefined ? authored * front * unit : lateral(side, width)) };
   };
   const legWidth = (point: Point, base: number): number => base + Math.abs(point.x - local.pelvis.x) * 0.08;
   const armWidth = (point: Point, base: number): number => base + Math.abs(point.x - local.chest.x) * 0.08;
