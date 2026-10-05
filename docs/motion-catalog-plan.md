@@ -165,13 +165,13 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `climb-ledge` | draft | W10 |  |
 | `hang-swing` | draft | W10 |  |
 | `crawl` | rework | W10 | 6/10: straight arms, head up |
-| `fall-get-up` | rework | W10 | 6/10: flat prone, real stumble |
+| `fall-get-up` | candidate | W10 | batch 13: review |
 
 ## Totals
 
 - user-approved: 63
-- rework: 5
+- rework: 4
 - planned: 16
-- candidate: 8
+- candidate: 9
 - draft: 8
 - **total: 100**
