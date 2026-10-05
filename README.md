@@ -6,38 +6,27 @@ An original, deterministic 2D vector stick-figure animation engine for presentat
 
 The canonical private repository is
 [`t-vwallerich_microsoft/stickman-mcp`](https://github.com/t-vwallerich_microsoft/stickman-mcp)
-(the linked corporate GitHub login is `t-vwallerich_microsoft`). Every branch
-and tag push triggers a GitHub Actions workflow that pushes those refs to the
-private [`vallahrich/stickman-mcp`](https://github.com/vallahrich/stickman-mcp)
-mirror. The mirror is a downstream copy, not a second source of truth.
+(the linked corporate GitHub login is `t-vwallerich_microsoft`). The private
+[`vallahrich/stickman-mcp`](https://github.com/vallahrich/stickman-mcp)
+repository is a downstream mirror, not a second source of truth.
 
-The workflow uses the corporate repository secret `VALLAHRICH_MIRROR_KEY`,
-which must be a write-enabled deploy key registered only on the vallahrich
-mirror. GitHub's Ed25519 host key is pinned in the workflow. Pushes are
-non-forcing: a divergent mirror ref causes the sync job to fail visibly rather
-than rewriting history. To check sync, inspect the `Mirror to vallahrich`
-Actions run and compare the matching branch/tag commit SHAs in both private
-repositories. **This corporate repository currently has GitHub-hosted Actions
-runners disabled by its Enterprise policy.** The workflow is committed but
-cannot execute until an administrator enables a runner. The canonical
-development checkout is configured with two `origin` push URLs, so normal
-branch/tag pushes from its linked worktrees push to both private repositories.
-That Git configuration is local and is not inherited by a fresh clone. Until
-an administrator enables Actions, configure dual push URLs for a fresh clone
-and authenticate its corporate HTTPS and `github-vallahrich` SSH remotes, or
-push each branch/tag to both remotes explicitly:
+Mirroring is manual. GitHub-hosted Actions runners are disabled for the
+corporate repository by Enterprise policy, so there is no mirror workflow.
+`origin` points only at the corporate repository; the mirror is a separate
+`vallahrich` remote (SSH host alias `github-vallahrich`, authenticated with the
+vallahrich account). After pushing a version to `origin`, push the same refs to
+the mirror:
 
 ```powershell
+git remote add vallahrich git@github-vallahrich:vallahrich/stickman-mcp.git  # once per clone
 git push origin HEAD:refs/heads/<branch>
-git push https://github.com/vallahrich/stickman-mcp.git HEAD:refs/heads/<branch>
-git push origin --tags
-git push https://github.com/vallahrich/stickman-mcp.git --tags
+git push vallahrich HEAD:refs/heads/<branch>
+git push vallahrich --tags
 ```
 
-Authenticate each remote with its corresponding GitHub account. Do not force
-push; if the mirror rejects a ref as non-fast-forward, inspect and reconcile
-the divergence before retrying.
-
+Verify by comparing `git ls-remote origin` with `git ls-remote vallahrich`. Do
+not force push; if the mirror rejects a ref as non-fast-forward, inspect and
+reconcile the divergence before retrying.
 ## Requirements and setup
 
 - Node.js 20 or newer

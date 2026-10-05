@@ -383,8 +383,8 @@ owns visual grading. No implementation agent may change the scorecard to approve
 its own candidate.
 
 If a genuine environment/permission blocker prevents inspection, report it
-instead of inventing a score. Automatic mirroring remains externally blocked
-by Enterprise runner policy; verified private dual pushes still work.
+instead of inventing a score. Mirroring is a manual non-forcing
+`git push vallahrich` (Enterprise policy blocks hosted runners).
 
 ## Version scorecard
 
