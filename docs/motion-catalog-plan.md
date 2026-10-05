@@ -56,7 +56,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `open-door` | user-approved | W1 | batch 10 re-review: 9/10 approved (occlusion) |
 | `jog` | candidate | W4 | reworked (knee forward); awaiting rating |
 | `walk-backwards` | user-approved | W4 | user 8+ |
-| `walk-turn` | draft | W4 |  |
+| `walk-turn` | draft | W4 | wave 11: authoring in progress |
 | `turn-90` | user-approved | W4 | batch 5: 9/10 approved |
 | `sidestep` | user-approved | W4 | user 8+ |
 | `sneak` | user-approved | W4 | batch 4: approved |
@@ -133,9 +133,9 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `push` | candidate | W7 |  |
 | `pull` | user-approved | W7 | batch 4: approved |
 | `push-walk` | draft | W7 |  |
-| `pick-up` | draft | W7 |  |
-| `put-down` | draft | W7 |  |
-| `lift-carry` | draft | W7 |  |
+| `pick-up` | candidate | W7 | batch 11: ready for review |
+| `put-down` | candidate | W7 | batch 11: ready for review |
+| `lift-carry` | candidate | W7 | batch 11: ready for review |
 | `throw` | candidate | W7 | basketball-shot 9 approved; throw-ball reworked, awaiting rating |
 | `catch` | planned | W7 |  |
 | `hand-over` | planned | W7 |  |
@@ -150,9 +150,9 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `jump` | user-approved | done |  |
 | `hop` | user-approved | W8 | batch 6: 9/10 approved |
 | `kick` | candidate | W8 | kick-ball reworked (ball rests, longer arc); awaiting rating |
-| `long-jump` | draft | W8 |  |
+| `long-jump` | draft | W8 | wave 11: authoring in progress |
 | `hurdle` | user-approved | W8 | batch 10: 8/10 approved |
-| `vault` | draft | W8 |  |
+| `vault` | draft | W8 | wave 11: authoring in progress |
 | `skip` | user-approved | W8 | user 8+ |
 | `punch` | user-approved | W8 | batch 9: 9/10 approved (gloves) |
 | `dodge` | user-approved | W8 | user 8+ |
@@ -171,7 +171,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 
 - user-approved: 58
 - rework: 1
-- candidate: 5
-- draft: 16
+- candidate: 8
+- draft: 13
 - planned: 20
 - **total: 100**
