@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { sampleClipMotion, type MotionClip, type PoseKey } from "../dist/motion-clips.js";
 import { RUNTIME_MOTION_LIBRARY } from "../dist/motion-library.js";
-import { addonLifecycleState, clipFrameToSampledFrame, computeAddonFlightPoint, doorGeometry, REVIEW_STAGE } from "../scripts/motions/review-renderer.mjs";
+import { addonLifecycleState, clipFrameToSampledFrame, computeAddonFlightPoint, doorGeometry, renderStaticSvg, REVIEW_STAGE } from "../scripts/motions/review-renderer.mjs";
 import { buildKeyPoseClip, keyPoseGates } from "../scripts/motions/keypose.mjs";
 
 const stand: PoseKey = { anchor: "both", lean: 2, neck: -1, bob: 0, rLeg: { hip: 5, knee: 13 }, lLeg: { hip: -8, knee: 14 }, rArm: { shoulder: -8, elbow: 45 }, lArm: { shoulder: 8, elbow: 45 } };
@@ -91,5 +91,21 @@ describe("motion review renderer uses the shipping engine", () => {
     expect(left.freeX).toBeGreaterThanOrEqual(left.x);
     expect(left.freeX).toBeLessThanOrEqual(left.x + left.w);
     expect(Math.abs(left.freeX - left.hingeX)).toBeLessThanOrEqual(left.w * 0.1);
+  });
+
+  it("clips the figure to the doorway after clipFigureFrom without fading it", async () => {
+    const clip = keyed([{ frame: 0, pose: stand }, { frame: 20, pose: { ...stand, dx: 70 } }]);
+    const spec = {
+      id: "door-clip-test",
+      prop: "door",
+      review: { prop: { x: 42, y: 0, w: 67, h: 185, hinge: "right", clipFigureFrom: 5 } }
+    };
+    const before = await renderStaticSvg({ clip, spec, propsCatalog: { props: [] }, frameIndex: 4 });
+    expect(before).not.toContain("<clipPath");
+    const after = await renderStaticSvg({ clip, spec, propsCatalog: { props: [] }, frameIndex: 6 });
+    expect(after).toContain("<clipPath");
+    expect(after).toContain('clip-path="url(#door-figure-clip-6)"');
+    expect(after).toContain('data-stickman="exact-pivot"');
+    expect(after).toContain('opacity="1"');
   });
 });

@@ -42,7 +42,7 @@
     "transition",
     "walk-through"
   ],
-  "notes": "Push-door beat: walks in from left, reaches the left-side knob on a right-hinged door, pushes the leaf away into the room as the knob/free edge travels toward the right hinge, then releases and walks through the dark doorway while fading inside.",
+  "notes": "Push-door beat: walks in from left, reaches the left-side knob on a right-hinged door, pushes the leaf away into the room, then steps through; from the doorway beat onward the figure is clipped by the frame and occluded by the closing solid leaf rather than faded.",
   "approvedBaseline": false,
   "frames": 100,
   "loop": false,
@@ -1171,7 +1171,8 @@
       "w": 67,
       "h": 185,
       "hinge": "right",
-      "fade": 1
+      "fade": 1,
+      "clipFigureFrom": 52
     },
     "propMotion": [
       {
@@ -1212,17 +1213,17 @@
       {
         "frame": 66,
         "open": 0.95,
-        "fade": 0.75
+        "fade": 1
       },
       {
         "frame": 74,
         "open": 0.55,
-        "fade": 0.35
+        "fade": 1
       },
       {
         "frame": 84,
         "open": 0,
-        "fade": 0
+        "fade": 1
       },
       {
         "frame": 99,

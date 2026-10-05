@@ -160,14 +160,14 @@ function layoutProp(spec, propsCatalog, frameIndex = 0, stage = { rootX: 160, gr
   const hinge = base.hinge ?? (x >= 0 ? "right" : "left");
   const monitorW = base.monitorW !== undefined ? base.monitorW * k : undefined;
   const monitorH = base.monitorH !== undefined ? base.monitorH * k : undefined;
-  return { type: def.type ?? type, id: base.id, x: stage.rootX + x * k, y: stage.groundY - (y + h) * k, w: w * k, h: h * k, r: size.r, steps: base.steps ?? size.steps, rungs: base.rungs ?? size.rungs, open, ink, scale, fade, hinge, monitorW, monitorH, color: base.color, enter: base.enter, exit: base.exit };
+  return { type: def.type ?? type, id: base.id, x: stage.rootX + x * k, y: stage.groundY - (y + h) * k, w: w * k, h: h * k, r: size.r, steps: base.steps ?? size.steps, rungs: base.rungs ?? size.rungs, open, ink, scale, fade, opacity: fade, hinge, monitorW, monitorH, color: base.color, clipFigureFrom: base.clipFigureFrom, enter: base.enter, exit: base.exit };
 }
 
 function doorMarkup(prop, strokeWidth, color, layer = "all") {
   const sw = num(strokeWidth);
   const g = doorGeometry(prop, strokeWidth);
   const { x, y, w, h, open, hingeX, freeX, nearTop, nearBottom, farTop, farBottom, handleX, handleY } = g;
-  const attrs = `fill="#fff" ${open > 0.05 ? 'fill-opacity="0.88"' : ""} stroke="${xml(color)}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"`;
+  const attrs = `fill="#fff" stroke="${xml(color)}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"`;
   const opening = open > 0.05 ? `<rect data-prop="door-opening" x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" fill="#4a4f57" opacity="0.85"/>` : "";
   const frame = `<rect data-prop="door-frame" x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" rx="2" fill="none" stroke="${xml(color)}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"/>`;
   const leaf = `<path data-prop="door-leaf" d="M${num(nearTop.x)} ${num(nearTop.y)}L${num(farTop.x)} ${num(farTop.y)}L${num(farBottom.x)} ${num(farBottom.y)}L${num(nearBottom.x)} ${num(nearBottom.y)}Z" ${attrs}/>`;
@@ -175,6 +175,8 @@ function doorMarkup(prop, strokeWidth, color, layer = "all") {
   const handle = `<circle data-prop="door-handle" cx="${num(handleX)}" cy="${num(handleY)}" r="${num(Math.max(2, strokeWidth))}" fill="#fff" stroke="${xml(color)}" stroke-width="${sw}"/>`;
   const rightPost = `<path data-prop="door-right-post" d="${line({ x: x + w, y }, { x: x + w, y: y + h })}" stroke="${xml(color)}" stroke-width="${num(strokeWidth * 1.25)}" stroke-linecap="round"/>`;
   if (layer === "back") return `<g data-prop="door">${opening}${leaf}${hinge}${handle}</g>`;
+  if (layer === "back-opening") return `<g data-prop="door">${opening}</g>`;
+  if (layer === "front-leaf") return `<g data-prop="door-front-leaf">${leaf}${hinge}${handle}</g>`;
   if (layer === "front") return `<g data-prop="door-frame-front">${frame}${rightPost}</g>`;
   return `<g data-prop="door">${opening}${leaf}${hinge}${handle}${frame}${rightPost}</g>`;
 }
@@ -490,6 +492,13 @@ export function figureMarkup(frame, geometry, color = "#202124", opacity = 1) {
   return `<g data-stickman="exact-pivot" fill="none" stroke="${xml(color)}" stroke-width="${num(geometry.strokeWidth)}" stroke-linecap="round" stroke-linejoin="round" opacity="${num(opacity)}">${limb(geometry.segmentOrder[0])}${limb(geometry.segmentOrder[1])}<path id="torso" d="${detailById.get("torso").d}"/><circle id="head" cx="${num(geometry.head.x)}" cy="${num(geometry.head.y)}" r="${num(geometry.headRadius)}" fill="#fff" stroke="${xml(color)}" stroke-width="${num(geometry.strokeWidth)}"/>${limb(geometry.segmentOrder[3])}${limb(geometry.segmentOrder[4])}${detailById.get("point-finger") ? `<path id="point-finger" d="${detailById.get("point-finger").d}"/>` : ""}</g>`;
 }
 
+function figureMarkupWithDoorClip(frame, geometry, door, frameIndex, color = "#202124") {
+  if (!door || door.clipFigureFrom === undefined || frameIndex < door.clipFigureFrom) return figureMarkup(frame, geometry, color, 1);
+  if (door.open <= 0.02 && (door.opacity ?? 1) < 0.999) return "";
+  const id = `door-figure-clip-${frameIndex}`;
+  return `<defs><clipPath id="${id}"><rect x="${num(door.x)}" y="${num(door.y)}" width="${num(door.w)}" height="${num(door.h)}"/></clipPath></defs><g clip-path="url(#${id})">${figureMarkup(frame, geometry, color, 1)}</g>`;
+}
+
 /**
  * All props for a review frame: the main prop (optionally carried by a hand via review.prop.attach =
  * {hand:"r"|"l", from, to, dx, dy, hiddenBefore, hiddenAfter}) plus static review.extraProps [{type,x,y,w,h}].
@@ -671,10 +680,10 @@ export async function renderStaticSvg({ clip, spec, propsCatalog, frameIndex = 0
   }).join("");
   const handAt = (ix, side) => pointFromSample(engineSampledFrame(sampleClipMotion, clip, ix), side);
   const props = layoutScene(spec, propsCatalog, frameIndex, handAt);
-  const figureOpacity = props.find((p) => p.type === "door")?.fade ?? 1;
-  const back = props.filter((p) => !p.front).map((p) => scenePropMarkup(p, geometry.strokeWidth, "#202124", p.type === "door" ? "back" : "all")).join("");
-  const front = props.map((p) => p.type === "door" ? scenePropMarkup(p, geometry.strokeWidth, "#202124", "front") : p.front ? scenePropMarkup(p, geometry.strokeWidth, "#202124") : "").join("");
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${viewBoxFor(sample)}" role="img" aria-label="${xml(clip.name)} frame ${frameIndex}"><rect x="-10000" y="-10000" width="20000" height="20000" fill="#fff"/><path id="ground" d="M-10000 ${num(sample.groundY)}H10000" stroke="#d8dbe0" stroke-width="1"/>${back}${onionMarkup}${figureOpacity > 0.01 ? figureMarkup(sample, geometry, "#202124", figureOpacity) : ""}${front}<text x="${num(Number(viewBoxFor(sample).split(" ")[0]) + 6)}" y="-42" font-size="9" fill="#888">${xml(clip.name)} f${frameIndex}</text></svg>`;
+  const clipDoor = props.find((p) => p.type === "door" && p.clipFigureFrom !== undefined && frameIndex >= p.clipFigureFrom);
+  const back = props.filter((p) => !p.front).map((p) => scenePropMarkup(p, geometry.strokeWidth, "#202124", p.type === "door" ? (clipDoor === p ? "back-opening" : "back") : "all")).join("");
+  const front = props.map((p) => p.type === "door" ? `${clipDoor === p ? scenePropMarkup(p, geometry.strokeWidth, "#202124", "front-leaf") : ""}${scenePropMarkup(p, geometry.strokeWidth, "#202124", "front")}` : p.front ? scenePropMarkup(p, geometry.strokeWidth, "#202124") : "").join("");
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${viewBoxFor(sample)}" role="img" aria-label="${xml(clip.name)} frame ${frameIndex}"><rect x="-10000" y="-10000" width="20000" height="20000" fill="#fff"/><path id="ground" d="M-10000 ${num(sample.groundY)}H10000" stroke="#d8dbe0" stroke-width="1"/>${back}${onionMarkup}${figureMarkupWithDoorClip(sample, geometry, clipDoor, frameIndex, "#202124")}${front}<text x="${num(Number(viewBoxFor(sample).split(" ")[0]) + 6)}" y="-42" font-size="9" fill="#888">${xml(clip.name)} f${frameIndex}</text></svg>`;
 }
 
 /** The approved run exactly as the product ships it: a compiled scene (root motion, planted feet) sampled at 30 fps. */
@@ -700,6 +709,7 @@ ${sampleMotionClip.toString()}
 ${sampleClipMotion.toString()}
 const engineSampledFrame=${engineSampledFrame.toString()};
 const figureMarkup=${figureMarkup.toString()};
+const figureMarkupWithDoorClip=${figureMarkupWithDoorClip.toString()};
 const layoutProp=${layoutProp.toString()};
 const ADDON_TYPES=new Set(${JSON.stringify([...ADDON_TYPES])});
 const clamp01=${clamp01.toString()};
@@ -746,6 +756,7 @@ ${sampleMotionClip.toString()}
 ${sampleClipMotion.toString()}
 const engineSampledFrame=${engineSampledFrame.toString()};
 const figureMarkup=${figureMarkup.toString()};
+const figureMarkupWithDoorClip=${figureMarkupWithDoorClip.toString()};
 const layoutProp=${layoutProp.toString()};
 const ADDON_TYPES=new Set(${JSON.stringify([...ADDON_TYPES])});
 const clamp01=${clamp01.toString()};
@@ -783,6 +794,6 @@ const xml=${xml.toString()}; const num=${num.toString()}; const line=${line.toSt
 const D=JSON.parse(document.getElementById('data').textContent),clip=D.clip,runFrames=D.runFrames,spec=D.spec,propsCatalog=D.propsCatalog; let f=0,playing=true,last=performance.now();
 function drawRef(){const s=runFrames[Math.floor(performance.now()/1000*30)%runFrames.length],g=ENGINE_FRAME_GEOMETRY(s);ref.setAttribute('viewBox','200 '+num(s.groundY-260)+' 1200 330');ref.innerHTML='<rect x="-10000" y="-10000" width="20000" height="20000" fill="#fff"/><path d="M-10000 '+num(s.groundY)+'H10000" stroke="#d8dbe0"/>'+figureMarkup(s,g);}
 const params=new URLSearchParams(location.search); if(params.get('bare')==='1')document.body.classList.add('bare'); if(params.has('onion'))onion.checked=params.get('onion')!=='0'; if(params.has('frame')){f=Number(params.get('frame'))||0;playing=false;play.textContent='play';scrub.value=Math.max(0,Math.min(clip.frames.length-1,Math.round(f)));}
-function drawSvg(svg,c,ix,onionMode,withProp){const sample=engineSampledFrame(sampleClipMotion,c,ix),g=ENGINE_FRAME_GEOMETRY(sample);svg.setAttribute('viewBox',viewBoxFor(sample));let h='<rect x="-10000" y="-10000" width="20000" height="20000" fill="#fff"/><path d="M-10000 '+num(sample.groundY)+'H10000" stroke="#d8dbe0"/>';const scene=withProp?layoutScene(spec,propsCatalog,ix,(j,side)=>pointFromSample(engineSampledFrame(sampleClipMotion,c,j),side)):[];const figureOpacity=(scene.find(p=>p.type==='door')||{}).fade??1;for(const p of scene)if(!p.front)h+=scenePropMarkup(p,g.strokeWidth,'#202124',p.type==='door'?'back':'all');if(onionMode){for(const d of [-6,-3,3,6]){const oi=ix+d;if(oi>=0&&oi<c.frames.length){const os=engineSampledFrame(sampleClipMotion,c,oi);h+=figureMarkup(os,ENGINE_FRAME_GEOMETRY(os),'#202124',.18);}}}if(figureOpacity>.01)h+=figureMarkup(sample,g,'#202124',figureOpacity);for(const p of scene)h+=p.type==='door'?scenePropMarkup(p,g.strokeWidth,'#202124','front'):(p.front?scenePropMarkup(p,g.strokeWidth,'#202124'):'');svg.innerHTML=h;}
+function drawSvg(svg,c,ix,onionMode,withProp){const sample=engineSampledFrame(sampleClipMotion,c,ix),g=ENGINE_FRAME_GEOMETRY(sample);svg.setAttribute('viewBox',viewBoxFor(sample));let h='<rect x="-10000" y="-10000" width="20000" height="20000" fill="#fff"/><path d="M-10000 '+num(sample.groundY)+'H10000" stroke="#d8dbe0"/>';const scene=withProp?layoutScene(spec,propsCatalog,ix,(j,side)=>pointFromSample(engineSampledFrame(sampleClipMotion,c,j),side)):[];const clipDoor=scene.find(p=>p.type==='door'&&p.clipFigureFrom!==undefined&&ix>=p.clipFigureFrom);for(const p of scene)if(!p.front)h+=scenePropMarkup(p,g.strokeWidth,'#202124',p.type==='door'?(clipDoor===p?'back-opening':'back'):'all');if(onionMode){for(const d of [-6,-3,3,6]){const oi=ix+d;if(oi>=0&&oi<c.frames.length){const os=engineSampledFrame(sampleClipMotion,c,oi);h+=figureMarkup(os,ENGINE_FRAME_GEOMETRY(os),'#202124',.18);}}}h+=figureMarkupWithDoorClip(sample,g,clipDoor,ix,'#202124');for(const p of scene)h+=p.type==='door'?((clipDoor===p?scenePropMarkup(p,g.strokeWidth,'#202124','front-leaf'):'')+scenePropMarkup(p,g.strokeWidth,'#202124','front')):(p.front?scenePropMarkup(p,g.strokeWidth,'#202124'):'');svg.innerHTML=h;}
 for(let k=0;k<8;k++){const s=document.createElementNS('http://www.w3.org/2000/svg','svg');drawSvg(s,clip,Math.round(k*(clip.frames.length-1)/7),false,true);film.append(s)}play.onclick=()=>{playing=!playing;play.textContent=playing?'pause':'play'};scrub.oninput=()=>{playing=false;play.textContent='play';f=Number(scrub.value);draw()};function draw(){const ix=Math.max(0,Math.min(clip.frames.length-1,f));scrub.value=Math.floor(ix);frameNo.textContent=String(Math.floor(ix));drawSvg(stage,clip,ix,onion.checked,true);drawRef()}function tick(t){const dt=(t-last)/1000;last=t;if(playing){f=f+dt*clip.fps*Number(speed.value);if(f>clip.frames.length-1)f=clip.loop?f%clip.frames.length:(f>clip.frames.length-1+20?0:f);}draw();requestAnimationFrame(tick)}draw();if(params.get('bare')!=='1')requestAnimationFrame(tick);</script></body></html>`;
 }
