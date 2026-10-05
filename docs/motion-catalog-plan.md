@@ -49,7 +49,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `walk-start` | rework | W1 | 7/10: too sporty |
 | `walk-stop` | user-approved | W1 | 8/10 |
 | `turn-around` | user-approved | W1 | 8/10 |
-| `step-up` | rework | W1 | 6/10: looks like exercise |
+| `step-up` | rework | W1 | 7/10: foot passes through step |
 | `crouch` | user-approved | W1 | 8/10 |
 | `sit-down` | user-approved | W1 | 8/10 |
 | `stand-up` | user-approved | W1 | 8/10 |
@@ -81,11 +81,11 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `beckon` | planned | W3 |  |
 | `stop-hand` | planned | W3 |  |
 | `clap` | in progress | W3 |  |
-| `bow` | candidate | W3 |  |
+| `bow` | user-approved | W3 | 8/10 |
 | `shrug` | in progress | W3 |  |
-| `think` | candidate | W3 |  |
-| `look-around` | candidate | W3 |  |
-| `cheer` | candidate | W2 |  |
+| `think` | user-approved | W3 | 8/10 |
+| `look-around` | rework | W3 | 7/10: add binoculars |
+| `cheer` | rework | W2 | 6/10: arms weird |
 | `fist-pump` | planned | W9 |  |
 | `scratch-head` | planned | W9 |  |
 | `arms-crossed` | planned | W9 |  |
@@ -98,11 +98,11 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | Motion | Status | Wave | Note |
 | --- | --- | --- | --- |
 | `present` | in progress | W2 |  |
-| `present-card` | candidate | W2 |  |
+| `present-card` | user-approved | W2 | 8/10 |
 | `reveal` | in progress | W2 |  |
-| `write-board` | candidate | W2 |  |
-| `tap-element` | candidate | W2 |  |
-| `idea` | candidate | W2 |  |
+| `write-board` | rework | W2 | 6/10: must write text |
+| `tap-element` | rework | W2 | 7/10: no extra finger |
+| `idea` | rework | W2 | 7/10: bulb needs work |
 | `pull-banner` | in progress | W2 |  |
 | `swipe-next` | candidate | W2 | 8/10 earlier; no auto-advance |
 | `walk-on` | planned | W5 |  |
@@ -169,10 +169,10 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 
 ## Totals
 
-- user-approved: 11
-- rework: 5
+- user-approved: 14
+- rework: 10
 - planned: 41
 - draft: 25
 - in progress: 5
-- candidate: 13
+- candidate: 5
 - **total: 100**
