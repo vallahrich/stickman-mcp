@@ -136,7 +136,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `pick-up` | user-approved | W7 | batch 11: 8/10 approved |
 | `put-down` | user-approved | W7 | batch 11: 8/10 approved |
 | `lift-carry` | rework | W7 | batch 11: 5, lift+carry+set down, arms visible, natural gait |
-| `throw` | rework | W7 | basketball-shot 9 approved; throw-ball 7.5: ball must fly faster |
+| `throw` | candidate | W7 | basketball-shot 9 approved; throw-ball faster ball, batch 11 |
 | `catch` | planned | W7 |  |
 | `hand-over` | planned | W7 |  |
 | `drag-object` | planned | W7 |  |
@@ -149,7 +149,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | --- | --- | --- | --- |
 | `jump` | user-approved | done |  |
 | `hop` | user-approved | W8 | batch 6: 9/10 approved |
-| `kick` | rework | W8 | kick-ball 6.5: back-lean after shot, shot leg |
+| `kick` | candidate | W8 | kick-ball reworked shot leg/no back-lean, batch 11 |
 | `long-jump` | candidate | W8 | batch 11: ready for review |
 | `hurdle` | user-approved | W8 | batch 10: 8/10 approved |
 | `vault` | draft | W8 | wave 11: authoring in progress |
@@ -170,8 +170,8 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 ## Totals
 
 - user-approved: 60
-- rework: 5
-- candidate: 4
+- rework: 3
+- candidate: 6
 - planned: 20
 - draft: 11
 - **total: 100**
