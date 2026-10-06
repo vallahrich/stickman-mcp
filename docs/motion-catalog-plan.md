@@ -133,7 +133,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 
 | Motion | Status | Wave | Note |
 | --- | --- | --- | --- |
-| `push` | rework | W7 | review wave 15: 7/10; user asks push harder; rework underway |
+| `push` | candidate | W7 | previous 7/10; harder push rework independently checked; awaiting re-rating |
 | `pull` | user-approved | W7 | batch 4: approved |
 | `push-walk` | candidate | W7 | wave 18: four-step push with steady grip; awaiting rating |
 | `pick-up` | user-approved | W7 | batch 11: 8/10 approved |
@@ -165,16 +165,15 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `dance` | rework | W8 | review wave 15: 5/10; user asks disco dance; rework underway |
 | `climb-ladder` | user-approved | W10 | review wave 15: 9/10 approved |
 | `climb-down` | candidate | W10 | wave 18: supported descent and dismount; awaiting rating |
-| `climb-ledge` | in progress | W10 | wave 19: authoring supported ledge climb |
-| `hang-swing` | in progress | W10 | wave 18: author candidate returned; independent review pending |
+| `climb-ledge` | candidate | W10 | wave 19: supported ledge climb independently checked; awaiting rating |
+| `hang-swing` | candidate | W10 | wave 18: fixed-grip swing and landing independently checked; awaiting rating |
 | `crawl` | user-approved | W10 | re-review: 9/10 approved; articulated gait and locked stance contacts |
 | `fall-get-up` | user-approved | W10 | re-review: 9/10 approved; supported palm-to-knee-to-foot recovery |
 
 ## Totals
 
 - user-approved: 80
-- candidate: 6
+- candidate: 9
 - planned: 9
-- rework: 3
-- in progress: 2
+- rework: 2
 - **total: 100**
