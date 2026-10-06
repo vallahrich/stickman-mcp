@@ -8,8 +8,10 @@ export function buildKeyPoseClip(spec, neutralFrame) {
   const poseKeys = [...spec.poseKeys].sort((a, b) => a.frame - b.frame);
   if (poseKeys[0].frame !== 0) throw new Error(`${spec.id}: first pose key must be at frame 0`);
   if (!spec.loop && poseKeys[poseKeys.length - 1].frame !== n - 1) throw new Error(`${spec.id}: last pose key must be at frame ${n - 1}`);
+  const strideLength = spec.strideLength ?? 0;
+  if (!Number.isFinite(strideLength)) throw new Error(`${spec.id}: strideLength must be finite`);
   return {
-    name: spec.id, fps: 30, loop: Boolean(spec.loop), frames: Array.from({ length: n }, () => frame), strideLength: 0,
+    name: spec.id, fps: 30, loop: Boolean(spec.loop), frames: Array.from({ length: n }, () => frame), strideLength,
     markers: spec.markers ?? {}, poseKeys,
     rig: { units: "normalized-height-100", height: 100, thigh: 22.5, shin: 22.5, foot: 7, torso: 30, neck: 4, headRadius: 11, upperArm: 17, forearm: 16 },
     source: { authored: "key poses" }, license: "Original key-pose animation"
@@ -28,7 +30,7 @@ export async function keyPoseGates(clip, spec) {
   const angle = (dir, x1, y1, x2, y2) => Math.atan2(dir * (x2 - x1), y2 - y1) * 180 / Math.PI;
   let prev = null;
   const allow = new Set(spec.gates?.allow ?? []);
-  for (let f = 0; f < clip.frames.length; f++) {
+  for (let f = 0; f < clip.frames.length + (clip.loop ? 1 : 0); f++) {
     const s = engineSampledFrame(sampleClipMotion, clip, f);
     const dir = Math.sign(s.facing ?? 1) || 1;
     const sideView = Math.abs(s.facing ?? 1) > 0.3;

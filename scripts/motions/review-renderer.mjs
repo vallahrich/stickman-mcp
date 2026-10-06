@@ -114,9 +114,13 @@ export function computeAddonFlightPoint(start, end, flight = {}, frameIndex = 0,
 /** Samples one frame through the shipping engine (sampleClipMotion) exactly as compiler.ts does. */
 export function engineSampledFrame(sampleClipMotion, clip, frameIndex, stage = { rootX: 160, groundY: 150, scale: 0.75 }) {
   const n = clip.frames.length;
-  const progress = clip.loop ? frameIndex / n : frameIndex / Math.max(1, n - 1);
-  const pose = sampleClipMotion({ clips: { [clip.name]: clip } }, { action: clip.name, clipId: clip.name, progress, startX: stage.rootX, endX: stage.rootX, groundY: stage.groundY, facing: 1, scale: stage.scale });
-  return { timeMs: Math.round(frameIndex / clip.fps * 1000), action: clip.name, x: pose.rootX, groundY: stage.groundY, head: pose.headPoint, segments: pose.segments, prop: null, ...(pose.facing !== undefined ? { facing: pose.facing } : {}), ...(pose.articulated ? { articulated: true } : {}) };
+  const authoredLoop = clip.loop && clip.poseKeys?.length;
+  const cycles = authoredLoop ? Math.max(1, Math.floor(frameIndex / n) + 1) : 1;
+  const localFrame = clip.loop && !authoredLoop ? ((frameIndex % n) + n) % n : frameIndex;
+  const progress = clip.loop ? localFrame / (n * cycles) : frameIndex / Math.max(1, n - 1);
+  const pose = sampleClipMotion({ clips: { [clip.name]: clip } }, { action: clip.name, clipId: clip.name, progress, ...(clip.loop && clip.poseKeys?.length ? { durationMs: cycles * n / clip.fps * 1000 } : {}), startX: stage.rootX, endX: stage.rootX, groundY: stage.groundY, facing: 1, scale: stage.scale });
+  const cameraX = clip.loop && clip.strideLength && pose.articulated ? pose.joints.pelvis.x : pose.rootX;
+  return { timeMs: Math.round(frameIndex / clip.fps * 1000), action: clip.name, x: cameraX, groundY: stage.groundY, head: pose.headPoint, segments: pose.segments, prop: null, ...(pose.facing !== undefined ? { facing: pose.facing } : {}), ...(pose.articulated ? { articulated: true } : {}) };
 }
 
 export async function clipFrameToSampledFrame(clip, frameIndex) {
@@ -788,8 +792,66 @@ export async function renderReviewHtml({ clip, spec, report, propsCatalog }) {
   const { frameGeometry, sampleMotionClip, sampleClipMotion } = await loadEngineRenderer();
   const runFrames = await shippingRunFrames();
   const data = JSON.stringify({ clip, spec, report, runFrames, propsCatalog }).replaceAll("<", "\\u003c");
-  return `<!doctype html><html><meta charset="utf-8"><title>${xml(clip.name)} motion review</title><style>
-body{font:14px system-ui;margin:0;background:#f7f7f8;color:#1f2328}.bar{position:sticky;top:0;background:white;border-bottom:1px solid #ddd;padding:10px;z-index:3}.bare .bar,.bare h3,.bare .film{display:none}main{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px}.bare main{display:block;padding:0}.panel{background:white;border:1px solid #ddd;border-radius:12px;padding:10px}.bare .panel{border:0;border-radius:0;padding:0}svg.stage{width:100%;height:440px}.bare svg.stage{width:100vw;height:100vh}.film{display:grid;grid-template-columns:repeat(8,1fr);gap:6px}.film svg{height:90px;background:#fafafa;border-radius:8px}button,select,input{vertical-align:middle}</style><body><div class="bar"><b>${xml(clip.name)}</b> <button id="play">pause</button> speed <select id="speed"><option value=".1">0.1x</option><option value=".25">0.25x</option><option value=".5">0.5x</option><option value="1" selected>1x</option></select> onion <input id="onion" type="checkbox"> frame <input id="scrub" type="range" min="0" max="${clip.frames.length - 1}" value="0"> <span id="frameNo">0</span></div><main><section class="panel"><h3>Candidate (shipping engine)</h3><svg id="stage" class="stage"></svg><div id="film" class="film"></div></section><section class="panel" id="refPanel"><h3>Approved run (shipping engine)</h3><svg id="ref" class="stage"></svg></section></main><script id="data" type="application/json">${data}</script><script>
+  return `<!doctype html><html><meta charset="utf-8"><title>${xml(clip.name)} motion review</title><script>
+(() => {
+  const param = new URLSearchParams(window.location.search).get("scoutTheme");
+  const theme = param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  document.documentElement.setAttribute("data-theme", theme);
+})();
+</script><style>
+:root {
+  color-scheme: light;
+  --cp-bg: #f7f4ef;
+  --cp-bg-elevated: #fcfbf8;
+  --cp-surface: #ffffff;
+  --cp-surface-soft: #f5f5f5;
+  --cp-border: #dedede;
+  --cp-border-strong: #919191;
+  --cp-text: #242424;
+  --cp-text-muted: #5c5c5c;
+  --cp-text-soft: #6f6f6f;
+  --cp-accent: #b11f4b;
+  --cp-accent-hover: #9a1a41;
+  --cp-accent-soft: rgba(177, 31, 75, 0.08);
+  --cp-accent-fg: #ffffff;
+  --cp-success: #16a34a;
+  --cp-danger: #dc2626;
+  --cp-warning: #f59e0b;
+  --cp-link: #0078d4;
+  --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+  --cp-overlay: rgba(255, 255, 255, 0.8);
+  --cp-panel: rgba(255, 255, 255, 0.86);
+  --cp-panel-strong: rgba(255, 255, 255, 0.96);
+  --cp-sheen: rgba(255, 255, 255, 0.55);
+  --cp-highlight: rgba(177, 31, 75, 0.12);
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --cp-bg: #3d3b3a;
+  --cp-bg-elevated: #343231;
+  --cp-surface: #292929;
+  --cp-surface-soft: #2e2e2e;
+  --cp-border: #474747;
+  --cp-border-strong: #5f5f5f;
+  --cp-text: #dedede;
+  --cp-text-muted: #919191;
+  --cp-text-soft: #b0b0b0;
+  --cp-accent: #fd8ea1;
+  --cp-accent-hover: #fb7b91;
+  --cp-accent-soft: rgba(253, 142, 161, 0.14);
+  --cp-accent-fg: #1a1a1a;
+  --cp-success: #4ade80;
+  --cp-danger: #f87171;
+  --cp-warning: #fbbf24;
+  --cp-link: #4da6ff;
+  --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+  --cp-overlay: rgba(41, 41, 41, 0.88);
+  --cp-panel: rgba(41, 41, 41, 0.72);
+  --cp-panel-strong: rgba(41, 41, 41, 0.96);
+  --cp-sheen: rgba(255, 255, 255, 0.04);
+  --cp-highlight: rgba(253, 142, 161, 0.12);
+}
+body{font:14px "Segoe UI",Aptos,Calibri,-apple-system,BlinkMacSystemFont,sans-serif;margin:0;background:var(--cp-bg);color:var(--cp-text)}.bar{position:sticky;top:0;background:var(--cp-surface);border-bottom:1px solid var(--cp-border);padding:12px;z-index:3}.bare .bar,.bare h3,.bare .film{display:none}main{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px}.bare main{display:block;padding:0}.panel{background:var(--cp-surface);border:1px solid var(--cp-border);border-radius:16px;padding:12px}.bare .panel{border:0;border-radius:0;padding:0}svg.stage{width:100%;height:440px}.bare svg.stage{width:100vw;height:100vh}.film{display:grid;grid-template-columns:repeat(8,1fr);gap:8px}.film svg{height:90px;background:var(--cp-surface-soft);border-radius:10px}button,select,input{vertical-align:middle;accent-color:var(--cp-accent)}button,select{background:var(--cp-surface-soft);color:var(--cp-text);border:1px solid var(--cp-border);border-radius:10px;padding:4px 8px}</style><body><div class="bar"><b>${xml(clip.name)}</b> <button id="play">pause</button> speed <select id="speed"><option value=".1">0.1x</option><option value=".25">0.25x</option><option value=".5">0.5x</option><option value="1" selected>1x</option></select> onion <input id="onion" type="checkbox"> frame <input id="scrub" type="range" min="0" max="${clip.frames.length - 1}" value="0"> <span id="frameNo">0</span></div><main><section class="panel"><h3>Candidate (shipping engine)</h3><svg id="stage" class="stage"></svg><div id="film" class="film"></div></section><section class="panel" id="refPanel"><h3>Approved run (shipping engine)</h3><svg id="ref" class="stage"></svg></section></main><script id="data" type="application/json">${data}</script><script>
 const ENGINE_FRAME_GEOMETRY=${frameGeometry.toString()};
 ${sampleMotionClip.toString()}
 ${sampleClipMotion.toString()}
@@ -834,5 +896,5 @@ const D=JSON.parse(document.getElementById('data').textContent),clip=D.clip,runF
 function drawRef(){const s=runFrames[Math.floor(performance.now()/1000*30)%runFrames.length],g=ENGINE_FRAME_GEOMETRY(s);ref.setAttribute('viewBox','200 '+num(s.groundY-260)+' 1200 330');ref.innerHTML='<rect x="-10000" y="-10000" width="20000" height="20000" fill="#fff"/><path d="M-10000 '+num(s.groundY)+'H10000" stroke="#d8dbe0"/>'+figureMarkup(s,g);}
 const params=new URLSearchParams(location.search); if(params.get('bare')==='1')document.body.classList.add('bare'); if(params.has('onion'))onion.checked=params.get('onion')!=='0'; if(params.has('frame')){f=Number(params.get('frame'))||0;playing=false;play.textContent='play';scrub.value=Math.max(0,Math.min(clip.frames.length-1,Math.round(f)));}
 function drawSvg(svg,c,ix,onionMode,withProp){const sample=engineSampledFrame(sampleClipMotion,c,ix),g=ENGINE_FRAME_GEOMETRY(sample);svg.setAttribute('viewBox',viewBoxFor(sample));let h='<rect x="-10000" y="-10000" width="20000" height="20000" fill="#fff"/><path d="M-10000 '+num(sample.groundY)+'H10000" stroke="#d8dbe0"/>';const scene=withProp?layoutScene(spec,propsCatalog,ix,(j,side)=>pointFromSample(engineSampledFrame(sampleClipMotion,c,j),side)):[];const clipDoor=scene.find(p=>p.type==='door'&&p.clipFigureFrom!==undefined&&ix>=p.clipFigureFrom);for(const p of scene)if(!p.front)h+=scenePropMarkup(p,g.strokeWidth,'#202124',p.type==='door'?(clipDoor===p?'back-opening':'back'):'all');if(onionMode){for(const d of [-6,-3,3,6]){const oi=ix+d;if(oi>=0&&oi<c.frames.length){const os=engineSampledFrame(sampleClipMotion,c,oi);h+=figureMarkup(os,ENGINE_FRAME_GEOMETRY(os),'#202124',.18);}}}h+=figureMarkupWithDoorClip(sample,g,clipDoor,ix,'#202124');for(const p of scene)h+=p.type==='door'?((clipDoor===p?scenePropMarkup(p,g.strokeWidth,'#202124','front-leaf'):'')+scenePropMarkup(p,g.strokeWidth,'#202124','front')):(p.front?scenePropMarkup(p,g.strokeWidth,'#202124'):'');svg.innerHTML=h;}
-for(let k=0;k<8;k++){const s=document.createElementNS('http://www.w3.org/2000/svg','svg');drawSvg(s,clip,Math.round(k*(clip.frames.length-1)/7),false,true);film.append(s)}play.onclick=()=>{playing=!playing;play.textContent=playing?'pause':'play'};scrub.oninput=()=>{playing=false;play.textContent='play';f=Number(scrub.value);draw()};function draw(){const ix=Math.max(0,Math.min(clip.frames.length-1,f));scrub.value=Math.floor(ix);frameNo.textContent=String(Math.floor(ix));drawSvg(stage,clip,ix,onion.checked,true);drawRef()}function tick(t){const dt=(t-last)/1000;last=t;if(playing){f=f+dt*clip.fps*Number(speed.value);if(f>clip.frames.length-1)f=clip.loop?f%clip.frames.length:(f>clip.frames.length-1+20?0:f);}draw();requestAnimationFrame(tick)}draw();if(params.get('bare')!=='1')requestAnimationFrame(tick);</script></body></html>`;
+for(let k=0;k<8;k++){const s=document.createElementNS('http://www.w3.org/2000/svg','svg');drawSvg(s,clip,Math.round(k*(clip.frames.length-1)/7),false,true);film.append(s)}play.onclick=()=>{playing=!playing;play.textContent=playing?'pause':'play'};scrub.oninput=()=>{playing=false;play.textContent='play';f=Number(scrub.value);draw()};function draw(){const ix=clip.loop?(clip.strideLength&&clip.poseKeys?.length?Math.max(0,f):f%clip.frames.length):Math.max(0,Math.min(clip.frames.length-1,f));const local=clip.loop?ix%clip.frames.length:ix;scrub.value=Math.floor(local);frameNo.textContent=String(Math.floor(local))+(clip.loop?' (cycle '+(Math.floor(f/clip.frames.length)+1)+')':'');drawSvg(stage,clip,ix,onion.checked,true);drawRef()}function tick(t){const dt=(t-last)/1000;last=t;if(playing){f=f+dt*clip.fps*Number(speed.value);if(!clip.loop&&f>clip.frames.length-1+20)f=0;}draw();requestAnimationFrame(tick)}draw();if(params.get('bare')!=='1')requestAnimationFrame(tick);</script></body></html>`;
 }

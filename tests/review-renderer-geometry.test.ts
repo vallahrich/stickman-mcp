@@ -37,6 +37,27 @@ describe("motion review renderer uses the shipping engine", () => {
     expect(review.segments).toEqual(mid.segments);
   });
 
+  it("checks the loop seam and previews accumulated travel past the first cycle", async () => {
+    const pose = { ...stand, anchor: null, bob: 30, dx: 0 };
+    const spec = {
+      id: "travel-loop", frames: 21, loop: true,
+      poseKeys: [{ frame: 0, ease: "linear", pose }, { frame: 20, ease: "linear", pose: { ...pose, dx: 100 } }]
+    };
+    const broken = buildKeyPoseClip(spec, neutral) as MotionClip;
+    const failure = await keyPoseGates(broken, spec);
+    expect(failure.failures.some((f: { metric: string; frame: number }) => f.metric === "jointPop" && f.frame === 21)).toBe(true);
+    const clip = buildKeyPoseClip({ ...spec, strideLength: 105 }, neutral) as MotionClip;
+    expect(clip.strideLength).toBe(105);
+    expect((await keyPoseGates(clip, spec)).passed).toBe(true);
+    const before = await clipFrameToSampledFrame(clip, 20);
+    const seam = await clipFrameToSampledFrame(clip, 21);
+    const later = await clipFrameToSampledFrame(clip, 42);
+    expect(seam.segments![0]!.x1 - before.segments![0]!.x1).toBeCloseTo(5 * REVIEW_STAGE.scale, 5);
+    expect(later.segments![0]!.x1 - seam.segments![0]!.x1).toBeCloseTo(105 * REVIEW_STAGE.scale, 5);
+    expect(later.x).toBeCloseTo(later.segments![0]!.x1, 5);
+    expect(() => buildKeyPoseClip({ ...spec, strideLength: NaN }, neutral)).toThrow("strideLength must be finite");
+  });
+
   it("supports root offsets, raised foot plants, foot/hand targets and facing", () => {
     const up: PoseKey = { ...stand, anchor: "both", dx: 30, dy: 20, lPlant: 20, rPlant: 20, rHand: { x: 50, y: 120 }, facing: -1 };
     const clip = keyed([{ frame: 0, pose: stand }, { frame: 20, pose: up }]);

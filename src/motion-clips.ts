@@ -150,14 +150,19 @@ export function sampleClipMotion(library: MotionClipLibrary, request: ClipMotion
     const ease = ka.ease ?? "inOut";
     const u = ease === "linear" ? t : ease === "hold" ? 0 : ease === "in" ? t * t : ease === "out" ? 1 - (1 - t) * (1 - t) : easeInOut(t);
     const a = ka.pose as StyleKey, b = kb.pose as StyleKey;
+    const offsetA = clip.loop && fa < 0 ? -clip.strideLength : 0;
+    const offsetB = clip.loop && ib === 0 && fb >= n ? clip.strideLength : 0;
     const num = (x: number | undefined, y: number | undefined, d: number): number => lerp(x ?? y ?? d, y ?? x ?? d, u);
     const out: StyleKey = { anchor: u < 0.5 ? a.anchor : b.anchor, lean: lerp(a.lean, b.lean, u), neck: lerp(a.neck, b.neck, u), bob: lerp(a.bob, b.bob, u), rLeg: interpObj(a.rLeg, b.rLeg, u), lLeg: interpObj(a.lLeg, b.lLeg, u), rArm: interpObj(a.rArm, b.rArm, u), lArm: interpObj(a.lArm, b.lArm, u), dx: num(a.dx, b.dx, 0), dy: num(a.dy, b.dy, 0), headShift: num(a.headShift, b.headShift, 0), sway: num(a.sway, b.sway, 0), lPlant: num(a.lPlant, b.lPlant, 0), rPlant: num(a.rPlant, b.rPlant, 0), lw: lerp(sideWeight(a, "l"), sideWeight(b, "l"), u), rw: lerp(sideWeight(a, "r"), sideWeight(b, "r"), u) };
     if (a.facing !== undefined || b.facing !== undefined) out.facing = num(a.facing, b.facing, 1);
+    out.dx = lerp((a.dx ?? b.dx ?? 0) + offsetA, (b.dx ?? a.dx ?? 0) + offsetB, u);
     for (const name of ["lFoot", "rFoot", "lHand", "rHand"] as const) {
       const pa = a[name], pb = b[name];
-      if (pa && pb) { out[name] = blendPoint(pa, pb, u); out[`${name}W` as "lFootW"] = 1; }
-      else if (pa) { out[name] = pa; out[`${name}W` as "lFootW"] = 1 - u; }
-      else if (pb) { out[name] = pb; out[`${name}W` as "lFootW"] = u; }
+      const shiftedA = pa && { x: pa.x + offsetA, y: pa.y };
+      const shiftedB = pb && { x: pb.x + offsetB, y: pb.y };
+      if (shiftedA && shiftedB) { out[name] = blendPoint(shiftedA, shiftedB, u); out[`${name}W` as "lFootW"] = 1; }
+      else if (shiftedA) { out[name] = shiftedA; out[`${name}W` as "lFootW"] = 1 - u; }
+      else if (shiftedB) { out[name] = shiftedB; out[`${name}W` as "lFootW"] = u; }
     }
     return out;
   };
@@ -269,9 +274,10 @@ export function sampleClipMotion(library: MotionClipLibrary, request: ClipMotion
   const frameProgress = meta?.kind === "hold" ? Math.min(p * speed, 1) : clip.loop ? p * speed * loopCycles : Math.min(p * speed, 1);
   const frameTime = moving ? p * cycles * clip.frames.length : frameProgress * (clip.loop ? clip.frames.length : clip.frames.length - 1);
   const rootTravel = moving ? distance * smooth(p) : 0;
+  const authoredTravel = clip.loop && clip.poseKeys?.length ? Math.floor(frameTime / clip.frames.length) * clip.strideLength * unit : 0;
   const rootX = action === "point" && request.pointTarget && request.placePointBeforeTarget
     ? lerp(request.startX, request.pointTarget.x - direction * 100 * request.scale, smooth(p / 0.25))
-    : request.startX + direction * rootTravel;
+    : request.startX + direction * (rootTravel + authoredTravel);
   const targetLocal = action === "point" && request.pointTarget ? { x: direction * (request.pointTarget.x - rootX) / unit, y: (request.groundY - request.pointTarget.y) / unit } : undefined;
   const sampled = sampleMotionClip(clip, frameTime).frame;
   const poseKey = keyFor(clip, frameTime);

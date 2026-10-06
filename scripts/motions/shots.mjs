@@ -39,7 +39,7 @@ $png.Dispose()
 }
 
 const frames = frameList.split(",").map((item) => Number(item.trim())).filter(Number.isFinite)
-  .map((frame) => Math.max(0, Math.min(clip.frames.length - 1, Math.round(frame))));
+  .map((frame) => Math.max(0, clip.loop ? Math.round(frame) : Math.min(clip.frames.length - 1, Math.round(frame))));
 const rendered = [];
 const jpgPaths = [];
 

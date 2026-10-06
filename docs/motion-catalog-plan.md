@@ -4,13 +4,16 @@ The goal is a catalog of the 100 motions people reach for most often when animat
 
 ## Quality gate
 
-A motion ships (`user-approved`) only when all of these hold:
+A motion earns catalog approval (`user-approved`) only when all of these hold:
 
 1. Automated gates pass: no backward knees or hyperextended elbows, limb stretch within 4 %, no ground penetration, no joint pops (14 units/frame), no foot sliding.
 2. Every key frame has been reviewed by eye before the user sees it.
 3. The user rates it **8/10 or higher**. Anything lower goes to `rework` with the user's notes.
 
 Statuses: `planned` (no spec yet), `draft` (spec from mocap reference, not yet authored), `in progress` (an authoring agent is working on it), `candidate` (authored, awaiting user rating), `rework` (rated under 8, being fixed), `user-approved`.
+
+Catalog approval does not automatically promote the spec into the runtime library.
+Shipping also requires explicit assembly and end-to-end MCP/playback verification.
 
 ## Process
 
@@ -43,7 +46,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | --- | --- | --- | --- |
 | `idle` | user-approved | done |  |
 | `walk` | user-approved | done |  |
-| `run` | in progress | W1 | wave 15: reworking hopping into natural run |
+| `run` | candidate | W1 | wave 15: natural-run candidate; continuous loop seam fixed; awaiting rating |
 | `stop` | user-approved | done |  |
 | `run-start` | user-approved | W1 | 9/10 |
 | `walk-start` | user-approved | W1 | batch 4: approved |
@@ -137,7 +140,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `put-down` | user-approved | W7 | batch 11: 8/10 approved |
 | `lift-carry` | user-approved | W7 | re-review: 8/10 approved; stable torso, pelvis and box |
 | `throw` | user-approved | W7 | throw-ball 8/10 approved; basketball-shot 9/10 approved |
-| `catch` | in progress | W7 | wave 15: authoring |
+| `catch` | candidate | W7 | wave 15: two-hand catch candidate; awaiting rating |
 | `hand-over` | planned | W7 |  |
 | `drag-object` | planned | W7 |  |
 | `check-watch` | user-approved | W7 | batch 8: 8/10 approved |
@@ -157,7 +160,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `punch` | user-approved | W8 | batch 9: 9/10 approved (gloves) |
 | `dodge` | user-approved | W8 | user 8+ |
 | `roll` | in progress | W8 | wave 15: authoring |
-| `trip` | in progress | W8 | wave 15: authoring |
+| `trip` | candidate | W8 | wave 15: stumble and recovery candidate; awaiting rating |
 | `balance` | user-approved | W8 | wave 14: 9/10 approved; one-leg balance and recovery |
 | `dance` | draft | W8 |  |
 | `climb-ladder` | candidate | W10 |  |
@@ -170,8 +173,8 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 ## Totals
 
 - user-approved: 76
-- in progress: 4
+- candidate: 5
 - planned: 13
-- candidate: 2
 - draft: 5
+- in progress: 1
 - **total: 100**

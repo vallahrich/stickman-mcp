@@ -95,6 +95,46 @@ describe("mocap clip library", () => {
     }
   });
 
+  it.each([1, -1] as const)("accumulates authored loop travel continuously facing %s", (facing) => {
+    const base = MOTION_CLIP_LIBRARY.clips.idle;
+    const pose = {
+      anchor: "both" as const, lean: 0, neck: 0, bob: 24,
+      dx: 0, rLeg: { hip: 5, knee: 13 }, lLeg: { hip: -8, knee: 14 },
+      rArm: { shoulder: -8, elbow: 45 }, lArm: { shoulder: 8, elbow: 45 },
+      rFoot: { x: 10, y: 0 }, lFoot: { x: -10, y: 0 },
+      rHand: { x: 15, y: 85 }, lHand: { x: -15, y: 85 }
+    };
+    const clip: MotionClip = {
+      ...base, name: "travel-loop", frames: base.frames.slice(0, 4), loop: true, strideLength: 8,
+      poseKeys: [
+        { frame: 0, ease: "linear", pose },
+        { frame: 3, ease: "linear", pose: {
+          ...pose, dx: 6,
+          rFoot: { x: 16, y: 0 }, lFoot: { x: -4, y: 0 },
+          rHand: { x: 21, y: 85 }, lHand: { x: -9, y: 85 }
+        } }
+      ]
+    };
+    const sample = (frame: number, speed = 1) => sampleClipMotion({ clips: { [clip.name]: clip } }, {
+      action: clip.name, progress: frame / 12, durationMs: 400, speed,
+      startX: 100, endX: 100, groundY: 200, facing, scale: 0.75
+    });
+    for (const boundary of [4, 8, 12]) {
+      const before = sample(boundary - 0.1), after = sample(boundary);
+      for (const joint of ["pelvis", "leftAnkle", "rightAnkle", "leftHand", "rightHand"]) {
+        expect(after.joints![joint]!.x - before.joints![joint]!.x).toBeCloseTo(facing * 0.15, 6);
+        expect(after.joints![joint]!.y).toBeCloseTo(before.joints![joint]!.y, 6);
+      }
+    }
+    expect(sample(12).joints!.pelvis.x - sample(0).joints!.pelvis.x).toBeCloseTo(facing * 18, 6);
+    expect(sample(12, 2).joints!.pelvis.x - sample(0, 2).joints!.pelvis.x).toBeCloseTo(facing * 36, 6);
+    const inPlace = { ...clip, strideLength: 0, poseKeys: [{ frame: 0, pose }] };
+    const neutral = sampleClipMotion({ clips: { [clip.name]: inPlace } }, {
+      action: clip.name, progress: 1, durationMs: 400, startX: 100, endX: 100, groundY: 200, facing, scale: 0.75
+    });
+    expect(neutral.joints!.pelvis.x).toBeCloseTo(100, 6);
+  });
+
   it("never places sampled clip feet below the world floor", () => {
     for (const action of ["idle", "walk", "run", "jump", "point"] as const) {
       for (let i = 0; i <= 30; i++) {

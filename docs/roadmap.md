@@ -38,6 +38,14 @@ in the catalog plan alone does not make a new verb available through MCP.
 Cross-slide chaining, add-on integration and general novel-motion generation
 still need their own end-to-end qualification.
 
+Authored traveling loops declare `strideLength` in engine local units per
+complete cycle. The sampler carries this translation across repeats for the
+body and contact targets, including interpolation through the wrap. Build
+gates inspect the last-to-first boundary as well as the interior frames.
+Review playback preserves accumulated travel; `motions:shots` accepts frame
+numbers beyond one cycle for loop-seam inspection. This does not promote an
+unapproved motion or replace a legacy baseline automatically.
+
 The intended authoring architecture combines learned motion proposals with
 deterministic playback, rather than replacing the renderer with generated
 video:
