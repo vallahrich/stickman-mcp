@@ -66,7 +66,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `kneel-down` | user-approved | W9 | batch 6: 9/10 approved |
 | `kneel-up` | user-approved | W9 | batch 6: 8/10 approved |
 | `sit-floor` | user-approved | W9 | user 8+ |
-| `lie-down` | rework | W9 | wave 14: 6/10; not how a human lies down, rework supported descent |
+| `lie-down` | candidate | W9 | re-review: supported sit, forearm lowering and flat lying finish; previous 6/10 |
 | `get-up` | user-approved | W9 | user 8+ |
 
 ### Gestures & emotions (19)
@@ -170,8 +170,8 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 ## Totals
 
 - user-approved: 74
-- rework: 3
+- rework: 2
+- candidate: 3
 - planned: 14
-- candidate: 2
 - draft: 7
 - **total: 100**
