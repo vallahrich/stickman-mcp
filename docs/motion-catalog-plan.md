@@ -105,11 +105,11 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `idea` | user-approved | W2 | approved; bulb to be yellow |
 | `pull-banner` | user-approved | W2 | batch 10: all four directions approved (left/right = box pulls) 8/10 |
 | `swipe-next` | user-approved | W2 | batch 5: 9/10 approved |
-| `walk-on` | candidate | W5 | batch 13: review |
-| `walk-off` | candidate | W5 | batch 13: review |
+| `walk-on` | rework | W5 | batch 13: 5/10; looks like ice skating, fix world-space stance |
+| `walk-off` | rework | W5 | batch 13: 5/10; looks like ice skating, fix world-space stance |
 | `enter-door` | planned | W5 | appear through a door on the next slide |
 | `exit-door` | planned | W5 | leave the slide through a door |
-| `hold-sign` | candidate | W5 | batch 13: review |
+| `hold-sign` | user-approved | W5 | batch 13: 9/10 approved |
 | `inspect-magnifier` | planned | W5 |  |
 
 ### IT (9)
@@ -119,7 +119,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `type-at-desk` | user-approved | W2 | batch 5: 9/10 approved (polish: still body) |
 | `open-laptop` | planned | W6 |  |
 | `video-call` | planned | W6 |  |
-| `phone-call` | candidate | W6 | batch 13: review |
+| `phone-call` | user-approved | W6 | batch 13: 9/10 approved |
 | `plug-cable` | planned | W6 |  |
 | `rack-server` | planned | W6 | slide a server out of a rack |
 | `drag-window` | planned | W6 | grab and move a UI window on the slide |
@@ -152,7 +152,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `kick` | candidate | W8 | kick-ball reworked shot leg/no back-lean, batch 11 |
 | `long-jump` | user-approved | W8 | batch 11: 8/10 approved |
 | `hurdle` | user-approved | W8 | batch 10: 8/10 approved |
-| `vault` | candidate | W8 | batch 13: review |
+| `vault` | user-approved | W8 | batch 13: 8/10 approved |
 | `skip` | user-approved | W8 | user 8+ |
 | `punch` | user-approved | W8 | batch 9: 9/10 approved (gloves) |
 | `dodge` | user-approved | W8 | user 8+ |
@@ -164,14 +164,14 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `climb-down` | draft | W10 |  |
 | `climb-ledge` | draft | W10 |  |
 | `hang-swing` | draft | W10 |  |
-| `crawl` | candidate | W10 | batch 13: review |
-| `fall-get-up` | candidate | W10 | batch 13: review |
+| `crawl` | rework | W10 | batch 13: 6/10; reworking gait and contacts |
+| `fall-get-up` | rework | W10 | batch 13: 6/10; bad get up, reworking supported recovery |
 
 ## Totals
 
-- user-approved: 63
-- rework: 2
+- user-approved: 66
+- rework: 6
 - planned: 16
-- candidate: 11
+- candidate: 4
 - draft: 8
 - **total: 100**
