@@ -22,7 +22,7 @@ const wrap = (deg) => ((deg + 180) % 360 + 360) % 360 - 180;
 
 /** Gates measured on the engine's world output, i.e. exactly what users see. */
 export async function keyPoseGates(clip, spec) {
-  const { sampleClipMotion } = await loadEngineRenderer();
+  const { sampleClipMotion, frameGeometry } = await loadEngineRenderer();
   const unit = REVIEW_STAGE.scale;
   const failures = [];
   const add = (name, frame, value, threshold) => { if (failures.filter((f) => f.metric === name).length < 6) failures.push({ metric: name, frame, value: Number(value.toFixed(2)), threshold }); };
@@ -32,6 +32,11 @@ export async function keyPoseGates(clip, spec) {
   const allow = new Set(spec.gates?.allow ?? []);
   for (let f = 0; f < clip.frames.length + (clip.loop ? 1 : 0); f++) {
     const s = engineSampledFrame(sampleClipMotion, clip, f);
+    if (spec.gates?.headFloor === true) {
+      const geometry = frameGeometry(s);
+      const headPenetration = geometry.head.y + geometry.headRadius + geometry.strokeWidth / 2 - s.groundY;
+      if (headPenetration > 0.01) add("headGroundPenetration", f, headPenetration / unit, "<= 0 units (rendered head outline)");
+    }
     const dir = Math.sign(s.facing ?? 1) || 1;
     const sideView = Math.abs(s.facing ?? 1) > 0.3;
     for (const side of ["left", "right"]) {

@@ -159,7 +159,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `skip` | user-approved | W8 | user 8+ |
 | `punch` | user-approved | W8 | batch 9: 9/10 approved (gloves) |
 | `dodge` | user-approved | W8 | user 8+ |
-| `roll` | in progress | W8 | wave 15: refining head tuck and continuous shoulder/back support |
+| `roll` | rework | W8 | withheld: head/neck rig cannot yet express supported inversion without head-floor/torso intersection |
 | `trip` | candidate | W8 | wave 15: stumble and recovery candidate; awaiting rating |
 | `balance` | user-approved | W8 | wave 14: 9/10 approved; one-leg balance and recovery |
 | `dance` | candidate | W8 | wave 16: original step-touch dance candidate; awaiting rating |
@@ -174,7 +174,8 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 
 - user-approved: 76
 - candidate: 6
-- in progress: 4
+- in progress: 3
 - planned: 10
 - draft: 4
+- rework: 1
 - **total: 100**

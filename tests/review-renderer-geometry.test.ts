@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { runInNewContext } from "node:vm";
 import { sampleClipMotion, type MotionClip, type PoseKey } from "../dist/motion-clips.js";
 import { RUNTIME_MOTION_LIBRARY } from "../dist/motion-library.js";
-import { addonLifecycleState, clipFrameToSampledFrame, computeAddonFlightPoint, doorGeometry, renderStaticSvg, REVIEW_STAGE } from "../scripts/motions/review-renderer.mjs";
+import { addonLifecycleState, clipFrameToSampledFrame, computeAddonFlightPoint, doorGeometry, renderStaticSvg, stageKitSource, REVIEW_STAGE } from "../scripts/motions/review-renderer.mjs";
 import { buildKeyPoseClip, keyPoseGates } from "../scripts/motions/keypose.mjs";
 
 const stand: PoseKey = { anchor: "both", lean: 2, neck: -1, bob: 0, rLeg: { hip: 5, knee: 13 }, lLeg: { hip: -8, knee: 14 }, rArm: { shoulder: -8, elbow: 45 }, lArm: { shoulder: 8, elbow: 45 } };
@@ -81,6 +82,20 @@ describe("motion review renderer uses the shipping engine", () => {
     expect(result.failures.some((f: { metric: string }) => f.metric === "kneeBendsBackward")).toBe(true);
     const ok = await keyPoseGates(keyed([{ frame: 0, pose: stand }, { frame: 20, pose: stand }]), { id: "t" });
     expect(ok.passed).toBe(true);
+  });
+
+  it("rejects floor penetration by the rendered head outline", async () => {
+    const inverted: PoseKey = { ...stand, anchor: null, lean: 180, neck: 0, bob: 30 };
+    const result = await keyPoseGates(keyed([
+      { frame: 0, pose: stand }, { frame: 10, pose: inverted }, { frame: 20, pose: stand }
+    ]), { id: "inverted-head-test", gates: { headFloor: true } });
+    expect(result.failures.some((f: { metric: string }) => f.metric === "headGroundPenetration")).toBe(true);
+    const neutralResult = await keyPoseGates(keyed([{ frame: 0, pose: stand }, { frame: 20, pose: stand }]), { id: "neutral-head-test" });
+    expect(neutralResult.failures.some((f: { metric: string }) => f.metric === "headGroundPenetration")).toBe(false);
+    const legacyResult = await keyPoseGates(keyed([
+      { frame: 0, pose: stand }, { frame: 10, pose: inverted }, { frame: 20, pose: stand }
+    ]), { id: "legacy-head-test" });
+    expect(legacyResult.failures.some((f: { metric: string }) => f.metric === "headGroundPenetration")).toBe(false);
   });
 
   it("computes add-on lifecycle visibility and pop scale", () => {
@@ -197,5 +212,25 @@ describe("motion review renderer uses the shipping engine", () => {
     expect(after).toContain('clip-path="url(#door-figure-clip-6)"');
     expect(after).toContain('data-stickman="exact-pivot"');
     expect(after).toContain('opacity="1"');
+  });
+
+  it("releases entrance clipping at clipFigureUntil while leaving the door visible", async () => {
+    const clip = keyed([{ frame: 0, pose: stand }, { frame: 20, pose: { ...stand, dx: 70 } }]);
+    const spec = {
+      id: "door-entrance-test", prop: "door",
+      review: { prop: { x: 42, y: 0, w: 67, h: 185, open: 1, clipFigureFrom: 5, clipFigureUntil: 10 } }
+    };
+    for (const frameIndex of [4, 5, 9, 10, 11]) {
+      const svg = await renderStaticSvg({ clip, spec, propsCatalog: { props: [] }, frameIndex });
+      expect(svg.includes("<clipPath")).toBe(frameIndex >= 5 && frameIndex < 10);
+      expect(svg).toContain('data-prop="door"');
+      expect(svg).toContain('data-stickman="exact-pivot"');
+    }
+  });
+
+  it("bundles the bounded door-clipping helper into standalone stage kits", async () => {
+    const kit = await stageKitSource();
+    const result = runInNewContext(`${kit}; [5, 9, 10].map(frame => doorClipsFigure({ type: "door", clipFigureFrom: 5, clipFigureUntil: 10 }, frame));`);
+    expect(Array.from(result)).toEqual([true, true, false]);
   });
 });

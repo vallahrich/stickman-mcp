@@ -47,6 +47,22 @@ numbers beyond one cycle for loop-seam inspection. This does not promote an
 unapproved motion or replace a legacy baseline automatically.
 Review props honor authored `review.prop.color`: boxes use the color as their
 fill and ladders as their rail/rung stroke, keeping the figure visually distinct.
+Door entrance previews may bound aperture occlusion with
+`review.prop.clipFigureFrom` (inclusive) and `clipFigureUntil` (exclusive).
+Omitting the latter preserves permanent exit clipping; releasing entrance
+clipping does not remove or fade the door.
+
+A complete forward roll is currently withheld for a rig limitation, not
+approved merely because joint gates pass. The rendered head center is
+normalized to one head radius from the shoulder, so the current straight
+torso/head geometry cannot express a supported inverted shoulder roll with
+both head-floor clearance and no head/torso intersection. Qualifying this
+motion requires an explicit head/neck and support-model extension that
+preserves approved silhouettes, rather than floating the actor or accepting
+head contact. `gates.headFloor: true` adds a rendered-head-outline floor gate.
+It is opt-in so existing approval builds retain their established checks;
+strict head-floor auditing exposed penetration in the approved fall-get-up
+clip, which needs separate visual requalification before altering that motion.
 
 The intended authoring architecture combines learned motion proposals with
 deterministic playback, rather than replacing the renderer with generated
