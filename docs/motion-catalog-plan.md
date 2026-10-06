@@ -164,14 +164,14 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `climb-down` | draft | W10 |  |
 | `climb-ledge` | draft | W10 |  |
 | `hang-swing` | draft | W10 |  |
-| `crawl` | rework | W10 | batch 13: 6/10; reworking gait and contacts |
+| `crawl` | candidate | W10 | re-review: articulated contralateral gait with locked stance contacts; previous 6/10 |
 | `fall-get-up` | candidate | W10 | re-review: supported palm-to-knee-to-foot recovery; previous 6/10 |
 
 ## Totals
 
 - user-approved: 66
-- rework: 3
+- rework: 2
 - planned: 16
-- candidate: 7
+- candidate: 8
 - draft: 8
 - **total: 100**
