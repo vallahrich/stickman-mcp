@@ -66,7 +66,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `kneel-down` | user-approved | W9 | batch 6: 9/10 approved |
 | `kneel-up` | user-approved | W9 | batch 6: 8/10 approved |
 | `sit-floor` | user-approved | W9 | user 8+ |
-| `lie-down` | in progress | W9 | wave 14: authoring |
+| `lie-down` | candidate | W9 | wave 14: review; controlled kneel, sit and supported side recline |
 | `get-up` | user-approved | W9 | user 8+ |
 
 ### Gestures & emotions (19)
@@ -171,8 +171,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 
 - user-approved: 71
 - rework: 2
-- candidate: 5
-- in progress: 1
+- candidate: 6
 - planned: 14
 - draft: 7
 - **total: 100**
