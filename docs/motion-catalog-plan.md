@@ -110,7 +110,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `swipe-next` | user-approved | W2 | batch 5: 9/10 approved |
 | `walk-on` | user-approved | W5 | re-review: 8/10 approved; upright gait and fixed stance |
 | `walk-off` | user-approved | W5 | re-review: 8/10 approved; upright gait and fixed stance |
-| `enter-door` | in progress | W5 | wave 17: authoring supported door entrance |
+| `enter-door` | candidate | W5 | wave 17: clipped emergence and supported walk-on candidate; awaiting rating |
 | `exit-door` | candidate | W5 | wave 17: grip, doorway passage and complete exit candidate; awaiting rating |
 | `hold-sign` | user-approved | W5 | batch 13: 9/10 approved |
 | `inspect-magnifier` | planned | W5 |  |
@@ -173,9 +173,9 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 ## Totals
 
 - user-approved: 76
-- candidate: 8
-- in progress: 3
+- candidate: 9
 - planned: 10
+- in progress: 2
 - rework: 1
 - draft: 2
 - **total: 100**
