@@ -62,11 +62,11 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `sneak` | user-approved | W4 | batch 4: approved |
 | `stairs-up` | user-approved | W4 | batch 5: 8/10 approved |
 | `stairs-down` | user-approved | W4 | user 8+ |
-| `seated-idle` | candidate | W4 | wave 14: review; relaxed seated loop |
+| `seated-idle` | user-approved | W4 | wave 14: 9/10 approved; relaxed seated loop |
 | `kneel-down` | user-approved | W9 | batch 6: 9/10 approved |
 | `kneel-up` | user-approved | W9 | batch 6: 8/10 approved |
 | `sit-floor` | user-approved | W9 | user 8+ |
-| `lie-down` | candidate | W9 | wave 14: review; controlled kneel, sit and supported side recline |
+| `lie-down` | rework | W9 | wave 14: 6/10; not how a human lies down, rework supported descent |
 | `get-up` | user-approved | W9 | user 8+ |
 
 ### Gestures & emotions (19)
@@ -135,7 +135,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `push-walk` | draft | W7 |  |
 | `pick-up` | user-approved | W7 | batch 11: 8/10 approved |
 | `put-down` | user-approved | W7 | batch 11: 8/10 approved |
-| `lift-carry` | candidate | W7 | re-review: stable torso, pelvis and box; previous 6/10 |
+| `lift-carry` | user-approved | W7 | re-review: 8/10 approved; stable torso, pelvis and box |
 | `throw` | user-approved | W7 | throw-ball 8/10 approved; basketball-shot 9/10 approved |
 | `catch` | planned | W7 |  |
 | `hand-over` | planned | W7 |  |
@@ -149,7 +149,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | --- | --- | --- | --- |
 | `jump` | user-approved | done |  |
 | `hop` | user-approved | W8 | batch 6: 9/10 approved |
-| `kick` | candidate | W8 | re-review: brisk 1.3s approach and faster strike; previous 6/10 |
+| `kick` | rework | W8 | re-review: 7/10; better tempo, still leans back after shot |
 | `long-jump` | user-approved | W8 | batch 11: 8/10 approved |
 | `hurdle` | user-approved | W8 | batch 10: 8/10 approved |
 | `vault` | user-approved | W8 | batch 13: 8/10 approved |
@@ -169,9 +169,9 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 
 ## Totals
 
-- user-approved: 71
-- rework: 1
-- candidate: 7
+- user-approved: 73
+- rework: 3
 - planned: 14
+- candidate: 3
 - draft: 7
 - **total: 100**
