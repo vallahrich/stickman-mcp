@@ -171,6 +171,26 @@ authored rotation. Animate primary/extra props with `propMotion`, and add-ons
 with their `keys`. These capabilities belong to the review renderer and its
 standalone stage kit, not automatic runtime MCP prop integration.
 
+Hardware and UI review props use the same transforms, colors, lifecycle and
+key-animation paths:
+
+| Prop | Default local size | Attached grip |
+| --- | --- | --- |
+| `cable` | 64 x 32 | Plug tip at `(0.85 * w, 0.2 * h)` |
+| `socket` | 18 x 22 | Center |
+| `server-rack` | 64 x 120 | Center |
+| `server-module` | 52 x 16 | Center |
+| `window` | 80 x 54 | Titlebar at `(0.42 * w, 0.12 * h)` |
+| `cursor` | 12 x 18 | Tip at `(0, 0)` |
+
+Cable keys may animate `plugX`, `plugY` and `plugRot` independently of its tail.
+These are local endpoint offsets, with positive `plugY` upward and `plugRot`
+in degrees. Attaching the plug to a hand preserves the tail rather than moving
+the entire cable as a rigid rectangle. Pair it with `socket` for insertion.
+Use a separately animated `server-module` with the rack for extraction or
+insertion. Pair `window` and `cursor` for titlebar dragging; the window has a
+titlebar and distinct content regions, not just an outlined box.
+
 Door props render as a static doorway frame plus a hinged leaf. Add `review.prop.hinge:
 "left"|"right"` to choose the hinge edge (default is the far edge from the approaching
 figure). Door `propMotion` keys may also include `open` (0 = closed, 1 ≈ 90° open);

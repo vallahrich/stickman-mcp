@@ -28,6 +28,176 @@ describe("motion review renderer uses the shipping engine", () => {
     }
   });
 
+  describe("hardware and UI review props", () => {
+    const clip = keyed([{ frame: 0, pose: stand }, { frame: 20, pose: stand }]);
+    const catalog = { props: [] };
+    const types = ["cable", "socket", "server-rack", "server-module", "window", "cursor"];
+    const sizes = [[64, 32], [18, 22], [64, 120], [52, 16], [80, 54], [12, 18]];
+    const parts = ["cable-flex", "socket-port", "rack-rail", "server-chassis", "window-titlebar", "cursor-arrow"];
+    const variants = (type: string, descriptor: object = {}, keys: object[] = []) => [
+      { prop: type, review: { prop: descriptor, propMotion: keys } },
+      { review: { extraProps: [{ type, ...descriptor, propMotion: keys }] } },
+      { review: { addons: [{ type, ...descriptor, keys }] } }
+    ];
+
+    it.each(types)("draws an identifiable colored %s across all scene paths", async (type) => {
+      for (const [i, spec] of variants(type, { color: "#a176bc", w: 96, h: 48 }).entries()) {
+        const svg = await renderStaticSvg({ clip, spec, propsCatalog: catalog, frameIndex: 10 });
+        expect(svg).toContain(`data-${i === 2 ? "addon" : "prop"}="${type}"`);
+        expect(svg).toContain(`data-part="${parts[types.indexOf(type)]}"`);
+        expect(svg).toContain("#a176bc");
+        expect(svg).not.toContain(`<rect data-prop="${type}"`);
+        if (type === "cable") {
+          expect(svg).toMatch(/data-part="cable-flex" d="M[^"]+C/);
+          expect(svg).toContain('data-part="cable-plug"');
+          expect(svg).toContain('data-part="cable-contacts"');
+        } else if (type === "server-rack") {
+          expect(svg.match(/data-part="rack-rail"/g)).toHaveLength(2);
+          expect(svg.match(/data-part="server-unit"/g)).toHaveLength(5);
+          expect(svg.match(/data-part="server-indicator"/g)).toHaveLength(5);
+          expect(svg.match(/data-part="server-vent"/g)).toHaveLength(20);
+        } else if (type === "window") {
+          expect(svg).toContain('data-part="window-drag-handle"');
+          expect(svg).toContain('data-part="window-content-card"');
+          expect(svg.match(/data-part="window-control"/g)).toHaveLength(3);
+        } else if (type === "cursor") {
+          expect(svg).toMatch(/data-part="cursor-arrow" d="M(?:[^L]+L){6}[^"]+Z"/);
+        }
+      }
+    });
+
+    it("moves only the flexible cable endpoint and meets an actual socket at the last key", async () => {
+      const kit = await stageKitSource();
+      // Local cable tip starts at (54.4,25.6); socket center is (89,31).
+      const keys = [{ frame: 0, plugX: 0, plugY: 0, plugRot: -30 }, { frame: 20, plugX: 34.6, plugY: 5.4, plugRot: 0 }];
+      for (const spec of variants("cable", { x: 0 }, keys)) {
+        const s = { ...spec, review: { ...spec.review, extraProps: [...("extraProps" in spec.review ? spec.review.extraProps : []), { type: "socket", x: 80, y: 20 }] } };
+        const result = runInNewContext(`${kit};
+          const spec=${JSON.stringify(s)};
+          const scenes=[0,10,20].map(f=>layoutScene(spec,{props:[]},f));
+          const cables=scenes.map(s=>s.find(p=>p.type==="cable"));
+          ({geometry:cables.map(cableGeometry), rot:cables.map(p=>p.plugRot),
+            socket:reviewPropAnchor(scenes[2].find(p=>p.type==="socket")),
+            paths:cables.map(p=>scenePropMarkup(p,3,"#202124"))});`);
+        const geometries = Array.from(result.geometry as { tip: { x: number; y: number }; tail: object }[]);
+        expect(geometries[0]!.tail).toEqual(geometries[1]!.tail);
+        expect(geometries[0]!.tail).toEqual(geometries[2]!.tail);
+        expect(geometries[1]!.tip.x).toBeCloseTo((geometries[0]!.tip.x + geometries[2]!.tip.x) / 2);
+        expect(geometries[1]!.tip.y).toBeCloseTo((geometries[0]!.tip.y + geometries[2]!.tip.y) / 2);
+        expect(geometries[2]!.tip.x).toBeCloseTo(result.socket.x);
+        expect(geometries[2]!.tip.y).toBeCloseTo(result.socket.y);
+        expect(Array.from(result.rot)).toEqual([-30, -15, 0]);
+        const svgs = await Promise.all([0, 10, 20].map(frameIndex => renderStaticSvg({ clip, spec: s, propsCatalog: catalog, frameIndex })));
+        const flex = (svg: string) => svg.match(/data-part="cable-flex" d="([^"]+)"/)![1];
+        expect(new Set(svgs.map(flex)).size).toBe(3);
+        expect(svgs.map(flex)).toEqual(Array.from(result.paths as string[]).map(flex));
+      }
+    });
+
+    it.each(types)("honors %s dimensions, transforms, lifecycle and escaped colors in executable stage kits", async (type) => {
+      const kit = await stageKitSource();
+      const descriptor = { color: 'red" onload="<bad>&\'', scale: 0.8, rot: 10, fade: 0.8, enter: { frame: 2, dur: 4, style: "fade" }, exit: { frame: 12, dur: 4, style: "shrink" } };
+      const keys = [{ frame: 0, rot: 10, scale: 0.8 }, { frame: 20, rot: 50, scale: 1.2 }];
+      for (const spec of variants(type, descriptor, keys)) {
+        const result = runInNewContext(`${kit};
+          const spec=${JSON.stringify(spec)};
+          const scenes=[1,4,8,14,16].map(f=>layoutScene(spec,{props:[]},f));
+          ({counts:scenes.map(s=>s.length),p:scenes[2][0],fade:scenes[1][0].opacity,
+            scale:scenes[3][0].drawScale,markup:scenePropMarkup(scenes[2][0],3,"#202124")});`);
+        expect(Array.from(result.counts)).toEqual([0, 1, 1, 1, 0]);
+        expect(result.p.w).toBe(sizes[types.indexOf(type)]![0]! * 0.75);
+        expect(result.p.h).toBe(sizes[types.indexOf(type)]![1]! * 0.75);
+        expect(result.p.rot).toBe(26);
+        expect(result.fade).toBeCloseTo(0.4);
+        expect(result.scale).toBeCloseTo(0.54);
+        expect(result.markup).toContain("red&quot; onload=&quot;&lt;bad&gt;&amp;&apos;");
+        expect(result.markup).not.toContain('onload="<bad>');
+        expect(result.markup).toContain("rotate(26 ");
+      }
+    });
+
+    it("uses real grip anchors for cable tips, cursor tips, titlebars and modules", async () => {
+      const kit = await stageKitSource();
+      for (const type of types) {
+        for (const spec of [
+          { prop: type, review: { prop: { attach: { hand: "r", from: 5, to: 10, hiddenBefore: true, hiddenAfter: true, dx: 2, dy: 3 } } } },
+          { review: { extraProps: [{ type, attach: { hand: "both", from: 5, to: 10, hiddenBefore: true, hiddenAfter: true, dx: 2, dy: 3 } }] } },
+          { review: { addons: [{ type, attach: [{ to: "right-hand", from: 5, until: 10, dx: 2, dy: 3 }] }] } }
+        ]) {
+          const result = runInNewContext(`${kit};
+            const spec=${JSON.stringify(spec)},catalog={props:[{type:${JSON.stringify(type)},defaultSize:{w:80,h:40}}]};
+            const scenes=[4,5,10,11].map(f=>layoutScene(spec,catalog,f,()=>({x:180,y:80})));
+            const p=scenes[1][0];
+            const descriptor=spec.review.prop??spec.review.extraProps?.[0]??spec.review.addons?.[0];
+            const raw=spec.review.addons?layoutAddonRaw(descriptor,5):
+              layoutProp({prop:${JSON.stringify(type)},review:{prop:descriptor}},catalog,5);
+            ({counts:scenes.map(s=>s.length),anchor:reviewPropAnchor(p),p,
+              tail:p.type==="cable"?cableGeometry(p).tail:null,
+              rawTail:p.type==="cable"?cableGeometry(raw).tail:null});`);
+          const addon = "addons" in spec.review;
+          expect(Array.from(result.counts)).toEqual(addon ? [1, 1, 1, 1] : [0, 1, 1, 0]);
+          expect(result.anchor).toEqual({ x: 181.5, y: 77.75 });
+          expect(result.p.front).toBe(true);
+          if (!addon) expect(result.p).toMatchObject({ w: 60, h: 30 });
+          if (type === "cable") expect(result.tail).toEqual(result.rawTail);
+        }
+      }
+    });
+
+    it("drags the UI window and cursor together without changing their local silhouettes", async () => {
+      const kit = await stageKitSource();
+      const result = runInNewContext(`${kit};
+        const keys=[{frame:0,x:0,y:0},{frame:20,x:30,y:12}];
+        const spec={prop:"window",review:{prop:{x:10,y:30},propMotion:keys,
+          extraProps:[{type:"cursor",x:43.6,y:59.52,propMotion:keys}]}};
+        [0,10,20].map(f=>layoutScene(spec,{props:[]},f).map(p=>({anchor:reviewPropAnchor(p),w:p.w,h:p.h})));`);
+      const frames = Array.from(result as { anchor: { x: number; y: number }; w: number; h: number }[][]);
+      for (const frame of frames) {
+        expect(frame[0]!.anchor.x).toBeCloseTo(frame[1]!.anchor.x);
+        expect(frame[0]!.anchor.y).toBeCloseTo(frame[1]!.anchor.y);
+        expect(frame[0]).toMatchObject({ w: 60, h: 40.5 });
+        expect(frame[1]).toMatchObject({ w: 9, h: 13.5 });
+      }
+      expect(frames[2]![0]!.anchor.x - frames[0]![0]!.anchor.x).toBeCloseTo(22.5);
+      expect(frames[2]![0]!.anchor.y - frames[0]![0]!.anchor.y).toBeCloseTo(-9);
+    });
+
+    it("slides a separate server module into a stationary rack using every key path", async () => {
+      const kit = await stageKitSource();
+      for (const spec of variants("server-module", { x: -40, y: 60 }, [{ frame: 0, x: 0 }, { frame: 20, x: 40 }])) {
+        const s = { ...spec, review: { ...spec.review, extraProps: [...("extraProps" in spec.review ? spec.review.extraProps : []), { type: "server-rack", x: 0 }] } };
+        const result = runInNewContext(`${kit};
+          const spec=${JSON.stringify(s)};
+          const scenes=[0,10,20].map(f=>layoutScene(spec,{props:[]},f));
+          ({modules:scenes.map(s=>s.find(p=>p.type==="server-module")),
+            racks:scenes.map(s=>scenePropMarkup(s.find(p=>p.type==="server-rack"),3,"#202124"))});`);
+        const modules = Array.from(result.modules as { x: number; y: number; w: number; h: number }[]);
+        expect(modules.map(p => p.x)).toEqual([130, 145, 160]);
+        expect(modules.every(p => p.y === 93 && p.w === 39 && p.h === 12)).toBe(true);
+        expect(new Set(Array.from(result.racks)).size).toBe(1);
+      }
+    });
+
+    it("executes all hardware helpers from standalone review HTML as well as the stage kit", async () => {
+      const spec = { prop: "cable", review: { propMotion: [{ frame: 0, plugX: 0 }, { frame: 20, plugX: 20 }], extraProps: types.slice(1).map(type => ({ type })) } };
+      const html = await renderReviewHtml({ clip, spec, report: {}, propsCatalog: catalog });
+      const source = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]!).find(s => s.includes("const ENGINE_FRAME_GEOMETRY="))!;
+      expect(() => new Script(source)).not.toThrow();
+      const execute = (helpers: string) => runInNewContext(`${helpers};
+        const spec=${JSON.stringify(spec)},clip=${JSON.stringify(clip)};
+        [0,10,20].map(f=>{
+          const sample=engineSampledFrame(sampleClipMotion,clip,f);
+          const scene=layoutScene(spec,{props:[]},f,(ix,target)=>pointFromSample(engineSampledFrame(sampleClipMotion,clip,ix),target));
+          return scene.map(p=>scenePropMarkup(p,ENGINE_FRAME_GEOMETRY(sample).strokeWidth,"#202124")).join("");
+        });`);
+      const htmlFrames = Array.from(execute(source.split("const D=JSON.parse")[0]!));
+      expect(htmlFrames).toEqual(Array.from(execute(await stageKitSource())));
+      for (const frame of htmlFrames as string[]) for (const part of parts) expect(frame).toContain(`data-part="${part}"`);
+      expect(html).toContain("--cp-bg:");
+      expect(html).toContain('font:14px "Segoe UI",Aptos,Calibri');
+    });
+  });
+
   describe("bounded office review props", () => {
     const types = ["laptop", "tablet", "magnifier", "notebook", "pen"];
     const clip = keyed([{ frame: 0, pose: stand }, { frame: 20, pose: stand }]);

@@ -34,10 +34,49 @@ function line(a, b) {
 }
 
 export const REVIEW_STAGE = { rootX: 160, groundY: 150, scale: 0.75 };
-const ADDON_TYPES = new Set(["ball", "football", "basketball", "goal", "hoop", "hurdle", "spear", "card", "cone", "target", "sand-pit", "board", "sand-puff", "phone", "sign", "laptop", "tablet", "magnifier", "notebook", "pen"]);
+const ADDON_TYPES = new Set(["ball", "football", "basketball", "goal", "hoop", "hurdle", "spear", "card", "cone", "target", "sand-pit", "board", "sand-puff", "phone", "sign", "laptop", "tablet", "magnifier", "notebook", "pen", "cable", "socket", "server-rack", "server-module", "window", "cursor"]);
 
 function officePropSize(type) {
   return ({ laptop: { w: 48, h: 34 }, tablet: { w: 22, h: 30 }, magnifier: { w: 24, h: 34 }, notebook: { w: 30, h: 36 }, pen: { w: 4, h: 22 } })[type];
+}
+
+function hardwarePropSize(type) {
+  return ({ cable: { w: 64, h: 32 }, socket: { w: 18, h: 22 }, "server-rack": { w: 64, h: 120 }, "server-module": { w: 52, h: 16 }, window: { w: 80, h: 54 }, cursor: { w: 12, h: 18 } })[type];
+}
+
+function reviewPropSize(type) {
+  return officePropSize(type) ?? hardwarePropSize(type);
+}
+
+// Layout converts authored plugX/Y offsets to stage pixels (+Y up); only the tip moves.
+export function cableGeometry(prop) {
+  const tip = { x: prop.x + prop.w * 0.85 + (prop.plugX ?? 0), y: prop.y + prop.h * 0.2 - (prop.plugY ?? 0) };
+  const angle = (prop.plugRot ?? 0) * Math.PI / 180;
+  const length = prop.w * 0.2;
+  const neck = { x: tip.x - length * Math.cos(angle), y: tip.y - length * Math.sin(angle) };
+  const tail = { x: prop.x, y: prop.y + prop.h * 0.82 };
+  return { tip, neck, tail, length };
+}
+
+function reviewPropAnchor(prop) {
+  if (prop.type === "cable") return cableGeometry(prop).tip;
+  if (prop.type === "cursor") return { x: prop.x, y: prop.y };
+  if (prop.type === "window") return { x: prop.x + prop.w * 0.42, y: prop.y + prop.h * 0.12 };
+  return officePropAnchor(prop);
+}
+
+function attachReviewProp(prop, point, attach, stage) {
+  if (!hardwarePropSize(prop.type)) return attachOfficeProp(prop, point, attach, stage);
+  const anchor = reviewPropAnchor(prop);
+  const dx = point.x - anchor.x + (attach.dx ?? 0) * stage.scale;
+  const dy = point.y - anchor.y - (attach.dy ?? 0) * stage.scale;
+  if (prop.type === "cable") {
+    prop.plugX += dx;
+    prop.plugY -= dy;
+  } else {
+    prop.x += dx;
+    prop.y += dy;
+  }
 }
 
 // Normalized grip coordinates in the unrotated drawing; the nib points down.
@@ -151,7 +190,7 @@ export async function clipFrameToSampledFrame(clip, frameIndex) {
 function layoutProp(spec, propsCatalog, frameIndex = 0, stage = { rootX: 160, groundY: 150, scale: 0.75 }) {
   const type = spec.prop;
   if (!type) return null;
-  const office = officePropSize(type);
+  const office = reviewPropSize(type);
   const def = propsCatalog.props?.find((item) => item.type === type) ?? propsCatalog.props?.find((item) => item.type === (type === "bench" ? "chair" : type)) ?? { type, defaultSize: office ?? { w: 60, h: 40 } };
   const review = spec.review ?? {};
   const base = review.prop ?? {};
@@ -165,6 +204,7 @@ function layoutProp(spec, propsCatalog, frameIndex = 0, stage = { rootX: 160, gr
   let scale = base.scale ?? 1;
   let fade = base.fade ?? 1;
   let rot = base.rot ?? 0;
+  const detail = { plugX: base.plugX ?? 0, plugY: base.plugY ?? 0, plugRot: base.plugRot ?? 0 };
   const keys = review.propMotion;
   if (Array.isArray(keys) && keys.length) {
     const sorted = [...keys].sort((a, b) => a.frame - b.frame);
@@ -180,12 +220,15 @@ function layoutProp(spec, propsCatalog, frameIndex = 0, stage = { rootX: 160, gr
     if (a.scale !== undefined || b.scale !== undefined) scale = (a.scale ?? scale) + ((b.scale ?? a.scale ?? scale) - (a.scale ?? scale)) * t;
     if (a.fade !== undefined || b.fade !== undefined) fade = (a.fade ?? fade) + ((b.fade ?? a.fade ?? fade) - (a.fade ?? fade)) * t;
     if (office && (a.rot !== undefined || b.rot !== undefined)) rot = lerp(a.rot ?? rot, b.rot ?? a.rot ?? rot, t);
+    if (hardwarePropSize(type)) for (const field of Object.keys(detail)) {
+      if (a[field] !== undefined || b[field] !== undefined) detail[field] = lerp(a[field] ?? detail[field], b[field] ?? a[field] ?? detail[field], t);
+    }
   }
   const k = stage.scale;
   const hinge = base.hinge ?? (x >= 0 ? "right" : "left");
   const monitorW = base.monitorW !== undefined ? base.monitorW * k : undefined;
   const monitorH = base.monitorH !== undefined ? base.monitorH * k : undefined;
-  return { type: def.type ?? type, id: base.id, x: stage.rootX + x * k, y: stage.groundY - (y + h) * k, w: w * k, h: h * k, r: size.r, steps: base.steps ?? size.steps, rungs: base.rungs ?? size.rungs, open, ink, scale, fade, opacity: fade, ...(office ? { rot, drawScale: scale } : {}), hinge, monitorW, monitorH, color: base.color, clipFigureFrom: base.clipFigureFrom, clipFigureUntil: base.clipFigureUntil, enter: base.enter, exit: base.exit };
+  return { type: def.type ?? type, id: base.id, x: stage.rootX + x * k, y: stage.groundY - (y + h) * k, w: w * k, h: h * k, r: size.r, steps: base.steps ?? size.steps, rungs: base.rungs ?? size.rungs, open, ink, scale, fade, opacity: fade, ...(office ? { rot, drawScale: scale } : {}), ...(hardwarePropSize(type) ? { plugX: detail.plugX * k, plugY: detail.plugY * k, plugRot: detail.plugRot } : {}), hinge, monitorW, monitorH, color: base.color, clipFigureFrom: base.clipFigureFrom, clipFigureUntil: base.clipFigureUntil, enter: base.enter, exit: base.exit };
 }
 
 function doorMarkup(prop, strokeWidth, color, layer = "all") {
@@ -369,7 +412,7 @@ function wrapPropMarkup(prop, markup) {
   const scale = prop.drawScale ?? 1;
   const rot = prop.rot ?? 0;
   if (Math.abs(opacity - 1) < 0.001 && Math.abs(scale - 1) < 0.001 && Math.abs(rot) < 0.001 && !prop.puff) return markup;
-  const anchor = officePropSize(prop.type) ? officePropAnchor(prop) : addonCenter(prop);
+  const anchor = reviewPropSize(prop.type) ? reviewPropAnchor(prop) : addonCenter(prop);
   const cx = anchor.x, cy = anchor.y;
   const rx = prop.tipPivot ? cx : cx, ry = prop.tipPivot ? prop.y + prop.h : cy;
   const transform = `translate(${num(cx)} ${num(cy)}) scale(${num(scale)}) translate(${num(-cx)} ${num(-cy)}) rotate(${num(rot)} ${num(rx)} ${num(ry)})`;
@@ -531,8 +574,53 @@ function officePropMarkup(prop, strokeWidth, color) {
   return `<g data-${prop.addon ? "addon" : "prop"}="${prop.type}" ${attrs}>${drawing}</g>`;
 }
 
+function hardwarePropMarkup(prop, strokeWidth, color) {
+  if (!hardwarePropSize(prop.type)) return "";
+  const { x, y, w, h } = prop;
+  const c = xml(prop.color ?? ({ cable: "#5278ad", socket: "#7a8799", "server-rack": "#59677d", "server-module": "#839bb8", window: "#6675cc", cursor: "#e2a532" })[prop.type]);
+  const sw = num(Math.min(strokeWidth, w * 0.04, h * 0.07));
+  const p = (px, py) => ({ x: x + w * px, y: y + h * py });
+  const rect = (part, px, py, pw, ph, fill) => `<rect data-part="${part}" x="${num(x + w * px)}" y="${num(y + h * py)}" width="${num(w * pw)}" height="${num(h * ph)}" rx="${num(Math.min(w, h) * 0.03)}" fill="${fill}"/>`;
+  const path = (part, points, fill = "none") => `<path data-part="${part}" d="${points.map((pt, i) => `${i ? "L" : "M"}${num(pt.x)} ${num(pt.y)}`).join("")}${fill === "none" ? "" : "Z"}" fill="${fill}"/>`;
+  const module = (top, height) => rect("server-unit", 0.15, top, 0.7, height, c) +
+    path("server-handle", [p(0.19, top + height * 0.25), p(0.19, top + height * 0.75)]) +
+    path("server-handle", [p(0.81, top + height * 0.25), p(0.81, top + height * 0.75)]) +
+    [0.29, 0.37, 0.45, 0.53].map(xx => path("server-vent", [p(xx, top + height * 0.3), p(xx, top + height * 0.7)])).join("") +
+    `<circle data-part="server-indicator" cx="${num(x + w * 0.69)}" cy="${num(y + h * (top + height * 0.5))}" r="${num(Math.min(w * 0.025, h * height * 0.13))}" fill="#58cf96" stroke="none"/>`;
+  let drawing;
+  if (prop.type === "cable") {
+    const { tip, neck, tail, length } = cableGeometry(prop);
+    const thick = h * 0.14;
+    drawing = `<path data-part="cable-flex" d="M${num(tail.x)} ${num(tail.y)}C${num(tail.x + w * 0.1)} ${num(tail.y - h * 0.55)} ${num(neck.x - w * 0.24)} ${num(neck.y + h * 1.05)} ${num(neck.x)} ${num(neck.y)}" fill="none" stroke="${c}" stroke-width="${num(Math.min(strokeWidth * 1.3, h * 0.09))}"/><circle data-part="cable-tail" cx="${num(tail.x)}" cy="${num(tail.y)}" r="${num(h * 0.05)}" fill="${c}"/>` +
+      `<g data-part="cable-terminal" transform="rotate(${num(prop.plugRot ?? 0)} ${num(tip.x)} ${num(tip.y)})"><path data-part="cable-strain-relief" d="M${num(tip.x - length)} ${num(tip.y)}H${num(tip.x - length * 0.65)}" stroke="${c}" stroke-width="${num(thick * 1.2)}"/><path data-part="cable-plug" d="M${num(tip.x - length * 0.72)} ${num(tip.y - thick)}H${num(tip.x - length * 0.22)}V${num(tip.y + thick)}H${num(tip.x - length * 0.72)}Z" fill="${c}"/><path data-part="cable-contacts" d="M${num(tip.x - length * 0.22)} ${num(tip.y - thick * 0.5)}H${num(tip.x)}M${num(tip.x - length * 0.22)} ${num(tip.y + thick * 0.5)}H${num(tip.x)}" stroke="#b8c7da"/></g>`;
+  } else if (prop.type === "socket") {
+    drawing = rect("socket-plate", 0, 0, 1, 1, c) + rect("socket-port", 0.2, 0.35, 0.6, 0.3, "#263345") +
+      [0.12, 0.88].map(yy => `<circle data-part="socket-screw" cx="${num(x + w * 0.5)}" cy="${num(y + h * yy)}" r="${num(w * 0.045)}" fill="#d8e1ee"/>`).join("") +
+      path("socket-contacts", [p(0.35, 0.47), p(0.65, 0.47)]);
+  } else if (prop.type === "server-rack") {
+    drawing = rect("rack-enclosure", 0, 0, 1, 1, "#e6ebf2") + rect("rack-bay", 0.1, 0.06, 0.8, 0.86, "#263345") +
+      [0.1, 0.9].map(xx => path("rack-rail", [p(xx, 0.05), p(xx, 0.94)])).join("") +
+      [0.12, 0.28, 0.44, 0.6, 0.76].map(top => module(top, 0.12)).join("") +
+      [0.13, 0.87].map(xx => rect("rack-foot", xx - 0.06, 0.95, 0.12, 0.05, c)).join("");
+  } else if (prop.type === "server-module") {
+    drawing = path("server-chassis", [p(0.04, 0.2), p(0.18, 0), p(0.96, 0), p(0.85, 0.2)], "#c8d3e1") +
+      rect("server-faceplate", 0.04, 0.2, 0.92, 0.8, c) + module(0.3, 0.55);
+  } else if (prop.type === "window") {
+    drawing = rect("window-frame", 0, 0, 1, 1, "#fff") + rect("window-titlebar", 0, 0, 1, 0.24, c) +
+      [0.78, 0.86, 0.94].map(xx => `<circle data-part="window-control" cx="${num(x + w * xx)}" cy="${num(y + h * 0.12)}" r="${num(h * 0.035)}" fill="#fff" stroke="none"/>`).join("") +
+      [0.09, 0.15].map(yy => path("window-drag-handle", [p(0.28, yy), p(0.56, yy)])).join("") +
+      rect("window-sidebar", 0.06, 0.32, 0.2, 0.6, "#dce6f4") + rect("window-content-card", 0.33, 0.34, 0.59, 0.24, "#c8ecf6") +
+      [0.69, 0.82].map(yy => path("window-content-line", [p(0.34, yy), p(yy === 0.69 ? 0.87 : 0.72, yy)])).join("");
+  } else {
+    drawing = path("cursor-arrow", [p(0, 0), p(0.9, 0.57), p(0.52, 0.62), p(0.78, 0.93), p(0.58, 1), p(0.32, 0.69), p(0.1, 0.9)], c);
+  }
+  return `<g data-${prop.addon ? "addon" : "prop"}="${prop.type}" stroke="${xml(color)}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${drawing}</g>`;
+}
+
 function propMarkup(prop, strokeWidth, color) {
   if (!prop) return "";
+  const hardware = hardwarePropMarkup(prop, strokeWidth, color);
+  if (hardware) return hardware;
   const office = officePropMarkup(prop, strokeWidth, color);
   if (office) return office;
   const sw = num(strokeWidth);
@@ -609,12 +697,16 @@ function figureMarkupWithDoorClip(frame, geometry, door, frameIndex, color = "#2
 
 /**
  * All props for a review frame: the main prop (optionally carried by a hand via review.prop.attach =
- * {hand:"r"|"l", from, to, dx, dy, hiddenBefore, hiddenAfter}) plus static review.extraProps [{type,x,y,w,h}].
- * Office props accept color, rot (degrees), scale, fade, enter/exit; laptop.open and notebook.ink
+ * {hand:"r"|"l", from, to, dx, dy, hiddenBefore, hiddenAfter}) plus review.extraProps [{type,x,y,w,h}].
+ * Office/hardware props accept color, rot (degrees), scale, fade, enter/exit; laptop.open and notebook.ink
  * are 0..1, sampled via review.propMotion (extraProps use their own propMotion; addons use keys).
  * Defaults in local units: laptop 48x34, tablet 22x30, magnifier 24x34, notebook 30x36, pen 4x22.
  * Attachments grip magnifier at (.76w,.83h), pen at (.5w,.42h), others at center.
  * Pen nib follows the forearm with rot as an additional offset; transforms pivot on the grip.
+ * Hardware defaults: cable 64x32, socket 18x22, server-rack 64x120, server-module 52x16,
+ * window 80x54, cursor 12x18. Cable plugX/Y offsets and plugRot degrees accept motion keys;
+ * cable attachment moves only its tip, not its tail. Cursor grips at its tip (0,0),
+ * window at the titlebar handle (.42w,.12h); socket/rack/module grip at center.
  * handAt(frame, side) returns the world-space hand point; it is only needed for attached props.
  */
 function layoutScene(spec, propsCatalog, frameIndex, handAt, stage = { rootX: 160, groundY: 150, scale: 0.75 }) {
@@ -643,7 +735,7 @@ function layoutScene(spec, propsCatalog, frameIndex, handAt, stage = { rootX: 16
           ? (() => { const l = pointAt(ix, "left-hand"), r = pointAt(ix, "right-hand"); return { x: (l.x + r.x) / 2, y: (l.y + r.y) / 2, facing: r.facing ?? l.facing }; })()
           : pointAt(ix, target === "head" ? "head" : target === "l" ? "left-hand" : target === "r" ? "right-hand" : target);
         const offsetDir = target === "head" ? (Math.sign(point.facing ?? 1) || 1) : 1;
-        if (officePropSize(main.type)) attachOfficeProp(main, point, { ...attach, dx: (attach.dx ?? 0) * offsetDir }, stage);
+        if (reviewPropSize(main.type)) attachReviewProp(main, point, { ...attach, dx: (attach.dx ?? 0) * offsetDir }, stage);
         else {
           main.x = point.x - main.w / 2 + (attach.dx ?? 0) * stage.scale * offsetDir;
           main.y = point.y - main.h / 2 - (attach.dy ?? 0) * stage.scale;
@@ -661,7 +753,7 @@ function layoutScene(spec, propsCatalog, frameIndex, handAt, stage = { rootX: 16
   const lifeMain = placedMain ? applyLifecycle(placedMain, spec.review?.prop ?? {}) : null;
   if (lifeMain) out.push(lifeMain);
   for (const extra of spec.review?.extraProps ?? []) {
-    const p = layoutProp({ prop: extra.type, review: { prop: extra, ...(officePropSize(extra.type) ? { propMotion: extra.propMotion } : {}) } }, propsCatalog, frameIndex, stage);
+    const p = layoutProp({ prop: extra.type, review: { prop: extra, ...(reviewPropSize(extra.type) ? { propMotion: extra.propMotion } : {}) } }, propsCatalog, frameIndex, stage);
     const placed = placeAttached(p, extra.attach);
     const life = placed ? applyLifecycle(placed, extra) : null;
     if (life) out.push(life);
@@ -675,7 +767,7 @@ function layoutScene(spec, propsCatalog, frameIndex, handAt, stage = { rootX: 16
 }
 
 function addonDefaultSize(type) {
-  if (officePropSize(type)) return officePropSize(type);
+  if (reviewPropSize(type)) return reviewPropSize(type);
   return ({
     ball: { w: 10, h: 10 }, football: { w: 14, h: 14 }, basketball: { w: 14, h: 14 }, goal: { w: 46, h: 34 }, hoop: { w: 32, h: 38 },
     hurdle: { w: 34, h: 22 }, spear: { w: 48, h: 6 }, card: { w: 24, h: 16 }, cone: { w: 14, h: 18 }, target: { w: 24, h: 24 },
@@ -684,7 +776,7 @@ function addonDefaultSize(type) {
 }
 
 function layoutAddonRaw(addon, frameIndex, stage = REVIEW_STAGE) {
-  if (officePropSize(addon.type)) return { ...layoutProp({ prop: addon.type, review: { prop: { ...addon, x: addon.x ?? 0 }, propMotion: addon.keys } }, { props: [] }, frameIndex, stage), addon: true };
+  if (reviewPropSize(addon.type)) return { ...layoutProp({ prop: addon.type, review: { prop: { ...addon, x: addon.x ?? 0 }, propMotion: addon.keys } }, { props: [] }, frameIndex, stage), addon: true };
   const size = addonDefaultSize(addon.type);
   const wLocal = addon.w ?? size.w, hLocal = addon.h ?? size.h;
   const key = interpAddonKeys(addon.keys, frameIndex);
@@ -719,10 +811,10 @@ function addonTargetCenter(prop) {
 
 function layoutAddon(addon, frameIndex, pointAt, addonDefs, stage = REVIEW_STAGE, opts = {}) {
   let p = layoutAddonRaw(addon, frameIndex, stage);
-  const activeAttach = (addon.attach ?? []).find((a) => frameIndex >= (a.from ?? 0) && frameIndex <= (a.until ?? (officePropSize(addon.type) && typeof a.to === "string" ? Infinity : a.to) ?? Infinity));
+  const activeAttach = (addon.attach ?? []).find((a) => frameIndex >= (a.from ?? 0) && frameIndex <= (a.until ?? (reviewPropSize(addon.type) && typeof a.to === "string" ? Infinity : a.to) ?? Infinity));
   if (activeAttach && pointAt) {
     const pt = pointAt(frameIndex, activeAttach.to);
-    if (officePropSize(p.type)) attachOfficeProp(p, pt, activeAttach, stage);
+    if (reviewPropSize(p.type)) attachReviewProp(p, pt, activeAttach, stage);
     else {
       p.x = pt.x - p.w / 2 + (activeAttach.dx ?? 0) * stage.scale;
       p.y = p.type === "sign"
@@ -840,6 +932,12 @@ const doorClipsFigure=${doorClipsFigure.toString()};
 const figureMarkupWithDoorClip=${figureMarkupWithDoorClip.toString()};
 const layoutProp=${layoutProp.toString()};
 const officePropSize=${officePropSize.toString()};
+const hardwarePropSize=${hardwarePropSize.toString()};
+const reviewPropSize=${reviewPropSize.toString()};
+const cableGeometry=${cableGeometry.toString()};
+const reviewPropAnchor=${reviewPropAnchor.toString()};
+const attachReviewProp=${attachReviewProp.toString()};
+const hardwarePropMarkup=${hardwarePropMarkup.toString()};
 const officePropAnchor=${officePropAnchor.toString()};
 const attachOfficeProp=${attachOfficeProp.toString()};
 const officePropMarkup=${officePropMarkup.toString()};
@@ -950,6 +1048,12 @@ const figureMarkup=${figureMarkup.toString()};
 const figureMarkupWithDoorClip=${figureMarkupWithDoorClip.toString()};
 const layoutProp=${layoutProp.toString()};
 const officePropSize=${officePropSize.toString()};
+const hardwarePropSize=${hardwarePropSize.toString()};
+const reviewPropSize=${reviewPropSize.toString()};
+const cableGeometry=${cableGeometry.toString()};
+const reviewPropAnchor=${reviewPropAnchor.toString()};
+const attachReviewProp=${attachReviewProp.toString()};
+const hardwarePropMarkup=${hardwarePropMarkup.toString()};
 const officePropAnchor=${officePropAnchor.toString()};
 const attachOfficeProp=${attachOfficeProp.toString()};
 const officePropMarkup=${officePropMarkup.toString()};

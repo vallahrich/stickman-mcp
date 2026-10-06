@@ -60,6 +60,12 @@ live reviews and the standalone stage kit. See the
 This is review infrastructure; the corresponding IT motions still require
 individual authoring, user approval and separate runtime integration.
 
+Hardware previews likewise include a flexible cable with independently
+animated plug, a socket, a multi-unit server rack with a separate module, and
+a titlebar/content window with a cursor. These enable real contact-based
+plugging, module extraction and UI dragging rather than generic rectangles.
+Their individual motion candidates and runtime integration remain separate.
+
 A complete forward roll is currently withheld for a rig limitation, not
 approved merely because joint gates pass. The rendered head center is
 normalized to one head radius from the shoulder, so the current straight
