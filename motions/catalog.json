@@ -123,6 +123,11 @@
       "spec": "motions/specs/pick-up.json"
     },
     {
+      "id": "plug-cable",
+      "status": "ai-reviewed",
+      "spec": "motions/specs/plug-cable.json"
+    },
+    {
       "id": "point",
       "status": "user-approved",
       "spec": "motions/specs/point.json"

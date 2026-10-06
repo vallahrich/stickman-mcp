@@ -123,7 +123,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `open-laptop` | candidate | W6 | wave 20: supported lid opening independently checked; awaiting rating |
 | `video-call` | candidate | W6 | wave 21: supported screen-directed conversation independently checked; awaiting rating |
 | `phone-call` | user-approved | W6 | batch 13: 9/10 approved |
-| `plug-cable` | in progress | W6 | wave 21: plug/socket candidate under independent verification |
+| `plug-cable` | candidate | W6 | wave 21: aligned insertion and stable tail/release independently checked; awaiting rating |
 | `rack-server` | in progress | W6 | wave 21: authoring supported server module extraction |
 | `drag-window` | in progress | W6 | wave 21: authoring titlebar/cursor grab-drag-release |
 | `tablet-tap` | candidate | W6 | wave 20: steady grip and three screen taps independently checked; awaiting rating |
@@ -173,7 +173,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 ## Totals
 
 - user-approved: 80
-- candidate: 14
-- in progress: 5
+- candidate: 15
+- in progress: 4
 - rework: 1
 - **total: 100**
