@@ -110,8 +110,8 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `swipe-next` | user-approved | W2 | batch 5: 9/10 approved |
 | `walk-on` | user-approved | W5 | re-review: 8/10 approved; upright gait and fixed stance |
 | `walk-off` | user-approved | W5 | re-review: 8/10 approved; upright gait and fixed stance |
-| `enter-door` | planned | W5 | appear through a door on the next slide |
-| `exit-door` | planned | W5 | leave the slide through a door |
+| `enter-door` | in progress | W5 | wave 17: authoring supported door entrance |
+| `exit-door` | in progress | W5 | wave 17: authoring supported door exit |
 | `hold-sign` | user-approved | W5 | batch 13: 9/10 approved |
 | `inspect-magnifier` | planned | W5 |  |
 
@@ -141,7 +141,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `lift-carry` | user-approved | W7 | re-review: 8/10 approved; stable torso, pelvis and box |
 | `throw` | user-approved | W7 | throw-ball 8/10 approved; basketball-shot 9/10 approved |
 | `catch` | candidate | W7 | wave 15: two-hand catch candidate; awaiting rating |
-| `hand-over` | planned | W7 |  |
+| `hand-over` | in progress | W7 | wave 17: authoring controlled object delivery |
 | `drag-object` | planned | W7 |  |
 | `check-watch` | user-approved | W7 | batch 8: 8/10 approved |
 | `write-notes` | planned | W7 |  |
@@ -174,7 +174,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 
 - user-approved: 76
 - candidate: 6
-- planned: 13
+- in progress: 4
+- planned: 10
 - draft: 4
-- in progress: 1
 - **total: 100**
