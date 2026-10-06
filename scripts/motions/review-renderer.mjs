@@ -34,7 +34,25 @@ function line(a, b) {
 }
 
 export const REVIEW_STAGE = { rootX: 160, groundY: 150, scale: 0.75 };
-const ADDON_TYPES = new Set(["ball", "football", "basketball", "goal", "hoop", "hurdle", "spear", "card", "cone", "target", "sand-pit", "board", "sand-puff", "phone", "sign"]);
+const ADDON_TYPES = new Set(["ball", "football", "basketball", "goal", "hoop", "hurdle", "spear", "card", "cone", "target", "sand-pit", "board", "sand-puff", "phone", "sign", "laptop", "tablet", "magnifier", "notebook", "pen"]);
+
+function officePropSize(type) {
+  return ({ laptop: { w: 48, h: 34 }, tablet: { w: 22, h: 30 }, magnifier: { w: 24, h: 34 }, notebook: { w: 30, h: 36 }, pen: { w: 4, h: 22 } })[type];
+}
+
+// Normalized grip coordinates in the unrotated drawing; the nib points down.
+function officePropAnchor(prop) {
+  if (prop.type === "magnifier") return { x: prop.x + prop.w * 0.76, y: prop.y + prop.h * 0.83 };
+  if (prop.type === "pen") return { x: prop.x + prop.w * 0.5, y: prop.y + prop.h * 0.42 };
+  return { x: prop.x + prop.w / 2, y: prop.y + prop.h / 2 };
+}
+
+function attachOfficeProp(prop, point, attach, stage) {
+  const anchor = officePropAnchor(prop);
+  prop.x += point.x - anchor.x + (attach.dx ?? 0) * stage.scale;
+  prop.y += point.y - anchor.y - (attach.dy ?? 0) * stage.scale;
+  if (prop.type === "pen" && point.angle !== undefined) prop.rot += point.angle * 180 / Math.PI - 90;
+}
 
 const clamp01 = (value) => Math.max(0, Math.min(1, value));
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -133,10 +151,11 @@ export async function clipFrameToSampledFrame(clip, frameIndex) {
 function layoutProp(spec, propsCatalog, frameIndex = 0, stage = { rootX: 160, groundY: 150, scale: 0.75 }) {
   const type = spec.prop;
   if (!type) return null;
-  const def = propsCatalog.props?.find((item) => item.type === type) ?? propsCatalog.props?.find((item) => item.type === (type === "bench" ? "chair" : type)) ?? { type, defaultSize: { w: 60, h: 40 } };
+  const office = officePropSize(type);
+  const def = propsCatalog.props?.find((item) => item.type === type) ?? propsCatalog.props?.find((item) => item.type === (type === "bench" ? "chair" : type)) ?? { type, defaultSize: office ?? { w: 60, h: 40 } };
   const review = spec.review ?? {};
   const base = review.prop ?? {};
-  const size = def.defaultSize ?? {};
+  const size = def.defaultSize ?? office ?? {};
   const w = base.w ?? size.w ?? (size.r ? size.r * 2 : 60);
   const h = base.h ?? size.h ?? (size.r ? size.r * 2 : 40);
   let x = base.x ?? 40;
@@ -145,6 +164,7 @@ function layoutProp(spec, propsCatalog, frameIndex = 0, stage = { rootX: 160, gr
   let ink = base.ink ?? 0;
   let scale = base.scale ?? 1;
   let fade = base.fade ?? 1;
+  let rot = base.rot ?? 0;
   const keys = review.propMotion;
   if (Array.isArray(keys) && keys.length) {
     const sorted = [...keys].sort((a, b) => a.frame - b.frame);
@@ -159,12 +179,13 @@ function layoutProp(spec, propsCatalog, frameIndex = 0, stage = { rootX: 160, gr
     if (a.ink !== undefined || b.ink !== undefined) ink = (a.ink ?? ink) + ((b.ink ?? a.ink ?? ink) - (a.ink ?? ink)) * t;
     if (a.scale !== undefined || b.scale !== undefined) scale = (a.scale ?? scale) + ((b.scale ?? a.scale ?? scale) - (a.scale ?? scale)) * t;
     if (a.fade !== undefined || b.fade !== undefined) fade = (a.fade ?? fade) + ((b.fade ?? a.fade ?? fade) - (a.fade ?? fade)) * t;
+    if (office && (a.rot !== undefined || b.rot !== undefined)) rot = lerp(a.rot ?? rot, b.rot ?? a.rot ?? rot, t);
   }
   const k = stage.scale;
   const hinge = base.hinge ?? (x >= 0 ? "right" : "left");
   const monitorW = base.monitorW !== undefined ? base.monitorW * k : undefined;
   const monitorH = base.monitorH !== undefined ? base.monitorH * k : undefined;
-  return { type: def.type ?? type, id: base.id, x: stage.rootX + x * k, y: stage.groundY - (y + h) * k, w: w * k, h: h * k, r: size.r, steps: base.steps ?? size.steps, rungs: base.rungs ?? size.rungs, open, ink, scale, fade, opacity: fade, hinge, monitorW, monitorH, color: base.color, clipFigureFrom: base.clipFigureFrom, clipFigureUntil: base.clipFigureUntil, enter: base.enter, exit: base.exit };
+  return { type: def.type ?? type, id: base.id, x: stage.rootX + x * k, y: stage.groundY - (y + h) * k, w: w * k, h: h * k, r: size.r, steps: base.steps ?? size.steps, rungs: base.rungs ?? size.rungs, open, ink, scale, fade, opacity: fade, ...(office ? { rot, drawScale: scale } : {}), hinge, monitorW, monitorH, color: base.color, clipFigureFrom: base.clipFigureFrom, clipFigureUntil: base.clipFigureUntil, enter: base.enter, exit: base.exit };
 }
 
 function doorMarkup(prop, strokeWidth, color, layer = "all") {
@@ -348,7 +369,8 @@ function wrapPropMarkup(prop, markup) {
   const scale = prop.drawScale ?? 1;
   const rot = prop.rot ?? 0;
   if (Math.abs(opacity - 1) < 0.001 && Math.abs(scale - 1) < 0.001 && Math.abs(rot) < 0.001 && !prop.puff) return markup;
-  const cx = prop.x + prop.w / 2, cy = prop.y + prop.h / 2;
+  const anchor = officePropSize(prop.type) ? officePropAnchor(prop) : addonCenter(prop);
+  const cx = anchor.x, cy = anchor.y;
   const rx = prop.tipPivot ? cx : cx, ry = prop.tipPivot ? prop.y + prop.h : cy;
   const transform = `translate(${num(cx)} ${num(cy)}) scale(${num(scale)}) translate(${num(-cx)} ${num(-cy)}) rotate(${num(rot)} ${num(rx)} ${num(ry)})`;
   const puff = prop.puff ? puffMarkup(prop, "#202124") : "";
@@ -469,8 +491,50 @@ function bulbMarkup(prop, strokeWidth, color) {
   return `<g data-prop="bulb" stroke="${xml(color)}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"><circle cx="${num(cx)}" cy="${num(y + h * 0.34)}" r="${num(glassR)}" fill="#FFD43B"/><path d="M${num(cx - glassR * 0.48)} ${num(y + h * 0.52)}Q${num(cx)} ${num(y + h * 0.62)} ${num(cx + glassR * 0.48)} ${num(y + h * 0.52)}" fill="#FFD43B"/><path d="${line({ x: cx - w * 0.18, y: baseY }, { x: cx + w * 0.18, y: baseY })}" fill="none" stroke="#4a4a4a"/><path d="${line({ x: cx - w * 0.16, y: baseY + h * 0.1 }, { x: cx + w * 0.16, y: baseY + h * 0.1 })}" fill="none" stroke="#4a4a4a"/><path d="${line({ x: cx - w * 0.12, y: baseY + h * 0.2 }, { x: cx + w * 0.12, y: baseY + h * 0.2 })}" fill="none" stroke="#4a4a4a"/><path d="M${num(cx - w * 0.11)} ${num(y + h * 0.34)}Q${num(cx)} ${num(y + h * 0.45)} ${num(cx + w * 0.11)} ${num(y + h * 0.34)}" fill="none" stroke="${xml(color)}" stroke-width="${num(strokeWidth * 0.6)}"/>${ray({ x: cx, y: y - h * 0.08 }, { x: cx, y: y - h * 0.26 })}${ray({ x: x + w * 0.1, y: y + h * 0.16 }, { x: x - w * 0.08, y: y + h * 0.05 })}${ray({ x: x + w * 0.9, y: y + h * 0.16 }, { x: x + w * 1.08, y: y + h * 0.05 })}</g>`;
 }
 
+function officePropMarkup(prop, strokeWidth, color) {
+  if (!officePropSize(prop.type)) return "";
+  const { x, y, w, h } = prop;
+  const c = xml(prop.color ?? ({ laptop: "#6675cc", tablet: "#259b91", magnifier: "#e2a532", notebook: "#cf647e", pen: "#4169c1" })[prop.type]);
+  const sw = num(Math.min(strokeWidth, w * 0.055, h * 0.055));
+  const attrs = `stroke="${xml(color)}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"`;
+  const p = (px, py) => ({ x: x + w * px, y: y + h * py });
+  const path = (points) => points.map((pt, i) => `${i ? "L" : "M"}${num(pt.x)} ${num(pt.y)}`).join("") + "Z";
+  const rect = (part, px, py, pw, ph, fill, rx = 0.03) => `<rect data-part="${part}" x="${num(x + w * px)}" y="${num(y + h * py)}" width="${num(w * pw)}" height="${num(h * ph)}" rx="${num(Math.min(w, h) * rx)}" fill="${fill}"/>`;
+  let drawing = "";
+  if (prop.type === "laptop") {
+    const open = clamp01(prop.open ?? 0), hingeY = 0.76;
+    const lidTop = hingeY - 0.04 - open * 0.7;
+    const lid = path([p(0.08 + open * 0.05, lidTop), p(0.92 - open * 0.05, lidTop), p(0.92, hingeY), p(0.08, hingeY)]);
+    const screen = open > 0.02 ? `<path data-part="laptop-screen" d="${path([p(0.18, lidTop + open * 0.08), p(0.82, lidTop + open * 0.08), p(0.84, hingeY - open * 0.08), p(0.16, hingeY - open * 0.08)])}" fill="#c8ecf6"/>` : "";
+    const keys = open > 0.02 ? [0, 1, 2].map(row => `<path data-part="laptop-keyboard" d="${line(p(0.2 - row * 0.02, 0.8 + row * 0.045), p(0.8 + row * 0.02, 0.8 + row * 0.045))}" stroke="#e0e7fa"/>`).join("") : "";
+    drawing = `<path data-part="laptop-base" d="${path([p(0.08, hingeY), p(0.92, hingeY), p(1, 0.97), p(0, 0.97)])}" fill="${c}"/>${keys}<path data-part="laptop-lid" d="${lid}" fill="${c}"/>${screen}<path data-part="laptop-hinge" d="${line(p(0.08, hingeY), p(0.92, hingeY))}" fill="none"/>`;
+  } else if (prop.type === "tablet") {
+    drawing = rect("tablet-bezel", 0, 0, 1, 1, c, 0.12) + rect("tablet-screen", 0.12, 0.1, 0.76, 0.78, "#c8ecf6", 0.04) +
+      `<circle data-part="tablet-button" cx="${num(x + w * 0.5)}" cy="${num(y + h * 0.94)}" r="${num(w * 0.035)}" fill="#fff"/><path data-part="tablet-content" d="${line(p(0.24, 0.32), p(0.75, 0.32))}${line(p(0.24, 0.45), p(0.64, 0.45))}" fill="none" stroke="#5594b5"/>`;
+  } else if (prop.type === "magnifier") {
+    const center = p(0.4, 0.3), radius = Math.min(w * 0.34, h * 0.25);
+    drawing = `<path data-part="magnifier-handle" d="${path([p(0.52, 0.51), p(0.64, 0.46), p(0.94, 0.92), p(0.8, 1)])}" fill="${c}"/><circle data-part="magnifier-ring" cx="${num(center.x)}" cy="${num(center.y)}" r="${num(radius * 0.885)}" fill="none" stroke="${c}" stroke-width="${num(radius * 0.23)}"/><circle data-part="magnifier-lens" cx="${num(center.x)}" cy="${num(center.y)}" r="${num(radius * 0.77)}" fill="#bdeaf6" fill-opacity="0.25"/><path data-part="magnifier-glint" d="${line(p(0.25, 0.23), p(0.35, 0.14))}" stroke="#fff"/>`;
+  } else if (prop.type === "notebook") {
+    const rules = [0.3, 0.44, 0.58, 0.72, 0.86].map(yy => `<path data-part="notebook-rule" d="${line(p(0.25, yy), p(0.84, yy))}" stroke="#a6bbd8"/>`).join("");
+    const ink = [0, 1, 2, 3].map(i => {
+      const t = clamp01(clamp01(prop.ink ?? 0) * 4 - i);
+      if (!t) return "";
+      const yy = 0.28 + i * 0.14;
+      return `<path data-part="notebook-ink" d="${line(p(0.28, yy), p(0.28 + (i % 2 ? 0.38 : 0.5) * t, yy))}" stroke="#334d87"/>`;
+    }).join("");
+    drawing = rect("notebook-cover", 0, 0, 1, 1, c, 0.05) +
+      `<path data-part="notebook-pages" d="${path([p(0.16, 0.05), p(0.91, 0.05), p(0.96, 0.13), p(0.96, 0.94), p(0.16, 0.94)])}" fill="#fff9ed"/><path data-part="notebook-fold" d="${line(p(0.91, 0.05), p(0.91, 0.13))}${line(p(0.91, 0.13), p(0.96, 0.13))}" fill="none"/>${rules}${ink}` +
+      [0.2, 0.4, 0.6, 0.8].map(yy => `<path data-part="notebook-binding" d="${line(p(0.05, yy), p(0.2, yy))}" stroke="#555e70"/>`).join("");
+  } else if (prop.type === "pen") {
+    drawing = `<path data-part="pen-body" d="${path([p(0.16, 0.08), p(0.84, 0.08), p(0.84, 0.78), p(0.16, 0.78)])}" fill="${c}"/><path data-part="pen-nib" d="${path([p(0.16, 0.78), p(0.84, 0.78), p(0.5, 1)])}" fill="#e3c591"/><path data-part="pen-tip" d="${line(p(0.5, 0.94), p(0.5, 1))}" stroke="#202124"/><path data-part="pen-clip" d="${line(p(0.76, 0.12), p(0.76, 0.35))}" stroke="#e0e7fa"/>`;
+  }
+  return `<g data-${prop.addon ? "addon" : "prop"}="${prop.type}" ${attrs}>${drawing}</g>`;
+}
+
 function propMarkup(prop, strokeWidth, color) {
   if (!prop) return "";
+  const office = officePropMarkup(prop, strokeWidth, color);
+  if (office) return office;
   const sw = num(strokeWidth);
   const attrs = `fill="#fff" stroke="${xml(color)}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"`;
   const x = prop.x, y = prop.y, w = prop.w, h = prop.h;
@@ -546,6 +610,11 @@ function figureMarkupWithDoorClip(frame, geometry, door, frameIndex, color = "#2
 /**
  * All props for a review frame: the main prop (optionally carried by a hand via review.prop.attach =
  * {hand:"r"|"l", from, to, dx, dy, hiddenBefore, hiddenAfter}) plus static review.extraProps [{type,x,y,w,h}].
+ * Office props accept color, rot (degrees), scale, fade, enter/exit; laptop.open and notebook.ink
+ * are 0..1, sampled via review.propMotion (extraProps use their own propMotion; addons use keys).
+ * Defaults in local units: laptop 48x34, tablet 22x30, magnifier 24x34, notebook 30x36, pen 4x22.
+ * Attachments grip magnifier at (.76w,.83h), pen at (.5w,.42h), others at center.
+ * Pen nib follows the forearm with rot as an additional offset; transforms pivot on the grip.
  * handAt(frame, side) returns the world-space hand point; it is only needed for attached props.
  */
 function layoutScene(spec, propsCatalog, frameIndex, handAt, stage = { rootX: 160, groundY: 150, scale: 0.75 }) {
@@ -574,8 +643,11 @@ function layoutScene(spec, propsCatalog, frameIndex, handAt, stage = { rootX: 16
           ? (() => { const l = pointAt(ix, "left-hand"), r = pointAt(ix, "right-hand"); return { x: (l.x + r.x) / 2, y: (l.y + r.y) / 2, facing: r.facing ?? l.facing }; })()
           : pointAt(ix, target === "head" ? "head" : target === "l" ? "left-hand" : target === "r" ? "right-hand" : target);
         const offsetDir = target === "head" ? (Math.sign(point.facing ?? 1) || 1) : 1;
-        main.x = point.x - main.w / 2 + (attach.dx ?? 0) * stage.scale * offsetDir;
-        main.y = point.y - main.h / 2 - (attach.dy ?? 0) * stage.scale;
+        if (officePropSize(main.type)) attachOfficeProp(main, point, { ...attach, dx: (attach.dx ?? 0) * offsetDir }, stage);
+        else {
+          main.x = point.x - main.w / 2 + (attach.dx ?? 0) * stage.scale * offsetDir;
+          main.y = point.y - main.h / 2 - (attach.dy ?? 0) * stage.scale;
+        }
         if (point.facing !== undefined) main.facing = point.facing;
         if (point.angle !== undefined) main.angle = point.angle;
         main.front = true;
@@ -589,7 +661,7 @@ function layoutScene(spec, propsCatalog, frameIndex, handAt, stage = { rootX: 16
   const lifeMain = placedMain ? applyLifecycle(placedMain, spec.review?.prop ?? {}) : null;
   if (lifeMain) out.push(lifeMain);
   for (const extra of spec.review?.extraProps ?? []) {
-    const p = layoutProp({ prop: extra.type, review: { prop: extra } }, propsCatalog, frameIndex, stage);
+    const p = layoutProp({ prop: extra.type, review: { prop: extra, ...(officePropSize(extra.type) ? { propMotion: extra.propMotion } : {}) } }, propsCatalog, frameIndex, stage);
     const placed = placeAttached(p, extra.attach);
     const life = placed ? applyLifecycle(placed, extra) : null;
     if (life) out.push(life);
@@ -603,6 +675,7 @@ function layoutScene(spec, propsCatalog, frameIndex, handAt, stage = { rootX: 16
 }
 
 function addonDefaultSize(type) {
+  if (officePropSize(type)) return officePropSize(type);
   return ({
     ball: { w: 10, h: 10 }, football: { w: 14, h: 14 }, basketball: { w: 14, h: 14 }, goal: { w: 46, h: 34 }, hoop: { w: 32, h: 38 },
     hurdle: { w: 34, h: 22 }, spear: { w: 48, h: 6 }, card: { w: 24, h: 16 }, cone: { w: 14, h: 18 }, target: { w: 24, h: 24 },
@@ -611,6 +684,7 @@ function addonDefaultSize(type) {
 }
 
 function layoutAddonRaw(addon, frameIndex, stage = REVIEW_STAGE) {
+  if (officePropSize(addon.type)) return { ...layoutProp({ prop: addon.type, review: { prop: { ...addon, x: addon.x ?? 0 }, propMotion: addon.keys } }, { props: [] }, frameIndex, stage), addon: true };
   const size = addonDefaultSize(addon.type);
   const wLocal = addon.w ?? size.w, hLocal = addon.h ?? size.h;
   const key = interpAddonKeys(addon.keys, frameIndex);
@@ -645,14 +719,17 @@ function addonTargetCenter(prop) {
 
 function layoutAddon(addon, frameIndex, pointAt, addonDefs, stage = REVIEW_STAGE, opts = {}) {
   let p = layoutAddonRaw(addon, frameIndex, stage);
-  const activeAttach = (addon.attach ?? []).find((a) => frameIndex >= (a.from ?? 0) && frameIndex <= (a.until ?? a.to ?? Infinity));
+  const activeAttach = (addon.attach ?? []).find((a) => frameIndex >= (a.from ?? 0) && frameIndex <= (a.until ?? (officePropSize(addon.type) && typeof a.to === "string" ? Infinity : a.to) ?? Infinity));
   if (activeAttach && pointAt) {
     const pt = pointAt(frameIndex, activeAttach.to);
-    p.x = pt.x - p.w / 2 + (activeAttach.dx ?? 0) * stage.scale;
-    p.y = p.type === "sign"
-      ? pt.y - (p.h + (p.stickLen ?? 0) - (p.gripOffset ?? 0)) - (activeAttach.dy ?? 0) * stage.scale
-      : pt.y - p.h / 2 - (activeAttach.dy ?? 0) * stage.scale;
-    if (pt.angle !== undefined && p.type !== "sign") p.rot += pt.angle * 180 / Math.PI;
+    if (officePropSize(p.type)) attachOfficeProp(p, pt, activeAttach, stage);
+    else {
+      p.x = pt.x - p.w / 2 + (activeAttach.dx ?? 0) * stage.scale;
+      p.y = p.type === "sign"
+        ? pt.y - (p.h + (p.stickLen ?? 0) - (p.gripOffset ?? 0)) - (activeAttach.dy ?? 0) * stage.scale
+        : pt.y - p.h / 2 - (activeAttach.dy ?? 0) * stage.scale;
+      if (pt.angle !== undefined && p.type !== "sign") p.rot += pt.angle * 180 / Math.PI;
+    }
     p.front = true;
   }
   if (addon.flight && frameIndex >= (addon.flight.from ?? 0) && !opts.skipFlight) {
@@ -680,7 +757,7 @@ function layoutAddon(addon, frameIndex, pointAt, addonDefs, stage = REVIEW_STAGE
   if (!life.visible) return null;
   p.x += life.dx;
   p.y += life.dy;
-  p.opacity = life.opacity;
+  p.opacity = (p.opacity ?? 1) * life.opacity;
   p.drawScale *= life.scale;
   p.rot += life.rot;
   p.puff = life.puff;
@@ -753,7 +830,8 @@ export async function shippingRunFrames() {
 /** Browser-side source of the shipping engine sampler + figure/prop drawing, for self-contained pages (demo decks). */
 export async function stageKitSource() {
   const { frameGeometry, sampleMotionClip, sampleClipMotion } = await loadEngineRenderer();
-  return `const ENGINE_FRAME_GEOMETRY=${frameGeometry.toString()};
+  return `const REVIEW_STAGE=${JSON.stringify(REVIEW_STAGE)};
+const ENGINE_FRAME_GEOMETRY=${frameGeometry.toString()};
 ${sampleMotionClip.toString()}
 ${sampleClipMotion.toString()}
 const engineSampledFrame=${engineSampledFrame.toString()};
@@ -761,6 +839,10 @@ const figureMarkup=${figureMarkup.toString()};
 const doorClipsFigure=${doorClipsFigure.toString()};
 const figureMarkupWithDoorClip=${figureMarkupWithDoorClip.toString()};
 const layoutProp=${layoutProp.toString()};
+const officePropSize=${officePropSize.toString()};
+const officePropAnchor=${officePropAnchor.toString()};
+const attachOfficeProp=${attachOfficeProp.toString()};
+const officePropMarkup=${officePropMarkup.toString()};
 const ADDON_TYPES=new Set(${JSON.stringify([...ADDON_TYPES])});
 const clamp01=${clamp01.toString()};
 const lerp=${lerp.toString()};
@@ -859,6 +941,7 @@ html[data-theme="dark"] {
   --cp-highlight: rgba(253, 142, 161, 0.12);
 }
 body{font:14px "Segoe UI",Aptos,Calibri,-apple-system,BlinkMacSystemFont,sans-serif;margin:0;background:var(--cp-bg);color:var(--cp-text)}.bar{position:sticky;top:0;background:var(--cp-surface);border-bottom:1px solid var(--cp-border);padding:12px;z-index:3}.bare .bar,.bare h3,.bare .film{display:none}main{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px}.bare main{display:block;padding:0}.panel{background:var(--cp-surface);border:1px solid var(--cp-border);border-radius:16px;padding:12px}.bare .panel{border:0;border-radius:0;padding:0}svg.stage{width:100%;height:440px}.bare svg.stage{width:100vw;height:100vh}.film{display:grid;grid-template-columns:repeat(8,1fr);gap:8px}.film svg{height:90px;background:var(--cp-surface-soft);border-radius:10px}button,select,input{vertical-align:middle;accent-color:var(--cp-accent)}button,select{background:var(--cp-surface-soft);color:var(--cp-text);border:1px solid var(--cp-border);border-radius:10px;padding:4px 8px}</style><body><div class="bar"><b>${xml(clip.name)}</b> <button id="play">pause</button> speed <select id="speed"><option value=".1">0.1x</option><option value=".25">0.25x</option><option value=".5">0.5x</option><option value="1" selected>1x</option></select> onion <input id="onion" type="checkbox"> frame <input id="scrub" type="range" min="0" max="${clip.frames.length - 1}" value="0"> <span id="frameNo">0</span></div><main><section class="panel"><h3>Candidate (shipping engine)</h3><svg id="stage" class="stage"></svg><div id="film" class="film"></div></section><section class="panel" id="refPanel"><h3>Approved run (shipping engine)</h3><svg id="ref" class="stage"></svg></section></main><script id="data" type="application/json">${data}</script><script>
+const REVIEW_STAGE=${JSON.stringify(REVIEW_STAGE)};
 const ENGINE_FRAME_GEOMETRY=${frameGeometry.toString()};
 ${sampleMotionClip.toString()}
 ${sampleClipMotion.toString()}
@@ -866,6 +949,10 @@ const engineSampledFrame=${engineSampledFrame.toString()};
 const figureMarkup=${figureMarkup.toString()};
 const figureMarkupWithDoorClip=${figureMarkupWithDoorClip.toString()};
 const layoutProp=${layoutProp.toString()};
+const officePropSize=${officePropSize.toString()};
+const officePropAnchor=${officePropAnchor.toString()};
+const attachOfficeProp=${attachOfficeProp.toString()};
+const officePropMarkup=${officePropMarkup.toString()};
 const ADDON_TYPES=new Set(${JSON.stringify([...ADDON_TYPES])});
 const clamp01=${clamp01.toString()};
 const lerp=${lerp.toString()};

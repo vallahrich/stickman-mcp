@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { runInNewContext } from "node:vm";
+import { runInNewContext, Script } from "node:vm";
 import { sampleClipMotion, type MotionClip, type PoseKey } from "../dist/motion-clips.js";
 import { RUNTIME_MOTION_LIBRARY } from "../dist/motion-library.js";
-import { addonLifecycleState, clipFrameToSampledFrame, computeAddonFlightPoint, doorGeometry, renderStaticSvg, stageKitSource, REVIEW_STAGE } from "../scripts/motions/review-renderer.mjs";
+import { addonLifecycleState, clipFrameToSampledFrame, computeAddonFlightPoint, doorGeometry, renderReviewHtml, renderStaticSvg, stageKitSource, REVIEW_STAGE } from "../scripts/motions/review-renderer.mjs";
 import { buildKeyPoseClip, keyPoseGates } from "../scripts/motions/keypose.mjs";
 
 const stand: PoseKey = { anchor: "both", lean: 2, neck: -1, bob: 0, rLeg: { hip: 5, knee: 13 }, lLeg: { hip: -8, knee: 14 }, rArm: { shoulder: -8, elbow: 45 }, lArm: { shoulder: 8, elbow: 45 } };
@@ -26,6 +26,141 @@ describe("motion review renderer uses the shipping engine", () => {
       expect(review.segments).toEqual(engine.segments);
       expect(review.head).toEqual(engine.headPoint);
     }
+  });
+
+  describe("bounded office review props", () => {
+    const types = ["laptop", "tablet", "magnifier", "notebook", "pen"];
+    const clip = keyed([{ frame: 0, pose: stand }, { frame: 20, pose: stand }]);
+    const catalog = { props: [] };
+    const sizes = [[48, 34], [22, 30], [24, 34], [30, 36], [4, 22]];
+    const parts = ["laptop-hinge", "tablet-screen", "magnifier-lens", "notebook-pages", "pen-nib"];
+
+    it.each(types)("draws identifiable colored %s in primary, extra, and add-on paths", async (type) => {
+      const descriptor = { type, x: 40, open: 1, ink: 1, color: "#9876ab" };
+      const specs = [
+        { prop: type, review: { prop: descriptor } },
+        { review: { extraProps: [descriptor] } },
+        { review: { addons: [descriptor] } }
+      ];
+      for (const [i, spec] of specs.entries()) {
+        const svg = await renderStaticSvg({ clip, spec, propsCatalog: catalog, frameIndex: 10 });
+        expect(svg).toContain(`data-${i === 2 ? "addon" : "prop"}="${type}"`);
+        expect(svg).toContain(`data-part="${parts[types.indexOf(type)]}"`);
+        expect(svg).toContain("#9876ab");
+        expect(svg).toMatch(/data-part="[^"]+"[^>]*(?: d="M| cx=")/);
+        expect(svg).not.toContain(`<rect data-prop="${type}"`);
+      }
+    });
+
+    it("projects the hinged laptop lid as it opens and clamps authored fractions", async () => {
+      const render = (open: number) => renderStaticSvg({ clip, spec: { prop: "laptop", review: { prop: { open } } }, propsCatalog: catalog });
+      const [closed, half, opened, under, over] = await Promise.all([render(0), render(0.5), render(1), render(-1), render(2)]);
+      const lid = (svg: string) => svg.match(/data-part="laptop-lid" d="([^"]+)"/)![1];
+      expect(lid(closed)).not.toBe(lid(half));
+      expect(lid(half)).not.toBe(lid(opened));
+      expect(lid(under)).toBe(lid(closed));
+      expect(lid(over)).toBe(lid(opened));
+      expect(closed).not.toContain('data-part="laptop-screen"');
+      expect(opened).toContain('data-part="laptop-screen"');
+      expect(opened).toContain('data-part="laptop-keyboard"');
+      expect(opened).toContain('data-part="laptop-base"');
+    });
+
+    it("reveals notebook ink through primary, extra, and add-on motion keys", async () => {
+      const keys = [{ frame: 0, ink: 0 }, { frame: 20, ink: 1 }];
+      for (const spec of [
+        { prop: "notebook", review: { propMotion: keys } },
+        { review: { extraProps: [{ type: "notebook", propMotion: keys }] } },
+        { review: { addons: [{ type: "notebook", keys }] } }
+      ]) {
+        const render = (frameIndex: number) => renderStaticSvg({ clip, spec, propsCatalog: catalog, frameIndex });
+        const [blank, mid, full] = await Promise.all([render(0), render(10), render(20)]);
+        expect(blank).toContain('data-part="notebook-rule"');
+        expect(blank).not.toContain('data-part="notebook-ink"');
+        expect(mid.match(/data-part="notebook-ink"/g)).toHaveLength(2);
+        expect(full.match(/data-part="notebook-ink"/g)).toHaveLength(4);
+      }
+    });
+
+    it.each(types)("honors %s attachment, fade, scale, lifecycle and escaped colors in standalone kits", async (type) => {
+      const kit = await stageKitSource();
+      const descriptor = {
+        type, open: 1, color: 'red" onload="<bad>&\'', fade: 0.8, scale: 0.9,
+        enter: { frame: 2, dur: 4, style: "fade" }, exit: { frame: 12, dur: 4, style: "shrink" }
+      };
+      const spec = { prop: type, review: { prop: { ...descriptor, attach: { hand: "r", from: 0 } } } };
+      const addonSpec = { review: { addons: [{ ...descriptor, attach: [{ to: "right-hand", from: 0 }] }] } };
+      const extraSpec = { review: { extraProps: [{ ...descriptor, attach: { hand: "r", from: 0 } }] } };
+      for (const s of [spec, extraSpec, addonSpec]) {
+        const result = runInNewContext(`${kit};
+          const spec=${JSON.stringify(s)}, stage={rootX:160,groundY:150,scale:.75};
+          const pointAt=()=>({x:178,y:78,angle:0});
+          const scenes=[1,4,8,14,16].map(f=>layoutScene(spec,{props:[]},f,pointAt,stage));
+          const p=scenes[2][0];
+          ({counts:scenes.map(s=>s.length), anchor:officePropAnchor(p), w:p.w,h:p.h,
+            rot:p.rot, fade:scenes[1][0].opacity, scale:scenes[3][0].drawScale,
+            markup:scenePropMarkup(p,3,"#202124")});`);
+        expect(Array.from(result.counts)).toEqual([0, 1, 1, 1, 0]);
+        expect(result.anchor).toEqual({ x: 178, y: 78 });
+        expect(result.w).toBe(sizes[types.indexOf(type)]![0]! * 0.75);
+        expect(result.h).toBe(sizes[types.indexOf(type)]![1]! * 0.75);
+        expect(result.rot).toBe(type === "pen" ? -90 : 0);
+        expect(result.fade).toBeCloseTo(0.4);
+        expect(result.scale).toBeCloseTo(0.45);
+        expect(result.markup).toContain("red&quot; onload=&quot;&lt;bad&gt;&amp;&apos;");
+        expect(result.markup).not.toContain('onload="<bad>');
+        if (type === "pen") expect(result.markup).toContain("rotate(-90 178 78)");
+        if (type === "magnifier") {
+          expect(result.markup).toContain('fill-opacity="0.25"');
+          expect(result.markup).toMatch(/data-part="magnifier-ring"[^>]*fill="none"/);
+        }
+      }
+    });
+
+    it("samples office transforms and open keys without changing old fallback dimensions", async () => {
+      const kit = await stageKitSource();
+      const result = runInNewContext(`${kit};
+        const p=layoutProp({prop:"laptop",review:{prop:{x:40,y:10,w:60,h:40},
+          propMotion:[{frame:0,open:0,rot:0,scale:1,fade:1},{frame:20,open:1,rot:40,scale:2,fade:0}]}},{props:[]},10);
+        const old=layoutProp({prop:"unknown",review:{prop:{}}},{props:[]},0);
+        ({open:p.open,rot:p.rot,scale:p.drawScale,opacity:p.opacity,w:p.w,h:p.h,old:[old.w,old.h]});`);
+      expect(result).toMatchObject({ open: 0.5, rot: 20, scale: 1.5, opacity: 0.5, w: 45, h: 30 });
+      expect(Array.from(result.old)).toEqual([45, 30]);
+    });
+
+    it("preserves attachment windows, offsets and catalog dimension overrides", async () => {
+      const kit = await stageKitSource();
+      const result = runInNewContext(`${kit};
+        const prop={type:"pen",attach:{hand:"l",from:5,to:10,hiddenBefore:true,hiddenAfter:true,dx:2,dy:3}};
+        const catalog={props:[{type:"pen",defaultSize:{w:6,h:24}}]};
+        const scenes=[4,5,10,11].map(f=>layoutScene({review:{extraProps:[prop]}},catalog,f,
+          (ix,side)=>({x:100+ix,y:80,angle:Math.PI/2})));
+        ({counts:scenes.map(s=>s.length),anchor:officePropAnchor(scenes[1][0]),
+          w:scenes[1][0].w,h:scenes[1][0].h,rot:scenes[1][0].rot,
+          lifecycle:addonLifecycleState({},0),raw:layoutAddonRaw({type:"pen"},0)});`);
+      expect(Array.from(result.counts)).toEqual([0, 1, 1, 0]);
+      expect(result.anchor.x).toBeCloseTo(106.5);
+      expect(result.anchor.y).toBeCloseTo(77.75);
+      expect(result).toMatchObject({ w: 4.5, h: 18, rot: 0, lifecycle: { visible: true }, raw: { w: 3, h: 16.5 } });
+    });
+
+    it("carries every office helper into self-contained review HTML without changing its theme", async () => {
+      const html = await renderReviewHtml({ clip, spec: { prop: "laptop", review: { prop: { open: 1 } } }, report: {}, propsCatalog: catalog });
+      const script = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(match => match[1]!).find(source => source.includes("const ENGINE_FRAME_GEOMETRY="))!;
+      expect(() => new Script(script)).not.toThrow();
+      const helpers = script.split("const D=JSON.parse")[0]!;
+      const result = runInNewContext(`${helpers};
+        ["laptop","tablet","magnifier","notebook","pen"].map(type=>{
+          const p=layoutProp({prop:type,review:{prop:{open:1,ink:1}}},{props:[]},0);
+          return scenePropMarkup(p,3,"#202124");
+        });`);
+      for (const [i, markup] of Array.from(result as string[]).entries()) {
+        expect(markup).toContain(`data-prop="${types[i]}"`);
+        expect(markup).toContain(`data-part="${parts[i]}"`);
+      }
+      expect(html).toContain("--cp-bg:");
+      expect(html).toContain('font:14px "Segoe UI",Aptos,Calibri');
+    });
   });
 
   it("renders authored pose keys through the engine pose system", async () => {

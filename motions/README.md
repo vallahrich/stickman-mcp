@@ -153,6 +153,24 @@ If a spec declares `prop`, the standard review page draws the matching entry fro
 
 When omitted, the page uses the prop's default size and a deterministic default position.
 
+Office and inspection props have distinct silhouettes rather than rectangle placeholders:
+
+| Prop | Default local size | Animated detail |
+| --- | --- | --- |
+| `laptop` | 48 x 34 | `open` from 0 to 1 hinges the lid above the keyboard/base |
+| `tablet` | 22 x 30 | Framed screen with interface marks |
+| `magnifier` | 24 x 34 | Transparent lens, rim and handle |
+| `notebook` | 30 x 36 | `ink` from 0 to 1 reveals writing on ruled pages |
+| `pen` | 4 x 22 | Separate body and nib |
+
+Catalog or authored `w`/`h` values override these defaults. These props support
+placement, `color`, `rot`, `scale`, lifecycle/fade and hand attachment. Attached
+magnifiers grip at `(0.76 * w, 0.83 * h)` and pens at `(0.5 * w, 0.42 * h)`;
+the other new props use their center. Pens follow the holding forearm plus
+authored rotation. Animate primary/extra props with `propMotion`, and add-ons
+with their `keys`. These capabilities belong to the review renderer and its
+standalone stage kit, not automatic runtime MCP prop integration.
+
 Door props render as a static doorway frame plus a hinged leaf. Add `review.prop.hinge:
 "left"|"right"` to choose the hinge edge (default is the far edge from the approaching
 figure). Door `propMotion` keys may also include `open` (0 = closed, 1 ≈ 90° open);

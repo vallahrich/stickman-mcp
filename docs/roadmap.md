@@ -52,6 +52,14 @@ Door entrance previews may bound aperture occlusion with
 Omitting the latter preserves permanent exit clipping; releasing entrance
 clipping does not remove or fade the door.
 
+Review previews now include distinct laptop, tablet, magnifier, notebook and
+pen shapes, with a hinged laptop lid, animated notebook writing and hand-grip
+anchors. Placement, color, rotation, scale and lifecycle work in static shots,
+live reviews and the standalone stage kit. See the
+[motion factory](../motions/README.md#review-props) for authoring details.
+This is review infrastructure; the corresponding IT motions still require
+individual authoring, user approval and separate runtime integration.
+
 A complete forward roll is currently withheld for a rig limitation, not
 approved merely because joint gates pass. The rendered head center is
 normalized to one head radius from the shoulder, so the current straight
