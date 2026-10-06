@@ -1,0 +1,69 @@
+{
+  "id": "rack-server",
+  "label": "Slide a Server Out of a Rack",
+  "status": "ai-reviewed",
+  "kind": "oneshot",
+  "travel": "in-place",
+  "view": "side",
+  "expect": {
+    "pose": "readable-human-key-poses",
+    "contacts": ["lFoot", "rFoot"],
+    "travel": "in-place",
+    "facingChange": 0
+  },
+  "contacts": ["lFoot", "rFoot"],
+  "prop": "server-rack",
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": false,
+  "tags": ["corporate", "server", "rack", "extract", "rails", "supported"],
+  "notes": "Original 30 fps sequence: establish a fixed stance beside the actual rack, grip the near front handle with the right hand and support the near chassis corner with the left. Deliberately slide the server 22 units out on its telescoping tray, pause to check it without lifting or carrying it, then reseat and release only when safely supported. The dark bay insert masks the rack's baked-in top unit, so extraction exposes an empty bay, not a duplicate server. The narrow white tray beneath the chassis depicts the horizontal sliding support; rear chassis overlap with the rack is retained throughout. Neither prop is hand-attached: hardware remains rail-owned, with measured hand targets at the handle/underside instead of the renderer's center attachment.",
+  "approvedBaseline": false,
+  "frames": 210,
+  "loop": false,
+  "markers": {
+    "align": 18,
+    "grip": 30,
+    "extractStart": 42,
+    "extended": 108,
+    "check": 122,
+    "checkEnd": 136,
+    "reseatStart": 144,
+    "seated": 174,
+    "release": 182,
+    "neutral": 202
+  },
+  "poseKeys": [
+    {"frame":0,"pose":{"anchor":"both","lean":2,"neck":-1,"bob":0,"dx":0,"rLeg":{"hip":5,"knee":13},"lLeg":{"hip":-8,"knee":14},"rArm":{"shoulder":-8,"elbow":45},"lArm":{"shoulder":8,"elbow":45},"rFoot":{"x":8,"y":0},"lFoot":{"x":-12,"y":0},"rHand":{"x":16,"y":65},"lHand":{"x":20,"y":67}},"ease":"linear"},
+    {"frame":18,"pose":{"anchor":"both","lean":9,"neck":-5,"bob":0,"dx":0,"rLeg":{"hip":5,"knee":13},"lLeg":{"hip":-8,"knee":14},"rArm":{"shoulder":42,"elbow":45},"lArm":{"shoulder":38,"elbow":55},"rFoot":{"x":8,"y":0},"lFoot":{"x":-12,"y":0},"rHand":{"x":46,"y":96.4},"lHand":{"x":40,"y":89.6}},"ease":"linear"},
+    {"frame":30,"pose":{"anchor":"both","lean":10,"neck":-6,"bob":0,"dx":0,"rLeg":{"hip":5,"knee":13},"lLeg":{"hip":-8,"knee":14},"rArm":{"shoulder":55,"elbow":30},"lArm":{"shoulder":45,"elbow":45},"rFoot":{"x":8,"y":0},"lFoot":{"x":-12,"y":0},"rHand":{"x":53.88,"y":96.4},"lHand":{"x":47,"y":89.6}},"ease":"linear"},
+    {"frame":42,"pose":{"anchor":"both","lean":10,"neck":-6,"bob":0,"dx":0,"rLeg":{"hip":5,"knee":13},"lLeg":{"hip":-8,"knee":14},"rArm":{"shoulder":55,"elbow":30},"lArm":{"shoulder":45,"elbow":45},"rFoot":{"x":8,"y":0},"lFoot":{"x":-12,"y":0},"rHand":{"x":53.88,"y":96.4},"lHand":{"x":47,"y":89.6}},"ease":"linear"},
+    {"frame":108,"pose":{"anchor":"both","lean":2,"neck":-4,"bob":0,"dx":0,"rLeg":{"hip":5,"knee":13},"lLeg":{"hip":-8,"knee":14},"rArm":{"shoulder":25,"elbow":85},"lArm":{"shoulder":15,"elbow":85},"rFoot":{"x":8,"y":0},"lFoot":{"x":-12,"y":0},"rHand":{"x":31.88,"y":96.4},"lHand":{"x":25,"y":89.6}},"ease":"linear"},
+    {"frame":122,"pose":{"anchor":"both","lean":2,"neck":-10,"bob":0,"dx":0,"rLeg":{"hip":5,"knee":13},"lLeg":{"hip":-8,"knee":14},"rArm":{"shoulder":25,"elbow":85},"lArm":{"shoulder":15,"elbow":85},"rFoot":{"x":8,"y":0},"lFoot":{"x":-12,"y":0},"rHand":{"x":31.88,"y":96.4},"lHand":{"x":25,"y":89.6}},"ease":"linear"},
+    {"frame":136,"pose":{"anchor":"both","lean":2,"neck":-4,"bob":0,"dx":0,"rLeg":{"hip":5,"knee":13},"lLeg":{"hip":-8,"knee":14},"rArm":{"shoulder":25,"elbow":85},"lArm":{"shoulder":15,"elbow":85},"rFoot":{"x":8,"y":0},"lFoot":{"x":-12,"y":0},"rHand":{"x":31.88,"y":96.4},"lHand":{"x":25,"y":89.6}},"ease":"linear"},
+    {"frame":144,"pose":{"anchor":"both","lean":2,"neck":-4,"bob":0,"dx":0,"rLeg":{"hip":5,"knee":13},"lLeg":{"hip":-8,"knee":14},"rArm":{"shoulder":25,"elbow":85},"lArm":{"shoulder":15,"elbow":85},"rFoot":{"x":8,"y":0},"lFoot":{"x":-12,"y":0},"rHand":{"x":31.88,"y":96.4},"lHand":{"x":25,"y":89.6}},"ease":"linear"},
+    {"frame":174,"pose":{"anchor":"both","lean":10,"neck":-6,"bob":0,"dx":0,"rLeg":{"hip":5,"knee":13},"lLeg":{"hip":-8,"knee":14},"rArm":{"shoulder":55,"elbow":30},"lArm":{"shoulder":45,"elbow":45},"rFoot":{"x":8,"y":0},"lFoot":{"x":-12,"y":0},"rHand":{"x":53.88,"y":96.4},"lHand":{"x":47,"y":89.6}},"ease":"linear"},
+    {"frame":182,"pose":{"anchor":"both","lean":10,"neck":-6,"bob":0,"dx":0,"rLeg":{"hip":5,"knee":13},"lLeg":{"hip":-8,"knee":14},"rArm":{"shoulder":55,"elbow":30},"lArm":{"shoulder":45,"elbow":45},"rFoot":{"x":8,"y":0},"lFoot":{"x":-12,"y":0},"rHand":{"x":53.88,"y":96.4},"lHand":{"x":47,"y":89.6}},"ease":"linear"},
+    {"frame":190,"pose":{"anchor":"both","lean":6,"neck":-3,"bob":0,"dx":0,"rLeg":{"hip":5,"knee":13},"lLeg":{"hip":-8,"knee":14},"rArm":{"shoulder":25,"elbow":85},"lArm":{"shoulder":15,"elbow":85},"rFoot":{"x":8,"y":0},"lFoot":{"x":-12,"y":0},"rHand":{"x":34,"y":96.4},"lHand":{"x":30,"y":89.6}},"ease":"linear"},
+    {"frame":202,"pose":{"anchor":"both","lean":2,"neck":-1,"bob":0,"dx":0,"rLeg":{"hip":5,"knee":13},"lLeg":{"hip":-8,"knee":14},"rArm":{"shoulder":-8,"elbow":45},"lArm":{"shoulder":8,"elbow":45},"rFoot":{"x":8,"y":0},"lFoot":{"x":-12,"y":0},"rHand":{"x":16,"y":65},"lHand":{"x":20,"y":67}},"ease":"linear"},
+    {"frame":209,"pose":{"anchor":"both","lean":2,"neck":-1,"bob":0,"dx":0,"rLeg":{"hip":5,"knee":13},"lLeg":{"hip":-8,"knee":14},"rArm":{"shoulder":-8,"elbow":45},"lArm":{"shoulder":8,"elbow":45},"rFoot":{"x":8,"y":0},"lFoot":{"x":-12,"y":0},"rHand":{"x":16,"y":65},"lHand":{"x":20,"y":67}},"ease":"linear"}
+  ],
+  "gates": {"headFloor":true,"maxJointStep":14},
+  "review": {
+    "prop": {"x":38,"y":0,"w":64,"h":120,"color":"#59677d"},
+    "extraProps": [
+      {"id":"empty-extraction-bay","type":"box","x":47.5,"y":90.4,"w":45,"h":16,"color":"#263345"},
+      {"id":"fixed-rack-support","type":"platform","x":46,"y":87.6,"w":46,"h":2},
+      {
+        "id":"extracted-server","type":"server-module","x":44,"y":89.6,"w":52,"h":16,"color":"#839bb8",
+        "propMotion":[{"frame":0,"x":0},{"frame":42,"x":0},{"frame":108,"x":-22},{"frame":144,"x":-22},{"frame":174,"x":0},{"frame":209,"x":0}]
+      }
+    ],
+    "addons": [
+      {
+        "id":"telescoping-support-rail","type":"board","x":46,"y":88.2,"w":46,"h":1.4,
+        "keys":[{"frame":0,"x":0},{"frame":42,"x":0},{"frame":108,"x":-22},{"frame":144,"x":-22},{"frame":174,"x":0},{"frame":209,"x":0}]
+      }
+    ]
+  }
+}

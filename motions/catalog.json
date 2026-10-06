@@ -53,9 +53,19 @@
       "spec": "motions/specs/dance.json"
     },
     {
+      "id": "drag-window",
+      "status": "ai-reviewed",
+      "spec": "motions/specs/drag-window.json"
+    },
+    {
       "id": "fall-get-up",
       "status": "draft",
       "spec": "motions/specs/fall-get-up.json"
+    },
+    {
+      "id": "frustrated-pc",
+      "status": "ai-reviewed",
+      "spec": "motions/specs/frustrated-pc.json"
     },
     {
       "id": "hang-swing",
@@ -156,6 +166,11 @@
       "id": "put-down",
       "status": "draft",
       "spec": "motions/specs/put-down.json"
+    },
+    {
+      "id": "rack-server",
+      "status": "ai-reviewed",
+      "spec": "motions/specs/rack-server.json"
     },
     {
       "id": "roll",
@@ -276,6 +291,11 @@
       "id": "wave",
       "status": "draft",
       "spec": "motions/specs/wave.json"
+    },
+    {
+      "id": "write-notes",
+      "status": "ai-reviewed",
+      "spec": "motions/specs/write-notes.json"
     }
   ]
 }

@@ -113,27 +113,27 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `enter-door` | candidate | W5 | wave 17: clipped emergence and supported walk-on candidate; awaiting rating |
 | `exit-door` | candidate | W5 | wave 17: grip, doorway passage and complete exit candidate; awaiting rating |
 | `hold-sign` | user-approved | W5 | batch 13: 9/10 approved |
-| `inspect-magnifier` | candidate | W5 | wave 20: lens inspection independently checked; awaiting rating |
+| `inspect-magnifier` | rework | W5 | review wave 18: 6/10; unapproved, naturalness rework |
 
 ### IT (9)
 
 | Motion | Status | Wave | Note |
 | --- | --- | --- | --- |
 | `type-at-desk` | user-approved | W2 | batch 5: 9/10 approved (polish: still body) |
-| `open-laptop` | candidate | W6 | wave 20: supported lid opening independently checked; awaiting rating |
-| `video-call` | candidate | W6 | wave 21: supported screen-directed conversation independently checked; awaiting rating |
+| `open-laptop` | user-approved | W6 | review wave 18: 8/10 approved |
+| `video-call` | rework | W6 | review wave 18: 5/10; unapproved, naturalness rework |
 | `phone-call` | user-approved | W6 | batch 13: 9/10 approved |
 | `plug-cable` | candidate | W6 | wave 21: aligned insertion and stable tail/release independently checked; awaiting rating |
-| `rack-server` | in progress | W6 | wave 21: authoring supported server module extraction |
-| `drag-window` | in progress | W6 | wave 21: authoring titlebar/cursor grab-drag-release |
-| `tablet-tap` | candidate | W6 | wave 20: steady grip and three screen taps independently checked; awaiting rating |
-| `frustrated-pc` | in progress | W6 | wave 21: authoring screen-directed frustration reaction |
+| `rack-server` | candidate | W6 | wave 21: rail-supported module extraction/reseat independently checked; awaiting rating |
+| `drag-window` | candidate | W6 | wave 21: titlebar drag/release independently checked; awaiting rating |
+| `tablet-tap` | rework | W6 | review wave 18: 7/10; unapproved, naturalness rework |
+| `frustrated-pc` | candidate | W6 | wave 21: supported seated computer reaction independently checked; awaiting rating |
 
 ### Work & objects (12)
 
 | Motion | Status | Wave | Note |
 | --- | --- | --- | --- |
-| `push` | candidate | W7 | previous 7/10; harder push rework independently checked; awaiting re-rating |
+| `push` | user-approved | W7 | review wave 17: 8/10 approved; harder push revision |
 | `pull` | user-approved | W7 | batch 4: approved |
 | `push-walk` | candidate | W7 | wave 18: four-step push with steady grip; awaiting rating |
 | `pick-up` | user-approved | W7 | batch 11: 8/10 approved |
@@ -144,7 +144,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `hand-over` | candidate | W7 | wave 17: controlled card handover candidate; awaiting rating |
 | `drag-object` | candidate | W7 | wave 18: forward drag with fixed grip and clear knees; awaiting rating |
 | `check-watch` | user-approved | W7 | batch 8: 8/10 approved |
-| `write-notes` | in progress | W7 | wave 20: nib alignment passes; reworking paper-occluded writing grip before review |
+| `write-notes` | candidate | W7 | wave 20: visible writing grip and nib alignment independently checked; awaiting rating |
 
 ### Sport & action (19)
 
@@ -162,18 +162,17 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `roll` | rework | W8 | withheld: head/neck rig cannot yet express supported inversion without head-floor/torso intersection |
 | `trip` | user-approved | W8 | review wave 15: 8/10 approved |
 | `balance` | user-approved | W8 | wave 14: 9/10 approved; one-leg balance and recovery |
-| `dance` | candidate | W8 | previous 5/10; disco rework independently checked; brief raised-arm/head occlusion; awaiting re-rating |
+| `dance` | rework | W8 | review wave 17: 6/10; disco revision unapproved, further rework |
 | `climb-ladder` | user-approved | W10 | review wave 15: 9/10 approved |
 | `climb-down` | candidate | W10 | wave 18: supported descent and dismount; awaiting rating |
-| `climb-ledge` | candidate | W10 | wave 19: supported ledge climb independently checked; awaiting rating |
-| `hang-swing` | candidate | W10 | wave 18: fixed-grip swing and landing independently checked; awaiting rating |
+| `climb-ledge` | user-approved | W10 | review wave 17: 9/10 approved |
+| `hang-swing` | rework | W10 | review wave 17: 7/10; unapproved, naturalness rework |
 | `crawl` | user-approved | W10 | re-review: 9/10 approved; articulated gait and locked stance contacts |
 | `fall-get-up` | user-approved | W10 | re-review: 9/10 approved; supported palm-to-knee-to-foot recovery |
 
 ## Totals
 
-- user-approved: 80
-- candidate: 15
-- in progress: 4
-- rework: 1
+- user-approved: 83
+- candidate: 11
+- rework: 6
 - **total: 100**
