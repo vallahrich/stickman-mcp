@@ -13,7 +13,7 @@
   "facingChange": 0,
   "mirrorable": false,
   "tags": ["office","laptop","hinge","screen-check","supported"],
-  "notes": "Original authored motion. The laptop rests continuously on a solid waist-height work plinth, not a floating base or a desktop monitor. Look and reach; left hand steadies the near base corner, right hand grips the actual rendered lid's near top corner and follows its rising edge. Opening slows into the stop, followed by a short screen check. Right hand withdraws away from the screen before lowering, left hand releases the supported base before the torso withdraws, and both arms settle naturally. Both feet are fixed for the whole six-second stance. Laptop geometry: 48x34 at (33,66.98), bottom at y=68; plinth top y=68. Near lid corner: x=36.84+2.4*open, y=76.5+23.8*open. Left steadying contact is (37,70), independently of lid opening.",
+  "notes": "Original authored motion. The laptop rests continuously on a solid waist-height work plinth, not a floating base or a desktop monitor. Look and reach; left hand steadies the near base corner, right hand grips the actual rendered lid's near top corner and follows its rising edge. Opening slows into the stop, followed by a short screen check. Right hand withdraws away from the screen before lowering, left hand releases the supported base before the torso withdraws, and both arms settle naturally. Both feet are fixed for the whole six-second stance. Laptop geometry: 48x34 at (33,66.98), bottom at y=68; plinth top y=68. Near lid corner: x=36.84+2.4*open, y=76.5+23.8*open. Left steadying contact is (37,70), independently of lid opening. User requested clearer laptop recognition after reaffirming 8/10: individual keyboard keys, touchpad, webcam and screen content added; dimensions, hinge, timing, pose keys and contacts unchanged.",
   "approvedBaseline": false,
   "frames": 180,
   "loop": false,
@@ -39,8 +39,25 @@
   ],
   "gates": {"maxJointStep":14,"headFloor":true},
   "review": {
-    "prop": {"x":33,"y":66.98,"w":48,"h":34,"open":0,"color":"#6675cc"},
-    "propMotion": [{"frame":0,"open":0},{"frame":44,"open":0},{"frame":50,"open":0.05},{"frame":60,"open":0.25},{"frame":74,"open":0.6},{"frame":86,"open":0.85},{"frame":96,"open":1},{"frame":179,"open":1}],
-    "extraProps": [{"type":"platform","x":30,"y":0,"w":62,"h":68}]
+    "prop": {"x":33,"y":66.98,"w":48,"h":34,"open":0,"color":"#6675cc","details":true},
+    "propMotion": [
+      {"frame":0,"open":0},
+      {"frame":44,"open":0},
+      {"frame":50,"open":0.05},
+      {"frame":60,"open":0.25},
+      {"frame":74,"open":0.6},
+      {"frame":86,"open":0.85},
+      {"frame":96,"open":1},
+      {"frame":179,"open":1}
+    ],
+    "extraProps": [
+      {
+        "type": "platform",
+        "x": 30,
+        "y": 0,
+        "w": 62,
+        "h": 68
+      }
+    ]
   }
 }

@@ -215,6 +215,26 @@ ink tip so the visible stroke and hand stay connected.
 Desk props support optional `review.prop.monitorW` and `review.prop.monitorH`
 values (in authored motion units) to override the monitor screen size while leaving
 the tabletop, chair, keyboard, and default monitor proportions unchanged when omitted.
+Set `review.prop.screen: "video-call"` for a remote participant silhouette and call
+controls instead of the default screen lines. This is opt-in review/stage-kit
+decoration, not a shipping MCP runtime prop or a video feed. Desk extra props support
+the same field; omitted or unrecognized values preserve the existing screen.
+The participant's greeting and nod are sampled from the review frame, so scrubbing,
+static shots and standalone stage kits show the same animation.
+
+Opt-in laptop `details: true` adds individual keys, touchpad, webcam and screen
+content without changing the lid, base or hinge coordinates.
+Notebook `handwriting: true` uses original connected strokes; exported
+`notebookStrokePoint(lineIndex, progress)` supplies the exact normalized nib target
+for each of the four ink lines.
+
+Review-only `headphones` (42x40), `detective-hat` (46x20) and `thought-cloud`
+(52x36) accept the same colored office-prop transforms, lifecycle and animation
+tracks as other office props. Use actual rendered-head coordinates when tracking
+headwear, because the shipping renderer normalizes the sampled neck.
+`propMotion.x/y` are offsets added to the prop's base position; set base `x: 0,
+y: 0` for absolute per-frame tracks. `front: true` paints headwear in front of
+the figure rather than behind it.
 
 Bulb props support `propMotion` key `scale`, useful for an idea pop
 (`0 -> 1.1 -> 1`). The bulb is drawn as glass, screw base, filament, and glow rays.

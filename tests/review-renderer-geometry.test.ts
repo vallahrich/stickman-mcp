@@ -18,6 +18,86 @@ function engineAt(clip: MotionClip, frame: number) {
 }
 
 describe("motion review renderer uses the shipping engine", () => {
+  it("shows call participants only on opted-in desks in static and standalone rendering", async () => {
+    const clip = keyed([{ frame: 0, pose: stand }, { frame: 20, pose: stand }]);
+    const kit = await stageKitSource();
+    for (const screen of [undefined, "video-call", "unknown"]) {
+      for (const spec of [
+        { prop: "desk", review: { prop: { screen, monitorW: 92, monitorH: 63 } } },
+        { review: { extraProps: [{ type: "desk", screen, monitorW: 92, monitorH: 63 }] } }
+      ]) {
+        const svg = await renderStaticSvg({ clip, spec, propsCatalog: { props: [] }, frameIndex: 10 });
+        const markup = runInNewContext(`${kit}; scenePropMarkup(layoutScene(${JSON.stringify(spec)},{props:[]},10)[0],3,"#202124");`) as string;
+        for (const output of [svg, markup]) {
+          expect(output.includes('data-part="video-participant"')).toBe(screen === "video-call");
+          expect(output.includes('data-part="video-call-controls"')).toBe(screen === "video-call");
+          expect(output).not.toMatch(/NaN|Infinity/);
+        }
+      }
+    }
+    const defaultSpec = { prop: "desk", review: { prop: {} } };
+    const unknownSpec = { prop: "desk", review: { prop: { screen: "unknown" } } };
+    expect(await renderStaticSvg({ clip, spec: unknownSpec, propsCatalog: { props: [] } }))
+      .toEqual(await renderStaticSvg({ clip, spec: defaultSpec, propsCatalog: { props: [] } }));
+  });
+
+  it("animates the remote greeting identically in static and standalone call screens", async () => {
+    const clip = keyed([{ frame: 0, pose: stand }, { frame: 80, pose: stand }], 81);
+    const spec = { prop: "desk", review: { prop: { screen: "video-call" } } };
+    const kit = await stageKitSource();
+    const wave = (svg: string) => svg.match(/data-part="video-participant-wave" d="([^"]+)"/)![1];
+    const paths: string[] = [];
+    for (const frameIndex of [0, 25, 37, 70]) {
+      const svg = await renderStaticSvg({ clip, spec, propsCatalog: { props: [] }, frameIndex });
+      const markup = runInNewContext(`${kit}; scenePropMarkup(layoutScene(${JSON.stringify(spec)},{props:[]},${frameIndex})[0],3,"#202124");`) as string;
+      expect(wave(svg)).toEqual(wave(markup));
+      paths.push(wave(svg));
+    }
+    expect(paths[0]).toEqual(paths[3]);
+    expect(new Set(paths.slice(0, 3)).size).toBe(3);
+  });
+
+  it.each([
+    ["headphones", "headphone-band"],
+    ["detective-hat", "detective-brim"],
+    ["thought-cloud", "frustration-scribble"]
+  ])("draws identifiable %s in every office prop path", async (type, part) => {
+    const clip = keyed([{ frame: 0, pose: stand }, { frame: 20, pose: stand }]);
+    const kit = await stageKitSource();
+    for (const spec of [
+      { prop: type, review: { prop: { color: "#765432", front: true } } },
+      { review: { extraProps: [{ type, color: "#765432", front: true }] } },
+      { review: { addons: [{ type, color: "#765432" }] } }
+    ]) {
+      const svg = await renderStaticSvg({ clip, spec, propsCatalog: { props: [] }, frameIndex: 10 });
+      const markup = runInNewContext(`${kit}; scenePropMarkup(layoutScene(${JSON.stringify(spec)},{props:[]},10)[0],3,"#202124");`) as string;
+      for (const output of [svg, markup]) {
+        expect(output).toContain(`data-part="${part}"`);
+        expect(output).toContain("#765432");
+        expect(output).not.toMatch(/NaN|Infinity/);
+      }
+    }
+  });
+
+  it("adds laptop keys, touchpad and webcam only when requested, without moving its lid or base", async () => {
+    const clip = keyed([{ frame: 0, pose: stand }, { frame: 20, pose: stand }]);
+    const base = { prop: "laptop", review: { prop: { x: 33, y: 66.98, w: 48, h: 34, open: 1 } } };
+    const detailed = { ...base, review: { prop: { ...base.review.prop, details: true } } };
+    const plain = await renderStaticSvg({ clip, spec: base, propsCatalog: { props: [] } });
+    const enhanced = await renderStaticSvg({ clip, spec: detailed, propsCatalog: { props: [] } });
+    for (const part of ["laptop-lid", "laptop-base", "laptop-hinge"]) {
+      const pattern = new RegExp(`data-part="${part}" d="([^"]+)"`);
+      expect(enhanced.match(pattern)![1]).toEqual(plain.match(pattern)![1]);
+    }
+    expect(enhanced.match(/data-part="laptop-key"/g)).toHaveLength(15);
+    expect(enhanced).toContain('data-part="laptop-touchpad"');
+    expect(enhanced).toContain('data-part="laptop-webcam"');
+    expect(plain).not.toContain('data-part="laptop-touchpad"');
+    const kit = await stageKitSource();
+    const markup = runInNewContext(`${kit}; scenePropMarkup(layoutScene(${JSON.stringify(detailed)},{props:[]},0)[0],3,"#202124");`) as string;
+    expect(markup.match(/data-part="laptop-key"/g)).toHaveLength(15);
+  });
+
   it("draws the approved run exactly as sampleClipMotion does", async () => {
     const run = RUNTIME_MOTION_LIBRARY.clips.run as MotionClip;
     for (const frame of [0, 5, 11, 17]) {

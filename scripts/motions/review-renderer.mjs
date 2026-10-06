@@ -34,10 +34,10 @@ function line(a, b) {
 }
 
 export const REVIEW_STAGE = { rootX: 160, groundY: 150, scale: 0.75 };
-const ADDON_TYPES = new Set(["ball", "football", "basketball", "goal", "hoop", "hurdle", "spear", "card", "cone", "target", "sand-pit", "board", "sand-puff", "phone", "sign", "laptop", "tablet", "magnifier", "notebook", "pen", "cable", "socket", "server-rack", "server-module", "window", "cursor"]);
+const ADDON_TYPES = new Set(["ball", "football", "basketball", "goal", "hoop", "hurdle", "spear", "card", "cone", "target", "sand-pit", "board", "sand-puff", "phone", "sign", "laptop", "tablet", "magnifier", "notebook", "pen", "headphones", "detective-hat", "thought-cloud", "cable", "socket", "server-rack", "server-module", "window", "cursor"]);
 
 function officePropSize(type) {
-  return ({ laptop: { w: 48, h: 34 }, tablet: { w: 22, h: 30 }, magnifier: { w: 24, h: 34 }, notebook: { w: 30, h: 36 }, pen: { w: 4, h: 22 } })[type];
+  return ({ laptop: { w: 48, h: 34 }, tablet: { w: 22, h: 30 }, magnifier: { w: 24, h: 34 }, notebook: { w: 30, h: 36 }, pen: { w: 4, h: 22 }, headphones: { w: 42, h: 40 }, "detective-hat": { w: 46, h: 20 }, "thought-cloud": { w: 52, h: 36 } })[type];
 }
 
 function hardwarePropSize(type) {
@@ -228,7 +228,7 @@ function layoutProp(spec, propsCatalog, frameIndex = 0, stage = { rootX: 160, gr
   const hinge = base.hinge ?? (x >= 0 ? "right" : "left");
   const monitorW = base.monitorW !== undefined ? base.monitorW * k : undefined;
   const monitorH = base.monitorH !== undefined ? base.monitorH * k : undefined;
-  return { type: def.type ?? type, id: base.id, x: stage.rootX + x * k, y: stage.groundY - (y + h) * k, w: w * k, h: h * k, r: size.r, steps: base.steps ?? size.steps, rungs: base.rungs ?? size.rungs, open, ink, scale, fade, opacity: fade, ...(office ? { rot, drawScale: scale } : {}), ...(hardwarePropSize(type) ? { plugX: detail.plugX * k, plugY: detail.plugY * k, plugRot: detail.plugRot } : {}), hinge, monitorW, monitorH, color: base.color, clipFigureFrom: base.clipFigureFrom, clipFigureUntil: base.clipFigureUntil, enter: base.enter, exit: base.exit };
+  return { type: def.type ?? type, id: base.id, x: stage.rootX + x * k, y: stage.groundY - (y + h) * k, w: w * k, h: h * k, r: size.r, steps: base.steps ?? size.steps, rungs: base.rungs ?? size.rungs, open, ink, scale, fade, opacity: fade, ...(office ? { rot, drawScale: scale } : {}), ...(hardwarePropSize(type) ? { plugX: detail.plugX * k, plugY: detail.plugY * k, plugRot: detail.plugRot } : {}), hinge, monitorW, monitorH, screen: base.screen, callFrame: frameIndex, details: base.details === true, handwriting: base.handwriting === true, front: base.front === true, color: base.color, clipFigureFrom: base.clipFigureFrom, clipFigureUntil: base.clipFigureUntil, enter: base.enter, exit: base.exit };
 }
 
 function doorMarkup(prop, strokeWidth, color, layer = "all") {
@@ -534,10 +534,18 @@ function bulbMarkup(prop, strokeWidth, color) {
   return `<g data-prop="bulb" stroke="${xml(color)}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"><circle cx="${num(cx)}" cy="${num(y + h * 0.34)}" r="${num(glassR)}" fill="#FFD43B"/><path d="M${num(cx - glassR * 0.48)} ${num(y + h * 0.52)}Q${num(cx)} ${num(y + h * 0.62)} ${num(cx + glassR * 0.48)} ${num(y + h * 0.52)}" fill="#FFD43B"/><path d="${line({ x: cx - w * 0.18, y: baseY }, { x: cx + w * 0.18, y: baseY })}" fill="none" stroke="#4a4a4a"/><path d="${line({ x: cx - w * 0.16, y: baseY + h * 0.1 }, { x: cx + w * 0.16, y: baseY + h * 0.1 })}" fill="none" stroke="#4a4a4a"/><path d="${line({ x: cx - w * 0.12, y: baseY + h * 0.2 }, { x: cx + w * 0.12, y: baseY + h * 0.2 })}" fill="none" stroke="#4a4a4a"/><path d="M${num(cx - w * 0.11)} ${num(y + h * 0.34)}Q${num(cx)} ${num(y + h * 0.45)} ${num(cx + w * 0.11)} ${num(y + h * 0.34)}" fill="none" stroke="${xml(color)}" stroke-width="${num(strokeWidth * 0.6)}"/>${ray({ x: cx, y: y - h * 0.08 }, { x: cx, y: y - h * 0.26 })}${ray({ x: x + w * 0.1, y: y + h * 0.16 }, { x: x - w * 0.08, y: y + h * 0.05 })}${ray({ x: x + w * 0.9, y: y + h * 0.16 }, { x: x + w * 1.08, y: y + h * 0.05 })}</g>`;
 }
 
+export function notebookStrokePoint(index, progress) {
+  const t = clamp01(progress), step = 24;
+  const at = u => ({ x: 0.28 + (index % 2 ? 0.38 : 0.5) * u, y: 0.28 + index * 0.14 + 0.018 * Math.sin(u * Math.PI * 16) + 0.008 * Math.sin(u * Math.PI * 8) });
+  const a = Math.floor(t * step) / step, b = Math.min(1, a + 1 / step);
+  const left = at(a), right = at(b), mix = b > a ? (t - a) / (b - a) : 0;
+  return { x: lerp(left.x, right.x, mix), y: lerp(left.y, right.y, mix) };
+}
+
 function officePropMarkup(prop, strokeWidth, color) {
   if (!officePropSize(prop.type)) return "";
   const { x, y, w, h } = prop;
-  const c = xml(prop.color ?? ({ laptop: "#6675cc", tablet: "#259b91", magnifier: "#e2a532", notebook: "#cf647e", pen: "#4169c1" })[prop.type]);
+  const c = xml(prop.color ?? ({ laptop: "#6675cc", tablet: "#259b91", magnifier: "#e2a532", notebook: "#cf647e", pen: "#4169c1", headphones: "#367ea8", "detective-hat": "#9e784c", "thought-cloud": "#f5f1df" })[prop.type]);
   const sw = num(Math.min(strokeWidth, w * 0.055, h * 0.055));
   const attrs = `stroke="${xml(color)}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"`;
   const p = (px, py) => ({ x: x + w * px, y: y + h * py });
@@ -549,8 +557,12 @@ function officePropMarkup(prop, strokeWidth, color) {
     const lidTop = hingeY - 0.04 - open * 0.7;
     const lid = path([p(0.08 + open * 0.05, lidTop), p(0.92 - open * 0.05, lidTop), p(0.92, hingeY), p(0.08, hingeY)]);
     const screen = open > 0.02 ? `<path data-part="laptop-screen" d="${path([p(0.18, lidTop + open * 0.08), p(0.82, lidTop + open * 0.08), p(0.84, hingeY - open * 0.08), p(0.16, hingeY - open * 0.08)])}" fill="#c8ecf6"/>` : "";
-    const keys = open > 0.02 ? [0, 1, 2].map(row => `<path data-part="laptop-keyboard" d="${line(p(0.2 - row * 0.02, 0.8 + row * 0.045), p(0.8 + row * 0.02, 0.8 + row * 0.045))}" stroke="#e0e7fa"/>`).join("") : "";
-    drawing = `<path data-part="laptop-base" d="${path([p(0.08, hingeY), p(0.92, hingeY), p(1, 0.97), p(0, 0.97)])}" fill="${c}"/>${keys}<path data-part="laptop-lid" d="${lid}" fill="${c}"/>${screen}<path data-part="laptop-hinge" d="${line(p(0.08, hingeY), p(0.92, hingeY))}" fill="none"/>`;
+    const keys = open > 0.02 ? prop.details
+      ? `<g stroke-width="${num(strokeWidth * 0.15)}">${[0, 1, 2].map(row => [0, 1, 2, 3, 4].map(col => rect("laptop-key", 0.2 + col * 0.12 - row * 0.01, 0.79 + row * 0.038, 0.09, 0.025, "#e0e7fa", 0.008)).join("")).join("")}${rect("laptop-touchpad", 0.39, 0.91, 0.22, 0.035, "#c1c9db", 0.01)}</g>`
+      : [0, 1, 2].map(row => `<path data-part="laptop-keyboard" d="${line(p(0.2 - row * 0.02, 0.8 + row * 0.045), p(0.8 + row * 0.02, 0.8 + row * 0.045))}" stroke="#e0e7fa"/>`).join("") : "";
+    const detail = prop.details && open > 0.02
+      ? `<circle data-part="laptop-webcam" cx="${num(x + w * 0.5)}" cy="${num(y + h * (lidTop + open * 0.045))}" r="${num(w * 0.013)}" fill="#202124" stroke="none"/><path data-part="laptop-screen-content" d="${line(p(0.25, lidTop + open * 0.22), p(0.7, lidTop + open * 0.22))}${line(p(0.25, lidTop + open * 0.34), p(0.58, lidTop + open * 0.34))}" stroke="#5594b5" stroke-width="${num(strokeWidth * 0.45)}"/>` : "";
+    drawing = `<path data-part="laptop-base" d="${path([p(0.08, hingeY), p(0.92, hingeY), p(1, 0.97), p(0, 0.97)])}" fill="${c}"/>${keys}<path data-part="laptop-lid" d="${lid}" fill="${c}"/>${screen}${detail}<path data-part="laptop-hinge" d="${line(p(0.08, hingeY), p(0.92, hingeY))}" fill="none"/>`;
   } else if (prop.type === "tablet") {
     drawing = rect("tablet-bezel", 0, 0, 1, 1, c, 0.12) + rect("tablet-screen", 0.12, 0.1, 0.76, 0.78, "#c8ecf6", 0.04) +
       `<circle data-part="tablet-button" cx="${num(x + w * 0.5)}" cy="${num(y + h * 0.94)}" r="${num(w * 0.035)}" fill="#fff"/><path data-part="tablet-content" d="${line(p(0.24, 0.32), p(0.75, 0.32))}${line(p(0.24, 0.45), p(0.64, 0.45))}" fill="none" stroke="#5594b5"/>`;
@@ -563,11 +575,23 @@ function officePropMarkup(prop, strokeWidth, color) {
       const t = clamp01(clamp01(prop.ink ?? 0) * 4 - i);
       if (!t) return "";
       const yy = 0.28 + i * 0.14;
+      if (prop.handwriting) {
+        const points = Array.from({ length: Math.floor(t * 24) + 1 }, (_, j) => notebookStrokePoint(i, j / 24));
+        points.push(notebookStrokePoint(i, t));
+        const stroke = points.map((v, j) => `${j ? "L" : "M"}${num(x + v.x * w)} ${num(y + v.y * h)}`).join("");
+        return `<path data-part="notebook-ink" data-handwriting="true" d="${stroke}" fill="none" stroke="#334d87" stroke-width="${num(strokeWidth * 0.45)}"/>`;
+      }
       return `<path data-part="notebook-ink" d="${line(p(0.28, yy), p(0.28 + (i % 2 ? 0.38 : 0.5) * t, yy))}" stroke="#334d87"/>`;
     }).join("");
     drawing = rect("notebook-cover", 0, 0, 1, 1, c, 0.05) +
       `<path data-part="notebook-pages" d="${path([p(0.16, 0.05), p(0.91, 0.05), p(0.96, 0.13), p(0.96, 0.94), p(0.16, 0.94)])}" fill="#fff9ed"/><path data-part="notebook-fold" d="${line(p(0.91, 0.05), p(0.91, 0.13))}${line(p(0.91, 0.13), p(0.96, 0.13))}" fill="none"/>${rules}${ink}` +
       [0.2, 0.4, 0.6, 0.8].map(yy => `<path data-part="notebook-binding" d="${line(p(0.05, yy), p(0.2, yy))}" stroke="#555e70"/>`).join("");
+  } else if (prop.type === "headphones") {
+    drawing = `<path data-part="headphone-band" d="M${num(x + w * 0.1)} ${num(y + h * 0.6)}C${num(x + w * 0.05)} ${num(y - h * 0.1)} ${num(x + w * 0.95)} ${num(y - h * 0.1)} ${num(x + w * 0.9)} ${num(y + h * 0.6)}" fill="none" stroke="${c}"/>${rect("headphone-earcup", 0.03, 0.38, 0.17, 0.32, c, 0.06)}${rect("headphone-earcup", 0.8, 0.38, 0.17, 0.32, c, 0.06)}<path data-part="headphone-mic" d="${line(p(0.91, 0.66), p(0.73, 0.82))}${line(p(0.73, 0.82), p(0.57, 0.82))}" fill="none" stroke="${c}"/>`;
+  } else if (prop.type === "detective-hat") {
+    drawing = `<path data-part="detective-crown" d="M${num(x + w * 0.18)} ${num(y + h * 0.72)}Q${num(x + w * 0.2)} ${num(y + h * 0.06)} ${num(x + w * 0.48)} ${num(y + h * 0.15)}Q${num(x + w * 0.8)} ${num(y + h * 0.04)} ${num(x + w * 0.82)} ${num(y + h * 0.72)}Z" fill="${c}"/><path data-part="detective-brim" d="M${num(x)} ${num(y + h * 0.86)}Q${num(x + w * 0.5)} ${num(y + h * 0.58)} ${num(x + w)} ${num(y + h * 0.86)}Q${num(x + w * 0.5)} ${num(y + h * 1.04)} ${num(x)} ${num(y + h * 0.86)}Z" fill="${c}"/><path data-part="detective-hat-band" d="${line(p(0.21, 0.62), p(0.78, 0.62))}" stroke="#4b3526"/>`;
+  } else if (prop.type === "thought-cloud") {
+    drawing = `<path data-part="thought-cloud-outline" d="M${num(x + w * 0.2)} ${num(y + h * 0.68)}C${num(x - w * 0.06)} ${num(y + h * 0.68)} ${num(x)} ${num(y + h * 0.23)} ${num(x + w * 0.2)} ${num(y + h * 0.24)}C${num(x + w * 0.2)} ${num(y - h * 0.04)} ${num(x + w * 0.61)} ${num(y - h * 0.02)} ${num(x + w * 0.66)} ${num(y + h * 0.18)}C${num(x + w * 0.99)} ${num(y + h * 0.05)} ${num(x + w * 1.05)} ${num(y + h * 0.58)} ${num(x + w * 0.81)} ${num(y + h * 0.62)}C${num(x + w * 0.76)} ${num(y + h * 0.83)} ${num(x + w * 0.36)} ${num(y + h * 0.88)} ${num(x + w * 0.2)} ${num(y + h * 0.68)}Z" fill="${c}"/><circle data-part="thought-cloud-tail" cx="${num(x + w * 0.17)}" cy="${num(y + h * 0.84)}" r="${num(h * 0.07)}" fill="${c}"/><circle data-part="thought-cloud-tail" cx="${num(x + w * 0.08)}" cy="${num(y + h)}" r="${num(h * 0.04)}" fill="${c}"/><path data-part="frustration-scribble" d="${path([p(0.31, 0.42), p(0.47, 0.29), p(0.63, 0.47), p(0.35, 0.53), p(0.58, 0.27), p(0.7, 0.5), p(0.42, 0.57)])}" fill="none" stroke="${xml(color)}"/>`;
   } else if (prop.type === "pen") {
     drawing = `<path data-part="pen-body" d="${path([p(0.16, 0.08), p(0.84, 0.08), p(0.84, 0.78), p(0.16, 0.78)])}" fill="${c}"/><path data-part="pen-nib" d="${path([p(0.16, 0.78), p(0.84, 0.78), p(0.5, 1)])}" fill="#e3c591"/><path data-part="pen-tip" d="${line(p(0.5, 0.94), p(0.5, 1))}" stroke="#202124"/><path data-part="pen-clip" d="${line(p(0.76, 0.12), p(0.76, 0.35))}" stroke="#e0e7fa"/>`;
   }
@@ -647,9 +671,17 @@ function propMarkup(prop, strokeWidth, color) {
     return `<path data-prop="stairs" d="M${num(x)} ${num(y + h)}${d}" ${attrs}/>`;
   }
   if (prop.type === "desk") {
-    // Desk with a monitor (screen lines) and a keyboard on the front edge; x..x+w is the tabletop.
+    // x..x+w is the tabletop; call content is opt-in so other desk motions stay unchanged.
     const top = y + h * 0.42, mw = prop.monitorW ?? w * 0.56, mh = prop.monitorH ?? h * 0.46, mx = x + w * 0.42, my = top - h * 0.1 - mh;
-    return `<g data-prop="desk" ${attrs}><path d="${line({ x, y: top }, { x: x + w, y: top })}"/><path d="${line({ x: x + w * 0.08, y: top }, { x: x + w * 0.08, y: y + h })}"/><path d="${line({ x: x + w * 0.92, y: top }, { x: x + w * 0.92, y: y + h })}"/><rect x="${num(mx)}" y="${num(my)}" width="${num(mw)}" height="${num(mh)}" rx="2"/><path d="${line({ x: mx + mw / 2, y: my + mh }, { x: mx + mw / 2, y: top })}"/><path d="${line({ x: mx + mw * 0.15, y: my + mh * 0.3 }, { x: mx + mw * 0.7, y: my + mh * 0.3 })}" stroke-width="${num(strokeWidth * 0.5)}"/><path d="${line({ x: mx + mw * 0.15, y: my + mh * 0.55 }, { x: mx + mw * 0.55, y: my + mh * 0.55 })}" stroke-width="${num(strokeWidth * 0.5)}"/><path d="${line({ x: x + w * 0.04, y: top - strokeWidth }, { x: x + w * 0.38, y: top - strokeWidth })}"/></g>`;
+    const callFrame = prop.callFrame ?? 0;
+    const greeting = Math.sin(Math.PI * clamp01((callFrame - 8) / 54));
+    const nod = Math.sin(callFrame * Math.PI / 45) * 0.012;
+    const elbow = { x: mx + mw * 0.69, y: my + mh * 0.52 };
+    const palm = { x: mx + mw * (0.8 + greeting * Math.sin(callFrame * Math.PI / 9) * 0.035), y: my + mh * (0.66 - greeting * 0.43) };
+    const content = prop.screen === "video-call"
+      ? `<g data-part="video-participant" stroke-width="${num(strokeWidth * 0.55)}"><circle cx="${num(mx + mw * 0.46)}" cy="${num(my + mh * (0.27 + nod))}" r="${num(Math.min(mw, mh) * 0.13)}"/><path d="M${num(mx + mw * 0.23)} ${num(my + mh * 0.67)}Q${num(mx + mw * 0.46)} ${num(my + mh * 0.35)} ${num(mx + mw * 0.69)} ${num(my + mh * 0.67)}" fill="none"/><path data-part="video-participant-wave" d="${line({ x: mx + mw * 0.57, y: my + mh * 0.47 }, elbow)}${line(elbow, palm)}" fill="none"/></g><g data-part="video-call-controls" stroke-width="${num(strokeWidth * 0.4)}">${[0.36, 0.5, 0.64].map(t => `<circle cx="${num(mx + mw * t)}" cy="${num(my + mh * 0.84)}" r="${num(Math.min(mw, mh) * 0.045)}" fill="${xml(prop.color ?? color)}"/>`).join("")}</g>`
+      : `<path d="${line({ x: mx + mw * 0.15, y: my + mh * 0.3 }, { x: mx + mw * 0.7, y: my + mh * 0.3 })}" stroke-width="${num(strokeWidth * 0.5)}"/><path d="${line({ x: mx + mw * 0.15, y: my + mh * 0.55 }, { x: mx + mw * 0.55, y: my + mh * 0.55 })}" stroke-width="${num(strokeWidth * 0.5)}"/>`;
+    return `<g data-prop="desk" ${attrs}><path d="${line({ x, y: top }, { x: x + w, y: top })}"/><path d="${line({ x: x + w * 0.08, y: top }, { x: x + w * 0.08, y: y + h })}"/><path d="${line({ x: x + w * 0.92, y: top }, { x: x + w * 0.92, y: y + h })}"/><rect x="${num(mx)}" y="${num(my)}" width="${num(mw)}" height="${num(mh)}" rx="2"/><path d="${line({ x: mx + mw / 2, y: my + mh }, { x: mx + mw / 2, y: top })}"/>${content}<path d="${line({ x: x + w * 0.04, y: top - strokeWidth }, { x: x + w * 0.38, y: top - strokeWidth })}"/></g>`;
   }
   if (prop.type === "board") {
     const bh = h * 0.62;
@@ -940,6 +972,7 @@ const attachReviewProp=${attachReviewProp.toString()};
 const hardwarePropMarkup=${hardwarePropMarkup.toString()};
 const officePropAnchor=${officePropAnchor.toString()};
 const attachOfficeProp=${attachOfficeProp.toString()};
+const notebookStrokePoint=${notebookStrokePoint.toString()};
 const officePropMarkup=${officePropMarkup.toString()};
 const ADDON_TYPES=new Set(${JSON.stringify([...ADDON_TYPES])});
 const clamp01=${clamp01.toString()};
@@ -1056,6 +1089,7 @@ const attachReviewProp=${attachReviewProp.toString()};
 const hardwarePropMarkup=${hardwarePropMarkup.toString()};
 const officePropAnchor=${officePropAnchor.toString()};
 const attachOfficeProp=${attachOfficeProp.toString()};
+const notebookStrokePoint=${notebookStrokePoint.toString()};
 const officePropMarkup=${officePropMarkup.toString()};
 const ADDON_TYPES=new Set(${JSON.stringify([...ADDON_TYPES])});
 const clamp01=${clamp01.toString()};
