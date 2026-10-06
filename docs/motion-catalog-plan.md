@@ -149,7 +149,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | --- | --- | --- | --- |
 | `jump` | user-approved | done |  |
 | `hop` | user-approved | W8 | batch 6: 9/10 approved |
-| `kick` | rework | W8 | batch 11 re-review: 6/10; run and kick look slow-motion |
+| `kick` | candidate | W8 | re-review: brisk 1.3s approach and faster strike; previous 6/10 |
 | `long-jump` | user-approved | W8 | batch 11: 8/10 approved |
 | `hurdle` | user-approved | W8 | batch 10: 8/10 approved |
 | `vault` | user-approved | W8 | batch 13: 8/10 approved |
@@ -170,8 +170,8 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 ## Totals
 
 - user-approved: 71
-- rework: 3
-- candidate: 4
+- rework: 2
+- candidate: 5
 - in progress: 1
 - planned: 14
 - draft: 7
