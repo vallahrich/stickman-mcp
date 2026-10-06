@@ -121,11 +121,11 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | --- | --- | --- | --- |
 | `type-at-desk` | user-approved | W2 | batch 5: 9/10 approved (polish: still body) |
 | `open-laptop` | candidate | W6 | wave 20: supported lid opening independently checked; awaiting rating |
-| `video-call` | in progress | W6 | wave 21: authoring stable screen-directed conversation |
+| `video-call` | candidate | W6 | wave 21: supported screen-directed conversation independently checked; awaiting rating |
 | `phone-call` | user-approved | W6 | batch 13: 9/10 approved |
-| `plug-cable` | in progress | W6 | wave 21: authoring real plug/socket insertion |
+| `plug-cable` | in progress | W6 | wave 21: plug/socket candidate under independent verification |
 | `rack-server` | in progress | W6 | wave 21: authoring supported server module extraction |
-| `drag-window` | planned | W6 | grab and move a UI window; genuine window/cursor infrastructure verified |
+| `drag-window` | in progress | W6 | wave 21: authoring titlebar/cursor grab-drag-release |
 | `tablet-tap` | candidate | W6 | wave 20: steady grip and three screen taps independently checked; awaiting rating |
 | `frustrated-pc` | in progress | W6 | wave 21: authoring screen-directed frustration reaction |
 
@@ -144,7 +144,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `hand-over` | candidate | W7 | wave 17: controlled card handover candidate; awaiting rating |
 | `drag-object` | candidate | W7 | wave 18: forward drag with fixed grip and clear knees; awaiting rating |
 | `check-watch` | user-approved | W7 | batch 8: 8/10 approved |
-| `write-notes` | in progress | W7 | wave 20: authoring supported notebook and nib-aligned writing |
+| `write-notes` | in progress | W7 | wave 20: nib alignment passes; reworking paper-occluded writing grip before review |
 
 ### Sport & action (19)
 
@@ -173,8 +173,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 ## Totals
 
 - user-approved: 80
-- candidate: 13
+- candidate: 14
 - in progress: 5
-- planned: 1
 - rework: 1
 - **total: 100**

@@ -248,6 +248,11 @@
       "spec": "motions/specs/vault.json"
     },
     {
+      "id": "video-call",
+      "status": "ai-reviewed",
+      "spec": "motions/specs/video-call.json"
+    },
+    {
       "id": "walk-backwards",
       "status": "draft",
       "spec": "motions/specs/walk-backwards.json"
