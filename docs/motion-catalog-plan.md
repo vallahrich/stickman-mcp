@@ -158,7 +158,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `dodge` | user-approved | W8 | user 8+ |
 | `roll` | draft | W8 |  |
 | `trip` | draft | W8 |  |
-| `balance` | candidate | W8 | wave 14: review; one-leg balance and recovery |
+| `balance` | user-approved | W8 | wave 14: 9/10 approved; one-leg balance and recovery |
 | `dance` | draft | W8 |  |
 | `climb-ladder` | candidate | W10 |  |
 | `climb-down` | draft | W10 |  |
@@ -169,9 +169,9 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 
 ## Totals
 
-- user-approved: 73
+- user-approved: 74
 - rework: 3
 - planned: 14
-- candidate: 3
+- candidate: 2
 - draft: 7
 - **total: 100**
