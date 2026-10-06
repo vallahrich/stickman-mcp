@@ -113,21 +113,21 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `enter-door` | candidate | W5 | wave 17: clipped emergence and supported walk-on candidate; awaiting rating |
 | `exit-door` | candidate | W5 | wave 17: grip, doorway passage and complete exit candidate; awaiting rating |
 | `hold-sign` | user-approved | W5 | batch 13: 9/10 approved |
-| `inspect-magnifier` | in progress | W5 | wave 20: authoring lens inspection with correct handle grip |
+| `inspect-magnifier` | candidate | W5 | wave 20: lens inspection independently checked; awaiting rating |
 
 ### IT (9)
 
 | Motion | Status | Wave | Note |
 | --- | --- | --- | --- |
 | `type-at-desk` | user-approved | W2 | batch 5: 9/10 approved (polish: still body) |
-| `open-laptop` | in progress | W6 | wave 20: authoring supported lid opening |
-| `video-call` | planned | W6 |  |
+| `open-laptop` | candidate | W6 | wave 20: supported lid opening independently checked; awaiting rating |
+| `video-call` | in progress | W6 | wave 21: authoring stable screen-directed conversation |
 | `phone-call` | user-approved | W6 | batch 13: 9/10 approved |
-| `plug-cable` | planned | W6 | genuine cable/socket preview infrastructure underway |
-| `rack-server` | planned | W6 | slide a server out of a rack; genuine rack/module infrastructure underway |
-| `drag-window` | planned | W6 | grab and move a UI window; genuine window/cursor infrastructure underway |
-| `tablet-tap` | in progress | W6 | wave 20: authoring steady hold and discrete screen taps |
-| `frustrated-pc` | planned | W6 |  |
+| `plug-cable` | in progress | W6 | wave 21: authoring real plug/socket insertion |
+| `rack-server` | in progress | W6 | wave 21: authoring supported server module extraction |
+| `drag-window` | planned | W6 | grab and move a UI window; genuine window/cursor infrastructure verified |
+| `tablet-tap` | candidate | W6 | wave 20: steady grip and three screen taps independently checked; awaiting rating |
+| `frustrated-pc` | in progress | W6 | wave 21: authoring screen-directed frustration reaction |
 
 ### Work & objects (12)
 
@@ -173,8 +173,8 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 ## Totals
 
 - user-approved: 80
-- candidate: 10
-- in progress: 4
-- planned: 5
+- candidate: 13
+- in progress: 5
+- planned: 1
 - rework: 1
 - **total: 100**

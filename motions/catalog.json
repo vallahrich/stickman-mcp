@@ -78,6 +78,11 @@
       "spec": "motions/specs/idle.json"
     },
     {
+      "id": "inspect-magnifier",
+      "status": "ai-reviewed",
+      "spec": "motions/specs/inspect-magnifier.json"
+    },
+    {
       "id": "jump",
       "status": "user-approved",
       "spec": "motions/specs/jump.json"
@@ -106,6 +111,11 @@
       "id": "open-door",
       "status": "draft",
       "spec": "motions/specs/open-door.json"
+    },
+    {
+      "id": "open-laptop",
+      "status": "ai-reviewed",
+      "spec": "motions/specs/open-laptop.json"
     },
     {
       "id": "pick-up",
@@ -201,6 +211,11 @@
       "id": "stop",
       "status": "user-approved",
       "spec": "motions/specs/stop.json"
+    },
+    {
+      "id": "tablet-tap",
+      "status": "ai-reviewed",
+      "spec": "motions/specs/tablet-tap.json"
     },
     {
       "id": "think",

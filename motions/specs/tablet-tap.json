@@ -1,0 +1,160 @@
+{
+  "id": "tablet-tap",
+  "label": "Tablet Tap",
+  "status": "ai-reviewed",
+  "source": { "dataset": "authored", "file": "keypose", "range120": [0, 0] },
+  "kind": "oneshot",
+  "travel": "in-place",
+  "view": "three-quarter",
+  "expect": {
+    "pose": "left-hand-tablet-three-measured-right-hand-screen-taps",
+    "contacts": ["lFoot", "rFoot"],
+    "travel": "in-place",
+    "facingChange": 0
+  },
+  "contacts": ["lFoot", "rFoot"],
+  "prop": "tablet",
+  "aim": "hand",
+  "facingChange": 0,
+  "mirrorable": false,
+  "tags": ["tablet", "screen", "tap", "office", "inspection", "hand-owned"],
+  "notes": "Original 30fps three-quarter poses. The left wrist owns the teal tablet at its actual center grip. The right wrist approaches the upper screen for three short contact dwells separated by deliberate off-screen withdrawals; the tablet does not move during tapping. The head inclines toward the device, pauses to inspect the response, then both hands lower to neutral. Identical supported leg poses and foot targets throughout. The review renderer forces attached props in front of BOTH arms, hiding screen taps. Therefore this spec uses a back-layer tablet with per-frame propMotion sampled from the actual shipping left wrist, retaining center-grip ownership while making the opposite wrist visible on the screen. Rounded placement error is below 0.001 unit at 30fps; rotation and scale remain constant.",
+  "approvedBaseline": false,
+  "frames": 180,
+  "loop": false,
+  "markers": { "raise": 12, "held": 32, "ready": 45, "tap1": 53, "release1": 64, "tap2": 74, "release2": 85, "tap3": 95, "release3": 106, "inspect": 120, "lower": 135, "neutral": 158 },
+  "gates": { "headFloor": true, "maxJointStep": 14 },
+  "poseKeys": [
+    {
+      "frame": 0, "ease": "inOut",
+      "pose": { "anchor": "both", "lean": 0, "neck": 0, "bob": 0, "dx": 0, "facing": 0.8, "rLeg": { "hip": 5, "knee": 13 }, "lLeg": { "hip": -8, "knee": 14 }, "rFoot": { "x": 5, "y": 0 }, "lFoot": { "x": -7, "y": 0 }, "rArm": { "shoulder": -8, "elbow": 25 }, "lArm": { "shoulder": 8, "elbow": 25 }, "rHand": { "x": 18, "y": 65 }, "lHand": { "x": 16, "y": 63 } }
+    },
+    {
+      "frame": 12, "ease": "inOut",
+      "pose": { "anchor": "both", "lean": 0, "neck": 2, "bob": 0, "dx": 0, "facing": 0.8, "rLeg": { "hip": 5, "knee": 13 }, "lLeg": { "hip": -8, "knee": 14 }, "rFoot": { "x": 5, "y": 0 }, "lFoot": { "x": -7, "y": 0 }, "rArm": { "shoulder": -8, "elbow": 25 }, "lArm": { "shoulder": 15, "elbow": 40 }, "rHand": { "x": 18, "y": 65 }, "lHand": { "x": 19, "y": 68 } }
+    },
+    {
+      "frame": 32, "ease": "inOut",
+      "pose": { "anchor": "both", "lean": 0, "neck": 19, "bob": 0, "dx": 0, "facing": 0.8, "rLeg": { "hip": 5, "knee": 13 }, "lLeg": { "hip": -8, "knee": 14 }, "rFoot": { "x": 5, "y": 0 }, "lFoot": { "x": -7, "y": 0 }, "rArm": { "shoulder": 5, "elbow": 45 }, "lArm": { "shoulder": 25, "elbow": 90 }, "rHand": { "x": 25, "y": 72 }, "lHand": { "x": 40.258, "y": 101 } }
+    },
+    {
+      "frame": 45, "ease": "inOut",
+      "pose": { "anchor": "both", "lean": 0, "neck": 19, "bob": 0, "dx": 0, "facing": 0.8, "rLeg": { "hip": 5, "knee": 13 }, "lLeg": { "hip": -8, "knee": 14 }, "rFoot": { "x": 5, "y": 0 }, "lFoot": { "x": -7, "y": 0 }, "rArm": { "shoulder": 35, "elbow": 100 }, "lArm": { "shoulder": 25, "elbow": 90 }, "rHand": { "x": 46.18, "y": 117 }, "lHand": { "x": 40.258, "y": 101 } }
+    },
+    {
+      "frame": 53, "ease": "inOut",
+      "pose": { "anchor": "both", "lean": 0, "neck": 19, "bob": 0, "dx": 0, "facing": 0.8, "rLeg": { "hip": 5, "knee": 13 }, "lLeg": { "hip": -8, "knee": 14 }, "rFoot": { "x": 5, "y": 0 }, "lFoot": { "x": -7, "y": 0 }, "rArm": { "shoulder": 35, "elbow": 100 }, "lArm": { "shoulder": 25, "elbow": 90 }, "rHand": { "x": 34.8, "y": 110 }, "lHand": { "x": 40.258, "y": 101 } }
+    },
+    {
+      "frame": 56, "ease": "inOut",
+      "pose": { "anchor": "both", "lean": 0, "neck": 19, "bob": 0, "dx": 0, "facing": 0.8, "rLeg": { "hip": 5, "knee": 13 }, "lLeg": { "hip": -8, "knee": 14 }, "rFoot": { "x": 5, "y": 0 }, "lFoot": { "x": -7, "y": 0 }, "rArm": { "shoulder": 35, "elbow": 100 }, "lArm": { "shoulder": 25, "elbow": 90 }, "rHand": { "x": 34.8, "y": 110 }, "lHand": { "x": 40.258, "y": 101 } }
+    },
+    {
+      "frame": 64, "ease": "inOut",
+      "pose": { "anchor": "both", "lean": 0, "neck": 19, "bob": 0, "dx": 0, "facing": 0.8, "rLeg": { "hip": 5, "knee": 13 }, "lLeg": { "hip": -8, "knee": 14 }, "rFoot": { "x": 5, "y": 0 }, "lFoot": { "x": -7, "y": 0 }, "rArm": { "shoulder": 35, "elbow": 100 }, "lArm": { "shoulder": 25, "elbow": 90 }, "rHand": { "x": 46.18, "y": 117 }, "lHand": { "x": 40.258, "y": 101 } }
+    },
+    {
+      "frame": 74, "ease": "inOut",
+      "pose": { "anchor": "both", "lean": 0, "neck": 19, "bob": 0, "dx": 0, "facing": 0.8, "rLeg": { "hip": 5, "knee": 13 }, "lLeg": { "hip": -8, "knee": 14 }, "rFoot": { "x": 5, "y": 0 }, "lFoot": { "x": -7, "y": 0 }, "rArm": { "shoulder": 35, "elbow": 100 }, "lArm": { "shoulder": 25, "elbow": 90 }, "rHand": { "x": 37.274, "y": 109 }, "lHand": { "x": 40.258, "y": 101 } }
+    },
+    {
+      "frame": 77, "ease": "inOut",
+      "pose": { "anchor": "both", "lean": 0, "neck": 19, "bob": 0, "dx": 0, "facing": 0.8, "rLeg": { "hip": 5, "knee": 13 }, "lLeg": { "hip": -8, "knee": 14 }, "rFoot": { "x": 5, "y": 0 }, "lFoot": { "x": -7, "y": 0 }, "rArm": { "shoulder": 35, "elbow": 100 }, "lArm": { "shoulder": 25, "elbow": 90 }, "rHand": { "x": 37.274, "y": 109 }, "lHand": { "x": 40.258, "y": 101 } }
+    },
+    {
+      "frame": 85, "ease": "inOut",
+      "pose": { "anchor": "both", "lean": 0, "neck": 19, "bob": 0, "dx": 0, "facing": 0.8, "rLeg": { "hip": 5, "knee": 13 }, "lLeg": { "hip": -8, "knee": 14 }, "rFoot": { "x": 5, "y": 0 }, "lFoot": { "x": -7, "y": 0 }, "rArm": { "shoulder": 35, "elbow": 100 }, "lArm": { "shoulder": 25, "elbow": 90 }, "rHand": { "x": 46.18, "y": 117 }, "lHand": { "x": 40.258, "y": 101 } }
+    },
+    {
+      "frame": 95, "ease": "inOut",
+      "pose": { "anchor": "both", "lean": 0, "neck": 19, "bob": 0, "dx": 0, "facing": 0.8, "rLeg": { "hip": 5, "knee": 13 }, "lLeg": { "hip": -8, "knee": 14 }, "rFoot": { "x": 5, "y": 0 }, "lFoot": { "x": -7, "y": 0 }, "rArm": { "shoulder": 35, "elbow": 100 }, "lArm": { "shoulder": 25, "elbow": 90 }, "rHand": { "x": 36.037, "y": 110 }, "lHand": { "x": 40.258, "y": 101 } }
+    },
+    {
+      "frame": 98, "ease": "inOut",
+      "pose": { "anchor": "both", "lean": 0, "neck": 19, "bob": 0, "dx": 0, "facing": 0.8, "rLeg": { "hip": 5, "knee": 13 }, "lLeg": { "hip": -8, "knee": 14 }, "rFoot": { "x": 5, "y": 0 }, "lFoot": { "x": -7, "y": 0 }, "rArm": { "shoulder": 35, "elbow": 100 }, "lArm": { "shoulder": 25, "elbow": 90 }, "rHand": { "x": 36.037, "y": 110 }, "lHand": { "x": 40.258, "y": 101 } }
+    },
+    {
+      "frame": 106, "ease": "inOut",
+      "pose": { "anchor": "both", "lean": 0, "neck": 19, "bob": 0, "dx": 0, "facing": 0.8, "rLeg": { "hip": 5, "knee": 13 }, "lLeg": { "hip": -8, "knee": 14 }, "rFoot": { "x": 5, "y": 0 }, "lFoot": { "x": -7, "y": 0 }, "rArm": { "shoulder": 35, "elbow": 100 }, "lArm": { "shoulder": 25, "elbow": 90 }, "rHand": { "x": 46.18, "y": 117 }, "lHand": { "x": 40.258, "y": 101 } }
+    },
+    {
+      "frame": 120, "ease": "inOut",
+      "pose": { "anchor": "both", "lean": 0, "neck": 24, "bob": 0, "dx": 0, "facing": 0.8, "rLeg": { "hip": 5, "knee": 13 }, "lLeg": { "hip": -8, "knee": 14 }, "rFoot": { "x": 5, "y": 0 }, "lFoot": { "x": -7, "y": 0 }, "rArm": { "shoulder": 20, "elbow": 65 }, "lArm": { "shoulder": 25, "elbow": 90 }, "rHand": { "x": 27, "y": 84 }, "lHand": { "x": 40.258, "y": 101 } }
+    },
+    {
+      "frame": 135, "ease": "inOut",
+      "pose": { "anchor": "both", "lean": 0, "neck": 24, "bob": 0, "dx": 0, "facing": 0.8, "rLeg": { "hip": 5, "knee": 13 }, "lLeg": { "hip": -8, "knee": 14 }, "rFoot": { "x": 5, "y": 0 }, "lFoot": { "x": -7, "y": 0 }, "rArm": { "shoulder": 20, "elbow": 65 }, "lArm": { "shoulder": 25, "elbow": 90 }, "rHand": { "x": 27, "y": 84 }, "lHand": { "x": 40.258, "y": 101 } }
+    },
+    {
+      "frame": 158, "ease": "inOut",
+      "pose": { "anchor": "both", "lean": 0, "neck": 0, "bob": 0, "dx": 0, "facing": 0.8, "rLeg": { "hip": 5, "knee": 13 }, "lLeg": { "hip": -8, "knee": 14 }, "rFoot": { "x": 5, "y": 0 }, "lFoot": { "x": -7, "y": 0 }, "rArm": { "shoulder": -8, "elbow": 25 }, "lArm": { "shoulder": 8, "elbow": 25 }, "rHand": { "x": 18, "y": 65 }, "lHand": { "x": 16, "y": 63 } }
+    },
+    {
+      "frame": 179, "ease": "inOut",
+      "pose": { "anchor": "both", "lean": 0, "neck": 0, "bob": 0, "dx": 0, "facing": 0.8, "rLeg": { "hip": 5, "knee": 13 }, "lLeg": { "hip": -8, "knee": 14 }, "rFoot": { "x": 5, "y": 0 }, "lFoot": { "x": -7, "y": 0 }, "rArm": { "shoulder": -8, "elbow": 25 }, "lArm": { "shoulder": 8, "elbow": 25 }, "rHand": { "x": 18, "y": 65 }, "lHand": { "x": 16, "y": 63 } }
+    }
+  ],
+  "review": {
+    "prop": { "x": 0, "y": 0, "w": 22, "h": 30, "color": "#259b91", "rot": 0, "scale": 1 },
+    "propMotion": [
+      {"frame":0,"x":0.6833,"y":48,"fade":0},
+      {"frame":1,"x":0.73025,"y":48.09838,"fade":0.125},
+      {"frame":2,"x":0.86005,"y":48.37037,"fade":0.25},
+      {"frame":3,"x":1.05613,"y":48.78125,"fade":0.375},
+      {"frame":4,"x":1.30192,"y":49.2963,"fade":0.5},
+      {"frame":5,"x":1.58085,"y":49.88079,"fade":0.625},
+      {"frame":6,"x":1.87635,"y":50.5,"fade":0.75},
+      {"frame":7,"x":2.17185,"y":51.11921,"fade":0.875},
+      {"frame":8,"x":2.45078,"y":51.7037,"fade":1},
+      {"frame":9,"x":2.69657,"y":52.21875,"fade":1},
+      {"frame":10,"x":2.89265,"y":52.62963,"fade":1},
+      {"frame":11,"x":3.02245,"y":52.90162,"fade":1},
+      {"frame":12,"x":3.0694,"y":53,"fade":1},
+      {"frame":13,"x":3.19198,"y":53.23925,"fade":1},
+      {"frame":14,"x":3.54282,"y":53.924,"fade":1},
+      {"frame":15,"x":4.09656,"y":55.00475,"fade":1},
+      {"frame":16,"x":4.82782,"y":56.432,"fade":1},
+      {"frame":17,"x":5.71126,"y":58.15625,"fade":1},
+      {"frame":18,"x":6.72151,"y":60.128,"fade":1},
+      {"frame":19,"x":7.8332,"y":62.29775,"fade":1},
+      {"frame":20,"x":9.02098,"y":64.616,"fade":1},
+      {"frame":21,"x":10.25949,"y":67.03325,"fade":1},
+      {"frame":22,"x":11.52335,"y":69.5,"fade":1},
+      {"frame":23,"x":12.78722,"y":71.96675,"fade":1},
+      {"frame":24,"x":14.02572,"y":74.384,"fade":1},
+      {"frame":25,"x":15.2135,"y":76.70225,"fade":1},
+      {"frame":26,"x":16.32519,"y":78.872,"fade":1},
+      {"frame":27,"x":17.33544,"y":80.84375,"fade":1},
+      {"frame":28,"x":18.21888,"y":82.568,"fade":1},
+      {"frame":29,"x":18.95015,"y":83.99525,"fade":1},
+      {"frame":30,"x":19.50388,"y":85.076,"fade":1},
+      {"frame":31,"x":19.85472,"y":85.76075,"fade":1},
+      {"frame":32,"x":19.9773,"y":86,"fade":1},
+      {"frame":135,"x":19.9773,"y":86,"fade":1},
+      {"frame":136,"x":19.87105,"y":85.79075,"fade":1},
+      {"frame":137,"x":19.565,"y":85.18797,"fade":1},
+      {"frame":138,"x":19.07817,"y":84.22914,"fade":1},
+      {"frame":139,"x":18.42959,"y":82.95175,"fade":1},
+      {"frame":140,"x":17.6383,"y":81.39328,"fade":1},
+      {"frame":141,"x":16.72331,"y":79.59119,"fade":1},
+      {"frame":142,"x":15.70366,"y":77.58297,"fade":1},
+      {"frame":143,"x":14.59839,"y":75.4061,"fade":1},
+      {"frame":144,"x":13.42651,"y":73.09805,"fade":1},
+      {"frame":145,"x":12.20705,"y":70.69631,"fade":1},
+      {"frame":146,"x":10.95906,"y":68.23835,"fade":1},
+      {"frame":147,"x":9.70155,"y":65.76165,"fade":1},
+      {"frame":148,"x":8.45355,"y":63.30369,"fade":1},
+      {"frame":149,"x":7.2341,"y":60.90195,"fade":1},
+      {"frame":150,"x":6.06222,"y":58.5939,"fade":1},
+      {"frame":151,"x":4.95694,"y":56.41703,"fade":0.875},
+      {"frame":152,"x":3.93729,"y":54.40881,"fade":0.75},
+      {"frame":153,"x":3.02231,"y":52.60672,"fade":0.625},
+      {"frame":154,"x":2.23101,"y":51.04825,"fade":0.5},
+      {"frame":155,"x":1.58243,"y":49.77086,"fade":0.375},
+      {"frame":156,"x":1.0956,"y":48.81203,"fade":0.25},
+      {"frame":157,"x":0.78955,"y":48.20925,"fade":0.125},
+      {"frame":158,"x":0.6833,"y":48,"fade":0},
+      {"frame":179,"x":0.6833,"y":48,"fade":0}
+    ]
+  }
+}
