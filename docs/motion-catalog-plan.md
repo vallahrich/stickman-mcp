@@ -133,7 +133,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 
 | Motion | Status | Wave | Note |
 | --- | --- | --- | --- |
-| `push` | candidate | W7 |  |
+| `push` | in progress | W7 | wave 16: verifying and refining existing candidate |
 | `pull` | user-approved | W7 | batch 4: approved |
 | `push-walk` | draft | W7 |  |
 | `pick-up` | user-approved | W7 | batch 11: 8/10 approved |
@@ -162,8 +162,8 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `roll` | in progress | W8 | wave 15: authoring |
 | `trip` | candidate | W8 | wave 15: stumble and recovery candidate; awaiting rating |
 | `balance` | user-approved | W8 | wave 14: 9/10 approved; one-leg balance and recovery |
-| `dance` | draft | W8 |  |
-| `climb-ladder` | candidate | W10 |  |
+| `dance` | in progress | W8 | wave 16: authoring original step-touch dance |
+| `climb-ladder` | in progress | W10 | wave 16: verifying supported rung contacts |
 | `climb-down` | draft | W10 |  |
 | `climb-ledge` | draft | W10 |  |
 | `hang-swing` | draft | W10 |  |
@@ -173,8 +173,8 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 ## Totals
 
 - user-approved: 76
-- candidate: 5
+- candidate: 3
 - planned: 13
-- draft: 5
-- in progress: 1
+- in progress: 4
+- draft: 4
 - **total: 100**
