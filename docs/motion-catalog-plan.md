@@ -165,13 +165,13 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `climb-ledge` | draft | W10 |  |
 | `hang-swing` | draft | W10 |  |
 | `crawl` | user-approved | W10 | re-review: 9/10 approved; articulated gait and locked stance contacts |
-| `fall-get-up` | candidate | W10 | re-review: supported palm-to-knee-to-foot recovery; previous 6/10 |
+| `fall-get-up` | user-approved | W10 | re-review: 9/10 approved; supported palm-to-knee-to-foot recovery |
 
 ## Totals
 
-- user-approved: 67
+- user-approved: 68
 - rework: 2
 - planned: 16
-- candidate: 7
+- candidate: 6
 - draft: 8
 - **total: 100**
