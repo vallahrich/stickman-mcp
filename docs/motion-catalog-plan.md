@@ -46,7 +46,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | --- | --- | --- | --- |
 | `idle` | user-approved | done |  |
 | `walk` | user-approved | done |  |
-| `run` | candidate | W1 | wave 15: natural-run candidate; continuous loop seam fixed; awaiting rating |
+| `run` | user-approved | W1 | review wave 15: 8/10 approved; continuous running loop |
 | `stop` | user-approved | done |  |
 | `run-start` | user-approved | W1 | 9/10 |
 | `walk-start` | user-approved | W1 | batch 4: approved |
@@ -133,14 +133,14 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 
 | Motion | Status | Wave | Note |
 | --- | --- | --- | --- |
-| `push` | candidate | W7 | wave 16: supported push with colored box; awaiting rating |
+| `push` | rework | W7 | review wave 15: 7/10; user asks push harder; rework underway |
 | `pull` | user-approved | W7 | batch 4: approved |
 | `push-walk` | candidate | W7 | wave 18: four-step push with steady grip; awaiting rating |
 | `pick-up` | user-approved | W7 | batch 11: 8/10 approved |
 | `put-down` | user-approved | W7 | batch 11: 8/10 approved |
 | `lift-carry` | user-approved | W7 | re-review: 8/10 approved; stable torso, pelvis and box |
 | `throw` | user-approved | W7 | throw-ball 8/10 approved; basketball-shot 9/10 approved |
-| `catch` | candidate | W7 | wave 15: two-hand catch candidate; awaiting rating |
+| `catch` | user-approved | W7 | review wave 15: 8/10 approved |
 | `hand-over` | candidate | W7 | wave 17: controlled card handover candidate; awaiting rating |
 | `drag-object` | candidate | W7 | wave 18: forward drag with fixed grip and clear knees; awaiting rating |
 | `check-watch` | user-approved | W7 | batch 8: 8/10 approved |
@@ -160,21 +160,21 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `punch` | user-approved | W8 | batch 9: 9/10 approved (gloves) |
 | `dodge` | user-approved | W8 | user 8+ |
 | `roll` | rework | W8 | withheld: head/neck rig cannot yet express supported inversion without head-floor/torso intersection |
-| `trip` | candidate | W8 | wave 15: stumble and recovery candidate; awaiting rating |
+| `trip` | user-approved | W8 | review wave 15: 8/10 approved |
 | `balance` | user-approved | W8 | wave 14: 9/10 approved; one-leg balance and recovery |
-| `dance` | candidate | W8 | wave 16: original step-touch dance candidate; awaiting rating |
-| `climb-ladder` | candidate | W10 | wave 16: supported ascent and return on colored ladder; awaiting rating |
+| `dance` | rework | W8 | review wave 15: 5/10; user asks disco dance; rework underway |
+| `climb-ladder` | user-approved | W10 | review wave 15: 9/10 approved |
 | `climb-down` | candidate | W10 | wave 18: supported descent and dismount; awaiting rating |
 | `climb-ledge` | in progress | W10 | wave 19: authoring supported ledge climb |
-| `hang-swing` | in progress | W10 | wave 18: authoring fixed-grip pendular swing |
+| `hang-swing` | in progress | W10 | wave 18: author candidate returned; independent review pending |
 | `crawl` | user-approved | W10 | re-review: 9/10 approved; articulated gait and locked stance contacts |
 | `fall-get-up` | user-approved | W10 | re-review: 9/10 approved; supported palm-to-knee-to-foot recovery |
 
 ## Totals
 
-- user-approved: 76
-- candidate: 12
+- user-approved: 80
+- candidate: 6
 - planned: 9
-- rework: 1
+- rework: 3
 - in progress: 2
 - **total: 100**
