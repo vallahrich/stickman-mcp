@@ -133,7 +133,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 
 | Motion | Status | Wave | Note |
 | --- | --- | --- | --- |
-| `push` | in progress | W7 | wave 16: verifying and refining existing candidate |
+| `push` | candidate | W7 | wave 16: supported push with colored box; awaiting rating |
 | `pull` | user-approved | W7 | batch 4: approved |
 | `push-walk` | draft | W7 |  |
 | `pick-up` | user-approved | W7 | batch 11: 8/10 approved |
@@ -159,11 +159,11 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `skip` | user-approved | W8 | user 8+ |
 | `punch` | user-approved | W8 | batch 9: 9/10 approved (gloves) |
 | `dodge` | user-approved | W8 | user 8+ |
-| `roll` | in progress | W8 | wave 15: authoring |
+| `roll` | in progress | W8 | wave 15: refining head tuck and continuous shoulder/back support |
 | `trip` | candidate | W8 | wave 15: stumble and recovery candidate; awaiting rating |
 | `balance` | user-approved | W8 | wave 14: 9/10 approved; one-leg balance and recovery |
-| `dance` | in progress | W8 | wave 16: authoring original step-touch dance |
-| `climb-ladder` | in progress | W10 | wave 16: verifying supported rung contacts |
+| `dance` | candidate | W8 | wave 16: original step-touch dance candidate; awaiting rating |
+| `climb-ladder` | candidate | W10 | wave 16: supported ascent and return on colored ladder; awaiting rating |
 | `climb-down` | draft | W10 |  |
 | `climb-ledge` | draft | W10 |  |
 | `hang-swing` | draft | W10 |  |
@@ -173,8 +173,8 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 ## Totals
 
 - user-approved: 76
-- candidate: 3
+- candidate: 6
 - planned: 13
-- in progress: 4
 - draft: 4
+- in progress: 1
 - **total: 100**

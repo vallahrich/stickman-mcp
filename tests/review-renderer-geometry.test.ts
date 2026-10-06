@@ -92,6 +92,19 @@ describe("motion review renderer uses the shipping engine", () => {
     expect(addonLifecycleState(addOn, 36).visible).toBe(false);
   });
 
+  it.each(["box", "ladder"])("preserves authored %s color and its default appearance", async (type) => {
+    const clip = keyed([{ frame: 0, pose: stand }, { frame: 20, pose: stand }]);
+    const render = (color?: string) => renderStaticSvg({
+      clip, spec: { id: "colored-prop", prop: type, review: { prop: { x: 40, w: 40, h: 80, color } } },
+      propsCatalog: { props: [{ type, defaultSize: { w: 40, h: 80 } }] }, frameIndex: 10
+    });
+    const colored = await render("#c89b31");
+    expect(colored).toMatch(new RegExp(`data-prop="${type}"[^>]*${type === "box" ? "fill" : "stroke"}="#c89b31"`));
+    const plain = await render();
+    expect(plain).not.toContain("#c89b31");
+    expect(plain).toMatch(new RegExp(`data-prop="${type}"[^>]*stroke="#202124"`));
+  });
+
   it("renders long-jump add-on types with lifecycle visibility", async () => {
     const clip = keyed([{ frame: 0, pose: stand }, { frame: 20, pose: stand }]);
     const spec = {

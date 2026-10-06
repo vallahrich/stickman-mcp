@@ -45,6 +45,8 @@ gates inspect the last-to-first boundary as well as the interior frames.
 Review playback preserves accumulated travel; `motions:shots` accepts frame
 numbers beyond one cycle for loop-seam inspection. This does not promote an
 unapproved motion or replace a legacy baseline automatically.
+Review props honor authored `review.prop.color`: boxes use the color as their
+fill and ladders as their rail/rung stroke, keeping the figure visually distinct.
 
 The intended authoring architecture combines learned motion proposals with
 deterministic playback, rather than replacing the renderer with generated

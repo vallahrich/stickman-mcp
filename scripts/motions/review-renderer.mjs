@@ -478,13 +478,15 @@ function propMarkup(prop, strokeWidth, color) {
   if (addOn) return addOn;
   if (prop.type === "ball") return `<circle data-prop="ball" cx="${num(x + w / 2)}" cy="${num(y + h / 2)}" r="${num(w / 2)}" ${attrs}/>`;
   if (prop.type === "ladder") {
+    const ladderAttrs = `fill="none" stroke="${xml(prop.color ?? color)}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"`;
     const rungs = prop.rungs ?? 7;
     const rung = Array.from({ length: rungs }, (_, i) => {
       const yy = y + h * (i + 1) / (rungs + 1);
       return `<path d="${line({ x: x + w * 0.16, y: yy }, { x: x + w * 0.84, y: yy })}"/>`;
     }).join("");
-    return `<g data-prop="ladder" ${attrs}><path d="${line({ x: x + w * 0.14, y }, { x: x + w * 0.14, y: y + h })}"/><path d="${line({ x: x + w * 0.86, y }, { x: x + w * 0.86, y: y + h })}"/>${rung}</g>`;
+    return `<g data-prop="ladder" ${ladderAttrs}><path d="${line({ x: x + w * 0.14, y }, { x: x + w * 0.14, y: y + h })}"/><path d="${line({ x: x + w * 0.86, y }, { x: x + w * 0.86, y: y + h })}"/>${rung}</g>`;
   }
+  if (prop.type === "box" && prop.color) return `<rect data-prop="box" x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" rx="3" fill="${xml(prop.color)}" stroke="${xml(color)}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"/>`;
   if (prop.type === "chair") return `<g data-prop="chair" ${attrs}><path d="M${num(x + w * 0.2)} ${num(y)}L${num(x + w * 0.2)} ${num(y + h * 0.58)}L${num(x + w * 0.82)} ${num(y + h * 0.58)}"/><path d="M${num(x + w * 0.28)} ${num(y + h * 0.58)}L${num(x + w * 0.18)} ${num(y + h)}"/><path d="M${num(x + w * 0.76)} ${num(y + h * 0.58)}L${num(x + w * 0.88)} ${num(y + h)}"/></g>`;
   if (prop.type === "platform" || prop.type === "ledge") return `<rect data-prop="${prop.type}" x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" rx="3" ${attrs}/>`;
   if (prop.type === "stairs") {
