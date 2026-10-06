@@ -105,8 +105,8 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `idea` | user-approved | W2 | approved; bulb to be yellow |
 | `pull-banner` | user-approved | W2 | batch 10: all four directions approved (left/right = box pulls) 8/10 |
 | `swipe-next` | user-approved | W2 | batch 5: 9/10 approved |
-| `walk-on` | rework | W5 | batch 13: 5/10; looks like ice skating, fix world-space stance |
-| `walk-off` | rework | W5 | batch 13: 5/10; looks like ice skating, fix world-space stance |
+| `walk-on` | candidate | W5 | re-review: fixed skating with continuous swing IK targets; previous 5/10 |
+| `walk-off` | candidate | W5 | re-review: fixed skating with continuous swing IK targets; previous 5/10 |
 | `enter-door` | planned | W5 | appear through a door on the next slide |
 | `exit-door` | planned | W5 | leave the slide through a door |
 | `hold-sign` | user-approved | W5 | batch 13: 9/10 approved |
@@ -170,8 +170,8 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 ## Totals
 
 - user-approved: 66
-- rework: 6
+- rework: 4
 - planned: 16
-- candidate: 4
+- candidate: 6
 - draft: 8
 - **total: 100**
