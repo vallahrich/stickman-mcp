@@ -23,6 +23,48 @@ instructions in the README.
 family, their status and the wave each one is built in. Motions ship only at a
 user rating of 8/10 or higher; chaining across slides comes after the catalog.
 
+### AI motion authoring: current limits and intended direction
+
+The runtime is a deterministic rig, sampler and renderer, not a trained
+text-to-motion or video-generation model. AI currently assists offline
+authoring: an agent writes timed pose keys, contact targets and prop events,
+then builds and inspects the rendered result. FK/IK, interpolation and quality
+gates enforce mechanical constraints; they do not establish natural human
+movement. User scores are catalog decisions, not model-weight updates.
+
+Catalog approval is also distinct from runtime integration. Reviewed clips
+must be explicitly promoted and assembled into the runtime library; a rating
+in the catalog plan alone does not make a new verb available through MCP.
+Cross-slide chaining, add-on integration and general novel-motion generation
+still need their own end-to-end qualification.
+
+The intended authoring architecture combines learned motion proposals with
+deterministic playback, rather than replacing the renderer with generated
+video:
+
+1. Retrieve suitable approved motion examples and support/contact patterns
+   from a structured, versioned library before proposing a novel sequence.
+2. Use a learned motion generator or pose tracks extracted from explicitly
+   authorized reference footage to propose timing and joint trajectories.
+   Retarget these proposals onto the fixed stickman rig; reference acquisition
+   and any external upload require an explicit data/provider decision.
+3. Repair contacts and interactions in world space. Evaluate complete stance
+   drift, support transfer, collision, grip, continuity and prop-release timing
+   on the actual rendered output, not just authored angles.
+4. Render and visually critique at normal speed as well as inspect key frames.
+   Compare candidate alternatives; reject mechanically valid but unnatural
+   movement rather than relaxing constraints.
+5. Preserve approved examples, rejected versions, scores and specific
+   corrections as an evaluation corpus. Retrieval can reuse this evidence
+   without training. A later learned ranker or fine-tuning experiment requires
+   sufficient licensed data, a held-out evaluation set and a demonstrated
+   improvement before adoption.
+
+These are planned capabilities, not implemented learning or a guarantee of
+perfect motions. Success means a new request produces a readable, controllable
+motion with fewer manual reworks, while preserving actor identity, exact
+contacts, editable props and repeatable presentation playback.
+
 **Add-ons: props that appear, get used and disappear.** Many motions only read
 clearly with an object, for example the light bulb for `idea`, the desk and
 monitor for `type-at-desk`, the door, a watch, glasses or boxing gloves. Sport

@@ -43,7 +43,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | --- | --- | --- | --- |
 | `idle` | user-approved | done |  |
 | `walk` | user-approved | done |  |
-| `run` | rework | W1 | still reads as hopping; deeper rework later |
+| `run` | in progress | W1 | wave 15: reworking hopping into natural run |
 | `stop` | user-approved | done |  |
 | `run-start` | user-approved | W1 | 9/10 |
 | `walk-start` | user-approved | W1 | batch 4: approved |
@@ -137,7 +137,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `put-down` | user-approved | W7 | batch 11: 8/10 approved |
 | `lift-carry` | user-approved | W7 | re-review: 8/10 approved; stable torso, pelvis and box |
 | `throw` | user-approved | W7 | throw-ball 8/10 approved; basketball-shot 9/10 approved |
-| `catch` | planned | W7 |  |
+| `catch` | in progress | W7 | wave 15: authoring |
 | `hand-over` | planned | W7 |  |
 | `drag-object` | planned | W7 |  |
 | `check-watch` | user-approved | W7 | batch 8: 8/10 approved |
@@ -156,8 +156,8 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `skip` | user-approved | W8 | user 8+ |
 | `punch` | user-approved | W8 | batch 9: 9/10 approved (gloves) |
 | `dodge` | user-approved | W8 | user 8+ |
-| `roll` | draft | W8 |  |
-| `trip` | draft | W8 |  |
+| `roll` | in progress | W8 | wave 15: authoring |
+| `trip` | in progress | W8 | wave 15: authoring |
 | `balance` | user-approved | W8 | wave 14: 9/10 approved; one-leg balance and recovery |
 | `dance` | draft | W8 |  |
 | `climb-ladder` | candidate | W10 |  |
@@ -170,8 +170,8 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 ## Totals
 
 - user-approved: 76
-- rework: 1
-- planned: 14
+- in progress: 4
+- planned: 13
 - candidate: 2
-- draft: 7
+- draft: 5
 - **total: 100**
