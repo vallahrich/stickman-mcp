@@ -111,7 +111,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `walk-on` | user-approved | W5 | re-review: 8/10 approved; upright gait and fixed stance |
 | `walk-off` | user-approved | W5 | re-review: 8/10 approved; upright gait and fixed stance |
 | `enter-door` | in progress | W5 | wave 17: authoring supported door entrance |
-| `exit-door` | in progress | W5 | wave 17: authoring supported door exit |
+| `exit-door` | candidate | W5 | wave 17: grip, doorway passage and complete exit candidate; awaiting rating |
 | `hold-sign` | user-approved | W5 | batch 13: 9/10 approved |
 | `inspect-magnifier` | planned | W5 |  |
 
@@ -135,13 +135,13 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | --- | --- | --- | --- |
 | `push` | candidate | W7 | wave 16: supported push with colored box; awaiting rating |
 | `pull` | user-approved | W7 | batch 4: approved |
-| `push-walk` | draft | W7 |  |
+| `push-walk` | in progress | W7 | wave 18: authoring steady walking push |
 | `pick-up` | user-approved | W7 | batch 11: 8/10 approved |
 | `put-down` | user-approved | W7 | batch 11: 8/10 approved |
 | `lift-carry` | user-approved | W7 | re-review: 8/10 approved; stable torso, pelvis and box |
 | `throw` | user-approved | W7 | throw-ball 8/10 approved; basketball-shot 9/10 approved |
 | `catch` | candidate | W7 | wave 15: two-hand catch candidate; awaiting rating |
-| `hand-over` | in progress | W7 | wave 17: authoring controlled object delivery |
+| `hand-over` | candidate | W7 | wave 17: controlled card handover candidate; awaiting rating |
 | `drag-object` | planned | W7 |  |
 | `check-watch` | user-approved | W7 | batch 8: 8/10 approved |
 | `write-notes` | planned | W7 |  |
@@ -164,7 +164,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `balance` | user-approved | W8 | wave 14: 9/10 approved; one-leg balance and recovery |
 | `dance` | candidate | W8 | wave 16: original step-touch dance candidate; awaiting rating |
 | `climb-ladder` | candidate | W10 | wave 16: supported ascent and return on colored ladder; awaiting rating |
-| `climb-down` | draft | W10 |  |
+| `climb-down` | in progress | W10 | wave 18: authoring supported descent |
 | `climb-ledge` | draft | W10 |  |
 | `hang-swing` | draft | W10 |  |
 | `crawl` | user-approved | W10 | re-review: 9/10 approved; articulated gait and locked stance contacts |
@@ -173,9 +173,9 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 ## Totals
 
 - user-approved: 76
-- candidate: 6
+- candidate: 8
 - in progress: 3
 - planned: 10
-- draft: 4
 - rework: 1
+- draft: 2
 - **total: 100**

@@ -1,0 +1,118 @@
+{
+  "id": "hand-over",
+  "label": "Hand Over",
+  "status": "candidate",
+  "kind": "oneshot",
+  "travel": "in-place",
+  "view": "side",
+  "expect": {
+    "pose": "readable-human-key-poses",
+    "contacts": ["lFoot", "rFoot"],
+    "travel": "in-place",
+    "facingChange": 0
+  },
+  "contacts": ["lFoot", "rFoot"],
+  "prop": null,
+  "aim": null,
+  "facingChange": 0,
+  "mirrorable": true,
+  "tags": ["handover", "card", "offer", "release", "recipient"],
+  "notes": "A small blue-accented card appears in the right-hand grasp, is lifted and offered to an implied recipient on the right. Both feet remain planted during a slight supported lean. The extended arm pauses for receipt, releases the card to the recipient, then retracts empty and settles to neutral. The card stays visible until after delivery.",
+  "approvedBaseline": false,
+  "frames": 120,
+  "loop": false,
+  "markers": {
+    "grasp": 10,
+    "present": 30,
+    "offer": 52,
+    "receiptHold": 58,
+    "release": 68,
+    "delivered": 80,
+    "emptyHand": 86,
+    "neutral": 110
+  },
+  "poseKeys": [
+    {
+      "frame": 0,
+      "pose": {"anchor":"both","lean":2,"neck":-1,"bob":0,"dx":0,"rLeg":{"hip":5,"knee":13},"lLeg":{"hip":-8,"knee":14},"rArm":{"shoulder":-8,"elbow":45},"lArm":{"shoulder":8,"elbow":45},"rFoot":{"x":5,"y":0},"lFoot":{"x":-7,"y":0}},
+      "ease": "inOut"
+    },
+    {
+      "frame": 10,
+      "pose": {"anchor":"both","lean":1,"neck":0,"bob":0,"dx":0,"rLeg":{"hip":5,"knee":13},"lLeg":{"hip":-8,"knee":14},"rArm":{"shoulder":-4,"elbow":68},"lArm":{"shoulder":6,"elbow":45},"rFoot":{"x":5,"y":0},"lFoot":{"x":-7,"y":0}},
+      "ease": "inOut"
+    },
+    {
+      "frame": 22,
+      "pose": {"anchor":"both","lean":2,"neck":-2,"bob":0,"dx":1,"rLeg":{"hip":5,"knee":13},"lLeg":{"hip":-8,"knee":14},"rArm":{"shoulder":16,"elbow":99},"lArm":{"shoulder":3,"elbow":47},"rFoot":{"x":5,"y":0},"lFoot":{"x":-7,"y":0}},
+      "ease": "inOut"
+    },
+    {
+      "frame": 30,
+      "pose": {"anchor":"both","lean":3,"neck":-3,"bob":0,"dx":1,"rLeg":{"hip":5,"knee":13},"lLeg":{"hip":-8,"knee":14},"rArm":{"shoulder":26,"elbow":91},"lArm":{"shoulder":2,"elbow":47},"rFoot":{"x":5,"y":0},"lFoot":{"x":-7,"y":0}},
+      "ease": "inOut"
+    },
+    {
+      "frame": 42,
+      "pose": {"anchor":"both","lean":4,"neck":-4,"bob":0,"dx":2,"rLeg":{"hip":5,"knee":13},"lLeg":{"hip":-8,"knee":14},"rArm":{"shoulder":54,"elbow":52},"lArm":{"shoulder":-1,"elbow":48},"rFoot":{"x":5,"y":0},"lFoot":{"x":-7,"y":0}},
+      "ease": "inOut"
+    },
+    {
+      "frame": 52,
+      "pose": {"anchor":"both","lean":5,"neck":-4,"bob":0,"dx":3,"rLeg":{"hip":5,"knee":13},"lLeg":{"hip":-8,"knee":14},"rArm":{"shoulder":74,"elbow":20},"lArm":{"shoulder":-3,"elbow":48},"rFoot":{"x":5,"y":0},"lFoot":{"x":-7,"y":0}},
+      "ease": "out"
+    },
+    {
+      "frame": 58,
+      "pose": {"anchor":"both","lean":5,"neck":-4,"bob":0,"dx":3,"rLeg":{"hip":5,"knee":13},"lLeg":{"hip":-8,"knee":14},"rArm":{"shoulder":76,"elbow":14},"lArm":{"shoulder":-3,"elbow":48},"rFoot":{"x":5,"y":0},"lFoot":{"x":-7,"y":0}},
+      "ease": "inOut"
+    },
+    {
+      "frame": 68,
+      "pose": {"anchor":"both","lean":5,"neck":-4,"bob":0,"dx":3,"rLeg":{"hip":5,"knee":13},"lLeg":{"hip":-8,"knee":14},"rArm":{"shoulder":76,"elbow":14},"lArm":{"shoulder":-3,"elbow":48},"rFoot":{"x":5,"y":0},"lFoot":{"x":-7,"y":0}},
+      "ease": "inOut"
+    },
+    {
+      "frame": 74,
+      "pose": {"anchor":"both","lean":4,"neck":-3,"bob":0,"dx":2,"rLeg":{"hip":5,"knee":13},"lLeg":{"hip":-8,"knee":14},"rArm":{"shoulder":73,"elbow":30},"lArm":{"shoulder":0,"elbow":47},"rFoot":{"x":5,"y":0},"lFoot":{"x":-7,"y":0}},
+      "ease": "inOut"
+    },
+    {
+      "frame": 86,
+      "pose": {"anchor":"both","lean":3,"neck":-2,"bob":0,"dx":1,"rLeg":{"hip":5,"knee":13},"lLeg":{"hip":-8,"knee":14},"rArm":{"shoulder":30,"elbow":73},"lArm":{"shoulder":4,"elbow":46},"rFoot":{"x":5,"y":0},"lFoot":{"x":-7,"y":0}},
+      "ease": "inOut"
+    },
+    {
+      "frame": 100,
+      "pose": {"anchor":"both","lean":2,"neck":-1,"bob":0,"dx":0,"rLeg":{"hip":5,"knee":13},"lLeg":{"hip":-8,"knee":14},"rArm":{"shoulder":0,"elbow":55},"lArm":{"shoulder":7,"elbow":45},"rFoot":{"x":5,"y":0},"lFoot":{"x":-7,"y":0}},
+      "ease": "inOut"
+    },
+    {
+      "frame": 110,
+      "pose": {"anchor":"both","lean":2,"neck":-1,"bob":0,"dx":0,"rLeg":{"hip":5,"knee":13},"lLeg":{"hip":-8,"knee":14},"rArm":{"shoulder":-8,"elbow":45},"lArm":{"shoulder":8,"elbow":45},"rFoot":{"x":5,"y":0},"lFoot":{"x":-7,"y":0}},
+      "ease": "out"
+    },
+    {
+      "frame": 119,
+      "pose": {"anchor":"both","lean":2,"neck":-1,"bob":0,"dx":0,"rLeg":{"hip":5,"knee":13},"lLeg":{"hip":-8,"knee":14},"rArm":{"shoulder":-8,"elbow":45},"lArm":{"shoulder":8,"elbow":45},"rFoot":{"x":5,"y":0},"lFoot":{"x":-7,"y":0}},
+      "ease": "inOut"
+    }
+  ],
+  "gates": {"maxJointStep": 14, "headFloor": true},
+  "review": {
+    "addons": [
+      {
+        "id": "handover-card",
+        "type": "card",
+        "w": 22,
+        "h": 14,
+        "color": "#1879c9",
+        "attach": [{"from": 10, "until": 68, "to": "right-hand", "dx": 6, "dy": 4}],
+        "enter": {"frame": 10, "style": "fade", "dur": 3},
+        "flight": {"from": 68, "to": 80, "target": {"x": 115, "y": 113}, "apex": 0, "spin": 0},
+        "exit": {"frame": 88, "style": "fade", "dur": 14},
+        "keys": [{"frame": 0, "rot": 0}, {"frame": 119, "rot": 0}]
+      }
+    ]
+  }
+}
