@@ -162,7 +162,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `roll` | rework | W8 | withheld: head/neck rig cannot yet express supported inversion without head-floor/torso intersection |
 | `trip` | user-approved | W8 | review wave 15: 8/10 approved |
 | `balance` | user-approved | W8 | wave 14: 9/10 approved; one-leg balance and recovery |
-| `dance` | rework | W8 | review wave 15: 5/10; user asks disco dance; rework underway |
+| `dance` | candidate | W8 | previous 5/10; disco rework independently checked; brief raised-arm/head occlusion; awaiting re-rating |
 | `climb-ladder` | user-approved | W10 | review wave 15: 9/10 approved |
 | `climb-down` | candidate | W10 | wave 18: supported descent and dismount; awaiting rating |
 | `climb-ledge` | candidate | W10 | wave 19: supported ledge climb independently checked; awaiting rating |
@@ -173,8 +173,8 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 ## Totals
 
 - user-approved: 80
-- candidate: 9
+- candidate: 10
 - in progress: 4
 - planned: 5
-- rework: 2
+- rework: 1
 - **total: 100**
