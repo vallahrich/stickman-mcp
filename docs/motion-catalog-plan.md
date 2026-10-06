@@ -149,7 +149,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | --- | --- | --- | --- |
 | `jump` | user-approved | done |  |
 | `hop` | user-approved | W8 | batch 6: 9/10 approved |
-| `kick` | rework | W8 | re-review: 7/10; better tempo, still leans back after shot |
+| `kick` | rework | W8 | 7/10; proper football instep shot, not stomp/flick; no backward recoil |
 | `long-jump` | user-approved | W8 | batch 11: 8/10 approved |
 | `hurdle` | user-approved | W8 | batch 10: 8/10 approved |
 | `vault` | user-approved | W8 | batch 13: 8/10 approved |
