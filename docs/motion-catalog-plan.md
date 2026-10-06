@@ -113,20 +113,20 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `enter-door` | candidate | W5 | wave 17: clipped emergence and supported walk-on candidate; awaiting rating |
 | `exit-door` | candidate | W5 | wave 17: grip, doorway passage and complete exit candidate; awaiting rating |
 | `hold-sign` | user-approved | W5 | batch 13: 9/10 approved |
-| `inspect-magnifier` | planned | W5 |  |
+| `inspect-magnifier` | in progress | W5 | wave 20: authoring lens inspection with correct handle grip |
 
 ### IT (9)
 
 | Motion | Status | Wave | Note |
 | --- | --- | --- | --- |
 | `type-at-desk` | user-approved | W2 | batch 5: 9/10 approved (polish: still body) |
-| `open-laptop` | planned | W6 |  |
+| `open-laptop` | in progress | W6 | wave 20: authoring supported lid opening |
 | `video-call` | planned | W6 |  |
 | `phone-call` | user-approved | W6 | batch 13: 9/10 approved |
-| `plug-cable` | planned | W6 |  |
-| `rack-server` | planned | W6 | slide a server out of a rack |
-| `drag-window` | planned | W6 | grab and move a UI window on the slide |
-| `tablet-tap` | planned | W6 |  |
+| `plug-cable` | planned | W6 | genuine cable/socket preview infrastructure underway |
+| `rack-server` | planned | W6 | slide a server out of a rack; genuine rack/module infrastructure underway |
+| `drag-window` | planned | W6 | grab and move a UI window; genuine window/cursor infrastructure underway |
+| `tablet-tap` | in progress | W6 | wave 20: authoring steady hold and discrete screen taps |
 | `frustrated-pc` | planned | W6 |  |
 
 ### Work & objects (12)
@@ -144,7 +144,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `hand-over` | candidate | W7 | wave 17: controlled card handover candidate; awaiting rating |
 | `drag-object` | candidate | W7 | wave 18: forward drag with fixed grip and clear knees; awaiting rating |
 | `check-watch` | user-approved | W7 | batch 8: 8/10 approved |
-| `write-notes` | planned | W7 |  |
+| `write-notes` | in progress | W7 | wave 20: authoring supported notebook and nib-aligned writing |
 
 ### Sport & action (19)
 
@@ -174,6 +174,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 
 - user-approved: 80
 - candidate: 9
-- planned: 9
+- in progress: 4
+- planned: 5
 - rework: 2
 - **total: 100**
