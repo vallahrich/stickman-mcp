@@ -135,7 +135,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `push-walk` | draft | W7 |  |
 | `pick-up` | user-approved | W7 | batch 11: 8/10 approved |
 | `put-down` | user-approved | W7 | batch 11: 8/10 approved |
-| `lift-carry` | rework | W7 | batch 11 re-review: 6/10; weird wiggling, stabilize carry |
+| `lift-carry` | candidate | W7 | re-review: stable torso, pelvis and box; previous 6/10 |
 | `throw` | user-approved | W7 | throw-ball 8/10 approved; basketball-shot 9/10 approved |
 | `catch` | planned | W7 |  |
 | `hand-over` | planned | W7 |  |
@@ -170,8 +170,8 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 ## Totals
 
 - user-approved: 71
-- rework: 2
-- candidate: 6
+- rework: 1
+- candidate: 7
 - planned: 14
 - draft: 7
 - **total: 100**
