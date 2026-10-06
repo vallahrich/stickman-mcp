@@ -62,11 +62,11 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `sneak` | user-approved | W4 | batch 4: approved |
 | `stairs-up` | user-approved | W4 | batch 5: 8/10 approved |
 | `stairs-down` | user-approved | W4 | user 8+ |
-| `seated-idle` | planned | W4 |  |
+| `seated-idle` | in progress | W4 | wave 14: authoring |
 | `kneel-down` | user-approved | W9 | batch 6: 9/10 approved |
 | `kneel-up` | user-approved | W9 | batch 6: 8/10 approved |
 | `sit-floor` | user-approved | W9 | user 8+ |
-| `lie-down` | planned | W9 |  |
+| `lie-down` | in progress | W9 | wave 14: authoring |
 | `get-up` | user-approved | W9 | user 8+ |
 
 ### Gestures & emotions (19)
@@ -158,7 +158,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `dodge` | user-approved | W8 | user 8+ |
 | `roll` | draft | W8 |  |
 | `trip` | draft | W8 |  |
-| `balance` | draft | W8 |  |
+| `balance` | in progress | W8 | wave 14: authoring |
 | `dance` | draft | W8 |  |
 | `climb-ladder` | candidate | W10 |  |
 | `climb-down` | draft | W10 |  |
@@ -171,7 +171,8 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 
 - user-approved: 70
 - rework: 2
-- planned: 16
+- in progress: 3
+- planned: 14
 - candidate: 4
-- draft: 8
+- draft: 7
 - **total: 100**
