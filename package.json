@@ -51,6 +51,7 @@
     "motions:shots": "node scripts/motions/shots.mjs",
     "motions:demo": "node scripts/motions/presentation-demo.mjs",
     "site:build": "npm run -s build && node scripts/site/build.mjs",
+    "site:dev": "npm run -s build && node scripts/site/build.mjs --dev",
     "site:serve": "node scripts/site/serve.mjs",
     "site:demo": "node --expose-gc scripts/site/prepare-demo.mjs",
     "site:video": "node --expose-gc scripts/site/media.mjs",

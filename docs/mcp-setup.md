@@ -47,10 +47,10 @@ Review the command before running it: it writes your user MCP configuration and
 makes the local server available to Copilot. The repository does not execute this
 command or modify your settings.
 
-Start with the six non-writing tools:
+Start with the seven non-writing tools:
 
 ```powershell
-copilot mcp add stickman --tools 'stickman_discover,stickman_describe,stickman_schema,stickman_validate,stickman_compile,stickman_preview' -- node 'C:\Projects\stickman-mcp\dist\mcp.js' --root 'C:\Projects\MyPresentation\stickman-output'
+copilot mcp add stickman --tools 'stickman_discover,stickman_describe,stickman_schema,stickman_validate,stickman_compile,stickman_preview,stickman_story' -- node 'C:\Projects\stickman-mcp\dist\mcp.js' --root 'C:\Projects\MyPresentation\stickman-output'
 copilot mcp get stickman
 ```
 
@@ -106,7 +106,7 @@ codex mcp add stickman -- node 'C:\Projects\stickman-mcp\dist\mcp.js' --root 'C:
 
 Use `claude mcp list` or `codex mcp list` to inspect configuration, then verify
 the running server's tools in the client. Review client trust and tool-permission
-settings; these commands do not limit tool availability to the six non-writing
+settings; these commands do not limit tool availability to the seven non-writing
 tools as the Copilot example does. Do not authorize export until its destination
 is reviewed. Organization policy can block local servers; do not bypass it.
 
@@ -118,7 +118,7 @@ No invented `--type`/`--command` Codex flags or `/mcp/metadata` endpoint are use
 
 ## Tool contracts and errors
 
-All seven tools enforce their advertised JSON input schemas at runtime. Missing
+All eight tools enforce their advertised JSON input schemas at runtime. Missing
 required fields, unknown fields (including attempted root overrides), wrong
 types, and invalid enums are rejected without coercion. For example, preview
 `timeMs` must be a number, not `"500"` or `null`. Animation validation remains the
@@ -150,7 +150,7 @@ version.
 
 After reviewing and starting the server in your client:
 
-1. Discover the six supported action IDs and retrieve the animation schema.
+1. Discover the supported runtime action IDs and retrieve the animation schema.
 2. Validate and compile `examples\walk-and-wave.json` by supplying its JSON
    document as the `animation` argument, not just its filename.
 3. Preview the document as SVG at a numeric `timeMs`, then as self-contained HTML.
@@ -165,11 +165,18 @@ After reviewing and starting the server in your client:
 clients launch, rather than a development TypeScript loader whose function-name
 helpers can change serialized browser code. The automated suite uses a real SDK
 client and child-process stdio transport. It
-checks all seven tools, output-schema validation, malformed arguments, unknown
+checks all eight tools, output-schema validation, malformed arguments, unknown
 tools, engine/render parity, export boundaries, startup stderr, and clean client
 closure. These tests do not claim that a particular installed Copilot/VS Code
 version, its enterprise policies, or its artifact viewer has been certified;
 the client smoke check above is still required in that environment.
+
+To start from a combined story, call `stickman_story` with `{}` for discovery
+and `{"id":"cloud-journey"}` for an executable recipe. Send its `animation`
+to the existing validation/compile/preview/export tools; its `cues` are
+presentation-host metadata, not extra animation fields. Unknown story IDs
+produce actionable execution errors. This read-only tool does not promote
+unavailable catalogue motions or change the existing animation contract.
 
 The [official MCP Inspector](https://github.com/modelcontextprotocol/inspector)
 is an optional additional diagnostic client. Review its version, Node

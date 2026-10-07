@@ -54,6 +54,10 @@ Exports are written only to a relative path under the explicit `--root`; existin
 The primary presentation audience is cloud, infrastructure, cybersecurity and
 digital-service teams. The actor works inside slide content, travelling along
 timelines and revealing ideas, not in a separate presenter panel.
+**Combined stories are the main experience:** motions are building blocks, not
+the final deliverable. Three executable examples follow an application-to-cloud
+journey, an incident response, and a release rollout. Each keeps one actor on
+one continuous animation timeline, with synchronized content cues.
 Build a private designer preview with category/search
 filters, lazy 1x hover and keyboard previews, reduced-motion support and
 copyable agent setup:
@@ -63,9 +67,15 @@ npm run site:build
 npm run site:serve
 ```
 
-Open `http://127.0.0.1:4173/`. The gallery joins the approval ledger with
-reproducible clips and explicitly distinguishes reviewed versions from runtime
-availability. It does not publish a site, promote motions, or change agent
+Open `http://127.0.0.1:4173/`. The default, release-style gallery has **no ratings
+or review notes**, including its JSON, downloaded specs and embedded previews.
+It currently contains 97 motion entries; the historically approved `sneak`
+is excluded pending mechanical requalification. Ratings remain in the
+development ledger and the separate `npm run site:dev` build (`dist\site-dev`);
+serve that with `npm run site:serve -- --dev --port 4175`.
+Both builds remain private/noindex. The gallery explicitly distinguishes
+preview availability from runtime integration. It does not publish a site,
+promote motions, or change agent
 settings. See [showcase creation](docs/designer-showcase.md) for the one-minute
 IT video and real NIST presentation before/after example, and
 [MCP setup](docs/mcp-setup.md) for Copilot, Claude Code and Codex.
@@ -105,7 +115,17 @@ Start the stdio server with an output root selected at launch:
 node dist/mcp.js --root C:\Projects\MyPresentation\stickman-output
 ```
 
-The MCP tools are `stickman_discover`, `stickman_describe`, `stickman_schema`, `stickman_validate`, `stickman_compile`, `stickman_preview`, and `stickman_export`. Their advertised input schemas are enforced without type coercion. Results retain the existing JSON text and add schema-described structured output; unknown tools are protocol errors, while argument and execution failures are actionable tool errors. The server does not edit client configuration or accept an output-root override from a tool request.
+The MCP tools are `stickman_discover`, `stickman_describe`, `stickman_schema`, `stickman_validate`, `stickman_compile`, `stickman_preview`, `stickman_export`, and `stickman_story`. Their advertised input schemas are enforced without type coercion. Results retain the existing JSON text and add schema-described structured output; unknown tools are protocol errors, while argument and execution failures are actionable tool errors. The server does not edit client configuration or accept an output-root override from a tool request.
+
+Call `stickman_story` with `{}` to discover the combined stories, or
+`{"id":"cloud-journey"}` to get an executable `animation` plus host `cues`.
+Pass only `animation` to the existing compile/preview/export tools. The library
+exports `composeStory`, `getStory`, `storyCatalog` and `storyState`: compose
+ordered steps with cumulative timing and compiler validation, then derive cue
+state from the same playhead during playback or seeking. The website includes
+controlled story previews and both animation-only and full-recipe downloads.
+These are reusable authored sequences of supported actions, not a claim that
+all catalogue motions or simultaneous actions can already be combined safely.
 
 See [local MCP setup and verification](docs/mcp-setup.md) for reviewed Copilot CLI/VS Code connection examples, result/error contracts, safe export checks, and remaining compatibility limits. Register it in a client only after reviewing that client's configuration; the guide does not install or change settings automatically.
 

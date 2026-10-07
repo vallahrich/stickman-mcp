@@ -26,6 +26,13 @@ The showcase uses actual rendered motions and an attributed historical NIST
 presentation comparison. Actors work inside the slide—travelling on timelines
 and revealing cards—not in a separate presenter column. This is explicit
 authored choreography, not neural generation or universal composition.
+The gallery now leads with combined stories, not separate gesture clips.
+Three reusable runtime recipes connect travel, gestures, prop movement and
+host content cues through `stickman_story` and the library's `composeStory`.
+The default release-style catalogue is rating-free across UI, JSON and preview
+downloads; scores and review history belong only in development. The separate
+development build retains 98 historical approvals; the release-style build has
+97 entries because `sneak` needs mechanical requalification.
 Public deployment remains a separate readiness decision: qualify the remaining
 motions, runtime promotion, complete-scene composition, client compatibility,
 source notices and dependency remediation before publishing. Current dependency
@@ -34,7 +41,9 @@ audit findings must not be waved away by the new gallery.
 **Motion catalog: 100 most-used motions.** The
 [motion catalog plan](motion-catalog-plan.md) lists the 100 target motions by
 family, their status and the wave each one is built in. Motions ship only at a
-user rating of 8/10 or higher; chaining across slides comes after the catalog.
+user rating of 8/10 or higher during development. Building a catalogue and
+qualifying complete story sequences proceed together; arbitrary cross-slide
+continuity remains further work.
 
 ### AI motion authoring: current limits and intended direction
 

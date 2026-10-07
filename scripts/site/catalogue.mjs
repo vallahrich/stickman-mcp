@@ -43,31 +43,47 @@ export async function readMotion(id) {
   return { sourceId, spec, clip };
 }
 
-export async function buildCatalogue(output) {
+export function releaseMotionSpec(spec) {
+  const { notes, status, approvedBaseline, ...publicSpec } = spec;
+  return { ...publicSpec, tags: (spec.tags ?? []).filter(tag => !/^(candidate|approved|rework|review|draft)(?:-|$)/i.test(tag)) };
+}
+
+export async function buildCatalogue(output, { development = false } = {}) {
   const rows = parseCatalogue(await fs.readFile(path.join(repo, "docs", "motion-catalog-plan.md"), "utf8"));
   const approved = rows.filter(r => r.status === "user-approved");
   const propsCatalog = JSON.parse(await fs.readFile(path.join(repo, "motions", "review-props.json"), "utf8"));
   const motions = [];
+  const requalification = [];
   await fs.mkdir(path.join(output, "motions"), { recursive: true });
   await fs.mkdir(path.join(output, "posters"), { recursive: true });
   await fs.mkdir(path.join(output, "specs"), { recursive: true });
   async function buildRecord(row) {
     const { sourceId, spec, clip } = await readMotion(row.id);
     const gates = spec.poseKeys?.length ? await keyPoseGates(clip, spec) : null;
-    const report = { id: sourceId, status: row.status, frames: clip.frames.length, passed: gates?.passed ?? null, failures: gates?.failures ?? [], source: gates ? "current mechanical checks" : "runtime fixture; no new gate result asserted" };
+    if (gates?.passed === false) {
+      requalification.push(row.id);
+      if (!development) {
+        for (const [directory, extension] of [["motions", "html"], ["posters", "svg"], ["specs", "json"]]) {
+          await fs.rm(path.join(output, directory, `${row.id}.${extension}`), { force: true });
+        }
+        return null;
+      }
+    }
+    const publicSpec = development ? spec : releaseMotionSpec(spec);
+    const report = { id: sourceId, status: development ? row.status : "available", frames: clip.frames.length, passed: gates?.passed ?? null, failures: gates?.failures ?? [], source: gates ? "current mechanical checks" : "runtime fixture; no new gate result asserted" };
     const frameIndex = Math.min(clip.frames.length - 1, Math.round(clip.frames.length * 0.42));
     const poster = await renderStaticSvg({ clip, spec, propsCatalog, frameIndex, width: 640, height: 420 });
     if (/NaN|Infinity/.test(poster)) throw new Error(`${row.id}: nonfinite rendered geometry`);
     await fs.writeFile(path.join(output, "posters", `${row.id}.svg`), poster);
-    const review = await renderReviewHtml({ clip, spec, report, propsCatalog });
-    const preview = review.replace("Candidate (shipping engine)", "Reviewed catalogue clip (shipping renderer)")
+    const review = await renderReviewHtml({ clip, spec: publicSpec, report, propsCatalog });
+    const preview = review.replace("Candidate (shipping engine)", development ? "Development review" : "Motion preview")
       .replace("</style>", "#refPanel{display:none}main{display:block}</style>");
     await fs.writeFile(path.join(output, "motions", `${row.id}.html`), preview);
-    await fs.writeFile(path.join(output, "specs", `${row.id}.json`), JSON.stringify(spec, null, 2) + "\n");
+    await fs.writeFile(path.join(output, "specs", `${row.id}.json`), JSON.stringify(publicSpec, null, 2) + "\n");
     return {
-      ...row, sourceId, label: spec.label ?? row.id, summary: spec.summary ?? `${row.id.replaceAll("-", " ")} motion`,
-      tags: [...(spec.tags ?? []), ...(useCases[row.id] ?? [])], duration: +(clip.frames.length / clip.fps).toFixed(2), loop: Boolean(clip.loop),
-      score: row.note.match(/\b(\d+(?:\.\d+)?)\/10\b/)?.[1] ?? null,
+      id: row.id, family: row.family, sourceId, label: spec.label ?? row.id, summary: spec.summary ?? `${row.id.replaceAll("-", " ")} motion`,
+      tags: [...(publicSpec.tags ?? []), ...(useCases[row.id] ?? [])], duration: +(clip.frames.length / clip.fps).toFixed(2), loop: Boolean(clip.loop),
+      ...(development ? { status: row.status, note: row.note, score: row.note.match(/\b(\d+(?:\.\d+)?)\/10\b/)?.[1] ?? null } : {}),
       runtimeIdAvailable: RUNTIME_ACTION_NAMES.includes(sourceId),
       mechanicalCheck: gates?.passed === false ? "needs-requalification" : gates ? "passed" : "runtime-fixture",
       poster: `posters/${row.id}.svg`, preview: `motions/${row.id}.html`, spec: `specs/${row.id}.json`
@@ -75,15 +91,21 @@ export async function buildCatalogue(output) {
   }
   for (const row of approved) {
     const motion = await buildRecord(row);
+    if (!motion) continue;
     motion.variants = [];
-    for (const id of variants[row.id] ?? []) motion.variants.push(await buildRecord({ ...row, id }));
+    for (const id of variants[row.id] ?? []) {
+      const variant = await buildRecord({ ...row, id });
+      if (variant) motion.variants.push(variant);
+    }
     motions.push(motion);
   }
   const catalogue = {
-    name: "Stickman MCP", version: 1, publication: "private-preview", approvedCount: motions.length,
-    runtimeMotionIds: RUNTIME_ACTION_NAMES, pending: rows.filter(r => r.status !== "user-approved"), motions,
-    scope: "User-approved review catalogue. Runtime ID availability is not proof that the same reviewed revision and props have been promoted."
+    name: "Stickman MCP", version: 2, publication: "private-preview", development, motionCount: motions.length,
+    runtimeMotionIds: RUNTIME_ACTION_NAMES, motions,
+    ...(development ? { approvedCount: approved.length, pending: rows.filter(r => r.status !== "user-approved"), requalification } : {}),
+    scope: "Motion previews and authored specs are separate from runtime integration. A matching runtime ID does not guarantee the same version or props."
   };
   await fs.writeFile(path.join(output, "catalogue.json"), JSON.stringify(catalogue, null, 2) + "\n");
+  if (requalification.length) console.warn(`Mechanical requalification needed (${development ? "flagged in development" : "excluded from release-style catalogue"}): ${requalification.join(", ")}`);
   return catalogue;
 }

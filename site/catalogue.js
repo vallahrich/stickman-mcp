@@ -1,5 +1,6 @@
 const catalogue = JSON.parse(document.getElementById("catalogueData").textContent);
 const comparison = JSON.parse(document.getElementById("comparisonData").textContent);
+const stories = JSON.parse(document.getElementById("storyData").textContent);
 const $ = id => document.getElementById(id);
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 const theme = document.documentElement.getAttribute("data-theme");
@@ -18,7 +19,7 @@ function previewUrl(motion, hover = false) {
 }
 function openMotion(motion) {
   stopPreview();
-  $("dialogScope").textContent = `${motion.note}. ${catalogue.scope}`;
+  $("dialogScope").textContent = `${catalogue.development ? motion.note + ". " : ""}${catalogue.scope}`;
   dialogVariants = [motion, ...motion.variants];
   $("previewVariant").replaceChildren();
   for (const variant of dialogVariants) {
@@ -70,22 +71,25 @@ function renderCatalogue() {
     const title = document.createElement("h3"); title.textContent = motion.label;
     const meta = document.createElement("div"); meta.className = "card-meta";
     const family = document.createElement("span"); family.textContent = motion.family;
-    const score = document.createElement("span"); score.className = "score"; score.textContent = motion.score ? `${motion.score}/10` : "Approved";
-    meta.append(family, score);
+    meta.append(family);
+    if (catalogue.development) {
+      const score = document.createElement("span"); score.className = "score"; score.textContent = motion.score ? `${motion.score}/10` : "Dev approved";
+      meta.append(score);
+    }
     const caption = document.createElement("p"); caption.textContent = `${motion.duration}s · ${motion.loop ? "Loop" : "One-shot"} · ${motion.id}`;
     const runtime = document.createElement("p"); runtime.className = "runtime";
-    runtime.textContent = motion.runtimeIdAvailable ? "Runtime ID available · version integration separate" : "Review catalogue · runtime promotion pending";
+    runtime.textContent = motion.runtimeIdAvailable ? "Runtime ID available · version integration separate" : "Authored motion · runtime integration pending";
     if (motion.mechanicalCheck === "needs-requalification") runtime.textContent += " · mechanical requalification needed";
     body.append(title, meta, caption, runtime); article.append(button, body); $("motionGrid").append(article);
   }
-  $("resultCount").textContent = `${rows.length} of ${catalogue.approvedCount} reviewed motions`;
+  $("resultCount").textContent = `${rows.length} of ${catalogue.motionCount} motions`;
   $("empty").hidden = rows.length > 0;
 }
 for (const family of [...new Set(catalogue.motions.map(m => m.family))]) {
   const option = document.createElement("option"); option.value = family; option.textContent = family; $("category").append(option);
 }
 $("category").value = "IT";
-$("heroStatus").textContent = `${catalogue.approvedCount} user-approved catalogue motions · ${catalogue.runtimeMotionIds.length} runtime motion IDs · private, local-first preview`;
+$("heroStatus").textContent = `${stories.length} combined stories · ${catalogue.motionCount} motion building blocks · private, local-first preview${catalogue.development ? " · development review mode" : ""}`;
 $("search").addEventListener("input", renderCatalogue);
 $("category").addEventListener("change", renderCatalogue);
 $("runtimeOnly").addEventListener("change", renderCatalogue);
@@ -104,7 +108,7 @@ function updateCommand() {
   const script = checkout.replace(/[\\/]+$/, "") + "\\dist\\mcp.js";
   const executable = `node ${quotePowerShell(script)} --root ${quotePowerShell(root)}`;
   $("connectCommand").textContent = ({
-    copilot: `copilot mcp add stickman --tools 'stickman_discover,stickman_describe,stickman_schema,stickman_validate,stickman_compile,stickman_preview' -- ${executable}`,
+    copilot: `copilot mcp add stickman --tools 'stickman_discover,stickman_describe,stickman_schema,stickman_validate,stickman_compile,stickman_preview,stickman_story' -- ${executable}`,
     claude: `claude mcp add --transport stdio stickman -- ${executable}`,
     codex: `codex mcp add stickman -- ${executable}`
   })[$("agent").value];
@@ -134,4 +138,28 @@ function updateComparison() {
 $("before").addEventListener("click", () => { enhanced = false; updateComparison(); });
 $("after").addEventListener("click", () => { enhanced = true; updateComparison(); });
 $("demoSlide").addEventListener("change", updateComparison);
+function closeStory() {
+  $("storyPlayer").removeAttribute("src");
+  $("storyDetails").hidden = true;
+}
+for (const story of stories) {
+  const card = document.createElement("article"); card.className = "story-card";
+  const image = document.createElement("img"); image.src = story.poster; image.alt = story.title; image.loading = "lazy";
+  const body = document.createElement("div"); body.className = "card-body";
+  const title = document.createElement("h3"); title.textContent = story.title;
+  const summary = document.createElement("p"); summary.textContent = story.summary;
+  const steps = document.createElement("p"); steps.textContent = story.actions.join(" → ");
+  const button = document.createElement("button"); button.textContent = "Play story"; button.dataset.story = story.id;
+  button.onclick = () => {
+    stopPreview();
+    $("storyTitle").textContent = story.title;
+    $("storyDescription").textContent = `${story.summary} ${story.durationMs / 1000}s · ${story.actions.length} actions · ${story.cues} content cues.`;
+    $("storyAnimation").href = story.animation; $("storyRecipe").href = story.recipe; $("storyMotion").href = story.motionPreview;
+    $("storyPlayer").src = story.preview + (reducedMotion.matches ? "?paused=1" : "");
+    $("storyDetails").hidden = false;
+    $("storyDetails").scrollIntoView({ behavior: reducedMotion.matches ? "instant" : "smooth", block: "start" });
+  };
+  body.append(title, summary, steps, button); card.append(image, body); $("storyGrid").append(card);
+}
+$("closeStory").onclick = closeStory;
 renderCatalogue(); updateCommand(); updateComparison();

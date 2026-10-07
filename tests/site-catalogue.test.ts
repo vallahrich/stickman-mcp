@@ -29,6 +29,20 @@ describe("private designer catalogue", () => {
       expect(await fs.readFile(path.resolve("motions", "specs", `${sourceId}.json`), "utf8")).toBe(source);
     }
   });
+  it("removes development feedback without removing executable prop geometry or provenance", async () => {
+    // @ts-expect-error Repository authoring helpers are intentionally plain JavaScript.
+    const { releaseMotionSpec, readMotion } = await import("../scripts/site/catalogue.mjs");
+    const { spec } = await readMotion("video-call");
+    const source = structuredClone(spec);
+    const release = releaseMotionSpec(spec);
+    expect(release).not.toHaveProperty("notes");
+    expect(release).not.toHaveProperty("status");
+    expect(release).not.toHaveProperty("approvedBaseline");
+    expect(release.review).toEqual(spec.review);
+    expect(release.source).toEqual(spec.source);
+    expect(release.poseKeys).toEqual(spec.poseKeys);
+    expect(spec).toEqual(source);
+  });
   it("renders a moving actor inside the deck and reveals content only after arrival", async () => {
     // @ts-expect-error Repository presentation authoring helpers are plain JavaScript.
     const { renderDeckScene, deckScenes, sceneDurationMs } = await import("../scripts/site/deck-scenes.mjs");

@@ -1,15 +1,29 @@
 import { test, expect } from "@playwright/test";
+import { createSiteServer } from "../../scripts/site/serve.mjs";
 
-test("all approved assets, truthful runtime scope and private indexing", async ({ page, request }) => {
+test("rating-free release assets, truthful runtime scope and private indexing", async ({ page, request }) => {
   const response = await request.get("/catalogue.json");
   const catalogue = await response.json();
-  expect(catalogue.approvedCount).toBe(98);
-  expect(catalogue.motions).toHaveLength(98);
+  expect(catalogue.development).toBe(false);
+  expect(catalogue).not.toHaveProperty("approvedCount");
+  expect(catalogue).not.toHaveProperty("pending");
+  expect(catalogue.motionCount).toBe(97);
+  expect(catalogue.motions).toHaveLength(97);
   expect(catalogue.runtimeMotionIds).toHaveLength(11);
-  expect(catalogue.motions.some(m => ["dance", "roll"].includes(m.id))).toBe(false);
+  expect(catalogue.motions.some(m => ["dance", "roll", "sneak"].includes(m.id))).toBe(false);
   expect(catalogue.motions.find(m => m.id === "rack-server").runtimeIdAvailable).toBe(false);
   for (const motion of catalogue.motions.flatMap(m => [m, ...m.variants])) {
     for (const asset of [motion.poster, motion.preview, motion.spec]) expect((await request.get("/" + asset)).status(), asset).toBe(200);
+    expect(motion).not.toHaveProperty("score");
+    expect(motion).not.toHaveProperty("note");
+    const spec = await (await request.get("/" + motion.spec)).json();
+    expect(spec).not.toHaveProperty("notes");
+    expect(spec).not.toHaveProperty("status");
+    expect(spec).not.toHaveProperty("approvedBaseline");
+    const preview = await (await request.get("/" + motion.preview)).text();
+    const embedded = JSON.parse(preview.match(/<script id="data" type="application\/json">([\s\S]+?)<\/script>/)[1]);
+    expect(embedded.spec).toEqual(spec);
+    expect(JSON.stringify(embedded)).not.toMatch(/\b\d+(?:\.\d+)?\/10\b/);
   }
   expect(catalogue.motions.find(m => m.id === "pull-banner").variants).toHaveLength(3);
   expect(catalogue.motions.find(m => m.id === "throw").variants[0].id).toBe("basketball-shot");
@@ -18,7 +32,84 @@ test("all approved assets, truthful runtime scope and private indexing", async (
   await expect(page.locator(".motion-card")).toHaveCount(catalogue.motions.filter(m => m.family === "IT").length);
   await expect(page.locator("meta[name=robots]")).toHaveAttribute("content", "noindex,nofollow");
   expect(response.headers()["x-robots-tag"]).toBe("noindex, nofollow");
-  await expect(page.locator(".scope")).toContainText("Approval is not automatic shipping");
+  await expect(page.locator(".scope")).toContainText("Preview and runtime availability are separate");
+  await expect(page.locator(".score")).toHaveCount(0);
+});
+
+test("combined stories use one timeline with real actions, synchronized cues and replay", async ({ page, request }) => {
+  const stories = await (await request.get("/stories.json")).json();
+  expect(stories).toHaveLength(3);
+  for (const story of stories) {
+    const recipe = await (await request.get("/" + story.recipe)).json();
+    const animation = await (await request.get("/" + story.animation)).json();
+    expect(animation).toEqual(recipe.animation);
+    expect(animation.actions).toHaveLength(story.actions.length);
+    expect((await request.get("/" + story.motionPreview)).status()).toBe(200);
+  }
+  await page.goto("/");
+  await page.locator('[data-story="cloud-journey"]').click();
+  const frame = page.frameLocator("#storyPlayer");
+  await expect(frame.locator("#scene > svg")).toHaveAttribute("data-action", "walk");
+  const x = await frame.locator("#scene > svg").getAttribute("data-actor-x");
+  await page.waitForTimeout(500);
+  expect(await frame.locator("#scene > svg").getAttribute("data-actor-x")).not.toBe(x);
+  const seek = async milliseconds => {
+    await frame.locator("#scrub").evaluate((el, value) => { el.value = String(value); el.dispatchEvent(new Event("input", { bubbles: true })); }, milliseconds / 1000 * 30);
+  };
+  await seek(4400);
+  await expect(frame.locator("#scene > svg")).toHaveAttribute("data-cue", "application");
+  await expect(frame.locator("#scene > svg")).toHaveAttribute("data-action", "point");
+  await seek(13000);
+  await expect(frame.locator("#scene > svg")).toHaveAttribute("data-actor-x", "720.000");
+  await seek(1000);
+  await expect(frame.locator("#scene > svg")).toHaveAttribute("data-cue", "request");
+  await seek(17500);
+  await expect(frame.locator("#scene > svg")).toHaveAttribute("data-complete", "true");
+  await frame.locator("#play").click();
+  await expect(frame.locator("#scene > svg")).toHaveAttribute("data-cue", "request");
+  await expect(frame.locator("#scene > svg")).toHaveAttribute("data-complete", "false");
+  await page.locator("#closeStory").click();
+  await expect(page.locator("#storyPlayer")).not.toHaveAttribute("src", /.+/);
+});
+
+test("story playback is paused for reduced motion on mobile", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.locator('[data-story="deployment-rollout"]').click();
+  const frame = page.frameLocator("#storyPlayer");
+  await expect(frame.locator("#frameNo")).toHaveText("0");
+  await page.waitForTimeout(500);
+  await expect(frame.locator("#frameNo")).toHaveText("0");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.goto("/stories/cloud-journey.html?paused=1&scoutTheme=light");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+});
+
+test("development retains ratings and mechanical requalification independently of release", async ({ page, request }) => {
+  const server = await createSiteServer({ development: true });
+  await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
+  try {
+    const base = `http://127.0.0.1:${server.address().port}`;
+    const catalogue = await (await request.get(base + "/catalogue.json")).json();
+    expect(catalogue.development).toBe(true);
+    expect(catalogue.approvedCount).toBe(98);
+    expect(catalogue.motions).toHaveLength(98);
+    expect(catalogue.pending.map(m => m.id).sort()).toEqual(["dance", "roll"]);
+    expect(catalogue.motions.find(m => m.id === "sneak").mechanicalCheck).toBe("needs-requalification");
+    const motion = catalogue.motions.find(m => m.id === "video-call");
+    expect(motion.score).toBe("10");
+    expect(motion.note).toContain("10/10");
+    const spec = await (await request.get(base + "/" + motion.spec)).json();
+    expect(spec.notes).toContain("7/10");
+    await page.goto(base);
+    await expect(page.locator(".score")).not.toHaveCount(0);
+    await page.locator('[data-motion="video-call"] .preview').click();
+    await expect(page.locator("#dialogScope")).toContainText("10/10");
+    await page.locator("#closeDialog").click();
+  } finally {
+    await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+  }
 });
 
 test("one hover player, real 1x progression and disposal", async ({ page }) => {

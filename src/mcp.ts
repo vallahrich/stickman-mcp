@@ -10,6 +10,7 @@ import { actionCatalog, compileAnimation, describeAction, exportAnimation, rende
 import { animationSchema } from "./contract-schema.js";
 import type { PlaybackMode } from "./contract.js";
 import type { ExportFormat } from "./export.js";
+import { getStory, storyCatalog } from "./stories.js";
 
 type ObjectSchema = JsonSchemaType & { type: "object" };
 type DefinedTool = Omit<Tool, "inputSchema" | "outputSchema"> & {
@@ -119,7 +120,18 @@ const toolDefinitions: DefinedTool[] = [
       format: { type: "string", enum: ["svg", "html", "gif", "mp4"] },
       path: { type: "string" }, bytes: { type: "integer", minimum: 0 }
     }
-  }, { writes: true, validationErrors: true })
+  }, { writes: true, validationErrors: true }),
+  defineTool("stickman_story", "Discover combined IT story recipes (no id), or get an executable multi-action animation and synchronized host content cues by story id. Pass result.animation to validate/compile/preview/export; result.cues are for the presentation host, not animation-contract fields.", {
+    type: "object", additionalProperties: false, properties: { id: { type: "string", minLength: 1 } }
+  }, {
+    anyOf: [
+      { type: "array", items: { type: "object", additionalProperties: false, required: ["id", "title", "summary"], properties: { id: { type: "string" }, title: { type: "string" }, summary: { type: "string" } } } },
+      { type: "object", additionalProperties: false, required: ["id", "title", "summary", "animation", "cues"], properties: {
+        id: { type: "string" }, title: { type: "string" }, summary: { type: "string" }, animation: { type: "object" },
+        cues: { type: "array", items: { type: "object", additionalProperties: false, required: ["id", "timeMs", "title", "text"], properties: { id: { type: "string" }, timeMs: { type: "number" }, title: { type: "string" }, text: { type: "string" } } } }
+      } }
+    ]
+  })
 ];
 
 const schemaValidator = new AjvJsonSchemaValidator();
@@ -173,6 +185,7 @@ export function createMcpServer(outputRoot: string): Server {
     try {
       switch (name) {
         case "stickman_discover": return result(actionCatalog);
+        case "stickman_story": return result(args.id === undefined ? storyCatalog() : getStory(stringArgument(args, "id")));
         case "stickman_describe": {
           const item = describeAction(stringArgument(args, "id"));
           if (!item) throw new Error(`Unknown action ID. Supported IDs: ${actionCatalog.map((a) => a.id).join(", ")}.`);

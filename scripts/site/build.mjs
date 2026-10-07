@@ -1,10 +1,15 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { buildCatalogue, repo } from "./catalogue.mjs";
+import { buildStories } from "./stories.mjs";
 
-const output = path.join(repo, "dist", "site");
+const args = process.argv.slice(2);
+if (args.some(arg => arg !== "--dev")) throw new Error("Use site:build with optional --dev; neither build publishes a site.");
+const development = args.includes("--dev");
+const output = path.join(repo, "dist", development ? "site-dev" : "site");
 await fs.mkdir(output, { recursive: true });
-const catalogue = await buildCatalogue(output);
+const catalogue = await buildCatalogue(output, { development });
+const stories = await buildStories(output);
 let comparison = { slides: [] };
 try { comparison = JSON.parse(await fs.readFile(path.join(output, "demo", "comparison.json"), "utf8")); }
 catch (error) { if (error.code !== "ENOENT") throw error; }
@@ -15,6 +20,7 @@ let html = await fs.readFile(path.join(repo, "site", "index.html"), "utf8");
 html = html.replace('<link rel="stylesheet" href="styles.css"><script src="catalogue.js" defer></script>', `<style>${css}</style>`)
   .replace("__CATALOGUE_DATA__", encode(catalogue))
   .replace("__COMPARISON_DATA__", encode(comparison))
+  .replace("__STORY_DATA__", encode(stories))
   .replace("</body>", `<script>${js}</script></body>`);
 if (!comparison.slides.length) html = html.replace('id="comparison"', 'id="comparison" hidden');
 try { await fs.access(path.join(output, "showcase.mp4")); }
@@ -27,8 +33,8 @@ await fs.copyFile(path.join(repo, "docs", "showcase-sources.md"), path.join(outp
 await fs.writeFile(path.join(output, "capabilities.json"), JSON.stringify({
   name: "Stickman MCP", description: "Local deterministic stick-figure SVG/HTML animation for IT and digital-services presentations, websites and videos",
   publication: "private", transport: "stdio", runtimeMotionIds: catalogue.runtimeMotionIds,
-  tools: ["discover", "describe", "schema", "validate", "compile", "preview", "export"].map(name => `stickman_${name}`),
-  catalogue: "catalogue.json", setup: "connection-guide.md", examples: ["cloud architecture explanation", "IT service workflow", "cybersecurity briefing"],
-  limitations: ["Catalogue approval is not runtime promotion", "Ratings do not train model weights", "Arbitrary contact-safe choreography and cross-slide continuity are not qualified", "No guaranteed automatic client discovery"]
+  tools: ["discover", "describe", "schema", "validate", "compile", "preview", "export", "story"].map(name => `stickman_${name}`),
+  catalogue: "catalogue.json", stories: "stories.json", setup: "connection-guide.md", examples: ["cloud architecture explanation", "IT service workflow", "cybersecurity briefing"],
+  limitations: ["Catalogue previews are not runtime integration", "Arbitrary contact-safe choreography and cross-slide continuity are not qualified", "No guaranteed automatic client discovery"]
 }, null, 2) + "\n");
-console.log(JSON.stringify({ output, approved: catalogue.approvedCount, runtimeIds: catalogue.runtimeMotionIds.length, mechanicalRequalification: catalogue.motions.filter(m => m.mechanicalCheck === "needs-requalification").map(m => m.id) }));
+console.log(JSON.stringify({ output, development, motions: catalogue.motionCount, stories: stories.length, runtimeIds: catalogue.runtimeMotionIds.length }));

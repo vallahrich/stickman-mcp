@@ -31,8 +31,9 @@ For current framework material use [NIST's CSF site](https://www.nist.gov/cyberf
 
 ## Original motion and tooling
 
-Catalogue ratings come from `docs/motion-catalog-plan.md`. Unapproved dance
-and withheld roll are not included in the approved gallery or showcase.
+Unapproved dance and withheld roll are not included in the gallery or showcase.
+Development review records remain in the repository; release-style catalogue
+downloads contain no scores or review notes.
 The video and GIFs sample the reviewed motion clips through the real renderer;
 they are not neural video outputs or a demonstration of arbitrary combined
 contact-safe choreography.

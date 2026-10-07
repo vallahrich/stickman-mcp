@@ -15,7 +15,9 @@ npm run site:build
 npm run site:serve
 ```
 
-Open `http://127.0.0.1:4173/`. Output is ignored `dist/site`.
+Open `http://127.0.0.1:4173/`. Output is ignored `dist/site`, a release-style
+catalogue without ratings or review notes in cards, dialogs, catalogue JSON,
+downloaded specs or embedded motion-preview metadata.
 The builder parses the 100-entry approval ledger, includes only `user-approved`
 records, joins aliased review IDs and writes SVG posters, standalone previews,
 authored specs and `catalogue.json`. The five non-keyed baselines are the
@@ -24,11 +26,50 @@ The logical `throw` and `pull-banner` entries retain the reviewed basketball
 and four-direction banner variants in their controlled preview selector;
 variants do not inflate the logical approval count.
 
-Current regeneration also detects a pre-existing `sneak` loop-wrap joint-pop
-failure. Its historical user approval is retained, but its machine-readable
-record and card explicitly require mechanical requalification. This is a
-release blocker, not an excuse to weaken the gate or silently repair an
-already-rated version.
+Current regeneration detects a pre-existing `sneak` loop-wrap joint-pop failure.
+The release-style build excludes it, leaving 97 logical entries. Its historical
+approval and mechanical diagnostics remain in development. Unapproved dance
+and withheld roll remain excluded; the gate is not weakened.
+
+Development ratings and feedback remain in `docs/motion-catalog-plan.md` and
+the separate development build:
+
+```powershell
+npm run site:dev
+npm run site:serve -- --dev --port 4175
+```
+
+This serves `dist\site-dev`, with 98 historically approved entries, review
+scores/notes, pending entries in JSON and a visible requalification flag on
+`sneak`. Neither build deploys publicly or changes repository visibility.
+
+## Combined stories
+
+The first gallery section presents stories before individual motions:
+`cloud-journey`, `incident-resolution`, and `deployment-rollout`. Each recipe
+uses supported runtime actions on a single continuous actor timeline. Travel,
+gestures and a bound release package remain in the same world; timed cues
+explain the story beats in the slide content rather than in a separate panel.
+
+`stickman_story` lists recipes with `{}` and returns one with `{"id":"cloud-journey"}`.
+The recipe has an `animation` compatible with normal validation, compilation,
+preview and export, and `cues` for the host's content. Do not put cue fields in
+the strict animation document. Downloads include both forms and standalone
+motion HTML; the themed diagram preview is generated through the same sampler.
+Seeking backward recomputes cue state, and Replay returns to the beginning.
+Reduced-motion opens the scene paused.
+
+For custom stories, the library's `composeStory` accepts ordered `steps`,
+targets, optional actor/prop and per-step cues. It computes cumulative timing
+and rejects infeasible animations through the existing compiler.
+`storyState(recipe, playheadMs)` returns revealed/active cues without retaining
+playback history. This is deterministic authoring, not new motion generation.
+The three examples do not qualify arbitrary blends, simultaneous actors/actions,
+all catalogue props or cross-slide continuity.
+Their 1000-by-720 animation canvas deliberately uses the existing fixed-length
+procedural rig path; the 1280-by-720 diagram preview adds host layout space,
+not actor scaling. Wide-canvas clip endpoint blending remains unqualified for
+limb-length preservation and is not used by these recipes.
 
 Only one hover/focus preview is active at once; leaving removes its player.
 Touch selects the controlled preview. Reduced-motion disables hover playback
@@ -87,7 +128,9 @@ Browser checks use locally installed Edge on Windows; otherwise Playwright's
 Chromium is required. Set `STICKMAN_SITE_BROWSER` to choose a supported browser
 channel. Checks cover catalogue/asset availability, hover lifecycle, actual
 playhead progression, search/filtering, keyboard/reduced-motion behavior,
-copyable configuration, source comparison and mobile overflow.
+copyable configuration, source comparison, story actions/cues/seek/replay,
+rating-free release assets, retained development feedback and mobile overflow.
+Build both `site:build` and `site:dev` before running `site:test`.
 
 Client commands in [MCP setup](mcp-setup.md) are verified against official
 documentation, not executed by the gallery. `llms.txt`, catalogue and capability

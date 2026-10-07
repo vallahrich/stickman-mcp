@@ -11,6 +11,7 @@ import { compileAnimation, sampleAnimation, validateAnimation } from "../src/com
 import { animationSchema } from "../src/contract-schema.js";
 import { renderAnimatedSvg, renderHtml, renderSvgFrame } from "../src/render.js";
 import type { AnimationSpec } from "../src/contract.js";
+import { getStory, storyCatalog } from "../src/stories.js";
 
 const connections: { client: Client; root: string }[] = [];
 type ToolResponse = Awaited<ReturnType<Client["callTool"]>>;
@@ -67,11 +68,11 @@ const scene = {
 } satisfies AnimationSpec;
 
 describe("stdio MCP protocol", () => {
-  it("negotiates and advertises seven strict, annotated tools with output schemas", async () => {
+  it("negotiates and advertises eight strict, annotated tools with output schemas", async () => {
     const { listed, stderr, transportErrors } = await connect();
     expect(listed.tools.map((tool) => tool.name)).toEqual([
       "stickman_discover", "stickman_describe", "stickman_schema", "stickman_validate",
-      "stickman_compile", "stickman_preview", "stickman_export"
+      "stickman_compile", "stickman_preview", "stickman_export", "stickman_story"
     ]);
     for (const tool of listed.tools) {
       expect(tool.inputSchema.additionalProperties).toBe(false);
@@ -87,7 +88,7 @@ describe("stdio MCP protocol", () => {
     expect(transportErrors).toEqual([]);
   });
 
-  it("preserves text payloads and supplies validated structured results for all seven tools", async () => {
+  it("preserves text payloads and supplies validated structured results for animation tools", async () => {
     const { client, root, stderr, transportErrors } = await connect();
     const discovery = await client.callTool({ name: "stickman_discover" });
     const catalog: unknown = JSON.parse(text(discovery));
@@ -145,9 +146,31 @@ describe("stdio MCP protocol", () => {
     expect(transportErrors).toEqual([]);
   });
 
+  it("discovers executable stories and previews them through the same MCP compiler", async () => {
+    const { client, stderr } = await connect();
+    expectResult(await client.callTool({ name: "stickman_story" }), storyCatalog());
+    for (const { id } of storyCatalog()) {
+      const story = getStory(id);
+      expectResult(await client.callTool({ name: "stickman_story", arguments: { id } }), story);
+      expectResult(await client.callTool({ name: "stickman_validate", arguments: { animation: story.animation } }), { valid: true, diagnostics: [] });
+      const compiled = compileAnimation(story.animation);
+      expectResult(await client.callTool({ name: "stickman_compile", arguments: { animation: story.animation } }), compiled);
+      expectResult(await client.callTool({ name: "stickman_preview", arguments: { animation: story.animation, timeMs: 3000 } }),
+        { format: "svg", content: renderSvgFrame(compiled.program!, 3000) });
+    }
+    const unknown = await client.callTool({ name: "stickman_story", arguments: { id: "unknown" } });
+    expect(unknown.isError).toBe(true);
+    expect(unknown.structuredContent).toMatchObject({ error: { code: "execution_error" } });
+    expect(stderr).toEqual([]);
+  });
+
   it("rejects missing, extra, incorrectly typed and invalid enum arguments without coercion", async () => {
     const { client, root } = await connect();
     const invalidCalls = [
+      { name: "stickman_story", arguments: { id: "" } },
+      { name: "stickman_story", arguments: { id: 42 } },
+      { name: "stickman_story", arguments: { id: null } },
+      { name: "stickman_story", arguments: { root } },
       { name: "stickman_discover", arguments: { root } },
       { name: "stickman_schema", arguments: { unused: true } },
       { name: "stickman_describe", arguments: {} },
