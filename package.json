@@ -2,7 +2,8 @@
   "name": "@vallahrich/stickman-mcp",
   "version": "0.1.0",
   "private": true,
-  "description": "Deterministic 2D stick-figure animation engine with a local MCP server",
+  "description": "Deterministic stick-figure animation and local MCP tools for IT presentations, digital-service explainers, websites and video",
+  "keywords": ["stickman", "stick-figure", "animation", "mcp", "presentation", "svg", "digital-services", "copilot", "claude-code", "codex"],
   "license": "MIT",
   "type": "module",
   "engines": {
@@ -48,18 +49,25 @@
     "motions:check": "node scripts/motions/quality.mjs",
     "motions:assemble": "node scripts/motions/assemble.mjs",
     "motions:shots": "node scripts/motions/shots.mjs",
-    "motions:demo": "node scripts/motions/presentation-demo.mjs"
+    "motions:demo": "node scripts/motions/presentation-demo.mjs",
+    "site:build": "npm run -s build && node scripts/site/build.mjs",
+    "site:serve": "node scripts/site/serve.mjs",
+    "site:demo": "node --expose-gc scripts/site/prepare-demo.mjs",
+    "site:video": "node --expose-gc scripts/site/media.mjs",
+    "site:test": "playwright test --config playwright.site.config.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.25.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/node": "^22.15.30",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3",
     "vitest": "^5.0.1"
   },
   "optionalDependencies": {
-    "@resvg/resvg-js": "^2.6.2"
+    "@resvg/resvg-js": "^2.6.2",
+    "ffmpeg-static": "^5.3.0"
   }
 }

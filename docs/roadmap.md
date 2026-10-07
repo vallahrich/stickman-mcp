@@ -18,6 +18,19 @@ corporate repository; the former mirror workflow was removed. See the mirror
 instructions in the README.
 ## Next stages
 
+**Presentation-first audience:** prioritize IT and digital services—cloud
+architecture, infrastructure, cybersecurity, operations and service workflows.
+The local designer gallery shows approved review versions, searchable categories,
+lazy accessible previews and client setup, separately from the runtime library.
+The showcase uses actual rendered motions and an attributed historical NIST
+presentation comparison. Actors work inside the slide—travelling on timelines
+and revealing cards—not in a separate presenter column. This is explicit
+authored choreography, not neural generation or universal composition.
+Public deployment remains a separate readiness decision: qualify the remaining
+motions, runtime promotion, complete-scene composition, client compatibility,
+source notices and dependency remediation before publishing. Current dependency
+audit findings must not be waved away by the new gallery.
+
 **Motion catalog: 100 most-used motions.** The
 [motion catalog plan](motion-catalog-plan.md) lists the 100 target motions by
 family, their status and the wave each one is built in. Motions ship only at a

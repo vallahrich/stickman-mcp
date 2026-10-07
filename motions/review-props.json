@@ -1,0 +1,541 @@
+{
+  "units": "normalized-prop-local",
+  "figureReference": {
+    "height": 100,
+    "headDiameter": 22,
+    "strokeWidth": 2
+  },
+  "props": [
+    {
+      "type": "box",
+      "defaultSize": {
+        "w": 82,
+        "h": 62
+      },
+      "anchors": {
+        "center": [
+          0.5,
+          0.5
+        ],
+        "top.center": [
+          0.5,
+          0
+        ],
+        "pushFace.left.center": [
+          0,
+          0.48
+        ],
+        "pushFace.right.center": [
+          1,
+          0.48
+        ],
+        "grip.left": [
+          0.08,
+          0.25
+        ],
+        "grip.right": [
+          0.92,
+          0.25
+        ],
+        "approach.left": [
+          -0.42,
+          1
+        ],
+        "approach.right": [
+          1.42,
+          1
+        ]
+      }
+    },
+    {
+      "type": "crate",
+      "defaultSize": {
+        "w": 86,
+        "h": 66
+      },
+      "anchors": {
+        "center": [
+          0.5,
+          0.5
+        ],
+        "top.center": [
+          0.5,
+          0
+        ],
+        "pushFace.left.center": [
+          0,
+          0.5
+        ],
+        "pushFace.right.center": [
+          1,
+          0.5
+        ],
+        "grip.left": [
+          0.12,
+          0.28
+        ],
+        "grip.right": [
+          0.88,
+          0.28
+        ],
+        "approach.left": [
+          -0.42,
+          1
+        ],
+        "approach.right": [
+          1.42,
+          1
+        ]
+      }
+    },
+    {
+      "type": "ladder",
+      "defaultSize": {
+        "w": 74,
+        "h": 240,
+        "rungs": 7
+      },
+      "anchors": {
+        "bottom.mount": [
+          0.5,
+          1
+        ],
+        "top.exit": [
+          0.5,
+          0
+        ],
+        "rail.left.top": [
+          0.14,
+          0
+        ],
+        "rail.right.top": [
+          0.86,
+          0
+        ],
+        "rail.left.bottom": [
+          0.14,
+          1
+        ],
+        "rail.right.bottom": [
+          0.86,
+          1
+        ],
+        "rungTemplate": {
+          "leftGrip": [
+            0.14,
+            "rungY"
+          ],
+          "rightGrip": [
+            0.86,
+            "rungY"
+          ],
+          "leftFoot": [
+            0.3,
+            "rungY"
+          ],
+          "rightFoot": [
+            0.7,
+            "rungY"
+          ]
+        }
+      }
+    },
+    {
+      "type": "wall",
+      "defaultSize": {
+        "w": 54,
+        "h": 150
+      },
+      "anchors": {
+        "face.left": [
+          0,
+          0.5
+        ],
+        "face.right": [
+          1,
+          0.5
+        ],
+        "top.left": [
+          0,
+          0
+        ],
+        "top.center": [
+          0.5,
+          0
+        ],
+        "top.right": [
+          1,
+          0
+        ],
+        "ledge.grip": [
+          0.5,
+          0.03
+        ],
+        "vault.takeoff": [
+          -0.7,
+          1
+        ],
+        "vault.landing": [
+          1.7,
+          1
+        ]
+      }
+    },
+    {
+      "type": "ledge",
+      "defaultSize": {
+        "w": 180,
+        "h": 34
+      },
+      "anchors": {
+        "top.left": [
+          0,
+          0
+        ],
+        "top.center": [
+          0.5,
+          0
+        ],
+        "top.right": [
+          1,
+          0
+        ],
+        "ledge.grip": [
+          0.5,
+          0.05
+        ],
+        "vault.takeoff": [
+          -0.25,
+          1
+        ],
+        "vault.landing": [
+          1.25,
+          1
+        ]
+      }
+    },
+    {
+      "type": "stairs",
+      "defaultSize": {
+        "w": 168,
+        "h": 120,
+        "steps": 4
+      },
+      "anchors": {
+        "bottom.approach": [
+          -0.25,
+          1
+        ],
+        "top.exit": [
+          1,
+          0
+        ],
+        "stepTemplate": {
+          "foot": [
+            "stepCenterX",
+            "stepY"
+          ],
+          "edge": [
+            "stepEdgeX",
+            "stepY"
+          ]
+        }
+      }
+    },
+    {
+      "type": "door",
+      "defaultSize": {
+        "w": 86,
+        "h": 170
+      },
+      "anchors": {
+        "hinge.top": [
+          0,
+          0
+        ],
+        "hinge.bottom": [
+          0,
+          1
+        ],
+        "handle": [
+          0.82,
+          0.52
+        ],
+        "panel.center": [
+          0.5,
+          0.5
+        ],
+        "threshold.left": [
+          0,
+          1
+        ],
+        "threshold.right": [
+          1,
+          1
+        ],
+        "passThrough": [
+          0.5,
+          1
+        ]
+      }
+    },
+    {
+      "type": "platform",
+      "defaultSize": {
+        "w": 190,
+        "h": 24
+      },
+      "anchors": {
+        "top.left": [
+          0,
+          0
+        ],
+        "top.center": [
+          0.5,
+          0
+        ],
+        "top.right": [
+          1,
+          0
+        ],
+        "under.center": [
+          0.5,
+          1
+        ],
+        "edge.left": [
+          0,
+          0
+        ],
+        "edge.right": [
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "type": "gap",
+      "defaultSize": {
+        "w": 160,
+        "h": 80
+      },
+      "anchors": {
+        "takeoff": [
+          0,
+          0
+        ],
+        "landing": [
+          1,
+          0
+        ],
+        "left.edge": [
+          0,
+          0
+        ],
+        "right.edge": [
+          1,
+          0
+        ],
+        "mid.air": [
+          0.5,
+          -0.45
+        ]
+      }
+    },
+    {
+      "type": "hurdle",
+      "defaultSize": {
+        "w": 118,
+        "h": 76
+      },
+      "anchors": {
+        "approach.left": [
+          -0.35,
+          1
+        ],
+        "approach.right": [
+          1.35,
+          1
+        ],
+        "top.center": [
+          0.5,
+          0
+        ],
+        "takeoff": [
+          -0.18,
+          1
+        ],
+        "landing": [
+          1.18,
+          1
+        ]
+      }
+    },
+    {
+      "type": "ball",
+      "defaultSize": {
+        "r": 35
+      },
+      "anchors": {
+        "center": [
+          0.5,
+          0.5
+        ],
+        "top": [
+          0.5,
+          0
+        ],
+        "left": [
+          0,
+          0.5
+        ],
+        "right": [
+          1,
+          0.5
+        ],
+        "bottom": [
+          0.5,
+          1
+        ],
+        "kick.left": [
+          0.12,
+          0.66
+        ],
+        "kick.right": [
+          0.88,
+          0.66
+        ]
+      }
+    },
+    {
+      "type": "sign",
+      "defaultSize": {
+        "w": 128,
+        "h": 96
+      },
+      "anchors": {
+        "face.center": [
+          0.5,
+          0.2
+        ],
+        "arrow.tip": [
+          0.82,
+          0.22
+        ],
+        "arrow.tail": [
+          0.2,
+          0.22
+        ],
+        "post.base": [
+          0.5,
+          1
+        ],
+        "post.top": [
+          0.5,
+          0.42
+        ]
+      }
+    },
+    {
+      "type": "arrow",
+      "defaultSize": {
+        "w": 132,
+        "h": 54
+      },
+      "anchors": {
+        "face.center": [
+          0.5,
+          0.5
+        ],
+        "arrow.tip": [
+          1,
+          0.5
+        ],
+        "arrow.tail": [
+          0,
+          0.5
+        ]
+      }
+    },
+    {
+      "type": "chair",
+      "defaultSize": {
+        "w": 86,
+        "h": 94
+      },
+      "anchors": {
+        "seat": [
+          0.46,
+          0.55
+        ],
+        "back.top": [
+          0.18,
+          0
+        ],
+        "front.leg": [
+          0.78,
+          1
+        ],
+        "rear.leg": [
+          0.22,
+          1
+        ],
+        "approach.left": [
+          -0.4,
+          1
+        ],
+        "approach.right": [
+          1.4,
+          1
+        ],
+        "foot.left": [
+          0.18,
+          1.05
+        ],
+        "foot.right": [
+          0.86,
+          1.05
+        ]
+      }
+    },
+    {
+      "type": "desk",
+      "defaultSize": {
+        "w": 110,
+        "h": 92
+      },
+      "notes": "presentation prop"
+    },
+    {
+      "type": "board",
+      "defaultSize": {
+        "w": 150,
+        "h": 160
+      },
+      "notes": "presentation prop"
+    },
+    {
+      "type": "card",
+      "defaultSize": {
+        "w": 30,
+        "h": 20
+      },
+      "notes": "presentation prop"
+    },
+    {
+      "type": "banner",
+      "defaultSize": {
+        "w": 130,
+        "h": 70
+      },
+      "notes": "presentation prop"
+    },
+    {
+      "type": "bulb",
+      "defaultSize": {
+        "w": 20,
+        "h": 27
+      },
+      "notes": "presentation prop (head-attached idea bulb)"
+    }
+  ]
+}

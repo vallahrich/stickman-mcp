@@ -93,6 +93,29 @@ its own `.vscode/mcp.json` format with a top-level `servers` object; Copilot CLI
 does not read that format. Portable configuration avoids conflating the two.
 See the official [VS Code MCP instructions](https://code.visualstudio.com/docs/agent-customization/mcp-servers).
 
+## Connect Claude Code or Codex CLI
+
+The same local stdio server works without a remote endpoint. Review these
+PowerShell examples before running them; they change the named client's MCP
+configuration, and do not install a published package:
+
+```powershell
+claude mcp add --transport stdio stickman -- node 'C:\Projects\stickman-mcp\dist\mcp.js' --root 'C:\Projects\MyPresentation\stickman-output'
+codex mcp add stickman -- node 'C:\Projects\stickman-mcp\dist\mcp.js' --root 'C:\Projects\MyPresentation\stickman-output'
+```
+
+Use `claude mcp list` or `codex mcp list` to inspect configuration, then verify
+the running server's tools in the client. Review client trust and tool-permission
+settings; these commands do not limit tool availability to the six non-writing
+tools as the Copilot example does. Do not authorize export until its destination
+is reviewed. Organization policy can block local servers; do not bypass it.
+
+These command shapes are verified against the official
+[Claude Code MCP reference](https://code.claude.com/docs/en/mcp) and
+[Codex MCP reference](https://developers.openai.com/codex/mcp).
+Client versions and policies still require a live compatibility check.
+No invented `--type`/`--command` Codex flags or `/mcp/metadata` endpoint are used.
+
 ## Tool contracts and errors
 
 All seven tools enforce their advertised JSON input schemas at runtime. Missing

@@ -49,6 +49,27 @@ node dist/cli.js export --input examples/wave.json --root .\output --output wave
 
 Exports are written only to a relative path under the explicit `--root`; existing output files, absolute paths, path traversal, and symlink directories are refused. Preview writes the artifact to stdout.
 
+## IT and digital-services motion gallery
+
+The primary presentation audience is cloud, infrastructure, cybersecurity and
+digital-service teams. The actor works inside slide content, travelling along
+timelines and revealing ideas, not in a separate presenter panel.
+Build a private designer preview with category/search
+filters, lazy 1x hover and keyboard previews, reduced-motion support and
+copyable agent setup:
+
+```powershell
+npm run site:build
+npm run site:serve
+```
+
+Open `http://127.0.0.1:4173/`. The gallery joins the approval ledger with
+reproducible clips and explicitly distinguishes reviewed versions from runtime
+availability. It does not publish a site, promote motions, or change agent
+settings. See [showcase creation](docs/designer-showcase.md) for the one-minute
+IT video and real NIST presentation before/after example, and
+[MCP setup](docs/mcp-setup.md) for Copilot, Claude Code and Codex.
+
 ## Contract and catalog
 
 Documents use the strict, versioned `stickman.animation/v1` JSON Schema, available from `src/contract-schema.ts` or `stickman schema`. Unknown fields and unsupported actions produce path-specific diagnostics with closest valid motion IDs. See [the wave](examples/wave.json), [walk-and-wave sequence](examples/walk-and-wave.json), and [bound prop push](examples/push-crate.json) examples.
