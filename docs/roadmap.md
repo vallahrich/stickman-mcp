@@ -34,6 +34,13 @@ It is not a presentation-quality milestone. The revised visual candidate
 prioritizes a slide takeaway and visible changes to request flow, failover
 routing and the release gate, with presenter-controlled explanation beats.
 New visual approval is still required; passing runtime checks is insufficient.
+The next presentation-quality gate uses actual source slides rather than generic
+story examples. A [local PPTX-to-HTML path](offline-presentations.md) preserves
+source notes/media and uses explicit presenter-controlled beats, with no actor
+over a running demo. A representative pilot must receive user review before
+full-deck expansion. Private source material and derived HTML are not repository
+examples, gallery assets or mirror content. This is not universal conversion or
+an automatic animation-authoring capability.
 The default release-style catalogue is rating-free across UI, JSON and preview
 downloads; scores and review history belong only in development. The separate
 development build retains 98 historical approvals; the release-style build has

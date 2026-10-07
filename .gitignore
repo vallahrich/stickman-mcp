@@ -4,3 +4,5 @@ coverage/
 *.gif
 *.mp4
 .env
+__pycache__/
+*.py[cod]

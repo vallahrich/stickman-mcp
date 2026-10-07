@@ -80,6 +80,13 @@ settings. See [showcase creation](docs/designer-showcase.md) for the one-minute
 IT video and real NIST presentation before/after example, and
 [MCP setup](docs/mcp-setup.md) for Copilot, Claude Code and Codex.
 
+For real source decks, a separate [local HTML presentation workflow](docs/offline-presentations.md)
+retains original slides, notes, screenshots and embedded demos while an explicit
+storyboard adds presenter-controlled diagram beats. It uses the shipping rig,
+works offline as one HTML file, and pauses the actor during videos. Start with a
+small visual pilot before converting a full deck. This is not automatic redesign
+or an additional MCP tool; private source decks and their outputs stay outside Git.
+
 ## Contract and catalog
 
 Documents use the strict, versioned `stickman.animation/v1` JSON Schema, available from `src/contract-schema.ts` or `stickman schema`. Unknown fields and unsupported actions produce path-specific diagnostics with closest valid motion IDs. See [the wave](examples/wave.json), [walk-and-wave sequence](examples/walk-and-wave.json), and [bound prop push](examples/push-crate.json) examples.
