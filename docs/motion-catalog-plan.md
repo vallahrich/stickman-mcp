@@ -113,7 +113,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `enter-door` | user-approved | W5 | latest review: 8/10 approved |
 | `exit-door` | user-approved | W5 | latest review: approved; spoken score was 'eight ten out of ten' (8 or 10, both above threshold) |
 | `hold-sign` | user-approved | W5 | batch 13: 9/10 approved |
-| `inspect-magnifier` | candidate | W5 | wave 20: user likes this version, but no numeric score supplied; approval pending an explicit 8/10 or higher |
+| `inspect-magnifier` | user-approved | W5 | wave 21: 8/10 approved |
 
 ### IT (9)
 
@@ -121,13 +121,13 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | --- | --- | --- | --- |
 | `type-at-desk` | user-approved | W2 | batch 5: 9/10 approved (polish: still body) |
 | `open-laptop` | user-approved | W6 | wave 20: 8/10 approval reaffirmed |
-| `video-call` | candidate | W6 | wave 20: 7/10; remote participant arm looks weird; user requested its removal; wave 21 revised candidate, unchanged gates passing; awaiting a new user rating |
+| `video-call` | user-approved | W6 | wave 21: 10/10 approved; arm-free remote bust |
 | `phone-call` | user-approved | W6 | batch 13: 9/10 approved |
 | `plug-cable` | user-approved | W6 | review wave 19: 8/10 approved |
 | `rack-server` | user-approved | W6 | review wave 19: 9/10 approved |
 | `drag-window` | user-approved | W6 | review wave 19: 8/10 approved |
 | `tablet-tap` | user-approved | W6 | wave 20: 8/10 approved |
-| `frustrated-pc` | candidate | W6 | wave 20: 6/10; thought cloud reads as thinking; use recognizable comic frustration cues; wave 21 revised candidate, unchanged gates passing; awaiting a new user rating |
+| `frustrated-pc` | user-approved | W6 | wave 21: 8/10 approved; comic anger cue |
 
 ### Work & objects (12)
 
@@ -162,7 +162,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 | `roll` | rework | W8 | withheld: head/neck rig cannot yet express supported inversion without head-floor/torso intersection |
 | `trip` | user-approved | W8 | review wave 15: 8/10 approved |
 | `balance` | user-approved | W8 | wave 14: 9/10 approved; one-leg balance and recovery |
-| `dance` | candidate | W8 | wave 20: 6/10; user requested rhythmic arm pumps like a cheerleader; wave 21 revised candidate, unchanged gates passing; awaiting a new user rating |
+| `dance` | candidate | W8 | wave 21: still 6/10; movement does not read sufficiently as dancing; wave 22 whole-body groove candidate, unchanged gates passing; awaiting a new user rating |
 | `climb-ladder` | user-approved | W10 | review wave 15: 9/10 approved |
 | `climb-down` | user-approved | W10 | latest review: 9/10 approved |
 | `climb-ledge` | user-approved | W10 | wave 20: 9/10 approved; faster supported climb |
@@ -172,7 +172,7 @@ Already approved before the catalog: `idle`, `walk`, `stop`, `point`, `jump`.
 
 ## Totals
 
-- user-approved: 95
-- candidate: 4
+- user-approved: 98
 - rework: 1
+- candidate: 1
 - **total: 100**

@@ -102,24 +102,46 @@ describe("rated motion revisions preserve actual contacts and unchanged gates", 
     }
   });
 
-  it("dance repeatedly pumps both arms from bent elbows to a high V without changing support", () => {
+  it("dance alternates single-arm pumps and recoils rather than raising both arms in unison", () => {
     const { clip } = load("dance");
-    for (const peak of [6, 24, 42, 60, 78, 96, 114, 132]) {
-      const low = engineSampledFrame(sampleClipMotion, clip, peak - 6);
-      const high = engineSampledFrame(sampleClipMotion, clip, peak);
-      const recoil = engineSampledFrame(sampleClipMotion, clip, peak + 6);
-      for (const side of ["left", "right"]) {
-        const height = (frame: ReviewFrame) => {
-          const upper = frame.segments.find((s: { id: string }) => s.id === `${side}-upper-arm`)!;
-          return (upper.y1 - hand(frame, side).y) / REVIEW_STAGE.scale;
+    for (const [side, peaks] of [["right", [6, 60, 78, 132]], ["left", [24, 42, 96, 114]]] as const) {
+      for (const peak of peaks) {
+        const low = engineSampledFrame(sampleClipMotion, clip, peak - 6);
+        const high = engineSampledFrame(sampleClipMotion, clip, peak);
+        const recoil = engineSampledFrame(sampleClipMotion, clip, peak + 6);
+        const height = (frame: ReviewFrame, armSide: string) => {
+          const upper = frame.segments.find((s: { id: string }) => s.id === `${armSide}-upper-arm`)!;
+          return (upper.y1 - hand(frame, armSide).y) / REVIEW_STAGE.scale;
         };
-        expect(height(high) - height(low), `${side} pump ${peak}`).toBeGreaterThan(18);
-        expect(height(high) - height(recoil), `${side} recoil ${peak}`).toBeGreaterThan(18);
+        expect(height(high, side) - height(low, side), `${side} pump ${peak}`).toBeGreaterThan(18);
+        expect(height(high, side) - height(recoil, side), `${side} recoil ${peak}`).toBeGreaterThan(18);
+        expect(height(high, side) - height(high, side === "left" ? "right" : "left")).toBeGreaterThan(30);
       }
     }
     const first = engineSampledFrame(sampleClipMotion, clip, 0);
     const nextCycle = engineSampledFrame(sampleClipMotion, clip, clip.frames.length);
     expect(nextCycle.segments).toEqual(first.segments);
+  });
+
+  it("dance has visible lifted step-touches, planted support and lateral body counterbeats", () => {
+    const { clip } = load("dance");
+    for (const [frameIndex, lifting] of [[6, "right"], [24, "left"], [42, "left"], [60, "right"]] as const) {
+      const frame = engineSampledFrame(sampleClipMotion, clip, frameIndex);
+      const lifted = frame.segments.find((s: { id: string }) => s.id === `${lifting}-shin`)!;
+      const support = frame.segments.find((s: { id: string }) => s.id === `${lifting === "left" ? "right" : "left"}-shin`)!;
+      expect((REVIEW_STAGE.groundY - lifted.y2) / REVIEW_STAGE.scale).toBeGreaterThan(12);
+      expect(support.y2).toBeCloseTo(REVIEW_STAGE.groundY, 4);
+    }
+    const hipXs: number[] = [], torsoOffsets: number[] = [];
+    for (let f = 0; f < clip.frames.length; f++) {
+      const frame = engineSampledFrame(sampleClipMotion, clip, f);
+      const thigh = frame.segments.find((s: { id: string }) => s.id === "left-thigh")!;
+      const arm = frame.segments.find((s: { id: string }) => s.id === "left-upper-arm")!;
+      hipXs.push(thigh.x1 / REVIEW_STAGE.scale);
+      torsoOffsets.push((arm.x1 - thigh.x1) / REVIEW_STAGE.scale);
+    }
+    expect(Math.max(...hipXs) - Math.min(...hipXs)).toBeGreaterThan(10);
+    expect(Math.max(...torsoOffsets) - Math.min(...torsoOffsets)).toBeGreaterThan(12);
   });
 
   it("computer frustration uses a tracked anger mark, never a thought bubble", async () => {
