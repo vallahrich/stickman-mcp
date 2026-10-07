@@ -1,7 +1,7 @@
 {
   "id": "video-call",
   "label": "Video Call",
-  "status": "ai-reviewed",
+  "status": "candidate",
   "source": {"dataset":"authored","file":"keypose","subject":"manual","trial":"video-call"},
   "kind": "oneshot",
   "travel": "in-place",
@@ -13,7 +13,7 @@
   "facingChange": 0,
   "mirrorable": false,
   "tags": ["office","communication","video-call","screen","supported"],
-  "notes": "Rework after 5/10: supported seated video conversation, monitor at face height rather than a standing wave over a low laptop. One compact greeting, attentive nod, two connected explanatory beats, then hands rest near keyboard. Pelvis/feet/seat fixed; screen clearance and actual head/arms remain measurable. Original authored unapproved candidate.",
+  "notes": "Wave 20: 7/10; user requested removal of the weird remote arm. Remote screen now uses only a head-and-shoulders bust with a gentle nod. Seated caller, headphones, hand gestures, chair support and all pose keys are unchanged. Needs a new rating.",
   "approvedBaseline": false,
   "frames": 198,
   "loop": false,

@@ -219,8 +219,8 @@ Set `review.prop.screen: "video-call"` for a remote participant silhouette and c
 controls instead of the default screen lines. This is opt-in review/stage-kit
 decoration, not a shipping MCP runtime prop or a video feed. Desk extra props support
 the same field; omitted or unrecognized values preserve the existing screen.
-The participant's greeting and nod are sampled from the review frame, so scrubbing,
-static shots and standalone stage kits show the same animation.
+The participant is an arm-free head-and-shoulders bust with a gentle nod sampled
+from the review frame, so scrubbing, static shots and standalone stage kits agree.
 
 Opt-in laptop `details: true` adds individual keys, touchpad, webcam and screen
 content without changing the lid, base or hinge coordinates.
@@ -230,7 +230,10 @@ for each of the four ink lines.
 
 Review-only `headphones` (42x40), `detective-hat` (46x20) and `thought-cloud`
 (52x36) accept the same colored office-prop transforms, lifecycle and animation
-tracks as other office props. Use actual rendered-head coordinates when tracking
+tracks as other office props. `anger-mark` (28x28) draws an original four-corner
+anger-vein symbol and jagged agitation lines, without a thought bubble or tail.
+Its `color` controls both strokes; primary props, extra props and add-ons are supported.
+Use actual rendered-head coordinates when tracking
 headwear, because the shipping renderer normalizes the sampled neck.
 `propMotion.x/y` are offsets added to the prop's base position; set base `x: 0,
 y: 0` for absolute per-frame tracks. `front: true` paints headwear in front of

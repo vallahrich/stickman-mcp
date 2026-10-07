@@ -109,6 +109,26 @@ of seamless game control or completed room-scene MCP/video authoring.
 - The first release has six actions, one geometric actor, and one rightward push interaction with a rectangular prop. It does not claim arbitrary motion understanding, general physics, imported assets, speech, production qualification, or perceptual naturalness. Inspect exported visuals in the intended presentation and validate accessibility/brand requirements separately.
 - `PlaybackSession.advance(ms)` is caller-driven and has a single clock; the library starts no hidden ticker or background process.
 
+## Motion authoring and feedback
+
+New motions are currently authored offline as timed pose keys, foot/hand contact
+targets and prop events. The factory builds them through the shared sampler and
+renderer, checks mechanical gates, and produces a review preview. A user score
+of at least 8/10 approves the catalog entry, not automatic runtime availability:
+the reviewed clip still needs explicit assembly and MCP integration. Use
+`stickman_discover` to see the actions actually exposed by the running server.
+
+The compiler supports ordered sequences, target-based travel and some transition
+blending. Arbitrary contact-safe combinations and cross-slide continuity are
+separate qualification work, not consequences of approving individual clips.
+
+There is no model training or automatic preference learning today. Scores and
+critiques guide AI-assisted authoring, but do not change model weights. The
+[planned authoring layer](docs/roadmap.md#ai-motion-authoring-current-limits-and-intended-direction)
+starts with versioned feedback and retrieval of approved examples; learned
+ranking or fine-tuning must demonstrate improvements on held-out requests while
+preserving deterministic playback and unchanged anatomy/contact gates.
+
 ## Roadmap
 
 The previous motion result was rejected on visual quality. Development now

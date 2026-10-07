@@ -37,6 +37,11 @@ must be explicitly promoted and assembled into the runtime library; a rating
 in the catalog plan alone does not make a new verb available through MCP.
 Cross-slide chaining, add-on integration and general novel-motion generation
 still need their own end-to-end qualification.
+The compiler already supports ordered actions and transition blending in some
+playback paths. Blending individual joint endpoints is not a general guarantee
+of fixed limb lengths, planted feet or persistent prop grips across a new
+combination. A contact-aware composition pass and complete-chain review remain
+necessary before claiming arbitrary seamless choreography.
 
 Authored traveling loops declare `strideLength` in engine local units per
 complete cycle. The sampler carries this translation across repeats for the
@@ -59,6 +64,11 @@ live reviews and the standalone stage kit. See the
 [motion factory](../motions/README.md#review-props) for authoring details.
 This is review infrastructure; the corresponding IT motions still require
 individual authoring, user approval and separate runtime integration.
+Opted-in video-call desks now show an arm-free participant bust with a gentle
+nod, while sampled headphones track the caller's rendered head. Frustration
+previews can use an original anger-vein ideogram with jagged agitation lines
+instead of a thought bubble; these are editable vector props, not generated
+video or copied reference artwork.
 
 Hardware previews likewise include a flexible cable with independently
 animated plug, a socket, a multi-unit server rack with a separate module, and
@@ -95,7 +105,10 @@ video:
    Compare candidate alternatives; reject mechanically valid but unnatural
    movement rather than relaxing constraints.
 5. Preserve approved examples, rejected versions, scores and specific
-   corrections as an evaluation corpus. Retrieval can reuse this evidence
+   corrections as an evaluation corpus, tied to immutable motion versions.
+   Distinguish semantic readability (for example, frustration versus thinking)
+   from timing, contact quality and prop clarity; retain qualitative feedback
+   without inventing a numeric score. Retrieval can reuse this evidence
    without training. A later learned ranker or fine-tuning experiment requires
    sufficient licensed data, a held-out evaluation set and a demonstrated
    improvement before adoption.

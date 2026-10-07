@@ -34,10 +34,10 @@ function line(a, b) {
 }
 
 export const REVIEW_STAGE = { rootX: 160, groundY: 150, scale: 0.75 };
-const ADDON_TYPES = new Set(["ball", "football", "basketball", "goal", "hoop", "hurdle", "spear", "card", "cone", "target", "sand-pit", "board", "sand-puff", "phone", "sign", "laptop", "tablet", "magnifier", "notebook", "pen", "headphones", "detective-hat", "thought-cloud", "cable", "socket", "server-rack", "server-module", "window", "cursor"]);
+const ADDON_TYPES = new Set(["ball", "football", "basketball", "goal", "hoop", "hurdle", "spear", "card", "cone", "target", "sand-pit", "board", "sand-puff", "phone", "sign", "laptop", "tablet", "magnifier", "notebook", "pen", "headphones", "detective-hat", "thought-cloud", "anger-mark", "cable", "socket", "server-rack", "server-module", "window", "cursor"]);
 
 function officePropSize(type) {
-  return ({ laptop: { w: 48, h: 34 }, tablet: { w: 22, h: 30 }, magnifier: { w: 24, h: 34 }, notebook: { w: 30, h: 36 }, pen: { w: 4, h: 22 }, headphones: { w: 42, h: 40 }, "detective-hat": { w: 46, h: 20 }, "thought-cloud": { w: 52, h: 36 } })[type];
+  return ({ laptop: { w: 48, h: 34 }, tablet: { w: 22, h: 30 }, magnifier: { w: 24, h: 34 }, notebook: { w: 30, h: 36 }, pen: { w: 4, h: 22 }, headphones: { w: 42, h: 40 }, "detective-hat": { w: 46, h: 20 }, "thought-cloud": { w: 52, h: 36 }, "anger-mark": { w: 28, h: 28 } })[type];
 }
 
 function hardwarePropSize(type) {
@@ -545,7 +545,7 @@ export function notebookStrokePoint(index, progress) {
 function officePropMarkup(prop, strokeWidth, color) {
   if (!officePropSize(prop.type)) return "";
   const { x, y, w, h } = prop;
-  const c = xml(prop.color ?? ({ laptop: "#6675cc", tablet: "#259b91", magnifier: "#e2a532", notebook: "#cf647e", pen: "#4169c1", headphones: "#367ea8", "detective-hat": "#9e784c", "thought-cloud": "#f5f1df" })[prop.type]);
+  const c = xml(prop.color ?? ({ laptop: "#6675cc", tablet: "#259b91", magnifier: "#e2a532", notebook: "#cf647e", pen: "#4169c1", headphones: "#367ea8", "detective-hat": "#9e784c", "thought-cloud": "#f5f1df", "anger-mark": "#d74240" })[prop.type]);
   const sw = num(Math.min(strokeWidth, w * 0.055, h * 0.055));
   const attrs = `stroke="${xml(color)}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"`;
   const p = (px, py) => ({ x: x + w * px, y: y + h * py });
@@ -592,6 +592,9 @@ function officePropMarkup(prop, strokeWidth, color) {
     drawing = `<path data-part="detective-crown" d="M${num(x + w * 0.18)} ${num(y + h * 0.72)}Q${num(x + w * 0.2)} ${num(y + h * 0.06)} ${num(x + w * 0.48)} ${num(y + h * 0.15)}Q${num(x + w * 0.8)} ${num(y + h * 0.04)} ${num(x + w * 0.82)} ${num(y + h * 0.72)}Z" fill="${c}"/><path data-part="detective-brim" d="M${num(x)} ${num(y + h * 0.86)}Q${num(x + w * 0.5)} ${num(y + h * 0.58)} ${num(x + w)} ${num(y + h * 0.86)}Q${num(x + w * 0.5)} ${num(y + h * 1.04)} ${num(x)} ${num(y + h * 0.86)}Z" fill="${c}"/><path data-part="detective-hat-band" d="${line(p(0.21, 0.62), p(0.78, 0.62))}" stroke="#4b3526"/>`;
   } else if (prop.type === "thought-cloud") {
     drawing = `<path data-part="thought-cloud-outline" d="M${num(x + w * 0.2)} ${num(y + h * 0.68)}C${num(x - w * 0.06)} ${num(y + h * 0.68)} ${num(x)} ${num(y + h * 0.23)} ${num(x + w * 0.2)} ${num(y + h * 0.24)}C${num(x + w * 0.2)} ${num(y - h * 0.04)} ${num(x + w * 0.61)} ${num(y - h * 0.02)} ${num(x + w * 0.66)} ${num(y + h * 0.18)}C${num(x + w * 0.99)} ${num(y + h * 0.05)} ${num(x + w * 1.05)} ${num(y + h * 0.58)} ${num(x + w * 0.81)} ${num(y + h * 0.62)}C${num(x + w * 0.76)} ${num(y + h * 0.83)} ${num(x + w * 0.36)} ${num(y + h * 0.88)} ${num(x + w * 0.2)} ${num(y + h * 0.68)}Z" fill="${c}"/><circle data-part="thought-cloud-tail" cx="${num(x + w * 0.17)}" cy="${num(y + h * 0.84)}" r="${num(h * 0.07)}" fill="${c}"/><circle data-part="thought-cloud-tail" cx="${num(x + w * 0.08)}" cy="${num(y + h)}" r="${num(h * 0.04)}" fill="${c}"/><path data-part="frustration-scribble" d="${path([p(0.31, 0.42), p(0.47, 0.29), p(0.63, 0.47), p(0.35, 0.53), p(0.58, 0.27), p(0.7, 0.5), p(0.42, 0.57)])}" fill="none" stroke="${xml(color)}"/>`;
+  } else if (prop.type === "anger-mark") {
+    const q = (px, py) => `${num(x + w * px)} ${num(y + h * py)}`;
+    drawing = `<g fill="none" stroke="${c}" stroke-width="${num(Math.min(w, h) * 0.075)}"><path data-part="anger-veins" d="M${q(0.2, 0.42)}Q${q(0.43, 0.43)} ${q(0.42, 0.2)}M${q(0.58, 0.2)}Q${q(0.57, 0.43)} ${q(0.8, 0.42)}M${q(0.8, 0.58)}Q${q(0.57, 0.57)} ${q(0.58, 0.8)}M${q(0.42, 0.8)}Q${q(0.43, 0.57)} ${q(0.2, 0.58)}"/><path data-part="frustration-agitation" d="M${q(0.03, 0.18)}L${q(0.08, 0.03)}L${q(0.14, 0.15)}M${q(0.85, 0.04)}L${q(0.93, 0.12)}L${q(0.86, 0.18)}M${q(0.84, 0.87)}L${q(0.93, 0.97)}"/></g>`;
   } else if (prop.type === "pen") {
     drawing = `<path data-part="pen-body" d="${path([p(0.16, 0.08), p(0.84, 0.08), p(0.84, 0.78), p(0.16, 0.78)])}" fill="${c}"/><path data-part="pen-nib" d="${path([p(0.16, 0.78), p(0.84, 0.78), p(0.5, 1)])}" fill="#e3c591"/><path data-part="pen-tip" d="${line(p(0.5, 0.94), p(0.5, 1))}" stroke="#202124"/><path data-part="pen-clip" d="${line(p(0.76, 0.12), p(0.76, 0.35))}" stroke="#e0e7fa"/>`;
   }
@@ -674,12 +677,9 @@ function propMarkup(prop, strokeWidth, color) {
     // x..x+w is the tabletop; call content is opt-in so other desk motions stay unchanged.
     const top = y + h * 0.42, mw = prop.monitorW ?? w * 0.56, mh = prop.monitorH ?? h * 0.46, mx = x + w * 0.42, my = top - h * 0.1 - mh;
     const callFrame = prop.callFrame ?? 0;
-    const greeting = Math.sin(Math.PI * clamp01((callFrame - 8) / 54));
     const nod = Math.sin(callFrame * Math.PI / 45) * 0.012;
-    const elbow = { x: mx + mw * 0.69, y: my + mh * 0.52 };
-    const palm = { x: mx + mw * (0.8 + greeting * Math.sin(callFrame * Math.PI / 9) * 0.035), y: my + mh * (0.66 - greeting * 0.43) };
     const content = prop.screen === "video-call"
-      ? `<g data-part="video-participant" stroke-width="${num(strokeWidth * 0.55)}"><circle cx="${num(mx + mw * 0.46)}" cy="${num(my + mh * (0.27 + nod))}" r="${num(Math.min(mw, mh) * 0.13)}"/><path d="M${num(mx + mw * 0.23)} ${num(my + mh * 0.67)}Q${num(mx + mw * 0.46)} ${num(my + mh * 0.35)} ${num(mx + mw * 0.69)} ${num(my + mh * 0.67)}" fill="none"/><path data-part="video-participant-wave" d="${line({ x: mx + mw * 0.57, y: my + mh * 0.47 }, elbow)}${line(elbow, palm)}" fill="none"/></g><g data-part="video-call-controls" stroke-width="${num(strokeWidth * 0.4)}">${[0.36, 0.5, 0.64].map(t => `<circle cx="${num(mx + mw * t)}" cy="${num(my + mh * 0.84)}" r="${num(Math.min(mw, mh) * 0.045)}" fill="${xml(prop.color ?? color)}"/>`).join("")}</g>`
+      ? `<g data-part="video-participant" stroke-width="${num(strokeWidth * 0.55)}"><circle cx="${num(mx + mw * 0.46)}" cy="${num(my + mh * (0.27 + nod))}" r="${num(Math.min(mw, mh) * 0.13)}"/><path d="M${num(mx + mw * 0.23)} ${num(my + mh * 0.67)}Q${num(mx + mw * 0.46)} ${num(my + mh * 0.35)} ${num(mx + mw * 0.69)} ${num(my + mh * 0.67)}" fill="none"/></g><g data-part="video-call-controls" stroke-width="${num(strokeWidth * 0.4)}">${[0.36, 0.5, 0.64].map(t => `<circle cx="${num(mx + mw * t)}" cy="${num(my + mh * 0.84)}" r="${num(Math.min(mw, mh) * 0.045)}" fill="${xml(prop.color ?? color)}"/>`).join("")}</g>`
       : `<path d="${line({ x: mx + mw * 0.15, y: my + mh * 0.3 }, { x: mx + mw * 0.7, y: my + mh * 0.3 })}" stroke-width="${num(strokeWidth * 0.5)}"/><path d="${line({ x: mx + mw * 0.15, y: my + mh * 0.55 }, { x: mx + mw * 0.55, y: my + mh * 0.55 })}" stroke-width="${num(strokeWidth * 0.5)}"/>`;
     return `<g data-prop="desk" ${attrs}><path d="${line({ x, y: top }, { x: x + w, y: top })}"/><path d="${line({ x: x + w * 0.08, y: top }, { x: x + w * 0.08, y: y + h })}"/><path d="${line({ x: x + w * 0.92, y: top }, { x: x + w * 0.92, y: y + h })}"/><rect x="${num(mx)}" y="${num(my)}" width="${num(mw)}" height="${num(mh)}" rx="2"/><path d="${line({ x: mx + mw / 2, y: my + mh }, { x: mx + mw / 2, y: top })}"/>${content}<path d="${line({ x: x + w * 0.04, y: top - strokeWidth }, { x: x + w * 0.38, y: top - strokeWidth })}"/></g>`;
   }

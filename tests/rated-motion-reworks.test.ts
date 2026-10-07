@@ -13,6 +13,7 @@ interface ReworkSpec {
   loop: boolean;
   poseKeys: { frame: number; pose: PoseKey }[];
   gates: { headFloor: boolean; maxJointStep: number };
+  review?: { extraProps?: { type: string }[] };
 }
 interface SceneProp { type: string; x: number; y: number; w: number; h: number; rot: number }
 const ids = ["tablet-tap", "inspect-magnifier", "video-call", "dance", "hang-swing", "climb-ledge", "open-laptop", "frustrated-pc", "write-notes"];
@@ -98,6 +99,44 @@ describe("rated motion revisions preserve actual contacts and unchanged gates", 
       } else {
         expect(right.y).toBeLessThan(page.y);
       }
+    }
+  });
+
+  it("dance repeatedly pumps both arms from bent elbows to a high V without changing support", () => {
+    const { clip } = load("dance");
+    for (const peak of [6, 24, 42, 60, 78, 96, 114, 132]) {
+      const low = engineSampledFrame(sampleClipMotion, clip, peak - 6);
+      const high = engineSampledFrame(sampleClipMotion, clip, peak);
+      const recoil = engineSampledFrame(sampleClipMotion, clip, peak + 6);
+      for (const side of ["left", "right"]) {
+        const height = (frame: ReviewFrame) => {
+          const upper = frame.segments.find((s: { id: string }) => s.id === `${side}-upper-arm`)!;
+          return (upper.y1 - hand(frame, side).y) / REVIEW_STAGE.scale;
+        };
+        expect(height(high) - height(low), `${side} pump ${peak}`).toBeGreaterThan(18);
+        expect(height(high) - height(recoil), `${side} recoil ${peak}`).toBeGreaterThan(18);
+      }
+    }
+    const first = engineSampledFrame(sampleClipMotion, clip, 0);
+    const nextCycle = engineSampledFrame(sampleClipMotion, clip, clip.frames.length);
+    expect(nextCycle.segments).toEqual(first.segments);
+  });
+
+  it("computer frustration uses a tracked anger mark, never a thought bubble", async () => {
+    const { spec, clip } = load("frustrated-pc");
+    expect(spec.review?.extraProps?.map(p => p.type)).toEqual(["chair", "anger-mark"]);
+    const kit = await stageKitSource();
+    const sceneAt = runInNewContext(`${kit}; (spec,f)=>layoutScene(spec,{props:[]},f);`) as (spec: ReworkSpec, f: number) => SceneProp[];
+    const markupAt = runInNewContext(`${kit}; prop=>scenePropMarkup(prop,3,"#202124");`) as (prop: SceneProp) => string;
+    for (let f = 70; f <= 138; f += 0.5) {
+      const mark = sceneAt(spec, f).find(p => p.type === "anger-mark")!;
+      const head = frameGeometry(engineSampledFrame(sampleClipMotion, clip, f)).head;
+      expect(Math.abs((mark.x + mark.w / 2 - head.x) / REVIEW_STAGE.scale - 24)).toBeLessThan(0.1);
+      expect(Math.abs((head.y - mark.y - mark.h / 2) / REVIEW_STAGE.scale - 24)).toBeLessThan(0.1);
+      const markup = markupAt(mark);
+      expect(markup).toContain('data-part="anger-veins"');
+      expect(markup).toContain('data-part="frustration-agitation"');
+      expect(markup).not.toMatch(/thought-cloud|<circle/);
     }
   });
 

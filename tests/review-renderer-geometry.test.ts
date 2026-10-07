@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { runInNewContext, Script } from "node:vm";
 import { sampleClipMotion, type MotionClip, type PoseKey } from "../dist/motion-clips.js";
 import { RUNTIME_MOTION_LIBRARY } from "../dist/motion-library.js";
-import { addonLifecycleState, clipFrameToSampledFrame, computeAddonFlightPoint, doorGeometry, renderReviewHtml, renderStaticSvg, stageKitSource, REVIEW_STAGE } from "../scripts/motions/review-renderer.mjs";
+import { frameGeometry } from "../dist/render.js";
+import { addonLifecycleState, clipFrameToSampledFrame, computeAddonFlightPoint, doorGeometry, engineSampledFrame, renderReviewHtml, renderStaticSvg, stageKitSource, REVIEW_STAGE } from "../scripts/motions/review-renderer.mjs";
 import { buildKeyPoseClip, keyPoseGates } from "../scripts/motions/keypose.mjs";
 
 const stand: PoseKey = { anchor: "both", lean: 2, neck: -1, bob: 0, rLeg: { hip: 5, knee: 13 }, lLeg: { hip: -8, knee: 14 }, rArm: { shoulder: -8, elbow: 45 }, lArm: { shoulder: 8, elbow: 45 } };
@@ -41,26 +42,32 @@ describe("motion review renderer uses the shipping engine", () => {
       .toEqual(await renderStaticSvg({ clip, spec: defaultSpec, propsCatalog: { props: [] } }));
   });
 
-  it("animates the remote greeting identically in static and standalone call screens", async () => {
-    const clip = keyed([{ frame: 0, pose: stand }, { frame: 80, pose: stand }], 81);
+  it("keeps a gently nodding remote bust without an arm in both call renderers", async () => {
+    const clip = keyed([{ frame: 0, pose: stand }, { frame: 90, pose: stand }], 91);
     const spec = { prop: "desk", review: { prop: { screen: "video-call" } } };
     const kit = await stageKitSource();
-    const wave = (svg: string) => svg.match(/data-part="video-participant-wave" d="([^"]+)"/)![1];
-    const paths: string[] = [];
-    for (const frameIndex of [0, 25, 37, 70]) {
+    const participant = (svg: string) => svg.match(/<g data-part="video-participant"[^>]*>[\s\S]*?<\/g>/)![0];
+    const busts: string[] = [];
+    for (const frameIndex of [0, 25, 37, 90]) {
       const svg = await renderStaticSvg({ clip, spec, propsCatalog: { props: [] }, frameIndex });
-      const markup = runInNewContext(`${kit}; scenePropMarkup(layoutScene(${JSON.stringify(spec)},{props:[]},${frameIndex})[0],3,"#202124");`) as string;
-      expect(wave(svg)).toEqual(wave(markup));
-      paths.push(wave(svg));
+      const strokeWidth = frameGeometry(engineSampledFrame(sampleClipMotion, clip, frameIndex)).strokeWidth;
+      const markup = runInNewContext(`${kit}; scenePropMarkup(layoutScene(${JSON.stringify(spec)},{props:[]},${frameIndex})[0],${strokeWidth},"#202124");`) as string;
+      expect(participant(svg)).toEqual(participant(markup));
+      for (const output of [svg, markup]) {
+        expect(output).not.toContain('data-part="video-participant-wave"');
+        expect(participant(output).match(/<path/g)).toHaveLength(1);
+      }
+      busts.push(participant(svg));
     }
-    expect(paths[0]).toEqual(paths[3]);
-    expect(new Set(paths.slice(0, 3)).size).toBe(3);
+    expect(busts[0]).toEqual(busts[3]);
+    expect(new Set(busts.slice(0, 3)).size).toBe(3);
   });
 
   it.each([
     ["headphones", "headphone-band"],
     ["detective-hat", "detective-brim"],
-    ["thought-cloud", "frustration-scribble"]
+    ["thought-cloud", "frustration-scribble"],
+    ["anger-mark", "anger-veins"]
   ])("draws identifiable %s in every office prop path", async (type, part) => {
     const clip = keyed([{ frame: 0, pose: stand }, { frame: 20, pose: stand }]);
     const kit = await stageKitSource();
