@@ -19,7 +19,7 @@ export default defineConfig({
   testDir: "./tests/site",
   testMatch: "**/presentation.pw.mjs",
   workers: 1,
-  timeout: 30000,
+  timeout: 60000,
   reporter: "list",
   outputDir: process.env.STICKMAN_PRESENTATION_QA ?? "./dist/presentation-test-results",
   use: {

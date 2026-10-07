@@ -3,6 +3,15 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 describe("private designer catalogue", () => {
+  it("labels rejected presentation treatments as historical experiments without release ratings", async () => {
+    const html = await fs.readFile(path.resolve("site", "index.html"), "utf8");
+    const comparison = html.split('id="comparison"')[1]?.split("</section>")[0];
+    expect(comparison).toContain("Historical comparison experiment");
+    expect(comparison).toContain("not as proof of presentation improvement");
+    expect(comparison).toContain("https://csrc.nist.gov/presentations/2023/nist-cybersecurity-framework-csf-20");
+    expect(comparison).not.toContain("enhanced");
+    expect(html).not.toMatch(/\b\d+(?:\.\d+)?\/10\b/);
+  });
   it("parses the authoritative ledger and excludes unapproved motions", async () => {
     // @ts-expect-error Repository authoring helpers are intentionally plain JavaScript.
     const { parseCatalogue } = await import("../scripts/site/catalogue.mjs");

@@ -94,6 +94,22 @@ readiness review, including outstanding motions, dependencies and runtime assemb
 
 ## NIST before / after and 60-second video
 
+**Development evaluation: rejected at 1/10.** The user rated the NIST IT
+presentation comparison 1/10. It is not an approved design reference,
+presentation-quality example or evidence that the enhanced treatment improves
+the source. Retain it as a reproducible rejected experiment, not a quality claim.
+The first three-slide source-deck HTML pilot was also rejected at **2/10**.
+Individual motion approvals and successful behavior checks do not establish
+usable slide design or storytelling. The next pilot must change the actor's
+role in the content, not merely polish pointing, selected cards or a co-presenter.
+These evaluations belong in development history, not release catalogue assets.
+
+The revised three-slide candidate uses approved push, laptop-opening and
+lift/carry clips with their real props, a released-data handoff and a single
+retained payload across access routes. It separates control-flow completion
+from successful output and hands the full slide to the original recording.
+This is another review candidate, not a replacement score or user approval.
+
 Install `scripts/site/requirements.txt` in a chosen Python environment if
 PyMuPDF is not already available. `PYTHON` can point at that environment's
 interpreter. Download the exact official PDF linked in

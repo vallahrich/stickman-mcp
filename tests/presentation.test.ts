@@ -15,6 +15,18 @@ const design = () => ({
     beats: [{ caption: "Explain the dependency.", active: ["first", "route"] }]
   }]
 });
+const interactionDesign = () => ({
+  ...design(), slides: [{
+    ...design().slides[0],
+    objects: [{ id: "data", type: "files", label: "RAW", x: 300, y: 400, w: 50, h: 40 }],
+    beats: [{
+      caption: "Release, then move the object.", active: ["first"], visible: ["first"],
+      objects: { data: { x: 600, type: "table", label: "DELTA", startAt: .5, visible: true } },
+      actor: { motion: "push-walk", x: 200, groundY: 530, scale: 1, from: 132, to: 167, durationMs: 1000,
+        scene: true, keepProps: true, hideAtEnd: true, payload: { type: "files", label: "RAW" } }
+    }]
+  }]
+});
 
 describe("local presentation validation", () => {
   it("accepts authored geometry tied to source slides", () => {
@@ -62,5 +74,36 @@ describe("local presentation validation", () => {
       slides: [{ number: 1, media: ["movie", "poster"] }]
     };
     expect(() => validatePresentation(manifest, input)).toThrow("outside its source image");
+  });
+  it("accepts explicit reveals, an approved scene cue and a delayed object transition", () => {
+    expect(() => validatePresentation(source(), interactionDesign())).not.toThrow();
+  });
+  it("rejects unknown reveals and objects instead of silently dropping them", () => {
+    const input = interactionDesign();
+    input.slides[0]!.beats[0]!.visible.push("missing");
+    expect(() => validatePresentation(source(), input)).toThrow("Unknown reveal");
+    input.slides[0]!.beats[0]!.visible.pop();
+    input.slides[0]!.objects[0]!.id = "other";
+    expect(() => validatePresentation(source(), input)).toThrow("Unknown data object");
+  });
+  it("rejects invalid delayed transitions and off-stage object destinations", () => {
+    const input = interactionDesign(), change = input.slides[0]!.beats[0]!.objects.data;
+    for (const value of [-.1, 1, Number.NaN]) {
+      change.startAt = value;
+      expect(() => validatePresentation(source(), input)).toThrow("Invalid object transition start");
+    }
+    change.startAt = .5;
+    change.x = 1270;
+    expect(() => validatePresentation(source(), input)).toThrow("Invalid data object state");
+  });
+  it("requires a scene when a cue supplies a semantic payload", () => {
+    const input = interactionDesign();
+    input.slides[0]!.beats[0]!.actor.scene = false;
+    expect(() => validatePresentation(source(), input)).toThrow("requires an actor scene");
+  });
+  it("does not silently accept object IDs as diagram reveal targets", () => {
+    const input = interactionDesign();
+    input.slides[0]!.beats[0]!.visible.push("data");
+    expect(() => validatePresentation(source(), input)).toThrow("Unknown reveal");
   });
 });

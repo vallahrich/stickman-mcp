@@ -31,12 +31,34 @@ Selected authored clips must pass their existing mechanical checks. Clip
 geometry is sampled by the shipping renderer, not replaced by CSS figures or
 hundreds of complete SVG frames.
 
+For an object interaction, set `actor.scene: true` to draw the approved clip's
+actual props and `keepProps: true` to retain them after its review lifecycle.
+Optional `payload: {type: "files" | "table", label: "..."}` replaces only the
+box's glyph, not its authored dimensions or hand-contact trajectory. Clip
+boundaries should share the same world transform and endpoint frame.
+`figure: false`, `hideAtEnd` and `hideSceneAtEnd` allow a stable deposit or a
+clean handover to a demo without keeping a character over application UI.
+Prop fills use the presentation theme while keeping laptop screen, keyboard
+and body details distinct; original source imagery remains untouched.
+
+Diagram nodes can use `shape: "plain"` for typography or `"band"` for a shared
+space. `beat.visible` declares the complete set of diagram IDs shown at that
+beat; omitting it shows all components. Visibility and emphasis are recomputed
+on every seek, never accumulated. Independent `slide.objects` have unique IDs,
+`type`/`label` and stage-space `x`/`y`/`w`/`h`; a beat's `objects` contains their
+explicit states. Omission or `visible: false` hides an object. Positions
+interpolate from the preceding beat, and `startAt` in `[0,1)` can delay motion
+until hand release. Treat data movement and control-flow dependencies as
+different explanations: an "on completion" branch must not imply success.
+
 Optional `video.focus` defines a poster-detail beat and normalized `left`, `top`,
 `width`, `height` crop. The detail uses the actual source image without inventing
 code or UI; the full image remains available under Original slide, and playback
 always switches back to the unaltered recording. Foreground diagram edges can
 reach an inner layer without disappearing behind its enclosing foundation;
 `activeOnly` routes and `label.onlyActive` expose the specific engine path.
+`video.revealBeat` and `revealAtEnd` defer demo availability until the preceding
+interaction recovers. Movie bytes are decoded to a Blob only on explicit Play.
 
 Open the generated file directly in a current browser. There are no remote
 fonts, scripts, images or runtime fetches. Videos are embedded and activated
@@ -50,7 +72,9 @@ explicit. Selecting a slide stops outgoing media. Next does not advance during
 video playback, and the figure is suspended. Keyboard shortcuts ignore media
 controls, inputs and dialogs. Reduced motion or Animation off preserves every
 explanation without an actor. Notes separates original notes from added beats.
-The original-demo Play button is visible on the poster and in presenter controls.
+Play and Enlarge demo live in presenter controls, not over source application
+UI. Enlarge demo makes the original poster or recording fullscreen without
+starting playback; its Play and Exit controls sit below, not over, the source.
 Original slide reconstructs source positions and also shows uncropped images;
 this is not a pixel-perfect Office rendering.
 
@@ -78,6 +102,8 @@ npx playwright test --config playwright.presentation.config.mjs
 
 This opens `file://` with networking offline, checks presenter state, source
 notes/images, video playback/disposal, deterministic back/replay and reduced
-motion, and captures each stable beat locally. Also inspect moving frames,
-labels, crossings, actor contact/aim and source coverage visually. Keep private
+motion, payload-label clearance, exact rendered hand/prop contact, same-clip
+boundary continuity and a single retained object across access beats. It
+captures stable beats and decisive contact frames locally. Also inspect moving
+frames, labels, crossings, actor contact/aim and source coverage visually. Keep private
 QA outputs out of published sites, commits and CI artifacts.

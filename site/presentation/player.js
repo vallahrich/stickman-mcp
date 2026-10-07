@@ -60,7 +60,7 @@
     const edgeMarkup = edge => {
       const d = edge.points.map(([x, y], index) => `${index ? "L" : "M"}${x} ${y}`).join(" ");
       const label = edge.label ? `<text class="edge-label" ${edge.label.onlyActive ? `data-label-target="${xml(edge.id)}"` : ""} x="${edge.label.x}" y="${edge.label.y}" text-anchor="${edge.label.align === "middle" ? "middle" : "start"}">${xml(edge.label.text)}</text>` : "";
-      return `<g><path class="edge ${edge.dashed ? "dashed" : ""} ${edge.activeOnly ? "active-only" : ""}" data-target="${xml(edge.id)}" d="${d}" ${edge.arrow === false ? "" : 'marker-end="url(#arrow)"'}/>${label}</g>`;
+      return `<g data-component="${xml(edge.id)}"><path class="edge ${edge.dashed ? "dashed" : ""} ${edge.activeOnly ? "active-only" : ""}" data-target="${xml(edge.id)}" d="${d}" ${edge.arrow === false ? "" : 'marker-end="url(#arrow)"'}/>${label}</g>`;
     };
     const edges = (slide.edges ?? []).filter(edge => !edge.foreground).map(edgeMarkup).join("");
     const foreground = (slide.edges ?? []).filter(edge => edge.foreground).map(edgeMarkup).join("");
@@ -69,47 +69,111 @@
       const tx = center ? node.x + node.width / 2 : node.x + (node.icon ? 64 : 24);
       const ty = node.y + (node.labelY ?? (node.kicker ? 62 : 50));
       const label = node.label.map((text, index) => `<tspan x="${tx}" dy="${index ? 29 : 0}">${xml(text)}</tspan>`).join("");
-      return `<g><rect class="node ${node.shape === "band" ? "band" : ""} ${node.layer === "foundation" ? "foundation" : ""}" data-target="${xml(node.id)}" x="${node.x}" y="${node.y}" width="${node.width}" height="${node.height}" rx="${node.shape === "band" ? 12 : 10}"/>
+      return `<g data-component="${xml(node.id)}"><rect class="node ${node.shape === "plain" ? "plain" : ""} ${node.shape === "band" ? "band" : ""} ${node.layer === "foundation" ? "foundation" : ""}" data-target="${xml(node.id)}" x="${node.x}" y="${node.y}" width="${node.width}" height="${node.height}" rx="${node.shape === "band" ? 12 : 10}"/>
         ${node.kicker ? `<text class="node-kicker" x="${node.x+24}" y="${node.y+29}">${xml(node.kicker)}</text>` : ""}
         ${iconMarkup(node.icon, node.x+35, ty-8)}
-        <text class="node-label" x="${tx}" y="${ty}" text-anchor="${center ? "middle" : "start"}" ${node.fontSize ? `style="font-size:${Number(node.fontSize)}px"` : ""}>${label}</text></g>`;
+        <text class="node-label" ${node.shape === "plain" ? `data-plain-label="${xml(node.id)}"` : ""} x="${tx}" y="${ty}" text-anchor="${center ? "middle" : "start"}" ${node.fontSize ? `style="font-size:${Number(node.fontSize)}px"` : ""}>${label}</text></g>`;
     }).join("");
     return `<svg class="diagram" viewBox="0 0 1280 720" role="img" aria-label="${xml(slide.diagramLabel ?? slide.title)}">
       <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--cp-border-strong)"/></marker></defs>${edges}${nodes}${foreground}</svg>`;
+  }
+  function payloadMarkup(prop, payload) {
+    const { x, y, w, h } = prop;
+    const left = x + w * .17, right = x + w * .83;
+    const top = y + h * .12, bottom = y + h * .5;
+    const fontSize = Math.min(16, h * .3, w / (payload.label.length * .65 + 1));
+    const detail = payload.type === "table"
+      ? `M${left} ${top}H${right}V${bottom}H${left}ZM${left} ${(top+bottom)/2}H${right}M${(left+right)/2} ${top}V${bottom}`
+      : `M${left} ${top}H${right}V${bottom}H${left}ZM${left+w*.08} ${top+h*.12}H${right-w*.08}M${left+w*.08} ${top+h*.24}H${right-w*.08}`;
+    return `<g data-payload="${xml(payload.type)}" opacity="${num(prop.opacity ?? 1)}">
+      <rect class="data-packet" data-prop="data-packet" x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" rx="4"/>
+      <path class="payload-detail" d="${detail}"/>
+      <text class="data-packet-label" x="${num(x+w/2)}" y="${num(y+h*.9)}" style="font-size:${num(fontSize)}px" text-anchor="middle">${xml(payload.label)}</text></g>`;
+  }
+  function actorScene(actor, progress) {
+    const motion = data.motions[actor.motion];
+    const frame = actor.from + (actor.to-actor.from) * progress;
+    const stage = { rootX: actor.x, groundY: actor.groundY, scale: actor.scale };
+    const sample = engineSampledFrame(sampleClipMotion, motion.clip, frame, stage);
+    const geometry = ENGINE_FRAME_GEOMETRY(sample);
+    let props = [];
+    if (actor.scene) {
+      const spec = structuredClone(motion.spec);
+      if (actor.keepProps && spec.review?.prop) {
+        delete spec.review.prop.enter;
+        delete spec.review.prop.exit;
+      }
+      props = layoutScene(spec, data.propsCatalog, frame, (index, side) =>
+        pointFromSample(engineSampledFrame(sampleClipMotion, motion.clip, index, stage), side), stage);
+    }
+    const markup = props.map(prop => actor.payload && prop.type === "box"
+      ? payloadMarkup(prop, actor.payload)
+      : scenePropMarkup(prop, geometry.strokeWidth, "var(--cp-text)")).join("");
+    return { frame, sample, geometry, markup: markup.replace(/\b(fill|stroke)="(#[0-9a-f]{3,8})"/gi, (_, attribute, color) =>
+      `${attribute}="${attribute === "stroke" ? "var(--cp-text-muted)" : /^#(?:fff|ffffff)$/i.test(color) ? "var(--cp-surface)" : "var(--cp-surface-soft)"}"`) };
   }
   function paint() {
     const activeBeat = state.progress < .55 && state.beat > 0 ? current().beats[state.beat-1] : beat();
     const active = new Set(activeBeat.active ?? []);
     $("stage").querySelectorAll("[data-target]").forEach(node => node.classList.toggle("active", active.has(node.dataset.target)));
+    $("stage").querySelectorAll("[data-component]").forEach(node => {
+      const shown = !activeBeat.visible || activeBeat.visible.includes(node.dataset.component);
+      node.style.display = shown ? "" : "none";
+      node.setAttribute("aria-hidden", String(!shown));
+    });
+    $("stage").querySelectorAll("[data-plain-label]").forEach(node =>
+      node.classList.toggle("emphasized", active.has(node.dataset.plainLabel)));
     $("stage").querySelectorAll("[data-label-target]").forEach(node => { node.style.display = active.has(node.dataset.labelTarget) ? "" : "none"; });
     $("caption").textContent = beat().caption;
     const actor = beat().actor;
     const layer = $("actor");
-    const visible = actor && state.animation && !state.demoStarted && !(actor.hideAtEnd && state.progress === 1);
+    const movieVisible = current().video && (state.beat > (current().video.revealBeat ?? 0) ||
+      (state.beat === (current().video.revealBeat ?? 0) && (!current().video.revealAtEnd || state.progress === 1)));
+    const visible = actor && actor.figure !== false && state.animation && !state.demoStarted && !(actor.hideAtEnd && state.progress === 1);
     layer.toggleAttribute("hidden", !visible);
-    if (visible) {
-      const clip = data.motions[actor.motion].clip;
-      const frame = actor.from + (actor.to-actor.from) * state.progress;
-      const sample = engineSampledFrame(sampleClipMotion, clip, frame, { rootX: actor.x, groundY: actor.groundY, scale: actor.scale });
-      const geometry = ENGINE_FRAME_GEOMETRY(sample);
-      layer.innerHTML = figureMarkup(sample, geometry, "var(--cp-text)");
+    if (actor && !state.demoStarted) {
+      const scene = actorScene(actor, state.progress);
+      layer.dataset.motion = actor.motion;
+      layer.dataset.frame = String(scene.frame);
+      layer.innerHTML = visible ? figureMarkup(scene.sample, scene.geometry, "var(--cp-text)") : "";
+      $("props").innerHTML = actor.scene && !(actor.hideSceneAtEnd && state.progress === 1) ? scene.markup : "";
       if (/NaN|Infinity/.test(layer.innerHTML)) throw new Error("Actor produced nonfinite geometry");
     } else {
+      delete layer.dataset.motion;
+      delete layer.dataset.frame;
       layer.innerHTML = "";
+      $("props").innerHTML = "";
     }
+    $("objects").innerHTML = (current().objects ?? []).map(object => {
+      const next = beat().objects?.[object.id];
+      if (!next || next.visible === false) return "";
+      const previous = state.beat > 0 ? current().beats[state.beat-1].objects?.[object.id] : next;
+      const start = { ...object, ...previous };
+      const end = { ...object, ...next };
+      const position = { ...end };
+      const progress = Math.max(0, Math.min(1, (state.progress-(next.startAt ?? 0))/(1-(next.startAt ?? 0))));
+      for (const key of ["x", "y", "w", "h"]) position[key] = start[key] + (end[key]-start[key])*progress;
+      const type = progress < .55 ? start.type : end.type;
+      const label = progress < .55 ? start.label : end.label;
+      return payloadMarkup(position, { type, label });
+    }).join("");
+    if (/NaN|Infinity/.test($("props").innerHTML)) throw new Error("Scene prop produced nonfinite geometry");
     const atEnd = state.slide === data.slides.length-1 && state.beat === current().beats.length-1 && state.progress === 1;
     $("next").disabled = state.playing || atEnd;
     $("next").textContent = state.playing ? "Demo playing" : state.progress < 1 ? "Finish beat" : state.beat < current().beats.length-1 ? "Next beat" : atEnd ? (data.slides.length === data.sourceCount ? "End of presentation" : "End of preview") : "Next slide";
     $("back").disabled = state.slide === 0 && state.beat === 0;
-    $("replay").disabled = state.playing || !state.animation || !actor;
+    $("replay").disabled = state.playing || !state.animation || !actor || actor.from === actor.to;
     $("beat-status").textContent = `Source slide ${current().source} of ${data.sourceCount} · Beat ${state.beat+1} / ${current().beats.length}${state.playing ? " · Character paused" : ""}`;
     $("motion").textContent = state.animation ? "Animation on" : "Animation off";
     $("motion").setAttribute("aria-pressed", String(state.animation));
-    $("play-demo").hidden = !current().video;
+    $("play-demo").hidden = !movieVisible;
     $("play-demo").disabled = state.playing;
     $("play-demo").textContent = state.demoStarted ? "Resume original demo" : "Play original demo";
+    $("expand-demo").hidden = !movieVisible;
     if (current().video) {
-      $("play-overlay").hidden = state.demoStarted;
+      $("video-wrap").hidden = !movieVisible;
+      $("play-expanded").disabled = state.playing;
+      $("play-expanded").textContent = state.demoStarted ? "Resume original demo" : "Play original demo";
       const focus = current().video.focus;
       const poster = $("poster"), detail = $("video-detail");
       const showDetail = !state.demoStarted && focus && state.beat === focus.beat && poster.naturalWidth > 0;
@@ -157,25 +221,22 @@
     $("error").hidden = true;
     const slide = current();
     const movie = slide.video;
-    const videoMarkup = movie ? `<div class="video-wrap" style="left:${movie.x}px;top:${movie.y}px;width:${movie.width}px;height:${movie.height}px">
+    const videoMarkup = movie ? `<div id="video-wrap" class="video-wrap" style="left:${movie.x}px;top:${movie.y}px;width:${movie.width}px;height:${movie.height}px">
       <img id="poster" class="video-poster" src="${mediaUrl(movie.poster)}" alt="${xml(slide.title)} original demo poster">
       <svg id="video-detail" class="video-detail" hidden role="img" aria-label="Enlarged detail from the original demo poster"><image href="${mediaUrl(movie.poster)}"/></svg>
       <video id="demo" hidden controls preload="none" playsinline poster="${mediaUrl(movie.poster)}" aria-label="${xml(slide.title)} embedded demo"></video>
-      <button id="play-overlay" class="primary play-overlay">Play original demo</button></div>` : "";
+      <nav class="demo-fullscreen-controls" aria-label="Enlarged demo controls"><button id="play-expanded" class="primary">Play original demo</button><button id="close-expanded">Exit enlarged demo</button></nav></div>` : "";
     $("stage").innerHTML = `<div class="eyebrow">${xml(slide.section)}</div><h1>${xml(slide.title)}</h1>
       <p class="subtitle">${xml(slide.subtitle)}</p>${diagramMarkup(slide)}${videoMarkup}
+      <svg id="objects" class="scene-props" viewBox="0 0 1280 720" aria-hidden="true"></svg>
+      <svg id="props" class="scene-props" viewBox="0 0 1280 720" aria-hidden="true"></svg>
       <svg id="actor" class="actor-layer" viewBox="0 0 1280 720" aria-hidden="true"></svg>
       <p id="caption" class="beat-caption"></p>`;
     if (movie) {
-      const asset = data.media[movie.asset];
-      const raw = atob(asset.base64);
-      const bytes = new Uint8Array(raw.length);
-      for (let index = 0; index < raw.length; index++) bytes[index] = raw.charCodeAt(index);
-      videoUrl = URL.createObjectURL(new Blob([bytes], { type: asset.mime }));
       video = $("demo");
-      video.src = videoUrl;
       $("poster").addEventListener("load", () => { if (video) paint(); });
-      $("play-overlay").addEventListener("click", playDemo);
+      $("play-expanded").addEventListener("click", playDemo);
+      $("close-expanded").addEventListener("click", () => document.exitFullscreen().catch(report));
       const element = video;
       element.addEventListener("play", () => {
         if (video !== element) return;
@@ -329,6 +390,14 @@
   }
   function playDemo() {
     if (!video) return;
+    if (!videoUrl) {
+      const asset = data.media[current().video.asset];
+      const raw = atob(asset.base64);
+      const bytes = new Uint8Array(raw.length);
+      for (let index = 0; index < raw.length; index++) bytes[index] = raw.charCodeAt(index);
+      videoUrl = URL.createObjectURL(new Blob([bytes], { type: asset.mime }));
+      video.src = videoUrl;
+    }
     video.hidden = false;
     $("poster").hidden = true;
     $("video-detail").setAttribute("hidden", "");
@@ -346,6 +415,9 @@
   $("notes").addEventListener("click", notes);
   $("source").addEventListener("click", original);
   $("play-demo").addEventListener("click", playDemo);
+  $("expand-demo").addEventListener("click", () => {
+    if ($("video-wrap")) $("video-wrap").requestFullscreen().catch(report);
+  });
   $("fullscreen").addEventListener("click", fullscreen);
   $("close-dialog").addEventListener("click", () => $("dialog").close());
   $("theme").addEventListener("click", () => { document.documentElement.dataset.theme = document.documentElement.dataset.theme === "dark" ? "light" : "dark"; });

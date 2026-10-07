@@ -41,6 +41,10 @@ over a running demo. A representative pilot must receive user review before
 full-deck expansion. Private source material and derived HTML are not repository
 examples, gallery assets or mirror content. This is not universal conversion or
 an automatic animation-authoring capability.
+Development feedback now rejects both the NIST IT comparison (**1/10**) and the
+actual three-slide source-deck HTML pilot (**2/10**). Neither treatment is an
+approved template. Stop expanding the rejected pilot; rework concrete
+interactions and explanatory progression before requesting another assessment.
 The default release-style catalogue is rating-free across UI, JSON and preview
 downloads; scores and review history belong only in development. The separate
 development build retains 98 historical approvals; the release-style build has

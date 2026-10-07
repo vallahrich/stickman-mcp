@@ -77,8 +77,10 @@ Both builds remain private/noindex. The gallery explicitly distinguishes
 preview availability from runtime integration. It does not publish a site,
 promote motions, or change agent
 settings. See [showcase creation](docs/designer-showcase.md) for the one-minute
-IT video and real NIST presentation before/after example, and
+IT video and historical NIST comparison experiment, and
 [MCP setup](docs/mcp-setup.md) for Copilot, Claude Code and Codex.
+The presentation treatments remain unqualified visual experiments, not approved
+examples of improving a source deck.
 
 For real source decks, a separate [local HTML presentation workflow](docs/offline-presentations.md)
 retains original slides, notes, screenshots and embedded demos while an explicit
