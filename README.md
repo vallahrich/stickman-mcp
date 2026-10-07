@@ -85,8 +85,11 @@ examples of improving a source deck.
 For real source decks, a separate [local HTML presentation workflow](docs/offline-presentations.md)
 retains original slides, notes, screenshots and embedded demos while an explicit
 storyboard adds presenter-controlled diagram beats. It uses the shipping rig,
-works offline as one HTML file, and pauses the actor during videos. Start with a
-small visual pilot before converting a full deck. This is not automatic redesign
+works offline as one HTML file, and pauses the actor during videos. Source
+screenshots enlarge uncropped, resource links remain explicit, and complete
+conversion retains every slide and recording, including an empty ending.
+Start with a small visual pilot unless the user directs full autonomous
+conversion. This is not automatic redesign
 or an additional MCP tool; private source decks and their outputs stay outside Git.
 
 ## Contract and catalog

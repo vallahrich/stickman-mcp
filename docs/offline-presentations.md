@@ -31,6 +31,23 @@ Selected authored clips must pass their existing mechanical checks. Clip
 geometry is sampled by the shipping renderer, not replaced by CSS figures or
 hundreds of complete SVG frames.
 
+Set `complete: true` on a full-deck storyboard: validation requires every
+original slide, in order, and every recording on its own source slide. An
+optional text `notice` appears outside the slide stage, for example to identify
+historical preview terminology. A genuinely empty original slide can use
+`blank: true`, empty heading fields and an empty-caption beat; it stays in the
+sequence and renders an empty stage rather than an invented conclusion.
+
+`slide.images` places actual source screenshots using unique `id`, `asset`,
+`x`/`y`/`width`/`height` and accessible `alt`. Clicking enlarges the uncropped
+original. A beat's `imageFocus[id]` can emphasize a normalized
+`left`/`top`/`width`/`height` detail; Back reconstructs the full image or crop
+without accumulating state. `slide.resources` places explicit source links
+using `id`, `href`, `label` and the same rectangle fields; `large: true` provides
+a larger call to action. Destinations must exactly match an original hyperlink
+or URL token in that slide's text, not just a substring. They open in a separate
+tab only when clicked and are never fetched by the presentation.
+
 For an object interaction, set `actor.scene: true` to draw the approved clip's
 actual props and `keepProps: true` to retain them after its review lifecycle.
 Optional `payload: {type: "files" | "table", label: "..."}` replaces only the
@@ -42,7 +59,7 @@ Prop fills use the presentation theme while keeping laptop screen, keyboard
 and body details distinct; original source imagery remains untouched.
 
 Diagram nodes can use `shape: "plain"` for typography or `"band"` for a shared
-space. `beat.visible` declares the complete set of diagram IDs shown at that
+space. `beat.visible` declares the complete set of diagram, image and resource IDs shown at that
 beat; omitting it shows all components. Visibility and emphasis are recomputed
 on every seek, never accumulated. Independent `slide.objects` have unique IDs,
 `type`/`label` and stage-space `x`/`y`/`w`/`h`; a beat's `objects` contains their
@@ -79,7 +96,9 @@ Original slide reconstructs source positions and also shows uncropped images;
 this is not a pixel-perfect Office rendering.
 
 Start with representative source slides and obtain visual feedback before
-expanding a deck. Automated checks establish fidelity and behavior, **not**
+expanding a deck, unless the user explicitly directs autonomous completion.
+That direction is permission to finish, not a quality rating.
+Automated checks establish fidelity and behavior, **not**
 presentation quality or user approval. Preserve historical terminology, repeated
 headings, blank slides and explicit preview labels; do not silently update claims.
 
@@ -103,7 +122,12 @@ npx playwright test --config playwright.presentation.config.mjs
 This opens `file://` with networking offline, checks presenter state, source
 notes/images, video playback/disposal, deterministic back/replay and reduced
 motion, payload-label clearance, exact rendered hand/prop contact, same-clip
-boundary continuity and a single retained object across access beats. It
+boundary continuity and a single retained object across access beats. Complete
+outputs are compared with their neighboring `source.json` for exact original
+slide/notes coverage and embedded media hashes. Every recording is decoded,
+played, seek-tested and disposed offline; source screenshot crops/enlargement, links
+and the blank ending are exercised too. Large embedded inventories are inspected
+directly rather than through a locator's expensive element preview. The suite
 captures stable beats and decisive contact frames locally. Also inspect moving
 frames, labels, crossings, actor contact/aim and source coverage visually. Keep private
 QA outputs out of published sites, commits and CI artifacts.

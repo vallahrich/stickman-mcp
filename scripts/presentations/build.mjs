@@ -17,6 +17,8 @@ export function validatePresentation(source, design) {
   if (source.version !== 1 || !Array.isArray(source.slides) || !source.assets) throw new Error("Unsupported source manifest");
   if (!source.canvasEmu || !Number.isFinite(source.canvasEmu.width) || !Number.isFinite(source.canvasEmu.height) || source.canvasEmu.width <= 0 || source.canvasEmu.height <= 0) throw new Error("Invalid source dimensions");
   if (typeof design.title !== "string" || !design.title.trim() || !Array.isArray(design.slides) || !design.slides.length) throw new Error("A presentation needs a title and slides");
+  if (design.complete !== undefined && typeof design.complete !== "boolean") throw new Error("Invalid complete-presentation flag");
+  if (design.notice !== undefined && typeof design.notice !== "string") throw new Error("Presentation notice must be text");
   const indices = new Set();
   let previous = 0;
   for (const slide of design.slides) {
@@ -42,6 +44,26 @@ export function validatePresentation(source, design) {
       if (edge.label && (!Number.isFinite(edge.label.x) || !Number.isFinite(edge.label.y) || typeof edge.label.text !== "string")) throw new Error(`Edge ${edge.id}: invalid label`);
       ids.add(edge.id);
     }
+    for (const image of slide.images ?? []) {
+      if (!image.id || ids.has(image.id)) throw new Error(`Slide ${slide.source}: duplicate image ID`);
+      if (!original.media.includes(image.asset) || !source.assets[image.asset]?.mime.startsWith("image/")) throw new Error("Image must belong to its source slide");
+      for (const key of ["x", "y", "width", "height"]) if (!Number.isFinite(image[key])) throw new Error(`Invalid image ${key}`);
+      if (image.width <= 0 || image.height <= 0 || image.x < 0 || image.y < 160 || image.x + image.width > 1280 || image.y + image.height > 640) throw new Error("Image is outside the content area");
+      if (typeof image.alt !== "string" || !image.alt.trim()) throw new Error("Source image needs an accessible description");
+      ids.add(image.id);
+    }
+    for (const resource of slide.resources ?? []) {
+      if (!resource.id || ids.has(resource.id)) throw new Error(`Slide ${slide.source}: duplicate resource ID`);
+      const sourceText = (original.text ?? []).join("\n");
+      const sourceUrls = new Set([...(original.links ?? []), ...(sourceText.match(/https?:\/\/[^\s]+|(?:[a-z\d-]+\.)+[a-z]{2,}\/[^\s]+/gi) ?? [])
+        .map(url => /^https?:\/\//i.test(url) ? url : `https://${url}`)]);
+      if (!/^https:\/\//i.test(resource.href) || !sourceUrls.has(resource.href)) throw new Error("Resource link must appear in its source slide");
+      for (const key of ["x", "y", "width", "height"]) if (!Number.isFinite(resource[key])) throw new Error(`Invalid resource ${key}`);
+      if (resource.width <= 0 || resource.height <= 0 || resource.x < 0 || resource.y < 160 || resource.x + resource.width > 1280 || resource.y + resource.height > 640) throw new Error("Resource link is outside the content area");
+      if (typeof resource.label !== "string" || !resource.label.trim()) throw new Error("Resource link needs a label");
+      if (resource.large !== undefined && typeof resource.large !== "boolean") throw new Error("Invalid resource size");
+      ids.add(resource.id);
+    }
     const diagramIds = new Set(ids);
     for (const object of slide.objects ?? []) {
       if (!object.id || ids.has(object.id)) throw new Error(`Slide ${slide.source}: duplicate object ID`);
@@ -55,6 +77,11 @@ export function validatePresentation(source, design) {
       for (const key of ["active", "visible"]) if (beat[key] !== undefined && (!Array.isArray(beat[key]) || !beat[key].every(id => typeof id === "string"))) throw new Error(`Invalid ${key} targets`);
       for (const id of beat.active ?? []) if (!diagramIds.has(id)) throw new Error(`Unknown cue target ${id}`);
       for (const id of beat.visible ?? []) if (!diagramIds.has(id)) throw new Error(`Unknown reveal target ${id}`);
+      for (const [id, focus] of Object.entries(beat.imageFocus ?? {})) {
+        if (!slide.images?.some(image => image.id === id)) throw new Error(`Unknown source image ${id}`);
+        for (const key of ["left", "top", "width", "height"]) if (!Number.isFinite(focus[key])) throw new Error(`Invalid image focus ${key}`);
+        if (focus.left < 0 || focus.top < 0 || focus.width <= 0 || focus.height <= 0 || focus.left + focus.width > 1 || focus.top + focus.height > 1) throw new Error("Image focus is outside its source image");
+      }
       for (const [id, change] of Object.entries(beat.objects ?? {})) {
         const originalObject = slide.objects?.find(object => object.id === id);
         if (!originalObject) throw new Error(`Unknown data object ${id}`);
@@ -85,6 +112,15 @@ export function validatePresentation(source, design) {
       }
       if (movie.revealBeat !== undefined && (!Number.isInteger(movie.revealBeat) || movie.revealBeat < 0 || movie.revealBeat >= slide.beats.length)) throw new Error("Invalid video reveal beat");
       if (movie.revealAtEnd !== undefined && typeof movie.revealAtEnd !== "boolean") throw new Error("Invalid video reveal timing");
+    }
+    if (slide.blank !== undefined && typeof slide.blank !== "boolean") throw new Error("Invalid blank-slide flag");
+    if (slide.blank && ((original.text ?? []).length || (original.notes ?? []).length || original.media.length ||
+      slide.title || slide.subtitle || slide.section || slide.nodes?.length || slide.edges?.length || slide.images?.length || slide.resources?.length || slide.video || slide.objects?.length || slide.beats.some(beat => beat.caption || beat.actor))) throw new Error("A blank slide must preserve a genuinely empty source slide");
+  }
+  if (design.complete) {
+    if (design.slides.length !== source.slides.length || source.slides.some(slide => !indices.has(slide.number))) throw new Error("Complete presentation must preserve every source slide");
+    for (const original of source.slides) for (const id of original.media.filter(id => source.assets[id]?.mime === "video/mp4")) {
+      if (design.slides.find(slide => slide.source === original.number).video?.asset !== id) throw new Error("Complete presentation must retain every original recording");
     }
   }
 }
@@ -131,7 +167,7 @@ export async function buildPresentation({ sourceFile, designFile, outputFile }) 
     stageKitSource(),
     fs.readFile(path.join(repo, "motions", "review-props.json"), "utf8").then(JSON.parse)
   ]);
-  const data = { title: design.title, sourceName: source.sourceName, sourceSha256: source.sourceSha256,
+  const data = { title: design.title, complete: design.complete === true, notice: design.notice ?? "", sourceName: source.sourceName, sourceSha256: source.sourceSha256,
     sourceCount: source.slides.length, canvasEmu: source.canvasEmu, slides: selected, media, motions, propsCatalog };
   const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -155,6 +191,7 @@ export async function buildPresentation({ sourceFile, designFile, outputFile }) 
 <nav class="controls" aria-label="Presenter controls"><button id="back">Back</button><button id="replay">Replay beat</button>
 <span id="beat-status" role="status" aria-live="polite"></span><button id="source">Original slide</button><button id="notes">Notes</button><button id="play-demo" hidden>Play original demo</button><button id="expand-demo" hidden>Enlarge demo</button><button id="next" class="primary">Next beat</button></nav>
 <p class="help">Space / Right: next beat · Left: back · N: notes · O: original · F: fullscreen. Videos play only when you choose Play.</p>
+${design.notice ? `<p class="help">${escapeHtml(design.notice)}</p>` : ""}
 <div id="error" role="alert" hidden></div>
 </main><dialog id="dialog"><div class="dialog-header"><h2 id="dialog-title"></h2><button id="close-dialog">Close</button></div><div id="dialog-body"></div></dialog>
 <script type="application/json" id="presentation-data">${scriptJson(data)}</script>

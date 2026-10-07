@@ -106,4 +106,47 @@ describe("local presentation validation", () => {
     input.slides[0]!.beats[0]!.visible.push("data");
     expect(() => validatePresentation(source(), input)).toThrow("Unknown reveal");
   });
+  it("ties displayed screenshots, focus crops and links to their actual source", () => {
+    const manifest = {
+      ...source(), assets: { poster: { mime: "image/png" } },
+      slides: [{ number: 1, media: ["poster"], text: ["Read example.invalid/resource"], notes: [], links: [] }]
+    };
+    const input = {
+      ...design(), slides: [{
+        ...design().slides[0],
+        images: [{ id: "screenshot", asset: "poster", x: 64, y: 170, width: 1152, height: 450, alt: "Original UI" }],
+        resources: [{ id: "link", href: "https://example.invalid/resource", label: "Original resource", x: 64, y: 200, width: 400, height: 80 }],
+        beats: [{ caption: "Inspect the source.", active: ["screenshot"], imageFocus: { screenshot: { left: .1, top: .1, width: .8, height: .8 } } }]
+      }]
+    };
+    expect(() => validatePresentation(manifest, input)).not.toThrow();
+    input.slides[0]!.images[0]!.asset = "other";
+    expect(() => validatePresentation(manifest, input)).toThrow("Image must belong");
+    input.slides[0]!.images[0]!.asset = "poster";
+    input.slides[0]!.beats[0]!.imageFocus.screenshot.width = 1;
+    expect(() => validatePresentation(manifest, input)).toThrow("Image focus is outside");
+    input.slides[0]!.beats[0]!.imageFocus.screenshot.width = .8;
+    input.slides[0]!.resources[0]!.href = "https://example.invalid/resourc";
+    expect(() => validatePresentation(manifest, input)).toThrow("Resource link must appear");
+  });
+  it("requires complete decks to preserve all source slides and recordings", () => {
+    const incomplete = { ...design(), complete: true };
+    expect(() => validatePresentation(source(), incomplete)).toThrow("preserve every source slide");
+    const input = { ...incomplete, slides: [1, 2, 3].map(number => ({ ...design().slides[0], source: number })) };
+    expect(() => validatePresentation(source(), input)).not.toThrow();
+    const manifest = { ...source(), assets: { movie: { mime: "video/mp4" } },
+      slides: source().slides.map(slide => ({ ...slide, media: slide.number === 2 ? ["movie"] : [] })) };
+    expect(() => validatePresentation(manifest, input)).toThrow("retain every original recording");
+  });
+  it("keeps a blank source slide genuinely blank instead of dropping it", () => {
+    const input = { title: "Source deck", slides: [{ source: 1, title: "", subtitle: "", section: "", blank: true, beats: [{ caption: "" }] }] };
+    expect(() => validatePresentation(source(), input)).not.toThrow();
+    const manifest = { ...source(), slides: [{ number: 1, media: [], notes: [], text: ["Important source content"] }] };
+    expect(() => validatePresentation(manifest, input)).toThrow("genuinely empty");
+  });
+  it("rejects truthy non-booleans and a non-text notice", () => {
+    expect(() => validatePresentation(source(), { ...design(), complete: "true" })).toThrow("flag");
+    expect(() => validatePresentation(source(), { ...design(), notice: 42 })).toThrow("notice");
+    expect(() => validatePresentation(source(), { ...design(), slides: [{ ...design().slides[0], blank: "true" }] })).toThrow("blank-slide flag");
+  });
 });

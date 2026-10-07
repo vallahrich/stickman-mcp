@@ -37,14 +37,20 @@ New visual approval is still required; passing runtime checks is insufficient.
 The next presentation-quality gate uses actual source slides rather than generic
 story examples. A [local PPTX-to-HTML path](offline-presentations.md) preserves
 source notes/media and uses explicit presenter-controlled beats, with no actor
-over a running demo. A representative pilot must receive user review before
-full-deck expansion. Private source material and derived HTML are not repository
+over a running demo. Representative pilot review normally precedes full-deck
+expansion; the user's subsequent explicit instruction to complete autonomously
+authorized expansion of the revised object-interaction candidate, not a new
+quality score or template approval. Private source material and derived HTML are not repository
 examples, gallery assets or mirror content. This is not universal conversion or
 an automatic animation-authoring capability.
 Development feedback now rejects both the NIST IT comparison (**1/10**) and the
 actual three-slide source-deck HTML pilot (**2/10**). Neither treatment is an
-approved template. Stop expanding the rejected pilot; rework concrete
-interactions and explanatory progression before requesting another assessment.
+approved template. The rejected treatment was reworked with real push,
+laptop-opening and carry props, delayed released-data handoff, explicit diagram
+reveals and uninterrupted source recordings. The full local conversion adds
+source-image focus/enlargement, exact original resource links, complete
+slide/media fidelity checks and a genuinely blank ending. It remains an
+unqualified development candidate, not a published gallery template.
 The default release-style catalogue is rating-free across UI, JSON and preview
 downloads; scores and review history belong only in development. The separate
 development build retains 98 historical approvals; the release-style build has

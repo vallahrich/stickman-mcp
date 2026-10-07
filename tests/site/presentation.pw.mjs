@@ -29,6 +29,7 @@ test.beforeAll(async () => {
     links: ["https://example.invalid/resource"], media: number === 2 ? ["poster", "movie"] : ["poster"],
     shapes: [{ bounds: { x: 100, y: 160, width: 900, height: 500 }, media: ["poster"], text: [], crop: { t: "500" } }]
   }));
+  originals.push({ number: 4, text: [], notes: [], links: [], media: [], shapes: [] });
   const slides = originals.map(original => ({
     source: original.number, section: "Authored example", title: `Test slide ${original.number}`, subtitle: "Source-free local fixture.",
     nodes: [{ id: "activity", x: 320, y: 340, width: 300, height: 120, label: ["Activity"] }],
@@ -65,9 +66,13 @@ test.beforeAll(async () => {
     { caption: "Release the payload.", active: ["activity"], actor: actor("lift-carry", 159, 180, { payload: table, hideAtEnd: true }) },
     { caption: "Another access path uses the same payload.", active: [], actor: actor("lift-carry", 180, 180, { payload: table, figure: false }) }
   ];
+  slides[2].images = [{ id: "source-image", asset: "poster", x: 800, y: 180, width: 350, height: 200, alt: "Original fixture poster" }];
+  slides[2].resources = [{ id: "resource", href: "https://example.invalid/resource", label: "Source resource", x: 800, y: 440, width: 350, height: 96 }];
+  slides[2].beats[4].imageFocus = { "source-image": { left: .1, top: .1, width: .8, height: .8 } };
+  slides[3] = { source: 4, title: "", subtitle: "", section: "", blank: true, beats: [{ caption: "" }] };
   const sourceFile = path.join(temporary, "source.json"), designFile = path.join(temporary, "design.json");
   await fs.writeFile(sourceFile, JSON.stringify({ version: 1, sourceName: "fixture.pptx", sourceSha256: "fixture", canvasEmu: { width: 1280, height: 720 }, slides: originals, assets }));
-  await fs.writeFile(designFile, JSON.stringify({ title: "Offline fixture", slides }));
+  await fs.writeFile(designFile, JSON.stringify({ title: "Offline fixture", complete: true, slides }));
   artifact = path.join(temporary, "fixture.html");
   await buildPresentation({ sourceFile, designFile, outputFile: artifact });
 });
@@ -82,9 +87,9 @@ test.beforeEach(async ({ page, context }) => {
   await page.goto(`${pathToFileURL(artifact).href}?scoutTheme=light`);
   await expect(page.locator("#error")).toBeHidden();
 });
-const model = page => page.locator("#presentation-data").evaluate(el => {
-  const data = JSON.parse(el.textContent);
-  return { slides: data.slides, sourceCount: data.sourceCount, sourceSha256: data.sourceSha256 };
+const model = page => page.evaluate(() => {
+  const data = JSON.parse(document.getElementById("presentation-data").textContent);
+  return { slides: data.slides, complete: data.complete, sourceCount: data.sourceCount, sourceSha256: data.sourceSha256 };
 });
 const finish = async page => {
   await expect(page.locator("#next")).not.toHaveText("Finish beat");
@@ -222,13 +227,20 @@ test("reduced motion and Animation off retain every explanation beat", async ({ 
   await expect(page.locator("#error")).toBeHidden();
 });
 test("all slides and stable beats render without nonfinite geometry or missing captions", async ({ page }) => {
+  await page.clock.install();
+  await page.clock.pauseAt(new Date(Date.now() + 1000));
+  await page.reload();
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
   const data = await model(page);
   for (let slide = 0; slide < data.slides.length; slide++) {
     await page.locator("#slide-select").selectOption(String(slide));
     for (let index = 0; index < data.slides[slide].beats.length; index++) {
-      if (index) { await page.locator("#next").click(); await finish(page); }
+      if (index) {
+        await page.locator("#next").dispatchEvent("click");
+        await page.clock.runFor((data.slides[slide].beats[index].actor?.durationMs ?? 650) + 20);
+        await finish(page);
+      }
       await expect(page.locator("#caption")).toHaveText(data.slides[slide].beats[index].caption);
       const components = await page.locator("#stage [data-component]").evaluateAll(nodes =>
         nodes.map(node => ({ id: node.dataset.component, shown: node.style.display !== "none" })));
@@ -247,6 +259,25 @@ test("all slides and stable beats render without nonfinite geometry or missing c
           .filter(attribute => ["d", "x", "y", "cx", "cy", "r", "width", "height", "transform", "viewBox"].includes(attribute.name) && /NaN|Infinity/.test(attribute.value))
           .map(attribute => `${node.tagName}.${attribute.name}`))));
       expect(invalidGeometry).toEqual([]);
+      const textProblems = await page.evaluate(() => {
+        const stage = document.getElementById("stage").getBoundingClientRect();
+        const bounds = selector => {
+          const element = document.querySelector(selector);
+          if (!element?.textContent) return null;
+          const range = document.createRange();
+          range.selectNodeContents(element);
+          return range.getBoundingClientRect();
+        };
+        const title = bounds("#stage h1"), subtitle = bounds("#stage .subtitle");
+        const problems = [];
+        if (title && subtitle && title.bottom >= subtitle.top) problems.push("Heading overlaps subtitle");
+        for (const selector of ["#stage h1", "#stage .subtitle", "#caption"]) {
+          const text = bounds(selector);
+          if (text && (text.left < stage.left || text.right > stage.right || text.bottom > stage.bottom)) problems.push(`${selector} leaves stage`);
+        }
+        return problems;
+      });
+      expect(textProblems, `Source ${data.slides[slide].source}, beat ${index}`).toEqual([]);
       await expect(page.locator("#error")).toBeHidden();
       if (process.env.STICKMAN_PRESENTATION_QA) await page.locator(".stage-frame").screenshot({ path: path.join(process.env.STICKMAN_PRESENTATION_QA, `slide-${data.slides[slide].source}-beat-${index}.png`) });
     }
@@ -379,7 +410,7 @@ test("the data object takes over at the prop endpoint and waits until after rele
 
 test("the deposited payload stays single and unchanged across subsequent access beats", async ({ page }) => {
   const data = await model(page);
-  const index = data.slides.findIndex(slide => slide.beats.some(beat => beat.actor?.motion === "lift-carry"));
+  const index = data.slides.findIndex(slide => slide.beats.filter(beat => beat.actor?.motion === "lift-carry" && beat.actor.to >= 159).length >= 3);
   expect(index).toBeGreaterThanOrEqual(0);
   await page.locator("#slide-select").selectOption(String(index));
   let deposited = null;
@@ -398,4 +429,105 @@ test("the deposited payload stays single and unchanged across subsequent access 
   if (process.env.STICKMAN_PRESENTATION_QA) await page.locator(".stage-frame").screenshot({
     path: path.join(process.env.STICKMAN_PRESENTATION_QA, `slide-${data.slides[index].source}-dark.png`)
   });
+});
+
+test("complete conversion preserves every original slide, note, image and movie byte", async ({ page }) => {
+  const data = await model(page);
+  expect(data.complete).toBe(true);
+  const expected = JSON.parse(await fs.readFile(path.join(path.dirname(artifact), "source.json"), "utf8"));
+  expect(data.slides.map(slide => slide.source)).toEqual(expected.slides.map(slide => slide.number));
+  expect(data.slides.map(slide => slide.original)).toEqual(expected.slides);
+  const html = await fs.readFile(artifact, "utf8");
+  const embedded = JSON.parse(html.match(/<script type="application\/json" id="presentation-data">([\s\S]*?)<\/script>/)[1]);
+  const ids = [...new Set(expected.slides.flatMap(slide => slide.media))];
+  for (const id of ids) {
+    expect(createHash("sha256").update(Buffer.from(embedded.media[id].base64, "base64")).digest("hex"), `Unchanged asset ${id}`).toBe(expected.assets[id].sha256);
+  }
+  const movies = expected.slides.flatMap(slide => slide.media.filter(id => expected.assets[id].mime === "video/mp4"));
+  expect(data.slides.filter(slide => slide.video).map(slide => slide.video.asset)).toEqual(movies);
+  const blank = data.slides.findIndex(slide => slide.blank);
+  if (blank >= 0) {
+    await page.locator("#slide-select").selectOption(String(blank));
+    await expect(page.locator("#stage h1, #stage .eyebrow, #stage .source-figure, #stage .resource-link")).toHaveCount(0);
+    await expect(page.locator("#caption")).toBeEmpty();
+    await expect(page.locator("#actor")).toBeEmpty();
+  }
+});
+
+test("each original recording decodes, seeks, plays offline and stops on navigation", async ({ page }) => {
+  const data = await model(page);
+  for (let index = 0; index < data.slides.length; index++) {
+    const movie = data.slides[index].video;
+    if (!movie) continue;
+    await page.locator("#slide-select").selectOption(String(index));
+    for (let beat = 1; beat <= (movie.revealBeat ?? 0); beat++) {
+      await page.locator("#next").click();
+      await finish(page);
+    }
+    await expect(page.locator("video")).not.toHaveAttribute("src");
+    await page.locator("#play-demo").click();
+    await expect.poll(() => page.locator("video").evaluate(video => video.currentTime)).toBeGreaterThan(0);
+    await expect(page.locator("#actor [data-stickman]")).toHaveCount(0);
+    await expect(page.locator("#props")).toBeEmpty();
+    await expect(page.locator("#next")).toBeDisabled();
+    const decoded = await page.locator("video").evaluate(video => ({ width: video.videoWidth, height: video.videoHeight, duration: video.duration }));
+    expect(decoded.width).toBeGreaterThan(0);
+    expect(decoded.height).toBeGreaterThan(0);
+    expect(decoded.duration).toBeGreaterThan(0);
+    await page.locator("video").evaluate(video => {
+      video.pause();
+      video.currentTime = video.duration * .75;
+    });
+    await expect.poll(() => page.locator("video").evaluate(video => video.seeking)).toBe(false);
+    if (process.env.STICKMAN_PRESENTATION_QA) await page.locator(".stage-frame").screenshot({
+      path: path.join(process.env.STICKMAN_PRESENTATION_QA, `slide-${data.slides[index].source}-movie-seek.png`)
+    });
+    await page.locator("video").evaluate(video => { window.lastMovie = video; });
+    await page.locator("#slide-select").selectOption(String((index+1)%data.slides.length));
+    expect(await page.evaluate(() => ({ paused: window.lastMovie.paused, src: window.lastMovie.getAttribute("src") }))).toEqual({ paused: true, src: null });
+    await expect(page.locator("#error")).toBeHidden();
+  }
+});
+
+test("source screenshots enlarge uncropped and resource links retain their destinations", async ({ page }) => {
+  const data = await model(page);
+  for (let index = 0; index < data.slides.length; index++) {
+    const slide = data.slides[index];
+    if (!slide.images?.length && !slide.resources?.length) continue;
+    await page.locator("#slide-select").selectOption(String(index));
+    for (const image of slide.images ?? []) {
+      const frame = page.locator(`#image-${image.id}`);
+      if (!(await frame.isVisible())) {
+        await page.locator("#motion").evaluate(button => { if (button.getAttribute("aria-pressed") === "true") button.click(); });
+        for (let beat = 1; beat < slide.beats.length && !(await frame.isVisible()); beat++) await page.locator("#next").click();
+      }
+      await frame.click();
+      await expect(page.locator("#dialog img")).toHaveJSProperty("complete", true);
+      expect(await page.locator("#dialog img").evaluate(image => image.naturalWidth)).toBeGreaterThan(0);
+      await page.locator("#close-dialog").click();
+      const focused = slide.beats.findIndex(beat => beat.imageFocus?.[image.id]);
+      if (focused >= 0) {
+        await page.locator("#motion").evaluate(button => { if (button.getAttribute("aria-pressed") === "true") button.click(); });
+        await page.locator("#slide-select").selectOption(String(index));
+        for (let beat = 1; beat <= focused; beat++) await page.locator("#next").click();
+        await expect(frame.locator("svg")).toBeVisible();
+        await expect(frame.locator("img")).toBeHidden();
+        const crop = await frame.locator("svg").evaluate(svg => ({ width: svg.viewBox.baseVal.width, height: svg.viewBox.baseVal.height }));
+        expect(crop.width).toBeGreaterThan(0);
+        expect(crop.height).toBeGreaterThan(0);
+        await page.locator("#back").click();
+        await expect(frame.locator("img")).toBeVisible();
+        await expect(frame.locator("svg")).toBeHidden();
+      }
+    }
+    for (const resource of slide.resources ?? []) {
+      const link = page.locator(`a[data-component="${resource.id}"]`);
+      await expect(link).toHaveAttribute("href", resource.href);
+      await expect(link).toHaveAttribute("target", "_blank");
+      await expect(link).toHaveAttribute("rel", "noopener noreferrer");
+      const geometry = await link.evaluate(link => ({ scroll: link.scrollHeight, height: link.clientHeight, width: link.clientWidth, scrollWidth: link.scrollWidth }));
+      expect(geometry.scroll).toBeLessThanOrEqual(geometry.height);
+      expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.width);
+    }
+  }
 });

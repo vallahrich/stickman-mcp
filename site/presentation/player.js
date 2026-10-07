@@ -81,14 +81,25 @@
     const { x, y, w, h } = prop;
     const left = x + w * .17, right = x + w * .83;
     const top = y + h * .12, bottom = y + h * .5;
-    const fontSize = Math.min(16, h * .3, w / (payload.label.length * .65 + 1));
+    const fontSize = Math.min(16, h * .24, w / (payload.label.length * .65 + 1));
     const detail = payload.type === "table"
       ? `M${left} ${top}H${right}V${bottom}H${left}ZM${left} ${(top+bottom)/2}H${right}M${(left+right)/2} ${top}V${bottom}`
       : `M${left} ${top}H${right}V${bottom}H${left}ZM${left+w*.08} ${top+h*.12}H${right-w*.08}M${left+w*.08} ${top+h*.24}H${right-w*.08}`;
     return `<g data-payload="${xml(payload.type)}" opacity="${num(prop.opacity ?? 1)}">
       <rect class="data-packet" data-prop="data-packet" x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" rx="4"/>
       <path class="payload-detail" d="${detail}"/>
-      <text class="data-packet-label" x="${num(x+w/2)}" y="${num(y+h*.9)}" style="font-size:${num(fontSize)}px" text-anchor="middle">${xml(payload.label)}</text></g>`;
+      <text class="data-packet-label" x="${num(x+w/2)}" y="${num(y+h*.87)}" style="font-size:${num(fontSize)}px" text-anchor="middle">${xml(payload.label)}</text></g>`;
+  }
+  function focusImage(image, detail, focus) {
+    const shown = focus && image.naturalWidth > 0;
+    detail.toggleAttribute("hidden", !shown);
+    image.hidden = Boolean(shown);
+    if (shown) {
+      const width = image.naturalWidth, height = image.naturalHeight;
+      detail.setAttribute("viewBox", `${focus.left*width} ${focus.top*height} ${focus.width*width} ${focus.height*height}`);
+      detail.querySelector("image").setAttribute("width", String(width));
+      detail.querySelector("image").setAttribute("height", String(height));
+    }
   }
   function actorScene(actor, progress) {
     const motion = data.motions[actor.motion];
@@ -124,6 +135,10 @@
     $("stage").querySelectorAll("[data-plain-label]").forEach(node =>
       node.classList.toggle("emphasized", active.has(node.dataset.plainLabel)));
     $("stage").querySelectorAll("[data-label-target]").forEach(node => { node.style.display = active.has(node.dataset.labelTarget) ? "" : "none"; });
+    for (const image of current().images ?? []) {
+      const frame = $(`image-${image.id}`);
+      focusImage(frame.querySelector("img"), frame.querySelector("svg"), activeBeat.imageFocus?.[image.id]);
+    }
     $("caption").textContent = beat().caption;
     const actor = beat().actor;
     const layer = $("actor");
@@ -176,16 +191,8 @@
       $("play-expanded").textContent = state.demoStarted ? "Resume original demo" : "Play original demo";
       const focus = current().video.focus;
       const poster = $("poster"), detail = $("video-detail");
-      const showDetail = !state.demoStarted && focus && state.beat === focus.beat && poster.naturalWidth > 0;
-      detail.toggleAttribute("hidden", !showDetail);
-      poster.hidden = state.demoStarted || Boolean(showDetail);
-      if (showDetail) {
-        const width = poster.naturalWidth, height = poster.naturalHeight;
-        detail.setAttribute("viewBox", `${focus.left*width} ${focus.top*height} ${focus.width*width} ${focus.height*height}`);
-        const image = detail.querySelector("image");
-        image.setAttribute("width", String(width));
-        image.setAttribute("height", String(height));
-      }
+      focusImage(poster, detail, !state.demoStarted && state.beat === focus?.beat ? focus : null);
+      if (state.demoStarted) poster.hidden = true;
     }
   }
   function runBeat() {
@@ -221,17 +228,32 @@
     $("error").hidden = true;
     const slide = current();
     const movie = slide.video;
+    const images = (slide.images ?? []).map(image => `<button type="button" id="image-${xml(image.id)}" class="source-figure" data-component="${xml(image.id)}" data-target="${xml(image.id)}" style="left:${image.x}px;top:${image.y}px;width:${image.width}px;height:${image.height}px" aria-label="Enlarge original image: ${xml(image.alt)}">
+      <img src="${mediaUrl(image.asset)}" alt="${xml(image.alt)}">
+      <svg hidden aria-hidden="true"><image href="${mediaUrl(image.asset)}"/></svg></button>`).join("");
+    const resources = (slide.resources ?? []).map(resource => `<a class="resource-link ${resource.large ? "large" : ""}" data-component="${xml(resource.id)}" data-target="${xml(resource.id)}" style="left:${resource.x}px;top:${resource.y}px;width:${resource.width}px;height:${resource.height}px" href="${xml(resource.href)}" target="_blank" rel="noopener noreferrer"><strong>${xml(resource.label)}</strong><span>${xml(resource.href)}</span></a>`).join("");
     const videoMarkup = movie ? `<div id="video-wrap" class="video-wrap" style="left:${movie.x}px;top:${movie.y}px;width:${movie.width}px;height:${movie.height}px">
       <img id="poster" class="video-poster" src="${mediaUrl(movie.poster)}" alt="${xml(slide.title)} original demo poster">
       <svg id="video-detail" class="video-detail" hidden role="img" aria-label="Enlarged detail from the original demo poster"><image href="${mediaUrl(movie.poster)}"/></svg>
       <video id="demo" hidden controls preload="none" playsinline poster="${mediaUrl(movie.poster)}" aria-label="${xml(slide.title)} embedded demo"></video>
       <nav class="demo-fullscreen-controls" aria-label="Enlarged demo controls"><button id="play-expanded" class="primary">Play original demo</button><button id="close-expanded">Exit enlarged demo</button></nav></div>` : "";
-    $("stage").innerHTML = `<div class="eyebrow">${xml(slide.section)}</div><h1>${xml(slide.title)}</h1>
-      <p class="subtitle">${xml(slide.subtitle)}</p>${diagramMarkup(slide)}${videoMarkup}
+    $("stage").innerHTML = `${slide.blank ? "" : `<div class="eyebrow">${xml(slide.section)}</div><h1>${xml(slide.title)}</h1><p class="subtitle">${xml(slide.subtitle)}</p>`}
+      ${diagramMarkup(slide)}${images}${resources}${videoMarkup}
       <svg id="objects" class="scene-props" viewBox="0 0 1280 720" aria-hidden="true"></svg>
       <svg id="props" class="scene-props" viewBox="0 0 1280 720" aria-hidden="true"></svg>
       <svg id="actor" class="actor-layer" viewBox="0 0 1280 720" aria-hidden="true"></svg>
       <p id="caption" class="beat-caption"></p>`;
+    for (const image of slide.images ?? []) {
+      const frame = $(`image-${image.id}`);
+      frame.querySelector("img").addEventListener("load", paint);
+      frame.addEventListener("click", () => openDialog(image.alt, body => {
+        body.className = "source-assets";
+        const original = document.createElement("img");
+        original.src = mediaUrl(image.asset);
+        original.alt = image.alt;
+        body.append(original);
+      }));
+    }
     if (movie) {
       video = $("demo");
       $("poster").addEventListener("load", () => { if (video) paint(); });
@@ -407,7 +429,7 @@
       report(`Embedded demo playback failed: ${error.message}`);
     });
   }
-  $("slide-select").innerHTML = data.slides.map((slide, index) => `<option value="${index}">${slide.source} — ${xml(slide.title)}</option>`).join("");
+  $("slide-select").innerHTML = data.slides.map((slide, index) => `<option value="${index}">${slide.source} — ${xml(slide.title || "Blank closing slide")}</option>`).join("");
   $("slide-select").addEventListener("change", event => go(Number(event.target.value)));
   $("next").addEventListener("click", next);
   $("back").addEventListener("click", back);
