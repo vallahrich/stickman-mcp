@@ -45,6 +45,15 @@ scores/notes, pending entries in JSON and a visible requalification flag on
 
 ## Combined stories
 
+The first combined-story layout was rejected by the user at **2/10**:
+"no one would present it like that." Mechanical checks were not visual approval.
+The revised candidate uses substantive architecture messages, visible request
+flow, failover routing, and a deployment traffic gate instead of tall placeholder
+cards, a runway, action-name captions or narration about the actor.
+The preview's **Next beat** control lets a presenter stop at an explanation
+point rather than race the autoplay. This revision is awaiting user review;
+it has no invented replacement score or presentation-quality approval.
+
 The first gallery section presents stories before individual motions:
 `cloud-journey`, `incident-resolution`, and `deployment-rollout`. Each recipe
 uses supported runtime actions on a single continuous actor timeline. Travel,

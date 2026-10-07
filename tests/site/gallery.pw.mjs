@@ -63,6 +63,9 @@ test("combined stories use one timeline with real actions, synchronized cues and
   await expect(frame.locator("#scene > svg")).toHaveAttribute("data-actor-x", "720.000");
   await seek(1000);
   await expect(frame.locator("#scene > svg")).toHaveAttribute("data-cue", "request");
+  await frame.locator("#nextBeat").click();
+  await expect(frame.locator("#scene > svg")).toHaveAttribute("data-cue", "application");
+  await expect(frame.locator("#play")).toHaveText("Play");
   await seek(17500);
   await expect(frame.locator("#scene > svg")).toHaveAttribute("data-complete", "true");
   await frame.locator("#play").click();

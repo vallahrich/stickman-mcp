@@ -148,7 +148,7 @@ for (const story of stories) {
   const body = document.createElement("div"); body.className = "card-body";
   const title = document.createElement("h3"); title.textContent = story.title;
   const summary = document.createElement("p"); summary.textContent = story.summary;
-  const steps = document.createElement("p"); steps.textContent = story.actions.join(" → ");
+  const steps = document.createElement("p"); steps.textContent = "Illustrative slide narrative · presenter-controlled beats";
   const button = document.createElement("button"); button.textContent = "Play story"; button.dataset.story = story.id;
   button.onclick = () => {
     stopPreview();

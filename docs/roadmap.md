@@ -29,6 +29,11 @@ authored choreography, not neural generation or universal composition.
 The gallery now leads with combined stories, not separate gesture clips.
 Three reusable runtime recipes connect travel, gestures, prop movement and
 host content cues through `stickman_story` and the library's `composeStory`.
+The first combined-story visual treatment received a user **2/10** rejection.
+It is not a presentation-quality milestone. The revised visual candidate
+prioritizes a slide takeaway and visible changes to request flow, failover
+routing and the release gate, with presenter-controlled explanation beats.
+New visual approval is still required; passing runtime checks is insufficient.
 The default release-style catalogue is rating-free across UI, JSON and preview
 downloads; scores and review history belong only in development. The separate
 development build retains 98 historical approvals; the release-style build has

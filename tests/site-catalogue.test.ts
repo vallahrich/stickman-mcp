@@ -62,4 +62,29 @@ describe("private designer catalogue", () => {
       expect(renderDeckScene(index, 3000, palette)).toContain('data-beat="0"');
     }
   });
+  it("tells a substantive architecture story through actual diagram state changes", async () => {
+    // @ts-expect-error Repository presentation authoring helpers are plain JavaScript.
+    const { renderStoryFrame } = await import("../scripts/site/stories.mjs");
+    const { getStory } = await import("../src/stories.js");
+    const palette = { bg: "#f7f4ef", text: "#242424", "text-muted": "#5c5c5c", surface: "#fff", border: "#dedede", accent: "#b11f4b", "accent-soft": "rgba(177,31,75,.08)", "accent-fg": "#fff" };
+    for (const [id, start, end] of [
+      ["cloud-journey", "application", "confirmed"],
+      ["incident-resolution", "primary-failed", "serving-replica"],
+      ["deployment-rollout", "traffic-closed", "traffic-open"]
+    ]) {
+      const story = getStory(id);
+      const first = renderStoryFrame(story, 0, palette);
+      const final = renderStoryFrame(story, story.animation.durationMs, palette);
+      expect(first).toContain(`data-stage="${start}"`);
+      expect(final).toContain(`data-stage="${end}"`);
+      expect(final).not.toMatch(/one shared timeline|actor moves|Follow the connection|height="390"/);
+      expect(final).not.toMatch(/NaN|Infinity/);
+      expect(final).toContain(story.title);
+    }
+    const rollout = getStory("deployment-rollout");
+    expect(renderStoryFrame(rollout, 8000, palette)).toContain("GATE CLOSED");
+    expect(renderStoryFrame(rollout, 10000, palette)).not.toContain("GATE CLOSED");
+    expect(renderStoryFrame(rollout, 0, palette)).toContain("Still on v1");
+    expect(renderStoryFrame(rollout, 10000, palette)).toContain("v2 is live");
+  });
 });
