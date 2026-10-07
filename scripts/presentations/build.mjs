@@ -168,7 +168,7 @@ export async function buildPresentation({ sourceFile, designFile, outputFile }) 
     fs.readFile(path.join(repo, "motions", "review-props.json"), "utf8").then(JSON.parse)
   ]);
   const data = { title: design.title, complete: design.complete === true, notice: design.notice ?? "", sourceName: source.sourceName, sourceSha256: source.sourceSha256,
-    sourceCount: source.slides.length, canvasEmu: source.canvasEmu, slides: selected, media, motions, propsCatalog };
+    sourceCount: source.slides.length, canvasEmu: source.canvasEmu, slides: selected, motions, propsCatalog };
   const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; media-src blob: data:; connect-src 'none'; font-src 'none'">
@@ -195,6 +195,7 @@ ${design.notice ? `<p class="help">${escapeHtml(design.notice)}</p>` : ""}
 <div id="error" role="alert" hidden></div>
 </main><dialog id="dialog"><div class="dialog-header"><h2 id="dialog-title"></h2><button id="close-dialog">Close</button></div><div id="dialog-body"></div></dialog>
 <script type="application/json" id="presentation-data">${scriptJson(data)}</script>
+<script type="application/json" id="presentation-media">${scriptJson(media)}</script>
 <script>${kit}\n${player}</script></body></html>`;
   await fs.mkdir(path.dirname(output), { recursive: true });
   await fs.writeFile(output, html);

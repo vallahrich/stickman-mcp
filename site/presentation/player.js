@@ -1,6 +1,9 @@
 (() => {
   "use strict";
   const data = JSON.parse(document.getElementById("presentation-data").textContent);
+  const embeddedMedia = document.getElementById("presentation-media");
+  data.media = JSON.parse(embeddedMedia.textContent);
+  embeddedMedia.remove();
   const $ = id => document.getElementById(id);
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
   const state = { slide: 0, beat: 0, progress: 1, animation: !reduced.matches, playing: false, demoStarted: false };

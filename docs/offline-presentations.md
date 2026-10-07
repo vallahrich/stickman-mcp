@@ -81,7 +81,9 @@ Open the generated file directly in a current browser. There are no remote
 fonts, scripts, images or runtime fetches. Videos are embedded and activated
 only for their slide, played explicitly, and released on slide changes. Expect
 roughly 33% base64 overhead for embedded media: a single file is convenient,
-not necessarily small. Browser codec support still matters.
+not necessarily small. Media is parsed once from a separate embedded store,
+then its serialized DOM node is removed, leaving only the runtime copy and
+small presentation metadata. Browser codec support still matters.
 
 **Presenter controls:** Next/Space advances a beat and holds; pressing Next
 during a beat finishes it. Back reconstructs a stable prior state. Replay is

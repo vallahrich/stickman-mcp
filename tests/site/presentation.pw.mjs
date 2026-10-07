@@ -102,6 +102,7 @@ test("opens file offline, waits for Next, and preserves source ordering", async 
   await page.waitForTimeout(300);
   await expect(page.locator("#caption")).toHaveText(data.slides[0].beats[0].caption);
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(page.locator("#presentation-media")).toHaveCount(0);
   await page.locator("body").click({ position: { x: 4, y: 4 } });
   await page.keyboard.press("Space");
   await finish(page);
@@ -438,10 +439,10 @@ test("complete conversion preserves every original slide, note, image and movie 
   expect(data.slides.map(slide => slide.source)).toEqual(expected.slides.map(slide => slide.number));
   expect(data.slides.map(slide => slide.original)).toEqual(expected.slides);
   const html = await fs.readFile(artifact, "utf8");
-  const embedded = JSON.parse(html.match(/<script type="application\/json" id="presentation-data">([\s\S]*?)<\/script>/)[1]);
+  const embeddedMedia = JSON.parse(html.match(/<script type="application\/json" id="presentation-media">([\s\S]*?)<\/script>/)[1]);
   const ids = [...new Set(expected.slides.flatMap(slide => slide.media))];
   for (const id of ids) {
-    expect(createHash("sha256").update(Buffer.from(embedded.media[id].base64, "base64")).digest("hex"), `Unchanged asset ${id}`).toBe(expected.assets[id].sha256);
+    expect(createHash("sha256").update(Buffer.from(embeddedMedia[id].base64, "base64")).digest("hex"), `Unchanged asset ${id}`).toBe(expected.assets[id].sha256);
   }
   const movies = expected.slides.flatMap(slide => slide.media.filter(id => expected.assets[id].mime === "video/mp4"));
   expect(data.slides.filter(slide => slide.video).map(slide => slide.video.asset)).toEqual(movies);
