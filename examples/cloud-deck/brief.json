@@ -1,0 +1,37 @@
+{
+  "version": "1.0",
+  "topic": "Workload migration comparison: on-premises to cloud",
+  "audience": {
+    "role": "IT leads deciding where a workload should run",
+    "knowledge": "informed",
+    "priorities": ["Fit capacity to demand", "Honest total cost", "Low-risk change"]
+  },
+  "outcome": "Agree to measure one workload and pilot it before any migration decision.",
+  "language": "en",
+  "tone": "executive",
+  "context": "live",
+  "desiredSlides": 5,
+  "ideas": [
+    "One IT admin acts out the story as a silent stickman",
+    "Fixed capacity is sized for peaks, so average use is low (illustrative 18%)",
+    "Cloud capacity can follow demand but has its own costs",
+    "Measure, validate, compare total cost, then pilot"
+  ],
+  "allowRestructure": false,
+  "outline": [
+    { "slideId": "question", "instruction": "Open with the decision the audience faces" },
+    { "slideId": "on-prem", "instruction": "Show why fixed capacity sits idle" },
+    { "slideId": "cloud", "instruction": "Show elastic capacity and its honest trade-offs" },
+    { "slideId": "evidence", "instruction": "Show how to build the evidence as a flow" },
+    { "slideId": "decision", "instruction": "Close with the recommendation" }
+  ],
+  "sources": [
+    {
+      "id": "illustrative-utilisation",
+      "title": "Illustrative utilisation example (not a measurement)",
+      "kind": "synthetic",
+      "note": "The 18% average-use figure is an illustrative example for the story, not measured data."
+    }
+  ],
+  "facts": []
+}

@@ -1,0 +1,21 @@
+{
+  "version": "1.0",
+  "name": "Stickman studio (illustrative)",
+  "palette": {
+    "background": "#F6F7F9",
+    "surface": "#FFFFFF",
+    "text": "#1B1F24",
+    "muted": "#4B5560",
+    "accent": "#0F6CBD",
+    "accentText": "#FFFFFF",
+    "line": "#D6DBE0"
+  },
+  "font": "segoe",
+  "headingWeight": 600,
+  "radius": 10,
+  "wordmark": "Stickman studio · illustrative",
+  "evidence": [
+    { "field": "palette", "value": "Neutral palette with one blue accent", "origin": "user", "confidence": 1, "note": "Created for the stickman showcase; not a customer brand." },
+    { "field": "font", "value": "segoe", "origin": "default", "confidence": 1 }
+  ]
+}

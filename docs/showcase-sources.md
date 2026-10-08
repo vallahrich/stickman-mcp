@@ -31,7 +31,7 @@ The two videos are silent H.264 MP4 files with burned-in text and optional,
 cue-timed English VTT captions, each 56 seconds long. Non-looping lead actions
 are not truncated. Source-spec fingerprints and encoded-file hashes are recorded
 in the local manifest so the selected motion versions and media are identifiable.
-The slide's timeline is 58.3 seconds.
+The deck's timeline is 57 seconds; its 18% utilisation figure is illustrative, not measured.
 
 ## Open-source story
 

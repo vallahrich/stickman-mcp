@@ -58,7 +58,8 @@ test("cloud slide starts paused and remains readable on mobile", async ({ page }
   await page.waitForTimeout(500);
   await expect(frame.locator("#seek")).toHaveValue("0");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await expect(frame.locator(".information article")).toHaveCount(3);
+  await expect(frame.locator(".slide")).toHaveCount(5);
+  await expect(frame.locator("body")).toContainText("Workload migration comparison");
 });
 
 test("development retains ratings and mechanical requalification independently of release", async ({ page, request }) => {
@@ -211,6 +212,8 @@ test("only the cloud slide and two playable videos remain, each under one minute
     expect(await video.evaluate(el => el.error)).toBeNull();
   }
   await page.locator("#showcase video").first().evaluate(el => { el.currentTime = 0; return el.play(); });
+  // The deck toolbar is fixed to the bottom of the iframe, so bring the whole slide into view first.
+  await page.locator("#cloudSlide").scrollIntoViewIfNeeded();
   await frame.locator("#play").click();
   await expect.poll(() => page.locator("#showcase video").first().evaluate(el => el.paused)).toBe(true);
   await page.locator("#showcase video").last().evaluate(el => { el.currentTime = 0; return el.play(); });

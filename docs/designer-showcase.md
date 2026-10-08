@@ -95,10 +95,12 @@ readiness review, including outstanding motions, dependencies and runtime assemb
 ## Focused showcase: one slide and two videos
 
 The active presentation example is the private, reviewed on-premises-to-cloud
-HTML slide. It is not the older `cloud-journey` procedural recipe. The current
-slide lasts 58.3 seconds, keeps comparison and decision evidence visible, and
-uses a smaller actor with shared prop transforms. Its latest user rating is
-**7/10**, recorded here only as development feedback, not a claim of perfection.
+HTML deck. It is not the older `cloud-journey` procedural recipe. The current
+version is a 57-second, five-slide story rendered by the dynamic-presentations
+MCP, with one stickman IT admin acting out each architecture slide inside the
+scene slot the deck reserves (see [Deck stickman provider](#deck-stickman-provider)).
+The previous single-slide version was rated **7/10**; ratings are recorded here
+only as development feedback, not a claim of perfection.
 
 Two original, silent animated stories accompany it, each **56 seconds**:
 **Open source: a small fix, shared** follows a developer from a missing feature
@@ -161,6 +163,43 @@ The NIST/NASA presentations, old comparison UI, mixed showcase video and their
 generation scripts are retired. Every release/development rebuild deletes
 only their explicitly named generated files, preserving unrelated assets.
 The motion engine, catalogue and library story recipes remain unchanged.
+
+## Deck stickman provider
+
+`scripts\site\deck-provider.mjs` combines a deck rendered by the
+dynamic-presentations MCP with a stickman performance.
+The MCP stays read-only; its output is post-processed.
+
+1. Deck inputs live in `examples\cloud-deck\` (`brief.json`, `brand.json`,
+   `storyboard.json`). Five slides are used because the pilot needs three
+   distinct layouts and scenes are only allowed on `architecture` slides:
+   a framing question, three architecture slides with a `stickman` scene,
+   and a recommendation.
+2. Render with the MCP CLI (`validate`, `pilot`, `approve`, `deck`), with
+   `DP_INPUT_ROOTS` and `DP_OUTPUT_ROOT` pointing outside both repositories.
+3. Inject the provider:
+
+   ```powershell
+   node scripts\site\deck-provider.mjs --deck <out>\workload-migration\deck.html --out <story.html>
+   ```
+
+The generator composes **one continuous performance** with
+`composePerformance` (approved motions only, auto bridges, continuity ≤ 14),
+splits it into per-slide/per-beat ranges, renders every frame to compact,
+theme-tokenised SVG and fails if the story exceeds 1800 frames. It then adds:
+
+- `#data` JSON (`totalFrames`, `fps`, `timeline`) for `inspectSlide`;
+- `#stickman-frames` JSON (deduplicated frame dictionary);
+- `deck-provider-client.js`, which registers the `stickman` motion provider
+  (`absoluteSeek`, `staticState`, `cleanup`, `offline`) and draws per-slide props
+  (load meter, elastic cloud, evidence steps) that exist only while their cue is
+  active and stay inside the slot;
+- a timed autoplay wrapper (Play/Pause/Replay and a frame `#seek` in the deck
+  toolbar). It advances beats with the deck's own Next button so reveals animate,
+  hands control back on manual navigation, honours `?paused=1` and reduced
+  motion, and exchanges `stickman:play` / `stickman:pause` with the showcase.
+
+`tests\deck-provider.test.ts` covers injection, theming and the timeline limit.
 
 ## Checks and client integration
 
