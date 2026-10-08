@@ -117,10 +117,29 @@ export function composePerformance(items, { motions, sampleClipMotion, neutral, 
       if (!motion) throw new Error(`Unqualified film motion: ${item.motion}`);
       ({ clip, spec } = motion);
       id = item.motion;
+      const sourceSpec = spec;
+      if (item.until !== undefined && (clip.loop || !sourceSpec.poseKeys.some(key => key.frame === item.until)))
+        throw new Error(`${item.motion}: 'until' must name an authored key frame of a one-shot motion.`);
+      const factor = item._timeScale ?? 1;
+      if (factor > 1) {
+        const frames = Math.round((spec.frames - 1) * factor) + 1;
+        spec = { ...spec, frames, poseKeys: spec.poseKeys.map(key => ({ ...key, frame: Math.round(key.frame * factor) })) };
+        clip = buildKeyPoseClip(spec, neutral);
+      }
+      const trimStart = Math.round((item._trimStart ?? 0) * factor);
+      if (trimStart) {
+        const first = spec.poseKeys.find(key => key.frame === trimStart);
+        if (!first || clip.loop) throw new Error(`${item.motion}: generated bridge cannot trim this motion start.`);
+        spec = { ...spec, frames: spec.frames - trimStart, poseKeys: [
+          { ...first, frame: 0 },
+          ...spec.poseKeys.filter(key => key.frame > trimStart).map(key => ({ ...key, frame: key.frame - trimStart }))
+        ] };
+        clip = buildKeyPoseClip(spec, neutral);
+      }
       if (item.until !== undefined) {
-        // Play only the first part of a one-shot motion (e.g. the fall of fall-get-up); it must end on an authored key.
-        if (clip.loop || !spec.poseKeys.some(key => key.frame === item.until)) throw new Error(`${item.motion}: 'until' must name an authored key frame of a one-shot motion.`);
-        spec = { ...spec, frames: item.until + 1, poseKeys: spec.poseKeys.filter(key => key.frame <= item.until) };
+        const untilFrame = Math.round(item.until * factor) - trimStart;
+        if (!spec.poseKeys.some(key => key.frame === untilFrame)) throw new Error(`${item.motion}: 'until' must name an authored key frame of a one-shot motion.`);
+        spec = { ...spec, frames: untilFrame + 1, poseKeys: spec.poseKeys.filter(key => key.frame <= untilFrame) };
         clip = buildKeyPoseClip(spec, neutral);
       }
     }
@@ -162,7 +181,7 @@ export function composePerformance(items, { motions, sampleClipMotion, neutral, 
     segments.push({ id, itemIndex: index, kind: item.walk ? "walk" : "motion", clip, spec, start, end, length, root, loop: clip.loop, n,
       keep: item.keep ?? [], laurel: item.laurel ?? false, fadeOut: item.fadeOut ?? 0, beat: item.beat ?? beat ?? null,
       gapStart: previous ? previous.end + 1 : 0, relocated: relocate !== null,
-      endFacing: clip.poseKeys.at(lastLocal === 0 ? 0 : -1).pose.facing ?? 1 });
+      endFacing: clip.poseKeys.at(lastLocal === 0 ? 0 : -1).pose.facing ?? 1, bridge: item._bridge ?? null });
     beat = null;
     pin = root + pelvisOffset(sampleClipMotion, clip, lastLocal) * S;
     relocate = null;
@@ -210,6 +229,30 @@ export function performanceContinuity(performance, sampleClipMotion) {
     previous = points;
   }
   return { maxJointStep: round(maxJointStep), worstFrame, footSlides: slides };
+}
+
+/** Per-boundary maximum joint movement during a crossfade, in the same world-space metric. */
+export function performanceJoinCosts(performance, sampleClipMotion) {
+  const { clip, rootTrack, scale: S, segments } = performance;
+  const pointsAt = frame => {
+    const sample = engineSampledFrame(sampleClipMotion, clip, frame);
+    const shift = (rootTrack[frame] - 640) / S;
+    return [sample.head, ...sample.segments.map(item => ({ x: item.x2, y: item.y2, id: item.id }))]
+      .map(point => ({ x: point.x + shift, y: point.y, id: point.id }));
+  };
+  return segments.slice(1).map((segment, index) => {
+    const previous = segments[index];
+    let cost = 0, worstFrame = segment.gapStart;
+    if (!segment.relocated) for (let frame = Math.max(1, segment.gapStart); frame <= segment.start; frame++) {
+      const before = pointsAt(frame - 1), after = pointsAt(frame);
+      for (let i = 0; i < after.length; i++) {
+        const step = Math.hypot(after[i].x - before[i].x, after[i].y - before[i].y) / UNIT;
+        if (step > cost) { cost = step; worstFrame = frame; }
+      }
+    }
+    return { itemIndex: segment.itemIndex, from: previous.id, to: segment.id, cost: round(cost), worstFrame,
+      startFrame: segment.gapStart, endFrame: segment.start - 1, relocated: segment.relocated };
+  });
 }
 
 const contentTransform = (root, S) => `translate(${round(root - ROOT_X * S)} ${round(FILM_GROUND - GROUND_Y * S)}) scale(${S})`;
@@ -269,8 +312,11 @@ export function createPerformanceRenderer(performance, { sampleClipMotion, frame
     const layers = [];
     if (inGap && previous) layers.push({ seg: previous, local: previous.end - previous.start, opacity: 1 - u });
     layers.push({ seg, local: Math.max(0, frame - seg.start), opacity: u });
+    const bridge = seg.bridge && inGap ? seg.bridge : null;
+    const bridgeU = bridge ? (frame - seg.gapStart) / Math.max(1, seg.start - seg.gapStart) : 0;
+    const propAlpha = !bridge ? 1 : bridgeU < 0.5 ? 1 - smooth(bridgeU * 2) : smooth((bridgeU - 0.5) * 2);
     const rendered = [];
-    for (const layer of layers) rendered.push({ ...layer, ...(await propLayers(layer.seg, layer.local)) });
+    for (const layer of layers) rendered.push({ ...layer, propAlpha, ...(await propLayers(layer.seg, layer.local)) });
     if (rendered.length === 2 && rendered[0].seg.root === rendered[1].seg.root) {
       if (rendered[0].back === rendered[1].back) { rendered[0].back = ""; rendered[1].backOpacity = 1; }
       if (rendered[0].front === rendered[1].front) { rendered[0].front = ""; rendered[1].frontOpacity = 1; }
@@ -278,7 +324,7 @@ export function createPerformanceRenderer(performance, { sampleClipMotion, frame
     let setMarkup = "";
     for (const item of set) {
       const owners = rendered.filter(layer => item.hideDuring?.includes(layer.seg.id));
-      const opacity = 1 - owners.reduce((sum, layer) => sum + layer.opacity, 0);
+      const opacity = (1 - owners.reduce((sum, layer) => sum + layer.opacity, 0)) * propAlpha;
       if (opacity > .001) setMarkup += place(item.root, await setLayer(item), opacity);
     }
     const sample = engineSampledFrame(sampleClipMotion, performance.clip, frame);
@@ -295,9 +341,9 @@ export function createPerformanceRenderer(performance, { sampleClipMotion, frame
     }
     const root = performance.rootTrack[frame];
     return {
-      back: setMarkup + rendered.map(layer => place(layer.seg.root, layer.back, layer.backOpacity ?? layer.opacity)).join(""),
+      back: setMarkup + rendered.map(layer => place(layer.seg.root, layer.back, (layer.backOpacity ?? layer.opacity) * layer.propAlpha)).join(""),
       actor: figureOpacity > .001 ? place(root, theme(figure), figureOpacity) : "",
-      front: rendered.map(layer => place(layer.seg.root, layer.front, layer.frontOpacity ?? layer.opacity)).join(""),
+      front: rendered.map(layer => place(layer.seg.root, layer.front, (layer.frontOpacity ?? layer.opacity) * layer.propAlpha)).join(""),
       segment: seg.id, root
     };
   };

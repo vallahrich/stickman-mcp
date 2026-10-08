@@ -4,8 +4,10 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { describe, expect, it } from "vitest";
 import { composeFilmRecipe, listFilmAssets, renderFilmRecipe } from "../src/film.js";
+import { buildJoinMatrix } from "../scripts/film/joins.mjs";
 
 const example = JSON.parse(await readFile(new URL("../examples/films/team-handoff.json", import.meta.url), "utf8"));
+const bridgeDemo = JSON.parse(await readFile(new URL("../examples/films/bridge-demo.json", import.meta.url), "utf8"));
 const small = () => ({ id: "short-test", title: "Small test", performance: [{ motion: "nod", root: 400, hold: 39, beat: "first" }],
   scenes: [{ id: "first", title: "First", place: "office", cues: [{ frame: 0, text: "A small test." }], overlays: [{ type: "tick", x: 650, y: 160, from: 0, to: 75 }] }] });
 
@@ -20,6 +22,31 @@ describe("film recipes", () => {
       ] }
     });
   });
+  it("bridges the walk-to-look-around join deterministically and leaves smooth joins alone", async () => {
+    const first = await composeFilmRecipe(bridgeDemo), second = await composeFilmRecipe(bridgeDemo);
+    expect(first).toMatchObject({ bridges: [{ from: "walk-right", to: "look-around", kind: "generated-bridge", feetLocked: true, costBefore: 19.94, costAfter: 13.21 }] });
+    expect(first.bridges).toEqual(second.bridges);
+    expect(first.continuity.lead).toMatchObject({ passed: true, limit: 14 });
+    const smooth = { ...small(), performance: [
+      { motion: "nod", root: 400, hold: 39, beat: "first" }, { motion: "nod", hold: 39, beat: "second" }
+    ], scenes: [
+      { id: "first", title: "First", place: "city", cues: [{ frame: 0, text: "First cue." }] },
+      { id: "second", title: "Second", place: "city", cues: [{ frame: 0, text: "Second cue." }] }
+    ] };
+    expect((await composeFilmRecipe(smooth)).bridges).toEqual([]);
+  });
+  it("keeps the approved-pair join matrix deterministic and analytically bridgeable", async () => {
+    const saved = JSON.parse(await readFile(new URL("../motions/join-matrix.json", import.meta.url), "utf8"));
+    expect(await buildJoinMatrix()).toEqual(saved);
+    expect(saved.motions).toEqual([...saved.motions].sort());
+    const keys = saved.joins.map(join => `${join.from}->${join.to}`);
+    expect(keys).toEqual([...keys].sort());
+    for (const join of saved.joins) {
+      const frames = Math.max(6, Math.min(24, Math.ceil(join.cost / 14 * 6)));
+      expect(join.cost * 1.5 / frames).toBeLessThanOrEqual(14);
+    }
+    expect(saved.joins.find(join => join.from === "walk" && join.to === "look-around")?.cost).toBeGreaterThan(14);
+  }, 180_000);
   it("rejects unknown keys and invalid recipe fields before composition", async () => {
     for (const recipe of [
       { ...small(), unexpected: true },
@@ -51,9 +78,9 @@ describe("film recipes", () => {
   });
   it("reports the offending continuity join for lead and supporting actors", async () => {
     const performance = [{ motion: "wave", root: 400, hold: 39, beat: "first" }, { motion: "nod", gap: 1, hold: 39 }];
-    await expect(composeFilmRecipe({ ...small(), performance })).rejects.toThrow(/lead: continuity 33.46 exceeds limit 14.*from.*wave.*to.*nod/);
+    await expect(composeFilmRecipe({ ...small(), bridge: "off", performance })).rejects.toThrow(/lead: continuity 33.46 exceeds limit 14.*from.*wave.*to.*nod/);
     const actor = performance.map(({ beat, ...item }) => item);
-    await expect(composeFilmRecipe({ ...small(), extras: [{ actor, from: "first", until: "first" }] })).rejects.toThrow(/extras\/0: continuity 33.46 exceeds limit 14/);
+    await expect(composeFilmRecipe({ ...small(), bridge: "off", extras: [{ actor, from: "first", until: "first" }] })).rejects.toThrow(/extras\/0: continuity 33.46 exceeds limit 14/);
   });
   it("fades delayed extras from their actual entrance and uses only declarative overlays", async () => {
     const { filmExtras, renderStoryFrame } = await import("../scripts/site/story-films.mjs");
@@ -69,7 +96,7 @@ describe("film recipes", () => {
   });
   it("returns mechanically qualified assets and the strict schema", async () => {
     const assets = await listFilmAssets();
-    expect(assets).toMatchObject({ kits: ["legionary", "standard", "dagger"], fps: 30, maxFrames: 1800, continuityLimit: 14,
+    expect(assets).toMatchObject({ kits: ["legionary", "standard", "dagger"], fps: 30, maxFrames: 1800, continuityLimit: 14, joinCount: 9409,
       recipeSchema: { additionalProperties: false } });
     expect(assets.motions).toEqual(expect.arrayContaining([{ id: "nod", frames: 36, kind: "oneshot" }]));
     expect(assets.places).toContain("office");
@@ -101,6 +128,8 @@ describe("film recipes", () => {
       await client.connect(new StdioClientTransport({ command: process.execPath, args: [resolve("dist", "mcp.js"), "--root", root], stderr: "pipe" }));
       const assets = await client.callTool({ name: "stickman_list_film_assets", arguments: {} });
       expect(assets.isError, JSON.stringify(assets)).not.toBe(true);
+      const join = await client.callTool({ name: "stickman_check_join", arguments: { motionA: "walk", motionB: "look-around" } });
+      expect(join.structuredContent).toMatchObject({ result: { from: "walk", to: "look-around", limit: 14, needsBridge: true, bridgeFrames: 21 } });
       const composed = await client.callTool({ name: "stickman_compose_film", arguments: { recipe: example } });
       expect(composed.structuredContent).toMatchObject({ result: { frames: 309, continuity: { lead: { passed: true } } } });
       const invalid = await client.callTool({ name: "stickman_compose_film", arguments: { recipe: { ...example, typo: true } } });

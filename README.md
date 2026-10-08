@@ -42,14 +42,17 @@ Exports are written only to a relative path under the explicit `--root`; existin
 
 ## Films via MCP
 
-Use `stickman_list_film_assets`, `stickman_compose_film` and
+Use `stickman_list_film_assets`, `stickman_check_join`, `stickman_compose_film` and
 `stickman_render_film` to turn strict JSON recipes into continuous, gated silent
-films (MP4, poster, captions and optional QA sheet). Scene/actor timelines and
-continuity are checked before writing to a new relative directory under `--root`.
+films (MP4, poster, captions and optional QA sheet). Automatic pose-space bridges
+are on by default for MCP recipes; each is reported with its join, frame range and
+before/after continuity cost. Scene/actor timelines and continuity are checked
+before writing to a new relative directory under `--root`.
 The private source checkout and optional `ffmpeg-static` / `@resvg/resvg-js`
 packages are required. Preview mode samples at 640x360 / 15 fps.
 See [film recipes](docs/film-recipes.md) and the runnable
-[`team-handoff` example](examples/films/team-handoff.json):
+[`team-handoff` example](examples/films/team-handoff.json) and the
+[`bridge-demo` walk-to-look-around transition](examples/films/bridge-demo.json):
 
 ```powershell
 npm run build
@@ -138,7 +141,7 @@ node dist/mcp.js --root C:\Projects\MyPresentation\stickman-output
 ```
 
 The MCP tools are `stickman_discover`, `stickman_describe`, `stickman_schema`, `stickman_validate`, `stickman_compile`, `stickman_preview`, `stickman_export`, `stickman_story`, `stickman_list_film_assets`,
-`stickman_compose_film`, and `stickman_render_film`. Their advertised input schemas are enforced without type coercion. Results retain the existing JSON text and add schema-described structured output; unknown tools are protocol errors, while argument and execution failures are actionable tool errors. The server does not edit client configuration or accept an output-root override from a tool request.
+`stickman_check_join`, `stickman_compose_film`, and `stickman_render_film`. Their advertised input schemas are enforced without type coercion. Results retain the existing JSON text and add schema-described structured output; unknown tools are protocol errors, while argument and execution failures are actionable tool errors. The server does not edit client configuration or accept an output-root override from a tool request.
 
 Call `stickman_story` with `{}` to discover the combined stories, or
 `{"id":"cloud-journey"}` to get an executable `animation` plus host `cues`.

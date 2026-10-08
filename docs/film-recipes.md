@@ -1,25 +1,30 @@
-# Films via MCP (Phase 1)
+# Films via MCP (Phases 1 and 2)
 
 Describe a scene as **validated data**, then compose before rendering. The new
 film tools expose the same locked-camera continuous-performance implementation
-as the two showcase films; they do not synthesize new motions or execute code in
-recipes. Complete scenes still need visual review, not just mechanical passes.
+as the two showcase films, with bounded generated transitions between difficult
+joins. Recipes never execute code or modify approved motion specs. Complete scenes
+still need visual review, not just mechanical passes.
 
 ## Tools and execution
 
 Run `npm run build`, then configure the stdio server as
-`node dist\mcp.js --root C:\approved-output`. Its three film tools are:
+`node dist\mcp.js --root C:\approved-output`. Its four film tools are:
 
 - `stickman_list_film_assets({})`: qualified, user-approved authored motion IDs,
   frame counts and `oneshot`/`loop`/`travel` kinds; kits, headwear, places, set prop
   types and overlay types. Also returns `recipeSchema`, the strict JSON Schema.
   Film assets are distinct from the older runtime action vocabulary.
+- `stickman_check_join({motionA, motionB})`: returns the precomputed film-scale
+  hard-join cost, limit **14**, bridge recommendation and a suggested 6 to 24-frame
+  bridge length.
 - `stickman_compose_film({recipe})`: validates and composes lead and supporting
   actors, returning `frames`, `seconds`, `fps: 30`, scene start/frame ranges,
   per-recipe-item ranges (inclusive ends; zero-duration relocates are marked
-  `instantaneous`) and `continuity.lead` / `continuity.actors`. Each report gives
-  max joint step, limit **14**, worst frame and surrounding motion/item join.
-  Scene starts include the blend leading into their first performance item.
+  `instantaneous`), `bridges` and `continuity.lead` / `continuity.actors`. Each
+  report gives max joint step, limit **14**, worst frame and surrounding join.
+  Bridge records include `from`, `to`, timeline range, frames, and costs before
+  and after. Scene starts include the blend leading into their first item.
 - `stickman_render_film({recipe, outputDir, preview?, qaFrames?})`: same validation
   and continuity gates, silent H.264 MP4, poster PNG, WebVTT and optional QA sheet
   PNG. `outputDir` is required, **relative to `--root`**, and must not already
@@ -59,8 +64,28 @@ tweens. Optional arrays default empty. Required top-level fields:
 | `performance` | Nonempty ordered lead performance items |
 | `scenes` | Ordered, unique `{id,title,place,cues}` scene definitions |
 | `summary`, `poster` | Optional summary and original-timeline poster frame |
+| `bridge` | Optional `"auto"` (default) or `"off"` transition policy |
 | `set` | Optional `{motion,root,types,hideDuring?}` fixed prop set pieces |
 | `extras` | Optional independent motion/continuous supporting actor entries |
+
+### Automatic transitions
+
+Recipes accept `bridge: "auto"|"off"` (default `"auto"` for MCP recipes). Auto
+mode checks the same rendered joint-step metric used by the continuity gate. If an
+entry needs smoothing, it extends the gap to a short eased transition and can move
+the start to the next authored pose key when the opening pose changes too quickly.
+Interpolation stays in the engine's pose/angle representation; limb geometry keeps
+its fixed lengths, rooted feet remain governed by the pose solver, and motion/set
+props fade during the bridge. The generated clip is marked in the item range,
+`bridges` timeline report and provenance. Any join still over 14 after 24 frames
+fails composition with the offending join. Use `bridge: "off"` to require existing
+transitions only.
+
+`motions\join-matrix.json` contains deterministic costs for every mechanically
+qualified approved motion plus the generated walk. Regenerate it with
+`npm run motions:joins`; the build/test path checks it against current motion
+approvals. `examples\films\bridge-demo.json` demonstrates a walk into a
+look-around pose and is designed for an 8.2-second fast-preview review.
 
 ### Performances
 
@@ -158,5 +183,6 @@ installation: retain `scripts`, `motions`, `docs` and `site`, and run the build
 after schema changes. Original showcase recipes remain trusted JS and keep their
 existing bespoke overlays; public JSON recipes always use declarative overlays,
 even if their ID matches a showcase ID. No approved motion specifications were
-changed. Automated transition selection, pose authoring, actor formations/contact
-and richer QA are later phases, not implied by passing this composer gate.
+changed. Automatic pair analysis and bounded transitions are available in Phase 2; they do
+not guarantee that arbitrary choreography is visually natural. Pose authoring,
+actor formations/contact and richer QA remain later phases.

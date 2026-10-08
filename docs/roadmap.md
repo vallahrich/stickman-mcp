@@ -19,8 +19,11 @@ retired: no mirroring in either direction.
    continuity reports, confined MP4/poster/VTT/QA export and fast previews.
    See [film recipes](film-recipes.md). Mechanical gates do not constitute new
    visual approval or universal text-to-motion generation.
-2. **Phase 2 — Automatic transitions / join matrix.** Qualify motion-pair joins
-   and select safe transition options instead of requiring manual staging.
+2. **Phase 2 - Automatic transitions / join matrix: done.** Approved motion pairs
+   have a deterministic, film-scale join-cost matrix (`motions:joins`). MCP recipes
+   default to bounded generated pose-space bridges; results identify each bridge
+   and its before/after cost. `stickman_check_join` reports pair cost and a suggested
+   bridge length. See [film recipes](film-recipes.md) and `bridge-demo.json`.
 3. **Phase 3 — Faster pose authoring.** Reusable pose library with an explicit
    human approval gate before any authored motion becomes a film asset.
 4. **Phase 4 — Groups & contact.** Formation/crowd/follow, hand contact and

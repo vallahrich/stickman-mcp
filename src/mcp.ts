@@ -12,7 +12,7 @@ import type { PlaybackMode } from "./contract.js";
 import type { ExportFormat } from "./export.js";
 import { getStory, storyCatalog } from "./stories.js";
 import { filmRecipeSchema } from "./film-schema.js";
-import { composeFilmRecipe, renderFilmRecipe, listFilmAssets } from "./film.js";
+import { composeFilmRecipe, renderFilmRecipe, listFilmAssets, checkFilmJoin } from "./film.js";
 
 type ObjectSchema = JsonSchemaType & { type: "object" };
 type DefinedTool = Omit<Tool, "inputSchema" | "outputSchema"> & {
@@ -92,10 +92,10 @@ function defineTool(name: string, description: string, inputSchema: ObjectSchema
 }
 
 const filmResultSchema: ObjectSchema = {
-  type: "object", required: ["valid", "id", "frames", "seconds", "fps", "scenes", "items", "continuity"],
+  type: "object", required: ["valid", "id", "frames", "seconds", "fps", "scenes", "items", "bridges", "continuity"],
   properties: { valid: { const: true }, id: { type: "string" }, frames: { type: "integer", maximum: 1800 },
     seconds: { type: "number" }, fps: { const: 30 }, scenes: { type: "array", items: { type: "object" } },
-    items: { type: "array", items: { type: "object" } }, continuity: { type: "object", required: ["lead", "actors"],
+    items: { type: "array", items: { type: "object" } }, bridges: { type: "array", items: { type: "object" } }, continuity: { type: "object", required: ["lead", "actors"],
       properties: { lead: { type: "object" }, actors: { type: "array", items: { type: "object" } } } }
   }
 };
@@ -109,12 +109,20 @@ const toolDefinitions: DefinedTool[] = [
   }, { ...filmResultSchema, required: [...(filmResultSchema.required ?? []), "outputDir", "files", "sha256"],
     properties: { ...filmResultSchema.properties, outputDir: { type: "string" }, files: { type: "object" }, sha256: { type: "string" } }
   }, { writes: true }),
-  defineTool("stickman_list_film_assets", "List mechanically qualified user-approved film motion IDs with frame counts/kind, kits, headwear, places, set prop types, overlay primitives and the strict film recipe JSON Schema. This is separate from the runtime action catalogue.", emptyInput, {
-    type: "object", required: ["motions", "kits", "places", "overlays", "recipeSchema"], properties: {
-      motions: { type: "array", items: { type: "object", required: ["id", "frames", "kind"], properties: { id: { type: "string" }, frames: { type: "integer" }, kind: { type: "string", enum: ["oneshot", "loop", "travel"] } } } },
+  defineTool("stickman_list_film_assets", "List mechanically qualified user-approved film motion IDs with frame counts/kind, kits, headwear, places, set prop types, overlay primitives, approved-pair join count and the strict film recipe JSON Schema. This is separate from the runtime action catalogue.", emptyInput, {
+    type: "object", required: ["motions", "kits", "places", "overlays", "recipeSchema", "joinCount"], properties: {
+      joinCount: { type: "integer", minimum: 0 }, motions: { type: "array", items: { type: "object", required: ["id", "frames", "kind"], properties: { id: { type: "string" }, frames: { type: "integer" }, kind: { type: "string", enum: ["oneshot", "loop", "travel"] } } } },
       kits: { type: "array", items: { type: "string" } }, places: { type: "array", items: { type: "string" } }, overlays: { type: "array", items: { type: "string" } }, recipeSchema: { type: "object" }
     }
   }),
+  defineTool("stickman_check_join", "Check an approved motion pair and return its film-scale hard-join cost, continuity limit and suggested generated bridge length.", {
+    type: "object", additionalProperties: false, required: ["motionA", "motionB"], properties: {
+      motionA: { type: "string", pattern: "^[a-z][a-z0-9-]{0,63}$" }, motionB: { type: "string", pattern: "^[a-z][a-z0-9-]{0,63}$" }
+    }
+  }, { type: "object", additionalProperties: false, required: ["from", "to", "cost", "limit", "needsBridge", "bridgeFrames"], properties: {
+    from: { type: "string" }, to: { type: "string" }, cost: { type: "number" }, limit: { type: "number" },
+    needsBridge: { type: "boolean" }, bridgeFrames: { type: "integer", minimum: 6, maximum: 24 }
+  } }),
   defineTool("stickman_discover", "Discover supported versioned stickman actions and their binding requirements.", emptyInput, { type: "array", items: descriptionSchema }),
   defineTool("stickman_describe", "Describe a supported action by exact versioned ID.", {
     type: "object", additionalProperties: false, required: ["id"], properties: { id: { type: "string", minLength: 1 } }
@@ -211,6 +219,7 @@ export function createMcpServer(outputRoot: string): Server {
       switch (name) {
         case "stickman_compose_film": return result(await composeFilmRecipe(args.recipe));
         case "stickman_list_film_assets": return result(await listFilmAssets());
+        case "stickman_check_join": return result(await checkFilmJoin(stringArgument(args, "motionA"), stringArgument(args, "motionB")));
         case "stickman_render_film": return result(await renderFilmRecipe(args.recipe, outputRoot, stringArgument(args, "outputDir"), {
           ...(args.preview === undefined ? {} : { preview: args.preview as boolean }),
           ...(args.qaFrames === undefined ? {} : { qaFrames: args.qaFrames as number })

@@ -68,10 +68,10 @@ const scene = {
 } satisfies AnimationSpec;
 
 describe("stdio MCP protocol", () => {
-  it("negotiates and advertises eleven strict, annotated tools with output schemas", async () => {
+  it("negotiates and advertises twelve strict, annotated tools with output schemas", async () => {
     const { listed, stderr, transportErrors } = await connect();
     expect(listed.tools.map((tool) => tool.name)).toEqual([
-      "stickman_compose_film", "stickman_render_film", "stickman_list_film_assets",
+      "stickman_compose_film", "stickman_render_film", "stickman_list_film_assets", "stickman_check_join",
       "stickman_discover", "stickman_describe", "stickman_schema", "stickman_validate",
       "stickman_compile", "stickman_preview", "stickman_export", "stickman_story"
     ]);

@@ -7,6 +7,7 @@ const runtimeUrl = new URL("../scripts/film/api.mjs", import.meta.url);
 type FilmApi = {
   composeRecipe(recipe: unknown): Promise<Record<string, unknown>>;
   listFilmAssets(): Promise<Record<string, unknown>>;
+  checkFilmJoin(motionA: string, motionB: string): Promise<Record<string, unknown>>;
   renderRecipe(recipe: unknown, directory: string, options: { preview?: boolean; qaFrames?: number }): Promise<Record<string, unknown>>;
 };
 const load = async (): Promise<FilmApi> => import(runtimeUrl.href);
@@ -15,6 +16,9 @@ export async function composeFilmRecipe(recipe: unknown): Promise<Record<string,
 }
 export async function listFilmAssets(): Promise<Record<string, unknown>> {
   return (await load()).listFilmAssets();
+}
+export async function checkFilmJoin(motionA: string, motionB: string): Promise<Record<string, unknown>> {
+  return (await load()).checkFilmJoin(motionA, motionB);
 }
 export async function renderFilmRecipe(recipe: unknown, outputRoot: string, outputDir: string, options: { preview?: boolean; qaFrames?: number } = {}): Promise<Record<string, unknown>> {
   const api = await load();

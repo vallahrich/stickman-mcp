@@ -19,7 +19,7 @@ const performance = { type: "array", minItems: 1, maxItems: 100, items: { ...ite
 ] } };
 export const filmRecipeSchema: JsonSchemaType & { type: "object" } = {
   ...object({
-    id, title: text, summary: text, poster: frame,
+    id, title: text, summary: text, poster: frame, bridge: { type: "string", enum: ["auto", "off"] },
     set: { type: "array", maxItems: 20, items: object({ motion: id, root: number, types: stringArray, hideDuring: stringArray }, ["motion", "root", "types"]) },
     performance,
     scenes: { type: "array", minItems: 1, maxItems: 24, items: object({

@@ -10,6 +10,7 @@ import { places } from "../site/story-films.mjs";
 import { readMotion } from "../site/catalogue.mjs";
 import { keyPoseGates } from "../motions/keypose.mjs";
 import { overlayTypes } from "./overlays.mjs";
+import { readJoinMatrix, checkJoin } from "./joins.mjs";
 import { RUNTIME_MOTION_LIBRARY } from "../../dist/motion-library.js";
 
 const validate = new AjvJsonSchemaValidator().getValidator(filmRecipeSchema);
@@ -17,6 +18,7 @@ export function normalizeRecipe(input) {
   const validation = validate(input);
   if (!validation.valid) throw new Error(`Invalid film recipe: ${validation.errorMessage}`);
   const recipe = structuredClone(validation.data);
+  recipe.bridge ??= "auto";
   recipe.declarative = true;
   const ids = recipe.scenes.map(scene => scene.id);
   if (new Set(ids).size !== ids.length) throw new Error("Scene ids must be unique.");
@@ -76,8 +78,10 @@ export async function listFilmAssets() {
     if (!motion.spec.poseKeys?.length || !(await keyPoseGates(motion.clip, motion.spec)).passed) continue;
     motions.push({ id, frames: motion.clip.frames.length, kind: motion.clip.loop ? "loop" : motion.spec.kind === "travel" || (motion.spec.travel && motion.spec.travel !== "in-place") ? "travel" : "oneshot" });
   }
+  const joinMatrix = await readJoinMatrix();
   return { motions, kits: ["legionary", "standard", "dagger"], headwear: ["none", "laurel"], places: Object.keys(places), overlays: overlayTypes,
-    setTypes: resources.propsCatalog.props.map(prop => prop.type), fps: 30, maxFrames: 1800, continuityLimit: 14, recipeSchema: filmRecipeSchema };
+    setTypes: resources.propsCatalog.props.map(prop => prop.type), fps: 30, maxFrames: 1800, continuityLimit: 14,
+    joinCount: joinMatrix.joins.length, recipeSchema: filmRecipeSchema };
 }
 
 function validateMotionOptions(recipe, composed, resources) {
@@ -99,7 +103,8 @@ function summarize(recipe, composed, resources) {
   const { performance, timeline, extraActors } = composed;
   const ranges = (cast, items) => items.map((item, index) => {
     const seg = cast.segments.find(seg => seg.itemIndex === index);
-    if (seg) return { index, motion: seg.id, kind: seg.kind, startFrame: seg.start, endFrame: seg.end, blendStartFrame: seg.gapStart, beat: seg.beat };
+    if (seg) return { index, motion: seg.id, kind: seg.kind, startFrame: seg.start, endFrame: seg.end, blendStartFrame: seg.gapStart, beat: seg.beat,
+      ...(seg.bridge ? { generatedBridgeBefore: true } : {}) };
     const next = cast.segments.find(seg => seg.itemIndex > index);
     return { index, kind: "relocate", startFrame: next.start, endFrame: next.start, root: item.relocate, instantaneous: true, beat: item.beat ?? null };
   });
@@ -137,7 +142,8 @@ function summarize(recipe, composed, resources) {
     if (extra.delay >= until.startFrame + until.frames - start) throw new Error(`extras/${i}: delay exceeds visibility window.`);
   }
   if (recipe.poster !== undefined && recipe.poster >= timeline.frames) throw new Error("Poster frame is outside the film timeline.");
-  return { valid: true, id: recipe.id, frames: timeline.frames, seconds: timeline.seconds, fps: 30, scenes: timeline.scenes, items: ranges(performance, recipe.performance), continuity: { lead: check(performance), actors } };
+  return { valid: true, id: recipe.id, frames: timeline.frames, seconds: timeline.seconds, fps: 30, scenes: timeline.scenes, items: ranges(performance, recipe.performance),
+    bridges: composed.bridgeRecords ?? [], continuity: { lead: check(performance), actors } };
 }
 
 export async function composeRecipe(input) {
@@ -145,6 +151,10 @@ export async function composeRecipe(input) {
   const composed = await composeFilm(recipe, resources);
   validateMotionOptions(recipe, composed, resources);
   return summarize(recipe, composed, resources);
+}
+
+export async function checkFilmJoin(motionA, motionB) {
+  return checkJoin(motionA, motionB);
 }
 
 const stamp = frame => {

@@ -1,0 +1,49 @@
+{
+  "id": "bridge-demo",
+  "title": "Walk, then look around",
+  "summary": "A generated, planted-foot bridge smooths the walk into the opening look-around pose.",
+  "bridge": "auto",
+  "performance": [
+    {
+      "motion": "nod",
+      "root": 400,
+      "hold": 12,
+      "beat": "arrival"
+    },
+    {
+      "walk": {
+        "to": 700
+      }
+    },
+    {
+      "motion": "look-around",
+      "until": 24,
+      "hold": 60,
+      "beat": "search"
+    }
+  ],
+  "scenes": [
+    {
+      "id": "arrival",
+      "title": "Arrive",
+      "place": "city",
+      "cues": [
+        {
+          "frame": 0,
+          "text": "A short walk leads into the scene."
+        }
+      ]
+    },
+    {
+      "id": "search",
+      "title": "Look around",
+      "place": "city",
+      "cues": [
+        {
+          "frame": 0,
+          "text": "Pause and look around before moving on."
+        }
+      ]
+    }
+  ]
+}

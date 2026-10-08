@@ -63,6 +63,59 @@ export async function loadShowcaseResources() {
   return { propsCatalog, approved, colors, themeMotion, fonts, sampleClipMotion, frameGeometry };
 }
 
+function composeWithAutomaticBridges(items, options, sampleClipMotion, enabled, label) {
+  const adjusted = items.map(item => ({ ...item }));
+  const original = composePerformance(adjusted, options);
+  const before = performanceContinuity(original, sampleClipMotion);
+  if (!enabled || before.maxJointStep <= 14) return { performance: original, continuity: before, bridgeRecords: [] };
+  const bridgeByItem = new Map();
+  let performance = original, continuity = before;
+  for (let attempt = 0; attempt < 32 && continuity.maxJointStep > 14; attempt++) {
+    const frame = continuity.worstFrame;
+    const segment = performance.segments.find(seg => frame <= seg.end && frame >= seg.start - 1);
+    if (!segment || segment.relocated) break;
+    const item = adjusted[segment.itemIndex];
+    if (!item || item.relocate !== undefined) break;
+    const record = bridgeByItem.get(segment.itemIndex) ?? { from: performance.segments[performance.segments.indexOf(segment) - 1]?.id ?? null,
+      to: segment.id, costBefore: before.maxJointStep, trimStart: 0, frames: 0 };
+    if (frame < segment.start) {
+      const current = segment.start - segment.gapStart + 1;
+      if (current >= 25) break;
+      item.gap = Math.min(25, current + 1);
+      record.frames = Math.max(record.frames, item.gap - 1);
+    } else if (segment.kind === "motion") {
+      const motion = options.motions.get(item.motion);
+      const sourceFrame = (item._trimStart ?? 0) + Math.max(0, frame - segment.start);
+      const nextKey = motion?.spec.poseKeys?.find(key => key.frame > sourceFrame && key.frame <= (item._trimStart ?? 0) + 48);
+      if (!nextKey) break;
+      item._trimStart = nextKey.frame;
+      const current = segment.start - segment.gapStart + 1;
+      const desired = Math.max(6, Math.min(24, Math.ceil(before.maxJointStep / 14 * 6)));
+      item.gap = Math.max(current, Math.min(25, desired + 1));
+      record.trimStart = item._trimStart;
+      record.frames = Math.max(6, item.gap - 1);
+    } else break;
+    record.frames = Math.max(6, Math.min(24, record.frames || Math.ceil(before.maxJointStep / 14 * 6)));
+    record.costAfter = continuity.maxJointStep;
+    bridgeByItem.set(segment.itemIndex, record);
+    item._bridge = record;
+    performance = composePerformance(adjusted, options);
+    continuity = performanceContinuity(performance, sampleClipMotion);
+    record.costAfter = continuity.maxJointStep;
+  }
+  if (continuity.maxJointStep > 14) {
+    throw new Error(`${label}: automatic bridge could not reduce continuity ${continuity.maxJointStep} below limit 14 (maximum bridge 24 frames).`);
+  }
+  const bridgeRecords = [...bridgeByItem].map(([itemIndex, record]) => {
+    const segment = performance.segments.find(seg => seg.itemIndex === itemIndex);
+    const startFrame = segment.gapStart, endFrame = segment.start - 1;
+    const footSlides = continuity.footSlides.filter(slide => slide.frame >= startFrame && slide.frame <= endFrame);
+    if (footSlides.length) throw new Error(`${label}: generated bridge ${record.from} -> ${record.to} slides a planted foot.`);
+    return { ...record, itemIndex, startFrame, endFrame, frames: endFrame - startFrame + 1, feetLocked: true, kind: "generated-bridge" };
+  });
+  return { performance, continuity, bridgeRecords };
+}
+
 export async function composeFilm(recipe, resources) {
   const { approved, sampleClipMotion } = resources;
   const ids = new Set([...recipe.performance.map(item => item.motion), ...(recipe.set ?? []).map(item => item.motion), ...(recipe.extras ?? []).flatMap(item => [item.motion, ...(item.actor ?? []).map(entry => entry.motion)])].filter(Boolean));
@@ -75,30 +128,36 @@ export async function composeFilm(recipe, resources) {
     motions.set(id, motion);
   }
   const neutral = RUNTIME_MOTION_LIBRARY.clips.idle.frames[0];
-  const performance = composePerformance(recipe.performance, { motions, sampleClipMotion, neutral });
+  const lead = composeWithAutomaticBridges(recipe.performance, { motions, sampleClipMotion, neutral }, sampleClipMotion, recipe.bridge === "auto", `${recipe.id}/lead`);
+  const performance = lead.performance;
   for (const seg of performance.segments.filter(item => item.kind === "walk"))
     if (!(await keyPoseGates(seg.clip, seg.spec)).passed) throw new Error(`${recipe.id}: a generated walk failed its mechanical gates.`);
-  const continuity = performanceContinuity(performance, sampleClipMotion);
+  const continuity = lead.continuity;
   assertContinuity(recipe.id + "/lead", performance, continuity);
-  const extraWalks = new Map(), extraActors = new Map();
+  const extraWalks = new Map(), extraActors = new Map(), actorBridges = new Map();
   for (const extra of recipe.extras ?? []) if (extra.walk) {
     const spec = walkSpec(extra.walk, 1);
     extraWalks.set(extra, { spec, clip: buildKeyPoseClip(spec, neutral), sourceId: spec.id });
   } else if (extra.actor) {
     // A supporting actor is its own small continuous performance (soldier, conspirator), gated like the lead.
-    const actor = composePerformance(extra.actor, { motions, sampleClipMotion, neutral, scale: FILM_SCALE * extra.scale });
+    const actorResult = composeWithAutomaticBridges(extra.actor, { motions, sampleClipMotion, neutral, scale: FILM_SCALE * extra.scale },
+      sampleClipMotion, recipe.bridge === "auto", `${recipe.id}/extras/${recipe.extras.indexOf(extra)}`);
+    const actor = actorResult.performance;
+    actorBridges.set(extra, actorResult.bridgeRecords);
     for (const seg of actor.segments.filter(item => item.kind === "walk"))
       if (!(await keyPoseGates(seg.clip, seg.spec)).passed) throw new Error(`${recipe.id}: a supporting actor's walk failed its mechanical gates.`);
     const check = performanceContinuity(actor, sampleClipMotion);
     assertContinuity(`${recipe.id}/extras/${recipe.extras.indexOf(extra)}`, actor, check);
     extraActors.set(extra, actor);
   }
-  return { motions, performance, continuity, extraWalks, extraActors, timeline: storyTimeline(recipe, performance) };
+  const bridgeRecords = [...lead.bridgeRecords.map(record => ({ ...record, actor: "lead" })),
+    ...[...actorBridges].flatMap(([extra, records]) => records.map(record => ({ ...record, actor: `extra-${recipe.extras.indexOf(extra)}` })))];
+  return { motions, performance, continuity, extraWalks, extraActors, bridgeRecords, timeline: storyTimeline(recipe, performance) };
 }
 
 export async function createStoryRenderer(recipe, resources, composed, options = {}) {
   const { propsCatalog, colors, themeMotion, fonts, sampleClipMotion, frameGeometry } = resources;
-  const { motions, performance, continuity, extraWalks, extraActors, timeline } = composed ?? await composeFilm(recipe, resources);
+  const { motions, performance, continuity, extraWalks, extraActors, bridgeRecords = [], timeline } = composed ?? await composeFilm(recipe, resources);
   const textCache = new Map();
   const outlineText = svg => svg.replace(/<text\b[^>]*>[\s\S]*?<\/text>/g, markup => {
     if (!textCache.has(markup)) {
@@ -173,8 +232,9 @@ export async function createStoryRenderer(recipe, resources, composed, options =
   if (walks.length || extraWalks.size || actorWalks) provenance.push({ id: "generated-walk", kind: "generated-from-walk-on-gait", count: walks.length + extraWalks.size + actorWalks, mechanicalCheck: "passed" });
   if (extraActors.size) provenance.push({ id: "supporting-actors", kind: "continuous-composite", count: extraActors.size,
     maxJointStep: Math.max(...[...extraActors.values()].map(cast => performanceContinuity(cast, sampleClipMotion).maxJointStep)), camera: "locked" });
+  provenance.push(...bridgeRecords.map((bridge, index) => ({ id: `bridge-${index + 1}`, ...bridge })));
   provenance.push({ id: "film-performance", kind: "continuous-composite", frames: performance.frames, maxJointStep: continuity.maxJointStep, camera: "locked" });
-  return { timeline, render, performance, provenance };
+  return { timeline, render, performance, provenance, bridgeRecords };
 }
 
 export function continuityJoin(performance, frame) {
