@@ -24,12 +24,14 @@ retired: no mirroring in either direction.
    default to bounded generated pose-space bridges; results identify each bridge
    and its before/after cost. `stickman_check_join` reports pair cost and a suggested
    bridge length. See [film recipes](film-recipes.md) and `bridge-demo.json`.
-3. **Phase 3 — Faster pose authoring.** Reusable pose library with an explicit
-   human approval gate before any authored motion becomes a film asset.
-4. **Phase 4 — Groups & contact.** Formation/crowd/follow, hand contact and
-   controlled variation without breaking per-actor continuity.
-5. **Phase 5 — Speed & QA loop.** Faster previews, sampled visual checks and
-   an iterative report/fix/review cycle for complete films.
+3. **Phase 3 - Faster pose authoring: done.** Deterministic, provenance-tagged
+   reusable poses; MCP draft authoring, joint overrides, film-scale mechanical
+   checks, confined preview strips, and an unchanged human approval gate. See
+   [motion authoring](motion-authoring.md).
+4. **Phase 4 - Groups & contact: remaining.** Formation/crowd/follow, hand
+   contact and controlled variation without breaking per-actor continuity.
+5. **Phase 5 - Speed & QA loop: remaining.** Faster previews, sampled visual
+   checks and an iterative report/fix/review cycle for complete films.
 
 ## Next stages
 

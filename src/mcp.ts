@@ -13,6 +13,7 @@ import type { ExportFormat } from "./export.js";
 import { getStory, storyCatalog } from "./stories.js";
 import { filmRecipeSchema } from "./film-schema.js";
 import { composeFilmRecipe, renderFilmRecipe, listFilmAssets, checkFilmJoin } from "./film.js";
+import { authorMotionDraft, previewMotionStrip } from "./motion-authoring.js";
 
 type ObjectSchema = JsonSchemaType & { type: "object" };
 type DefinedTool = Omit<Tool, "inputSchema" | "outputSchema"> & {
@@ -100,6 +101,27 @@ const filmResultSchema: ObjectSchema = {
   }
 };
 const filmInput: ObjectSchema = { type: "object", additionalProperties: false, required: ["recipe"], properties: { recipe: filmRecipeSchema } };
+const poseOverrides = { type: "object", additionalProperties: false, properties: Object.fromEntries(
+  ["anchor", "lean", "neck", "bob", "dx", "dy", "facing", "rLeg.hip", "rLeg.knee", "rLeg.lift", "lLeg.hip", "lLeg.knee", "lLeg.lift", "rArm.shoulder", "rArm.elbow", "rArm.spread", "rArm.elbowSpread", "lArm.shoulder", "lArm.elbow", "lArm.spread", "lArm.elbowSpread", "rFoot.x", "rFoot.y", "lFoot.x", "lFoot.y"].map(name => [name, name === "anchor" ? { oneOf: [{ type: "string", enum: ["both", "l", "r"] }, { type: "null" }] } : { type: "number" }])) };
+const authorMotionInput: ObjectSchema = { type: "object", additionalProperties: false, required: ["id", "label", "kind", "view", "travel", "keys", "outputDir"], properties: {
+  id: { type: "string", pattern: "^[a-z][a-z0-9-]{0,63}$" }, label: { type: "string", minLength: 1, maxLength: 100 },
+  kind: { type: "string", enum: ["oneshot", "loop"] }, view: { type: "string", enum: ["side", "front", "three-quarter"] }, travel: { type: "string", enum: ["in-place", "travel"] },
+  frames: { type: "integer", minimum: 2, maximum: 1800 }, hold: { type: "integer", minimum: 0, maximum: 1800 }, easing: { type: "string", enum: ["linear", "in", "out", "inOut", "hold"] },
+  props: { type: "array", maxItems: 10, items: { type: "string", minLength: 1 } }, tags: { type: "array", maxItems: 30, uniqueItems: true, items: { type: "string", minLength: 1 } }, notes: { type: "string", maxLength: 500 },
+  outputDir: { type: "string", minLength: 1 }, keys: { type: "array", minItems: 2, maxItems: 100, items: { type: "object", additionalProperties: false, required: ["frame", "pose"], properties: {
+    frame: { type: "integer", minimum: 0, maximum: 1800 }, pose: { type: "string", minLength: 1 }, overrides: poseOverrides,
+    easing: { type: "string", enum: ["linear", "in", "out", "inOut", "hold"] }
+  } } }
+} };
+const motionPreviewInput: ObjectSchema = { type: "object", additionalProperties: false, required: ["id", "outputDir"], properties: {
+  id: { type: "string", pattern: "^[a-z][a-z0-9-]{0,63}$" }, outputDir: { type: "string", minLength: 1 }, count: { type: "integer", minimum: 2, maximum: 24 }
+} };
+const motionDraftResult: ObjectSchema = { type: "object", required: ["spec", "specPath", "preview", "checks"], properties: {
+  spec: { type: "object" }, specPath: { type: "string" }, preview: { type: "object" }, checks: { type: "object" }
+} };
+const motionPreviewResult: ObjectSchema = { type: "object", required: ["id", "status", "preview"], properties: {
+  id: { type: "string" }, status: { type: "string" }, preview: { type: "object" }, checks: { oneOf: [{ type: "object" }, { type: "null" }] }
+} };
 
 const toolDefinitions: DefinedTool[] = [
   defineTool("stickman_compose_film", "Validate a strict JSON film recipe and compose continuous lead/supporting performances; return scene and item frame ranges, duration and joint-step continuity (limit 14). Source checkout required.", filmInput, filmResultSchema),
@@ -115,6 +137,8 @@ const toolDefinitions: DefinedTool[] = [
       kits: { type: "array", items: { type: "string" } }, places: { type: "array", items: { type: "string" } }, overlays: { type: "array", items: { type: "string" } }, recipeSchema: { type: "object" }
     }
   }),
+  defineTool("stickman_author_motion", "Author a status=draft motion from named reusable pose keys, run engine anatomy/contact/joint-step gates plus film-scale continuity (2.4x, limit 14), write motions/specs/<id>.json, and save a preview strip PNG into a new relative outputDir under --root. Existing non-draft specs are protected; drafts are not film assets.", authorMotionInput, motionDraftResult, { writes: true }),
+  defineTool("stickman_preview_motion", "Render a draft, candidate, or approved motion as a sampled preview strip PNG into a new relative outputDir under --root. Read-only on the motion spec.", motionPreviewInput, motionPreviewResult, { writes: true }),
   defineTool("stickman_check_join", "Check an approved motion pair and return its film-scale hard-join cost, continuity limit and suggested generated bridge length.", {
     type: "object", additionalProperties: false, required: ["motionA", "motionB"], properties: {
       motionA: { type: "string", pattern: "^[a-z][a-z0-9-]{0,63}$" }, motionB: { type: "string", pattern: "^[a-z][a-z0-9-]{0,63}$" }
@@ -220,6 +244,8 @@ export function createMcpServer(outputRoot: string): Server {
         case "stickman_compose_film": return result(await composeFilmRecipe(args.recipe));
         case "stickman_list_film_assets": return result(await listFilmAssets());
         case "stickman_check_join": return result(await checkFilmJoin(stringArgument(args, "motionA"), stringArgument(args, "motionB")));
+        case "stickman_author_motion": return result(await authorMotionDraft(args, outputRoot, stringArgument(args, "outputDir")));
+        case "stickman_preview_motion": return result(await previewMotionStrip(stringArgument(args, "id"), outputRoot, stringArgument(args, "outputDir"), args.count === undefined ? 8 : args.count as number));
         case "stickman_render_film": return result(await renderFilmRecipe(args.recipe, outputRoot, stringArgument(args, "outputDir"), {
           ...(args.preview === undefined ? {} : { preview: args.preview as boolean }),
           ...(args.qaFrames === undefined ? {} : { qaFrames: args.qaFrames as number })

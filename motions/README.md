@@ -104,6 +104,10 @@ Per-motion builds write only to that motion's output directory, so separate agen
 - `axis`: optional projection-axis override when `auto` chooses poorly.
 - `trim`: frame range within the current candidate clip after projection/retarget.
 
+## Faster pose authoring
+
+Use [motion authoring](../docs/motion-authoring.md) to start a mechanically checked draft from named reusable poses. Regenerate `motions/poses/poses.json` with `npm run motions:poses`; each library entry stores its source spec, source status, key frame, and source SHA-256. The `stickman_author_motion` MCP tool writes only `status: "draft"` specs, protects non-draft specs from replacement, and emits a preview strip under the launch-time output root. `stickman_preview_motion` renders a sampled strip read-only. Drafts are not film assets: film composition continues to require user-approved motions.
+
 ## Authored key-pose arm spread
 
 Authored `poseKeys` support optional per-arm frontal-plane abduction:

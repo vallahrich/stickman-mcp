@@ -59,6 +59,14 @@ npm run build
 node examples\films\render.mjs .\output
 ```
 
+## Faster motion authoring
+
+Build a new mechanically checked motion draft from reusable key poses with
+`stickman_author_motion`, then inspect it using `stickman_preview_motion`.
+Drafts stay out of films until explicitly user-approved. See the [motion
+authoring guide](docs/motion-authoring.md) and regenerate the pose library with
+`npm run motions:poses`.
+
 ## IT and digital-services motion gallery
 
 The primary presentation audience is cloud, infrastructure, cybersecurity and

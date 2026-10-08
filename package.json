@@ -55,7 +55,8 @@
     "site:serve": "node scripts/site/serve.mjs",
     "site:showcase": "npm run -s build && node --expose-gc scripts/site/build-showcase.mjs",
     "site:test": "playwright test --config playwright.site.config.mjs",
-    "motions:joins": "npm run -s build && node scripts/motions/joins.mjs"
+    "motions:joins": "npm run -s build && node scripts/motions/joins.mjs",
+    "motions:poses": "node scripts/motions/poses.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.25.2"
