@@ -1,3 +1,4 @@
+import { renderOverlays } from "../film/overlays.mjs";
 // Two silent shorts staged as one continuous performance each, under a locked camera.
 // `performance` drives the actor (see performance.mjs); `scenes` hold the mute-readable cues and
 // the world overlays, which fade in with their beat and fade out when the beat is over.
@@ -122,7 +123,7 @@ const columns = (x, y, width, height, c) => `${line(`M${x} ${y + 60}l${width / 2
   ${[.1, .3, .5, .7, .9].map(r => `<rect x="${n(x + r * width - 12)}" y="${y + 65}" width="24" height="${height - 65}" fill="${c.surface}" stroke="${c["border-strong"]}" stroke-width="4"/>`).join("")}
   ${line(`M${x - 15} ${y + height + 5}h${width + 30}m${-width - 45} 16h${width + 60}`, c["border-strong"], 6)}`;
 const skyline = c => `<g opacity=".35"><path d="M-50 295V170l95-35 95 35v125h70V190l90-55 90 55v105h60V160h170v135h80V210l90-65 90 65v85h70V140l90-35 90 35v155h100v250H-50Z" fill="${c["accent-soft"]}"/></g>`;
-const places = {
+export const places = {
   office,
   city: c => `<rect width="1280" height="540" fill="${c.bg}"/>${skyline(c)}${columns(80, 250, 360, 210, c)}${floor(c, 4)}`,
   senate: c => `<rect width="1280" height="540" fill="${c.bg}"/>${skyline(c)}${columns(175, 190, 930, 270, c)}${floor(c, 4)}`,
@@ -135,16 +136,16 @@ const places = {
     ${floor(c, 4)}${line("M560 540H790", c.accent, 7)}`
 };
 
-const scroll = (x, y, label, c, width = 300) => `<g transform="translate(${x} ${y}) rotate(-4)">
+export const scroll = (x, y, label, c, width = 300) => `<g transform="translate(${x} ${y}) rotate(-4)">
   <path d="M0 0h${width}v150H0Z" fill="${c.surface}" stroke="${c["border-strong"]}" stroke-width="4"/>
   ${line(`M-12 0h${width + 24}m${-width - 24} 150h${width + 24}`, c.accent, 8)}
   ${text(width / 2, 46, label, 25, c.text, 700, "middle")}
   ${[78, 106].map((y, i) => line(`M30 ${y}h${width - 70 - i * 35}`, c.border, 3)).join("")}</g>`;
-const tick = (x, y, c) => `<circle cx="${x}" cy="${y}" r="22" fill="${c.accent}"/>${line(`M${x - 11} ${y}l8 8 15-17`, c["accent-fg"], 4)}`;
-const packageBox = (x, y, c, label = "v1.1") => `<g transform="translate(${n(x)} ${n(y)})">
+export const tick = (x, y, c) => `<circle cx="${x}" cy="${y}" r="22" fill="${c.accent}"/>${line(`M${x - 11} ${y}l8 8 15-17`, c["accent-fg"], 4)}`;
+export const packageBox = (x, y, c, label = "v1.1") => `<g transform="translate(${n(x)} ${n(y)})">
   <path d="M0 22 60 0l62 22v80l-62 25L0 102ZM0 22l60 25 62-25M60 47v80" fill="${c.surface}" stroke="${c.accent}" stroke-width="5"/>
   ${text(18, 86, label, 23, c.text, 700)}</g>`;
-const bubble = (x, y, w, first, second, c) => move(x, y, `<path d="M0 0h${w}v116H70l-36 34 8-34H0Z" fill="${c.surface}" stroke="${c.accent}" stroke-width="4"/>
+export const bubble = (x, y, w, first, second, c) => move(x, y, `<path d="M0 0h${w}v116H70l-36 34 8-34H0Z" fill="${c.surface}" stroke="${c.accent}" stroke-width="4"/>
   ${text(w / 2, 48, first, 30, c.text, 700, "middle")}${second ? text(w / 2, 90, second, 23, c.accent, 700, "middle") : ""}`);
 const title = (f, label, c) => show(1 - ease((f - 70) / 24), text(640, 76, label, 50, c.text, 800, "middle"));
 
@@ -211,8 +212,9 @@ export function filmExtras(recipe, timeline, frame) {
     const from = timeline.scenes[sceneIndex(extra.from)], until = timeline.scenes[sceneIndex(extra.until)];
     if (!from || !until) throw new Error(`${recipe.id}: extras need known scenes.`);
     const start = from.startFrame, end = until.startFrame + until.frames;
-    if (frame < start || frame >= end) return [];
-    return [{ ...extra, source: extra, frame: Math.max(0, frame - start - extra.delay), opacity: life(frame - start, end - start, 0, end - start, 18) }];
+    const visibleStart = start + (recipe.declarative ? extra.delay : 0);
+    if (frame < visibleStart || frame >= end) return [];
+    return [{ ...extra, source: extra, frame: Math.max(0, frame - start - extra.delay), opacity: life(frame - visibleStart, end - visibleStart, 0, end - visibleStart, 18) }];
   });
 }
 
@@ -228,7 +230,7 @@ export function renderStoryFrame(recipe, timeline, frame, layers, c) {
   const previous = timeline.scenes[index - 1];
   const dissolve = previous && previous.place !== scene.place ? ease(local / 24) : 1;
   const world = (dissolve < 1 ? places[previous.place](c, frame) : "") + show(dissolve, places[scene.place](c, frame));
-  const overlay = (recipe.id === "open-source" ? openSourceOverlay : caesarOverlay)(scene, local, scene.frames, c);
+  const overlay = recipe.declarative ? renderOverlays(scene.overlays ?? [], local, c) : (recipe.id === "open-source" ? openSourceOverlay : caesarOverlay)(scene, local, scene.frames, c);
   const currentCue = scene.cues.findLast(entry => entry.frame <= local);
   const rows = [];
   let row = "";
@@ -240,7 +242,7 @@ export function renderStoryFrame(recipe, timeline, frame, layers, c) {
   if (rows.length > 2) throw new Error("Silent film text must fit two large readable lines.");
   const textY = rows.length === 1 ? 663 : 633;
   const cueIn = ease((local - currentCue.frame) / 8);
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" data-story="${recipe.id}" data-state="${scene.state}" data-style="silent-short-film" data-camera="locked" data-segment="${layers.segment ?? ""}" data-cue="${currentCue.frame}">
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" data-story="${recipe.id}" data-state="${xml(scene.state)}" data-style="silent-short-film" data-camera="locked" data-segment="${layers.segment ?? ""}" data-cue="${currentCue.frame}">
     <rect width="1280" height="720" fill="${c.bg}"/>
     <g font-family="Segoe UI, Aptos, Calibri, sans-serif">
     ${world}${layers.back ?? ""}${layers.extras ?? ""}${layers.actor ?? ""}${layers.front ?? ""}${overlay}

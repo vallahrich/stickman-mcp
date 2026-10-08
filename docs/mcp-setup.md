@@ -50,13 +50,13 @@ command or modify your settings.
 Start with the seven non-writing tools:
 
 ```powershell
-copilot mcp add stickman --tools 'stickman_discover,stickman_describe,stickman_schema,stickman_validate,stickman_compile,stickman_preview,stickman_story' -- node 'C:\Projects\stickman-mcp\dist\mcp.js' --root 'C:\Projects\MyPresentation\stickman-output'
+copilot mcp add stickman --tools 'stickman_discover,stickman_describe,stickman_schema,stickman_validate,stickman_compile,stickman_preview,stickman_story,stickman_list_film_assets,stickman_compose_film' -- node 'C:\Projects\stickman-mcp\dist\mcp.js' --root 'C:\Projects\MyPresentation\stickman-output'
 copilot mcp get stickman
 ```
 
 The interactive alternative is `/mcp add`, selecting **STDIO**, the same command
 and arguments, and the tool names above. Use `/mcp show stickman` to inspect the
-server and its tools. Enable `stickman_export` only when you intend to write
+server and its tools. Enable `stickman_export` or `stickman_render_film` only when you intend to write
 artifacts in the approved root; enabling a tool is not authorization to overwrite
 or write outside that root.
 
@@ -118,7 +118,7 @@ No invented `--type`/`--command` Codex flags or `/mcp/metadata` endpoint are use
 
 ## Tool contracts and errors
 
-All eight tools enforce their advertised JSON input schemas at runtime. Missing
+All eleven tools enforce their advertised JSON input schemas at runtime. Missing
 required fields, unknown fields (including attempted root overrides), wrong
 types, and invalid enums are rejected without coercion. For example, preview
 `timeMs` must be a number, not `"500"` or `null`. Animation validation remains the
@@ -141,6 +141,10 @@ Read-only/idempotency annotations describe tool behavior; they are hints, not
 access control. Export is annotated as writing and non-idempotent because it
 creates a new artifact and rejects repeated writes to the same filename.
 The filesystem root and safe-export checks enforce the actual boundary.
+`stickman_render_film` is likewise writing/non-idempotent: it reserves a new
+relative output directory and refuses existing paths. The two other film tools
+are read-only. See [film recipes](film-recipes.md) for their strict recipe
+schema, shared composer, source-checkout requirement and preview/QA options.
 
 These contracts follow the [SDK-generation tools specification](https://modelcontextprotocol.io/specification/2025-11-25/server/tools).
 Protocol-generation compatibility is separate from the animation document's v1
@@ -165,9 +169,10 @@ After reviewing and starting the server in your client:
 clients launch, rather than a development TypeScript loader whose function-name
 helpers can change serialized browser code. The automated suite uses a real SDK
 client and child-process stdio transport. It
-checks all eight tools, output-schema validation, malformed arguments, unknown
+checks all eleven tools, output-schema validation, malformed arguments, unknown
 tools, engine/render parity, export boundaries, startup stderr, and clean client
-closure. These tests do not claim that a particular installed Copilot/VS Code
+closure, plus film recipe validation, actor continuity and confined preview
+rendering. These tests do not claim that a particular installed Copilot/VS Code
 version, its enterprise policies, or its artifact viewer has been certified;
 the client smoke check above is still required in that environment.
 

@@ -106,6 +106,7 @@ export function composePerformance(items, { motions, sampleClipMotion, neutral, 
       let distance = Math.abs(goal - start) / (S * UNIT);
       for (let attempt = 0; attempt < 3; attempt++) {
         spec = walkSpec(distance, facing, item.walk.pace ?? 18);
+        if (spec.frames > 1800) throw new Error(`Generated walk exceeds the 1800-frame limit (${spec.frames} frames).`);
         clip = buildKeyPoseClip(spec, neutral);
         const travelled = (pelvisOffset(sampleClipMotion, clip, clip.frames.length - 1) - pelvisOffset(sampleClipMotion, clip, 0)) * S;
         distance += facing * (goal - start - travelled) / (S * UNIT);
@@ -155,9 +156,10 @@ export function composePerformance(items, { motions, sampleClipMotion, neutral, 
     if (clip.loop) keys.push(offset(cycles * n, clip.poseKeys[0]));
     let end = start + length - 1;
     if (item.hold) { keys.push({ ...keys.at(-1), frame: end + item.hold }); end += item.hold; }
+    if (end >= 1800) throw new Error(`Performance exceeds the 1800-frame limit (${end + 1} frames).`);
     keys[keys.length - 1] = { ...keys.at(-1), ease: "inOut" };
     const lastLocal = clip.loop ? 0 : n - 1;
-    segments.push({ id, kind: item.walk ? "walk" : "motion", clip, spec, start, end, length, root, loop: clip.loop, n,
+    segments.push({ id, itemIndex: index, kind: item.walk ? "walk" : "motion", clip, spec, start, end, length, root, loop: clip.loop, n,
       keep: item.keep ?? [], laurel: item.laurel ?? false, fadeOut: item.fadeOut ?? 0, beat: item.beat ?? beat ?? null,
       gapStart: previous ? previous.end + 1 : 0, relocated: relocate !== null,
       endFacing: clip.poseKeys.at(lastLocal === 0 ? 0 : -1).pose.facing ?? 1 });

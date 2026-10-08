@@ -12,6 +12,22 @@ Development is canonical in the private
 [`vallahrich/stickman-mcp`](https://github.com/vallahrich/stickman-mcp)
 repository. The former corporate copy `t-vwallerich_microsoft/stickman-mcp` is
 retired: no mirroring in either direction.
+## Continuous film composition phases
+
+1. **Phase 1 — Composer in the MCP: done.** Strict JSON recipes, approved film
+   asset discovery, shared showcase/MCP continuous composition, actor and lead
+   continuity reports, confined MP4/poster/VTT/QA export and fast previews.
+   See [film recipes](film-recipes.md). Mechanical gates do not constitute new
+   visual approval or universal text-to-motion generation.
+2. **Phase 2 — Automatic transitions / join matrix.** Qualify motion-pair joins
+   and select safe transition options instead of requiring manual staging.
+3. **Phase 3 — Faster pose authoring.** Reusable pose library with an explicit
+   human approval gate before any authored motion becomes a film asset.
+4. **Phase 4 — Groups & contact.** Formation/crowd/follow, hand contact and
+   controlled variation without breaking per-actor continuity.
+5. **Phase 5 — Speed & QA loop.** Faster previews, sampled visual checks and
+   an iterative report/fix/review cycle for complete films.
+
 ## Next stages
 
 **Presentation-first audience:** prioritize IT and digital servicesâ€”cloud

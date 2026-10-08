@@ -1,0 +1,29 @@
+{
+  "id": "team-handoff",
+  "title": "A small team ships together",
+  "summary": "Two scenes, a lead and two supporting actors under a locked camera.",
+  "poster": 110,
+  "performance": [
+    { "motion": "wave", "root": 400, "hold": 90, "beat": "welcome" },
+    { "motion": "nod", "hold": 114, "beat": "ready" }
+  ],
+  "scenes": [
+    {
+      "id": "welcome", "title": "Meet the team", "place": "office",
+      "cues": [{ "frame": 0, "text": "A shared plan brings the team together." }],
+      "overlays": [{ "type": "bubble", "x": 570, "y": 100, "text": "ONE TEAM", "second": "ONE PLAN", "from": 12, "to": 140, "fade": 12 }]
+    },
+    {
+      "id": "ready", "title": "Ready to ship", "place": "city",
+      "cues": [{ "frame": 0, "text": "The team is ready for the next step." }],
+      "overlays": [
+        { "type": "scroll", "x": 550, "y": 120, "text": "READY TO SHIP", "from": 12, "to": 145, "fade": 12 },
+        { "type": "tick", "x": 910, "y": 195, "from": 30, "to": 145, "fade": 12, "tween": { "x": 950, "scale": 1.2 } }
+      ]
+    }
+  ],
+  "extras": [
+    { "actor": [{ "motion": "nod", "root": 860, "hold": 274 }], "scale": 0.55, "from": "welcome", "until": "ready", "delay": 12 },
+    { "actor": [{ "motion": "nod", "root": 1060, "hold": 274 }], "scale": 0.55, "from": "welcome", "until": "ready", "delay": 24 }
+  ]
+}

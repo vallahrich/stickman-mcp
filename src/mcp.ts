@@ -11,6 +11,8 @@ import { animationSchema } from "./contract-schema.js";
 import type { PlaybackMode } from "./contract.js";
 import type { ExportFormat } from "./export.js";
 import { getStory, storyCatalog } from "./stories.js";
+import { filmRecipeSchema } from "./film-schema.js";
+import { composeFilmRecipe, renderFilmRecipe, listFilmAssets } from "./film.js";
 
 type ObjectSchema = JsonSchemaType & { type: "object" };
 type DefinedTool = Omit<Tool, "inputSchema" | "outputSchema"> & {
@@ -89,7 +91,30 @@ function defineTool(name: string, description: string, inputSchema: ObjectSchema
   };
 }
 
+const filmResultSchema: ObjectSchema = {
+  type: "object", required: ["valid", "id", "frames", "seconds", "fps", "scenes", "items", "continuity"],
+  properties: { valid: { const: true }, id: { type: "string" }, frames: { type: "integer", maximum: 1800 },
+    seconds: { type: "number" }, fps: { const: 30 }, scenes: { type: "array", items: { type: "object" } },
+    items: { type: "array", items: { type: "object" } }, continuity: { type: "object", required: ["lead", "actors"],
+      properties: { lead: { type: "object" }, actors: { type: "array", items: { type: "object" } } } }
+  }
+};
+const filmInput: ObjectSchema = { type: "object", additionalProperties: false, required: ["recipe"], properties: { recipe: filmRecipeSchema } };
+
 const toolDefinitions: DefinedTool[] = [
+  defineTool("stickman_compose_film", "Validate a strict JSON film recipe and compose continuous lead/supporting performances; return scene and item frame ranges, duration and joint-step continuity (limit 14). Source checkout required.", filmInput, filmResultSchema),
+  defineTool("stickman_render_film", "Render a JSON film recipe to silent MP4, poster PNG, captions VTT and optional QA PNG. outputDir must be a NEW relative directory inside the launch-time --root; existing paths and symlinks are refused. preview uses 640x360 at 15 fps, preserving duration.", {
+    ...filmInput, required: ["recipe", "outputDir"], properties: { ...filmInput.properties,
+      outputDir: { type: "string", minLength: 1 }, preview: { type: "boolean" }, qaFrames: { type: "integer", minimum: 1, maximum: 24 } }
+  }, { ...filmResultSchema, required: [...(filmResultSchema.required ?? []), "outputDir", "files", "sha256"],
+    properties: { ...filmResultSchema.properties, outputDir: { type: "string" }, files: { type: "object" }, sha256: { type: "string" } }
+  }, { writes: true }),
+  defineTool("stickman_list_film_assets", "List mechanically qualified user-approved film motion IDs with frame counts/kind, kits, headwear, places, set prop types, overlay primitives and the strict film recipe JSON Schema. This is separate from the runtime action catalogue.", emptyInput, {
+    type: "object", required: ["motions", "kits", "places", "overlays", "recipeSchema"], properties: {
+      motions: { type: "array", items: { type: "object", required: ["id", "frames", "kind"], properties: { id: { type: "string" }, frames: { type: "integer" }, kind: { type: "string", enum: ["oneshot", "loop", "travel"] } } } },
+      kits: { type: "array", items: { type: "string" } }, places: { type: "array", items: { type: "string" } }, overlays: { type: "array", items: { type: "string" } }, recipeSchema: { type: "object" }
+    }
+  }),
   defineTool("stickman_discover", "Discover supported versioned stickman actions and their binding requirements.", emptyInput, { type: "array", items: descriptionSchema }),
   defineTool("stickman_describe", "Describe a supported action by exact versioned ID.", {
     type: "object", additionalProperties: false, required: ["id"], properties: { id: { type: "string", minLength: 1 } }
@@ -184,6 +209,12 @@ export function createMcpServer(outputRoot: string): Server {
     const args = validation.data;
     try {
       switch (name) {
+        case "stickman_compose_film": return result(await composeFilmRecipe(args.recipe));
+        case "stickman_list_film_assets": return result(await listFilmAssets());
+        case "stickman_render_film": return result(await renderFilmRecipe(args.recipe, outputRoot, stringArgument(args, "outputDir"), {
+          ...(args.preview === undefined ? {} : { preview: args.preview as boolean }),
+          ...(args.qaFrames === undefined ? {} : { qaFrames: args.qaFrames as number })
+        }));
         case "stickman_discover": return result(actionCatalog);
         case "stickman_story": return result(args.id === undefined ? storyCatalog() : getStory(stringArgument(args, "id")));
         case "stickman_describe": {

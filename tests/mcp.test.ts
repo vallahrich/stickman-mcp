@@ -68,9 +68,10 @@ const scene = {
 } satisfies AnimationSpec;
 
 describe("stdio MCP protocol", () => {
-  it("negotiates and advertises eight strict, annotated tools with output schemas", async () => {
+  it("negotiates and advertises eleven strict, annotated tools with output schemas", async () => {
     const { listed, stderr, transportErrors } = await connect();
     expect(listed.tools.map((tool) => tool.name)).toEqual([
+      "stickman_compose_film", "stickman_render_film", "stickman_list_film_assets",
       "stickman_discover", "stickman_describe", "stickman_schema", "stickman_validate",
       "stickman_compile", "stickman_preview", "stickman_export", "stickman_story"
     ]);
@@ -78,9 +79,9 @@ describe("stdio MCP protocol", () => {
       expect(tool.inputSchema.additionalProperties).toBe(false);
       expect(tool.outputSchema?.type).toBe("object");
       expect(tool.annotations).toMatchObject({
-        readOnlyHint: tool.name !== "stickman_export",
+        readOnlyHint: !["stickman_export", "stickman_render_film"].includes(tool.name),
         destructiveHint: false,
-        idempotentHint: tool.name !== "stickman_export",
+        idempotentHint: !["stickman_export", "stickman_render_film"].includes(tool.name),
         openWorldHint: false
       });
     }
