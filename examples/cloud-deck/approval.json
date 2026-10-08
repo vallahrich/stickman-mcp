@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "scope": "storyboard-brand-three-slide-pilot",
+  "deckId": "workload-migration",
+  "briefRevision": "b118db17e8e07a96ee4f4642815ae6f298a74c78f06a8ead2754fe0982c80fe8",
+  "outlineRevision": "60e7c9ac6b0a17119709243faf05b639b2f192850c1fe8d0ada297035d933c73",
+  "brandRevision": "1d214e356fb9e726b7eeb5d14a4bc6fd1c800fa6ea383aceaa98f71d4f43e09b",
+  "pilotSlideRevisions": {
+    "pilot-framing": "44a104a526964feb1112f0bf69c87d5eec5b9c1c9ad91e7039ec2935d411fddf",
+    "on-prem": "8a818bd6062458ff4b9072a638d9fc67142daad80b655c8a6d34d145572fe817",
+    "pilot-recommendation": "0458c70082b1a427a60f39acae57e9579cce95fc22752e9e0deec35ea9c3c0cd"
+  },
+  "previewHash": "cfb799289148c35b14eb96a008c3dc3105537adbb9dd3561366084f46b83bb93",
+  "approvedBy": "Copilot (autonomous; user to review)",
+  "statement": "Autonomous design approval under the user's explicit delegation, not user review. The three-layout pilot includes two design references removed from the final five-scene timed story. Final animation and screenshots remain subject to verification and user review.",
+  "approvedAt": "2026-10-08T18:56:15.950Z"
+}

@@ -2,20 +2,31 @@
   "version": "1.0",
   "name": "Stickman studio (illustrative)",
   "palette": {
-    "background": "#F6F7F9",
+    "background": "#F7F4EF",
     "surface": "#FFFFFF",
-    "text": "#1B1F24",
-    "muted": "#4B5560",
-    "accent": "#0F6CBD",
+    "text": "#242424",
+    "muted": "#5C5C5C",
+    "accent": "#B11F4B",
     "accentText": "#FFFFFF",
-    "line": "#D6DBE0"
+    "line": "#DEDEDE"
   },
   "font": "segoe",
   "headingWeight": 600,
   "radius": 10,
   "wordmark": "Stickman studio · illustrative",
   "evidence": [
-    { "field": "palette", "value": "Neutral palette with one blue accent", "origin": "user", "confidence": 1, "note": "Created for the stickman showcase; not a customer brand." },
-    { "field": "font", "value": "segoe", "origin": "default", "confidence": 1 }
+    {
+      "field": "palette",
+      "value": "Clawpilot warm neutral palette and deep rose accent",
+      "origin": "user",
+      "confidence": 1,
+      "note": "Created for the stickman showcase; not a customer brand."
+    },
+    {
+      "field": "font",
+      "value": "segoe",
+      "origin": "default",
+      "confidence": 1
+    }
   ]
 }

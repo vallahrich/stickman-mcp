@@ -7,6 +7,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { composeFilm, loadShowcaseResources } from "../film/runtime.mjs";
 import { createPerformanceRenderer } from "./performance.mjs";
+import { engineSampledFrame } from "../motions/review-renderer.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const FPS = 30;
@@ -16,37 +17,76 @@ export const MAX_FRAMES = 1800;
 export const cloudDeckPlan = {
   id: "cloud-deck",
   provider: "stickman",
-  // Film-space window shown inside every 740x440 scene slot (same aspect ratio as the slot).
-  view: { x: 150, y: 60, w: 900, h: 535 },
-  slides: [
-    { id: "question", frames: 105 },
-    { id: "on-prem", scene: true },
-    { id: "cloud", scene: true },
-    { id: "evidence", scene: true },
-    { id: "decision", frames: 180 }
-  ],
+  // A fixed camera and uniform stage projection keep the co-presenter ~122 px tall at 1440x900.
+  view: { x: 0, y: 60, w: 1000, h: 595 },
+  projection: { scale: 0.55, x: 0, y: 243 },
+  reviewSlides: ["pilot-framing", "pilot-recommendation"],
+  slides: ["question", "on-prem", "cloud", "evidence", "decision"].map(id => ({ id, scene: true })),
   performance: [
-    { motion: "rack-server", root: 330, hold: 12, beat: "on-prem/0" },
-    { walk: { to: 600 }, beat: "on-prem/1" }, { motion: "shrug", hold: 12 },
-    { motion: "check-watch", hold: 22, beat: "on-prem/2" },
-    { relocate: 460, beat: "cloud/0" }, { motion: "idea", hold: 22 },
-    { motion: "present", hold: 40, beat: "cloud/1" },
-    { motion: "think", hold: 30, beat: "cloud/2" },
-    { relocate: 285, beat: "evidence/0" }, { motion: "inspect-magnifier", hold: 6 },
-    { walk: { to: 705 }, beat: "evidence/1" }, { motion: "present", hold: 8 },
-    { walk: { to: 915 }, beat: "evidence/2" }, { motion: "thumbs-up", hold: 30 }
+    { motion: "enter-door", root: 650, beat: "question/0" }, { motion: "think", until: 16 },
+    { motion: "rack-server", until: 182, beat: "on-prem/0" },
+    { motion: "shrug", until: 36, beat: "on-prem/1" },
+    { motion: "idea", beat: "on-prem/2" },
+    { walk: { to: 850, pace: 12 }, beat: "cloud/0" }, { motion: "present", until: 38 }, { motion: "sit-down" },
+    { motion: "video-call", until: 69, beat: "cloud/1" }, { motion: "type-at-desk", cycles: 1 },
+    { motion: "stand-up", beat: "cloud/2" },
+    { walk: { to: 480, pace: 12 }, beat: "evidence/0" }, { motion: "present", until: 38 },
+    { walk: { to: 780, pace: 12 }, beat: "evidence/1" },
+    { walk: { to: 1080, pace: 12 }, beat: "evidence/2" },
+    { walk: { to: 1380, pace: 12 }, beat: "evidence/3" }, { motion: "thumbs-up" },
+    { motion: "basketball-shot", beat: "decision/0" }, { motion: "exit-door" }
   ],
-  // Props that stay on stage for a whole slide (the rack the admin just filled).
-  sets: { "on-prem": [{ motion: "rack-server", types: ["server-rack", "platform"], root: 330 }] }
+  sets: { "on-prem": [{ motion: "rack-server", types: ["server-rack", "platform"], root: 650 }] }
 };
 
 const beatsOf = plan => plan.performance.filter(item => item.beat).map(item => item.beat);
 
+// A tiny airborne replant during generated joins avoids dragging a planted stance.
+// The same world-space offset is measured by the gate and applied to the actor SVG.
+export function deckJoinLift(performance, frame) {
+  const segment = performance.segments.find(seg => frame <= seg.end);
+  if (!segment || frame >= segment.start || !segment.gapStart) return 0;
+  const t = (frame - segment.gapStart + 1) / (segment.start - segment.gapStart + 1);
+  return 3 * Math.sin(Math.PI * t);
+}
+export function deckContinuity(performance, sampleClipMotion) {
+  let previous = null, maxJointStep = 0, worstFrame = 0;
+  const footSlides = [];
+  for (let frame = 0; frame < performance.frames; frame++) {
+    const sample = engineSampledFrame(sampleClipMotion, performance.clip, frame);
+    const shift = (performance.rootTrack[frame] - 640) / performance.scale;
+    const lift = deckJoinLift(performance, frame) * .75;
+    const points = [sample.head, ...sample.segments.map(part => ({ x: part.x2, y: part.y2, id: part.id }))]
+      .map(point => ({ ...point, x: point.x + shift, y: point.y - lift }));
+    if (previous) {
+      points.forEach((point, i) => { const step = Math.hypot(point.x - previous[i].x, point.y - previous[i].y) / .75;
+        if (step > maxJointStep) { maxJointStep = step; worstFrame = frame; } });
+      for (const side of ["left", "right"]) {
+        const a = points.find(point => point.id === side + "-shin"), b = previous.find(point => point.id === side + "-shin");
+        if (a.y >= 149.5 && b.y >= 149.5 && Math.abs(a.x - b.x) / .75 > 1.2) footSlides.push({ frame, side });
+      }
+    }
+    previous = points;
+  }
+  return { maxJointStep: Number(maxJointStep.toFixed(2)), worstFrame, footSlides };
+}
+
 /** Compose the lead performance through the shared film composer (approved gating, auto bridges). */
 export async function composeDeckPerformance(plan = cloudDeckPlan, resources) {
   resources ??= await loadShowcaseResources();
-  const scenes = beatsOf(plan).map(id => ({ id, state: id, cues: [{ frame: 0, text: id }] }));
+  // Film captions are not shown: slide copy belongs to the presentation runtime.
+  const scenes = [{ id: beatsOf(plan)[0], state: plan.id, cues: [{ frame: 0, text: "Workload migration comparison" }] }];
   const composed = await composeFilm({ id: plan.id, bridge: "auto", performance: plan.performance, scenes, set: [] }, resources);
+  const replants = composed.performance.segments.slice(1).map(seg => ({ kind: "generated-replant", startFrame: seg.gapStart, endFrame: seg.start - 1, frames: seg.start - seg.gapStart }));
+  composed.continuity = deckContinuity(composed.performance, resources.sampleClipMotion);
+  if (composed.continuity.maxJointStep > 14 || composed.continuity.footSlides.length) throw new Error("Deck joins failed continuity or planted-foot gates: " + JSON.stringify(composed.continuity));
+  composed.bridgeRecords.push(...replants);
+  const starts = beatsOf(plan).map(id => {
+    const segment = composed.performance.segments.find(seg => seg.beat === id);
+    if (!segment) throw new Error("Missing deck performance beat " + id);
+    return { id, startFrame: segment.gapStart };
+  });
+  composed.timeline.scenes = starts.map((scene, i) => ({ ...scene, frames: (starts[i + 1]?.startFrame ?? composed.performance.frames) - scene.startFrame }));
   return { resources, composed };
 }
 
@@ -93,8 +133,8 @@ export function tokenTheme(svg) {
 
 // Sub-pixel precision and element ids are invisible at slot size; dropping them keeps the deck small.
 export const compactSvg = svg => svg
-  .replace(/ (?:id|data-part)="[^"]*"/g, "")
-  .replace(/-?\d+\.\d{2,}/g, value => String(Math.round(Number(value) * 10) / 10));
+  .replace(/ (id|data-part)="([^"]*)"/g, (match, attr, id) => attr === "id" && svg.includes(`url(#${id})`) ? match : "")
+  .replace(/-?\d+\.\d{2,}/g, value => String(Math.round(Number(value) * 100) / 100));
 
 // Where the actor stands on stage (film x). rootTrack is a render offset, so derive it from the segments.
 export function stagePosition(performance, frame) {
@@ -128,10 +168,36 @@ export async function renderDeckFrames(plan, composed, resources, ranges) {
   };
   for (let f = 0; f < performance.frames; f++) {
     const layers = await rendererFor(owner[f])(f);
-    frames.push([ref(layers.back), ref(layers.actor), ref(layers.front)]);
-    roots.push(Math.round(stagePosition(performance, f)));
+    const ownerSegment = performance.segments.find(seg => f <= seg.end);
+    const local = f - ownerSegment.start;
+    const door = ownerSegment.kind === "motion" ? ownerSegment.spec.review?.prop : null;
+    if (ownerSegment.spec.prop === "door" && door && local >= (door.clipFigureFrom ?? Infinity) && (door.clipFigureUntil === undefined || local < door.clipFigureUntil)) {
+      const unit = .75 * performance.scale, x = ownerSegment.root + door.x * unit, y = 540 - (door.y + door.h) * unit;
+      layers.actor = ownerSegment.id === "exit-door" && local >= ownerSegment.spec.markers.clear ? "" :
+        '<defs><clipPath id="deck-door-aperture"><rect x="' + x + '" y="' + y + '" width="' + door.w * unit + '" height="' + door.h * unit + '"/></clipPath></defs><g clip-path="url(#deck-door-aperture)">' + layers.actor + '</g>';
+    }
+    const project = markup => plan.projection && markup ? `<g transform="translate(${plan.projection.x} ${plan.projection.y}) scale(${plan.projection.scale})">${markup}</g>` : markup;
+    frames.push([ref(project(layers.back)), ref(project(`<g transform="translate(0 ${-deckJoinLift(performance, f) * .75 * performance.scale})">${layers.actor}</g>`)), ref(project(layers.front))]);
+    roots.push(Math.round(stagePosition(performance, f) * (plan.projection?.scale ?? 1) + (plan.projection?.x ?? 0)));
   }
   return { dict, frames, roots };
+}
+
+export function selectStorySlides(html, ids, reviewSlides = []) {
+  if (!reviewSlides.length) return html;
+  const match = html.match(/(<script[^>]*id="deck-data"[^>]*>)([\s\S]*?)(<\/script>)/);
+  if (!match) throw new Error("Missing deck data.");
+  const data = JSON.parse(match[2]);
+  const unknown = data.slides.filter(slide => !ids.includes(slide.id) && !reviewSlides.includes(slide.id));
+  if (unknown.length) throw new Error("Undeclared extra deck slides.");
+  data.slides = data.slides.filter(slide => ids.includes(slide.id));
+  if (data.slides.map(slide => slide.id).join() !== ids.join()) throw new Error("Story slide order mismatch.");
+  let out = html.replace(match[0], match[1] + safeJson(data) + match[3]);
+  for (const id of reviewSlides) {
+    out = out.replace(new RegExp('<section class="slide" id="' + id + '"[\\s\\S]*?<\\/section>'), "");
+    out = out.replace(new RegExp('<li>\\s*<button[^>]*data-goto="' + id + '"[\\s\\S]*?<\\/li>'), "");
+  }
+  return out.replace(/([·] )([1-5]) \/ 7/g, "$1$2 / 5");
 }
 
 const safeJson = value => JSON.stringify(value).replaceAll("<", "\\u003c");
@@ -143,7 +209,7 @@ export function injectDeck(html, { timing, film, client }) {
   const controls = `\n<button type="button" id="play" aria-label="Play or pause the timed story">Play</button>` +
     `\n<input type="range" id="seek" min="0" max="${timing.totalFrames - 1}" step="1" value="0" aria-label="Story position (frames)">`;
   const style = `<style id="stickman-provider-style">.toolbar #seek{flex:0 1 180px;min-width:90px;accent-color:var(--cp-accent)}` +
-    `.toolbar #play{min-width:72px;font-weight:600}.stickman-stage{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:hidden}</style>`;
+    `.toolbar #play{min-width:72px;font-weight:600}.stickman-stage{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:hidden}.stickman-native-flow{position:absolute;left:130px;top:42px;width:calc(100% - 260px);height:128px;pointer-events:none}.scene[data-motion-active=true][data-flow-active=true] .stickman-native-flow .flow-ink{animation:flow-trace 580ms cubic-bezier(.2,.8,.2,1) both}.scene[data-motion-active=true][data-flow-active=true] .stickman-native-flow .flow-packet{animation:flow-travel-4 var(--stickman-flow-duration) ease-in-out both;opacity:1}.stickman-native-flow [data-step-complete=false] .flow-node{fill:var(--cp-surface);stroke:var(--cp-border-strong)}.stickman-native-flow [data-step-complete=false] .flow-label{fill:var(--cp-text)}.stickman-native-flow [data-step-complete=true] .flow-node{fill:var(--cp-accent);stroke:var(--cp-accent);stroke-width:3}.stickman-native-flow [data-step-complete=true] .flow-label{fill:var(--cp-accent-fg)}</style>`;
   const payload = `<script id="data" type="application/json">${safeJson(timing)}</script>\n` +
     `<script id="stickman-frames" type="application/json">${safeJson(film)}</script>\n${style}\n<script>${client}</script>\n`;
   let out = html.replace(/(<div id="deck-toolbar"[^>]*>)/, `$1${controls}`);
@@ -164,7 +230,7 @@ export async function buildStickmanDeck({ deckPath, storyboardPath, outPath, pla
     stickman: { continuity, bridges: composed.bridgeRecords.length, performanceFrames: composed.performance.frames } };
   const film = { provider: plan.provider, view: plan.view, scenes, cueSlides, dict, frames, roots };
   const client = await fs.readFile(path.join(here, "deck-provider-client.js"), "utf8");
-  const html = injectDeck(await fs.readFile(deckPath, "utf8"), { timing, film, client });
+  const html = injectDeck(selectStorySlides(await fs.readFile(deckPath, "utf8"), plan.slides.map(slide => slide.id), plan.reviewSlides), { timing, film, client });
   if (outPath) await fs.writeFile(outPath, html);
   return { html, timing, bytes: Buffer.byteLength(html) };
 }

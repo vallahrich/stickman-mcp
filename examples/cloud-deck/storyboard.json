@@ -2,20 +2,63 @@
   "version": "1.0",
   "deckId": "workload-migration",
   "title": "Workload migration comparison: on-premises to cloud",
-  "pilotIds": ["question", "on-prem", "decision"],
+  "pilotIds": [
+    "pilot-framing",
+    "on-prem",
+    "pilot-recommendation"
+  ],
   "slides": [
     {
       "id": "question",
       "purpose": "Set up the one decision the story answers.",
-      "layout": "framing",
+      "layout": "architecture",
       "eyebrow": "Workload migration comparison",
       "takeaway": "Should this workload move to the cloud?",
       "headlineKind": "question",
       "blocks": [
-        { "id": "setup", "label": "Let the evidence decide, not the hype", "claim": "proposal" }
+        {
+          "id": "setup",
+          "label": "Evidence, not hype",
+          "body": "Follow one workload from fixed capacity to a reversible pilot.",
+          "claim": "proposal"
+        },
+        {
+          "id": "fit",
+          "label": "Demand fit",
+          "body": "Does capacity match actual use?",
+          "claim": "question"
+        },
+        {
+          "id": "economics",
+          "label": "Whole-life cost",
+          "body": "Include migration, operations and egress.",
+          "claim": "proposal"
+        }
       ],
       "beats": [],
-      "notes": "A four-second title card. The stickman admin carries the rest of the story."
+      "notes": "The same small co-presenter continues through all five slides.",
+      "scene": {
+        "provider": "stickman",
+        "slot": {
+          "x": 64,
+          "y": 196,
+          "w": 740,
+          "h": 440
+        },
+        "staticDescription": "One IT admin enters through a doorway and considers where the workload should run.",
+        "cues": [
+          {
+            "id": "enter-and-think",
+            "semantic": "The same admin enters, looks around and thinks before choosing a platform",
+            "effect": "perform",
+            "fromBeat": 0,
+            "untilBeat": 1,
+            "propIds": [
+              "door"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "on-prem",
@@ -24,22 +67,67 @@
       "eyebrow": "On-premises today",
       "takeaway": "Fixed capacity is bought for the peak, so most of it sits idle",
       "headlineKind": "illustrative",
-      "sourceIds": ["illustrative-utilisation"],
+      "sourceIds": [
+        "illustrative-utilisation"
+      ],
       "blocks": [
-        { "id": "peak", "label": "Sized for the busiest hour", "claim": "proposal" },
-        { "id": "idle", "label": "Average use (illustrative)", "value": "18%", "claim": "illustrative", "sourceIds": ["illustrative-utilisation"], "emphasis": true },
-        { "id": "upkeep", "label": "Patching, power and spares stay with you", "claim": "proposal" }
+        {
+          "id": "peak",
+          "label": "Sized for the busiest hour",
+          "claim": "proposal"
+        },
+        {
+          "id": "idle",
+          "label": "Average use (illustrative)",
+          "value": "18%",
+          "claim": "illustrative",
+          "sourceIds": [
+            "illustrative-utilisation"
+          ],
+          "emphasis": true
+        },
+        {
+          "id": "upkeep",
+          "label": "Patching, power and spares stay with you",
+          "claim": "proposal"
+        }
       ],
       "beats": [
-        { "id": "idle-shown", "reveal": ["idle"] },
-        { "id": "upkeep-shown", "reveal": ["upkeep"] }
+        {
+          "id": "idle-shown",
+          "reveal": [
+            "idle"
+          ]
+        },
+        {
+          "id": "upkeep-shown",
+          "reveal": [
+            "upkeep"
+          ]
+        }
       ],
       "scene": {
         "provider": "stickman",
-        "slot": { "x": 64, "y": 196, "w": 740, "h": 440 },
+        "slot": {
+          "x": 64,
+          "y": 196,
+          "w": 740,
+          "h": 440
+        },
         "staticDescription": "An IT admin racks servers sized for the busiest hour. A load meter beside the rack shows a brief peak and an average near 18% (illustrative). The admin shrugs, then checks the time spent on upkeep.",
         "cues": [
-          { "id": "rack-for-peak", "semantic": "Admin racks servers; the load meter peaks once, then idles near 18% while upkeep chores pile up", "effect": "perform", "fromBeat": 0, "untilBeat": 3, "propIds": ["server-rack", "load-meter", "upkeep-tags"] }
+          {
+            "id": "rack-for-peak",
+            "semantic": "Admin racks servers; the load meter peaks once, then idles near 18% while upkeep chores pile up",
+            "effect": "perform",
+            "fromBeat": 0,
+            "untilBeat": 3,
+            "propIds": [
+              "server-rack",
+              "load-meter",
+              "upkeep-tags"
+            ]
+          }
         ]
       },
       "notes": "The 18% figure is illustrative. Point at the gap between the peak line and the average."
@@ -52,20 +140,59 @@
       "takeaway": "Cloud capacity can follow demand, but it is not automatically cheaper",
       "headlineKind": "proposal",
       "blocks": [
-        { "id": "elastic", "label": "Capacity scales up and down with demand", "claim": "proposal" },
-        { "id": "effort", "label": "Migration takes real effort", "claim": "proposal" },
-        { "id": "cost", "label": "Egress and always-on use still cost money", "claim": "proposal", "emphasis": true }
+        {
+          "id": "elastic",
+          "label": "Capacity scales up and down with demand",
+          "claim": "proposal"
+        },
+        {
+          "id": "effort",
+          "label": "Migration takes real effort",
+          "claim": "proposal"
+        },
+        {
+          "id": "cost",
+          "label": "Egress and always-on use still cost money",
+          "claim": "proposal",
+          "emphasis": true
+        }
       ],
       "beats": [
-        { "id": "effort-shown", "reveal": ["effort"] },
-        { "id": "cost-shown", "reveal": ["cost"] }
+        {
+          "id": "effort-shown",
+          "reveal": [
+            "effort"
+          ]
+        },
+        {
+          "id": "cost-shown",
+          "reveal": [
+            "cost"
+          ]
+        }
       ],
       "scene": {
         "provider": "stickman",
-        "slot": { "x": 64, "y": 196, "w": 740, "h": 440 },
+        "slot": {
+          "x": 64,
+          "y": 196,
+          "w": 740,
+          "h": 440
+        },
         "staticDescription": "The admin has an idea: a cloud whose capacity bars rise and fall with the demand line. The admin presents it, then stops to think about migration effort and running costs.",
         "cues": [
-          { "id": "elastic-cloud", "semantic": "Capacity bars follow the demand line; cost tags appear while the admin weighs trade-offs", "effect": "perform", "fromBeat": 0, "untilBeat": 3, "propIds": ["cloud", "capacity-bars", "cost-tags"] }
+          {
+            "id": "elastic-cloud",
+            "semantic": "Capacity bars follow the demand line; cost tags appear while the admin weighs trade-offs",
+            "effect": "perform",
+            "fromBeat": 0,
+            "untilBeat": 3,
+            "propIds": [
+              "cloud",
+              "capacity-bars",
+              "cost-tags"
+            ]
+          }
         ]
       },
       "notes": "Elastic does not mean cheap: steady, always-on workloads and data egress can cost more."
@@ -78,25 +205,82 @@
       "takeaway": "Build the evidence before moving anything",
       "headlineKind": "proposal",
       "blocks": [
-        { "id": "measure", "label": "Measure real demand", "claim": "proposal" },
-        { "id": "validate", "label": "Validate dependencies", "claim": "proposal" },
-        { "id": "compare", "label": "Compare total cost", "claim": "proposal" },
-        { "id": "pilot", "label": "Pilot one workload", "claim": "proposal", "emphasis": true }
+        {
+          "id": "measure",
+          "label": "Measure real demand",
+          "claim": "proposal"
+        },
+        {
+          "id": "validate",
+          "label": "Validate dependencies",
+          "claim": "proposal"
+        },
+        {
+          "id": "compare",
+          "label": "Compare total cost",
+          "claim": "proposal"
+        },
+        {
+          "id": "pilot",
+          "label": "Pilot one workload",
+          "claim": "proposal",
+          "emphasis": true
+        }
       ],
       "beats": [
-        { "id": "check", "reveal": ["validate", "compare"] },
-        { "id": "try", "reveal": ["pilot"] }
+        {
+          "id": "validate-shown",
+          "reveal": [
+            "validate"
+          ]
+        },
+        {
+          "id": "cost-shown",
+          "reveal": [
+            "compare"
+          ]
+        },
+        {
+          "id": "pilot-shown",
+          "reveal": [
+            "pilot"
+          ]
+        }
       ],
       "scene": {
         "provider": "stickman",
-        "slot": { "x": 64, "y": 196, "w": 740, "h": 440 },
-        "staticDescription": "The admin walks the four steps: inspects demand, checks dependencies and costs on a tablet, and gives the pilot a thumbs-up.",
+        "slot": {
+          "x": 64,
+          "y": 196,
+          "w": 740,
+          "h": 440
+        },
+        "staticDescription": "The admin follows Measure, Validate, Compare cost and Pilot; each step produces evidence.",
         "flow": {
-          "stages": ["Measure", "Validate", "Compare cost", "Pilot"],
-          "blockIds": ["measure", "validate", "compare", "pilot"]
+          "stages": [
+            "Measure",
+            "Validate",
+            "Compare cost",
+            "Pilot"
+          ],
+          "blockIds": [
+            "measure",
+            "validate",
+            "compare",
+            "pilot"
+          ]
         },
         "cues": [
-          { "id": "walk-the-steps", "semantic": "The admin moves along the four steps while each one lights up", "effect": "flow", "fromBeat": 0, "untilBeat": 3, "propIds": ["step-markers"] }
+          {
+            "id": "walk-the-steps",
+            "semantic": "The admin moves along the four steps while each one lights up",
+            "effect": "flow",
+            "fromBeat": 0,
+            "untilBeat": 4,
+            "propIds": [
+              "step-markers"
+            ]
+          }
         ]
       },
       "notes": "Every step produces data for the decision; the pilot is time-boxed and reversible."
@@ -104,17 +288,105 @@
     {
       "id": "decision",
       "purpose": "Close with a clear, balanced recommendation.",
+      "layout": "architecture",
+      "eyebrow": "Recommendation",
+      "takeaway": "Move what fits; retain what does not",
+      "headlineKind": "proposal",
+      "blocks": [
+        {
+          "id": "move",
+          "label": "Move",
+          "body": "Spiky or growing demand, proven by the pilot.",
+          "claim": "proposal"
+        },
+        {
+          "id": "retain",
+          "label": "Retain",
+          "body": "Steady or constrained demand; lower cost on-premises.",
+          "claim": "proposal"
+        },
+        {
+          "id": "next",
+          "label": "Next step",
+          "body": "One workload. A time-boxed pilot. Then decide.",
+          "claim": "proposal",
+          "emphasis": true
+        }
+      ],
+      "beats": [],
+      "notes": "End on the action: one workload, one pilot, then decide.",
+      "scene": {
+        "provider": "stickman",
+        "slot": {
+          "x": 64,
+          "y": 196,
+          "w": 740,
+          "h": 440
+        },
+        "staticDescription": "After a successful pilot, the admin celebrates with a basketball shot, then leaves through the doorway.",
+        "cues": [
+          {
+            "id": "celebrate-and-exit",
+            "semantic": "Celebrate a successful pilot, not indiscriminate migration; then leave through the door",
+            "effect": "perform",
+            "fromBeat": 0,
+            "untilBeat": 1,
+            "propIds": [
+              "basketball",
+              "basketball-hoop",
+              "door"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "pilot-framing",
+      "purpose": "Set up the one decision the story answers.",
+      "layout": "framing",
+      "eyebrow": "Workload migration comparison",
+      "takeaway": "Should this workload move to the cloud?",
+      "headlineKind": "question",
+      "blocks": [
+        {
+          "id": "setup",
+          "label": "Let the evidence decide, not the hype",
+          "claim": "proposal"
+        }
+      ],
+      "beats": [],
+      "notes": "Pilot-only framing layout comparison; omitted from the timed five-slide story."
+    },
+    {
+      "id": "pilot-recommendation",
+      "purpose": "Close with a clear, balanced recommendation.",
       "layout": "recommendation",
       "eyebrow": "Recommendation",
       "takeaway": "Move what fits; retain what does not",
       "headlineKind": "proposal",
       "blocks": [
-        { "id": "move", "label": "Move", "body": "Spiky or growing workloads the pilot shows run well in the cloud.", "claim": "proposal" },
-        { "id": "retain", "label": "Retain", "body": "Steady, latency-bound or regulated workloads that cost less where they are.", "claim": "proposal" },
-        { "id": "next", "label": "Next step", "body": "Pick one workload and run a time-boxed pilot.", "claim": "proposal", "emphasis": true }
+        {
+          "id": "move",
+          "label": "Move",
+          "body": "Spiky or growing workloads the pilot shows run well in the cloud.",
+          "claim": "proposal"
+        },
+        {
+          "id": "retain",
+          "label": "Retain",
+          "body": "Steady, latency-bound or regulated workloads that cost less where they are.",
+          "claim": "proposal"
+        },
+        {
+          "id": "next",
+          "label": "Next step",
+          "body": "Pick one workload and run a time-boxed pilot.",
+          "claim": "proposal",
+          "emphasis": true
+        }
       ],
       "beats": [],
-      "notes": "End on the action: one workload, one pilot, then decide."
+      "notes": "Pilot-only recommendation layout comparison; omitted from the timed five-slide story."
     }
   ]
 }

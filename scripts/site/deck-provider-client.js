@@ -52,7 +52,7 @@
     return Math.min(0.97, base + peak);
   }
   function loadMeter(beat, local, c) {
-    var x = 700, y = 92, w = 335, h = 400, px = x + 28, pw = w - 56, top = y + 96, bottom = y + h - 44, ph = bottom - top;
+    var x = 620, y = 92, w = 335, h = 400, px = x + 28, pw = w - 56, top = y + 96, bottom = y + h - 44, ph = bottom - top;
     var o = beat === 0 ? ease((local - 20) / 30) : 1;
     var out = '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="16" fill="' + c.s + '" stroke="' + c.l + '" stroke-width="3"/>';
     out += text(x + 28, y + 44, "Server load", 26, c.t, 700) + text(x + 28, y + 72, "one illustrative day", 18, c.m, 500);
@@ -63,16 +63,16 @@
     out += text(px, bottom + 28, "00:00", 15, c.m, 500) + text(px + pw, bottom + 28, "24:00", 15, c.m, 500, "end");
     out += '<line x1="' + px + '" y1="' + bottom + '" x2="' + (px + pw) + '" y2="' + bottom + '" stroke="' + c.b + '" stroke-width="2"/>';
     if (beat >= 1) {
-      var draw = beat === 1 ? ease(local / 70) : 1, n = 60, pts = [];
+      var draw = beat === 1 ? ease(local / 36) : 1, n = 60, pts = [];
       for (var i = 0; i <= n * draw; i++) { var u = i / n; pts.push(r(px + pw * u) + " " + r(bottom - ph * demand(u))); }
       if (pts.length > 1) {
         if (beat === 2) out += '<path d="M' + px + " " + r(capY) + "H" + (px + pw) + "V" + bottom + "H" + px + 'Z" fill="' + c.a + '" fill-opacity="0.09"/>';
         out += '<path d="M' + pts.join("L") + '" fill="none" stroke="' + c.a + '" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>';
       }
-      var avgO = beat === 1 ? ease((local - 75) / 20) : 1, avgY = bottom - ph * 0.18;
+      var avgO = beat === 1 ? ease((local - 32) / 12) : 1, avgY = bottom - ph * 0.18;
       out += fade(avgO, '<line x1="' + px + '" y1="' + r(avgY) + '" x2="' + (px + pw) + '" y2="' + r(avgY) + '" stroke="' + c.t + '" stroke-width="3" stroke-dasharray="10 8"/>' +
         text(px + 4, r(avgY) - 12, "average 18%", 20, c.t, 700));
-      var peakO = beat === 1 ? ease((local - 50) / 20) : 1;
+      var peakO = beat === 1 ? ease((local - 24) / 12) : 1;
       out += fade(peakO, text(px + pw * 0.74 + 20, r(bottom - ph * 0.6), "peak", 20, c.a, 700, "start"));
       var idleY = r(capY + (avgY - capY) * 0.5);
       if (beat === 2) out += fade(ease(local / 25), text(px + pw * 0.27, idleY, "idle", 30, c.m, 700, "middle") +
@@ -98,10 +98,10 @@
       "a" + r(40 * k) + " " + r(40 * k) + " 0 0 1 " + r(4 * k) + " " + r(68 * k) + 'Z" fill="' + fill + '" stroke="' + stroke + '" stroke-width="4" stroke-linejoin="round"/>';
   }
   function cloudScene(beat, local, c) {
-    var cx = 830, cy = 215, k = 1.05;
+    var cx = 780, cy = 215, k = 1.05;
     var o = beat === 0 ? ease((local - 30) / 30) : 1;
     var out = cloudShape(cx, cy, k, c.s, c.a) + text(cx - 6, cy + 6, "cloud", 26, c.a, 700, "middle");
-    var bars = 7, bx = 650, bw = 360, base = 470, maxH = 150, gap = 10, w = (bw - gap * (bars - 1)) / bars;
+    var bars = 7, bx = 660, bw = 290, base = 405, maxH = 150, gap = 10, w = (bw - gap * (bars - 1)) / bars;
     // Demand moves; in beat 0 capacity stays flat, from beat 1 it follows demand with a short lag.
     var t = (beat === 0 ? 0 : beat === 1 ? local : 400 + local) / fps;
     var line = [], props = ["cloud"];
@@ -120,11 +120,11 @@
     if (beat >= 1) out += fade(ease(local / 25), '<path d="M' + line.join("L") + '" fill="none" stroke="' + c.t + '" stroke-width="4" stroke-dasharray="2 9" stroke-linecap="round"/>' +
       text(bx + bw, base + 30, "demand ···", 18, c.t, 700, "end"));
     if (beat === 2) {
-      var tags = ["migration effort", "egress $", "always-on $"], tx = 560, tagMarkup = "";
+      var tags = ["migration effort", "egress $", "always-on $"], tx = 435, tagMarkup = "";
       tags.forEach(function (tag, n) {
         var a = ease((local - 10 - n * 18) / 18), wdt = tag.length * 10 + 28;
-        tagMarkup += fade(a, '<g transform="translate(0 ' + r((1 - a) * 18) + ')"><rect x="' + r(tx) + '" y="510" width="' + r(wdt) + '" height="38" rx="19" fill="' + c.s + '" stroke="' + c.t + '" stroke-width="2.5"/>' +
-          text(tx + wdt / 2, 536, tag, 18, c.t, 700, "middle") + "</g>");
+        tagMarkup += fade(a, '<g transform="translate(0 ' + r((1 - a) * 18) + ')"><rect x="' + r(tx) + '" y="580" width="' + r(wdt) + '" height="38" rx="19" fill="' + c.s + '" stroke="' + c.t + '" stroke-width="2.5"/>' +
+          text(tx + wdt / 2, 606, tag, 18, c.t, 700, "middle") + "</g>");
         tx += wdt + 14;
       });
       out += tagMarkup;
@@ -132,32 +132,27 @@
     }
     return { markup: fade(o, out), props: o > 0.001 ? props : [] };
   }
-  var stages = [["Measure", 285], ["Validate", 495], ["Compare cost", 705], ["Pilot", 915]];
+  var stages = [["Measure", 264], ["Validate", 429], ["Compare cost", 594], ["Pilot", 759]];
   function evidenceScene(beat, local, c, rootX) {
-    var out = "";
-    var y = 120, h = 66, w = 186;
-    for (var i = 0; i < stages.length; i++) {
-      var sx = stages[i][1];
-      var reached = rootX >= sx - 24 || (beat === 2 && i < 3) || (beat >= 1 && i === 0);
-      var active = reached ? 1 : 0;
-      var fill = active ? c.a : c.s, ink = active ? c.f : c.t;
-      out += '<rect x="' + (sx - w / 2) + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="12" fill="' + fill + '" stroke="' + (active ? c.a : c.b) + '" stroke-width="3"/>';
-      out += text(sx, y + 42, stages[i][0], 23, ink, 700, "middle");
-      // Each reached step leaves a piece of evidence behind.
-      var proof = ["baseline", "dependency map", "cost model", "pilot result"][i];
-      if (active) out += '<circle cx="' + (sx - 70) + '" cy="' + (y + h + 46) + '" r="11" fill="none" stroke="' + c.a + '" stroke-width="3"/>' +
-        '<path d="M' + (sx - 75) + " " + (y + h + 46) + "l4 4 7-8" + '" fill="none" stroke="' + c.a + '" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>' +
-        text(sx - 52, y + h + 52, proof, 18, c.m, 600);
-      if (i < stages.length - 1) {
-        var ax = sx + w / 2 + 6, bx = stages[i + 1][1] - w / 2 - 6;
-        out += '<path d="M' + ax + " " + (y + h / 2) + "H" + bx + "m-8 -8l8 8-8 8" + '" fill="none" stroke="' + c.b + '" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>';
-      }
-    }
-    out += '<line x1="' + (stages[0][1]) + '" y1="' + (y + h + 10) + '" x2="' + r(Math.max(stages[0][1], Math.min(rootX, stages[3][1]))) + '" y2="' + (y + h + 10) + '" stroke="' + c.a + '" stroke-width="5" stroke-linecap="round"/>';
+    var out = "", proof = ["baseline", "dependency map", "cost model", "pilot result"];
+    stages.forEach(function (step, i) {
+      var reached = i < beat || (i === beat && rootX >= step[1] - 22);
+      if (!reached) return;
+      var x = 249 + i * 167;
+      out += '<circle cx="' + x + '" cy="285" r="10" fill="none" stroke="' + c.a + '" stroke-width="3"/>' +
+        '<path d="M' + (x - 5) + ' 285l4 4 7-8" fill="none" stroke="' + c.a + '" stroke-width="3"/>' + text(x, 318, proof[i], 18, c.m, 600, "middle");
+    });
     return { markup: out, props: ["step-markers"] };
   }
+  function bookendScene(beat, local, c, rootX, closing) {
+    var x = closing ? 480 : 650;
+    var out = text(x, 195, closing ? "Pilot first." : "A workload. A choice.", 40, c.t, 700, "middle") +
+      text(x, 240, closing ? "Then choose with confidence." : "Let evidence lead the way.", 23, c.m, 500, "middle");
+    out += '<line x1="70" y1="542" x2="940" y2="542" stroke="' + c.l + '" stroke-width="2"/>';
+    return { markup: out, props: [] };
+  }
 
-  var sceneProps = { "on-prem": loadMeter, cloud: cloudScene, evidence: evidenceScene };
+  var sceneProps = { question: bookendScene, "on-prem": loadMeter, cloud: cloudScene, evidence: evidenceScene, decision: function(b, f, c, x) { return bookendScene(b, f, c, x, true); } };
 
   // ---------- provider ----------
   function mount(stage, scene) {
@@ -176,6 +171,16 @@
     back.innerHTML = "";
     svg.appendChild(back); svg.appendChild(props); svg.appendChild(actor); svg.appendChild(front);
     stage.appendChild(svg);
+    var slot = stage.closest("figure.scene"), nativeFlow = slot.querySelector(".scene-static .native-flow");
+    var flow = nativeFlow ? nativeFlow.cloneNode(true) : null;
+    if (flow) {
+      flow.classList.add("stickman-native-flow");
+      flow.style.setProperty("--stickman-flow-duration", (ranges[ranges.length - 1][1] - ranges[0][0]) / fps * 1000 + "ms");
+      flow.querySelectorAll("[id]").forEach(function (el) { el.removeAttribute("id"); });
+      flow.querySelectorAll("[role=button]").forEach(function (el) { el.removeAttribute("role"); el.removeAttribute("tabindex"); });
+      flow.removeAttribute("aria-labelledby"); flow.setAttribute("aria-label", "Measure, Validate, Compare cost, Pilot");
+      stage.appendChild(flow);
+    }
     var state = { beat: 0, t0: 0, raf: 0, drawn: -1, activeProps: [] };
     var colors = palette(stage);
 
@@ -189,6 +194,17 @@
       return range[0] + Math.min(range[1] - range[0] - 1, Math.max(0, elapsed));
     }
     function draw(frame) {
+      if (flow) {
+        var enabled = deck.state().motion === "on" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        slot.setAttribute("data-flow-active", enabled ? "true" : "false");
+        var elapsed = frame - ranges[0][0];
+        flow.querySelectorAll(".flow-stage").forEach(function (node, i) {
+          node.setAttribute("data-step-complete", i < state.beat || (i === state.beat && film.roots[frame] >= stages[i][1] - 22) ? "true" : "false");
+        });
+        flow.getAnimations({ subtree: true }).forEach(function (animation) {
+          animation.pause(); animation.currentTime = elapsed / fps * 1000;
+        });
+      }
       if (frame === state.drawn) return;
       state.drawn = frame;
       colors = palette(stage);
@@ -218,7 +234,7 @@
         else { draw(currentFrame()); if (!state.raf) state.raf = requestAnimationFrame(tick); }
         return { bounds: { x: 0, y: 0, w: scene.slot.w, h: scene.slot.h }, activeProps: state.activeProps.slice() };
       },
-      cleanup: function () { if (state.raf) cancelAnimationFrame(state.raf); state.raf = 0; svg.remove(); }
+      cleanup: function () { if (state.raf) cancelAnimationFrame(state.raf); state.raf = 0; svg.remove(); if (flow) flow.remove(); }
     };
   }
   deck.registerMotionProvider({ id: film.provider, adapterVersion: "1.0",
@@ -260,6 +276,7 @@
   }
   function start() {
     if (frame >= last) setFrame(0, false);
+    if (frame === 0) document.getElementById("btn-replay").click();
     playing = true; f0 = frame; t0 = performance.now();
     play.textContent = "Pause";
     // Embedded in the showcase: tell the host so it can pause its videos.

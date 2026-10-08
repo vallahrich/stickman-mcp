@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { Script } from "node:vm";
 import {
   MAX_FRAMES,
   cloudDeckPlan,
@@ -8,6 +9,8 @@ import {
   composeDeckPerformance,
   deckTimeline,
   injectDeck,
+  renderDeckFrames,
+  selectStorySlides,
   tokenTheme
 } from "../scripts/site/deck-provider.mjs";
 
@@ -31,17 +34,53 @@ describe("stickman deck provider", () => {
 
   it("maps film colours to theme tokens and trims precision", () => {
     expect(tokenTheme('<path fill="#ffffff" stroke="#1b1b1b"/><rect fill="#b11f4b"/>')).toBe('<path fill="@s" stroke="@t"/><rect fill="@a"/>');
-    expect(compactSvg('<g id="x" data-part="arm"><path d="M1.234 -5.678"/></g>')).toBe('<g><path d="M1.2 -5.7"/></g>');
+    expect(compactSvg('<g id="x" data-part="arm"><path d="M1.234 -5.678"/></g>')).toBe('<g><path d="M1.23 -5.68"/></g>');
+  });
+
+  it("keeps projection precision and referenced door clips", () => {
+    expect(compactSvg('<g transform="scale(0.55)"><clipPath id="door"><rect x="1.234"/></clipPath><g clip-path="url(#door)" id="actor"/></g>'))
+      .toBe('<g transform="scale(0.55)"><clipPath id="door"><rect x="1.23"/></clipPath><g clip-path="url(#door)"/></g>');
+  });
+
+  it("removes only declared pilot pages from markup, index and runtime metadata", () => {
+    const data = { slides: [{ id: "story" }, { id: "pilot" }], theme: "warm" };
+    const html = '<section class="slide" id="story"><p>Keep</p></section><section class="slide" id="pilot"><p>Review</p></section>' +
+      '<li><button data-goto="story">Story</button></li><li><button data-goto="pilot">Pilot</button></li>' +
+      '<script id="deck-data" type="application/json">' + JSON.stringify(data) + '</script>';
+    const selected = selectStorySlides(html, ["story"], ["pilot"]);
+    expect(selected).toContain('<section class="slide" id="story">');
+    expect(selected).toContain('data-goto="story"');
+    expect(selected).not.toContain('id="pilot"');
+    expect(selected).not.toContain('data-goto="pilot"');
+    expect(JSON.parse(selected.match(/<script[^>]*>(.*?)<\/script>/)![1])).toEqual({ slides: [{ id: "story" }], theme: "warm" });
+    expect(() => selectStorySlides(html, ["story"], ["other"])).toThrow(/Undeclared/);
+    expect(() => selectStorySlides(html, ["missing"], ["story", "pilot"])).toThrow(/order/);
+    expect(selectStorySlides(html, ["story"])).toBe(html);
+  });
+
+  it("keeps the injected browser client syntactically valid", async () => {
+    const client = await fs.readFile(path.resolve("scripts", "site", "deck-provider-client.js"), "utf8");
+    expect(() => new Script(client)).not.toThrow();
   });
 
   it("composes one continuous performance that fits the 60 second showcase", async () => {
     const storyboard = JSON.parse(await fs.readFile(path.resolve("examples", "cloud-deck", "storyboard.json"), "utf8"));
-    const { composed } = await composeDeckPerformance(cloudDeckPlan);
+    const { composed, resources } = await composeDeckPerformance(cloudDeckPlan);
     expect(composed.continuity.maxJointStep).toBeLessThanOrEqual(14);
     const timing = deckTimeline(cloudDeckPlan, storyboard, composed);
     expect(timing.totalFrames).toBeLessThanOrEqual(MAX_FRAMES);
-    expect(timing.totalFrames).toBeGreaterThanOrEqual(1500);
-    expect(timing.timeline.map(entry => entry.slide)).toEqual(["question", "on-prem", "on-prem", "on-prem", "cloud", "cloud", "cloud", "evidence", "evidence", "evidence", "decision"]);
-    expect(Object.keys(timing.cueSlides)).toEqual(["rack-for-peak", "elastic-cloud", "walk-the-steps"]);
+    expect(timing.totalFrames).toBe(1740);
+    expect(composed.continuity.footSlides).toEqual([]);
+    expect(composed.bridgeRecords).toHaveLength(18);
+    expect(cloudDeckPlan.slides.every(slide => slide.scene)).toBe(true);
+    expect(timing.timeline.map(entry => entry.slide)).toEqual(["question", "on-prem", "on-prem", "on-prem", "cloud", "cloud", "cloud", "evidence", "evidence", "evidence", "evidence", "decision"]);
+    expect(Object.keys(timing.cueSlides)).toEqual(["enter-and-think", "rack-for-peak", "elastic-cloud", "walk-the-steps", "celebrate-and-exit"]);
+    expect(timing.timeline.every((entry, i) => entry.start === (i ? timing.timeline[i - 1].start + timing.timeline[i - 1].frames : 0))).toBe(true);
+    expect(Object.keys(timing.scenes)).toHaveLength(5);
+    const rendered = await renderDeckFrames(cloudDeckPlan, composed, resources, timing.scenes);
+    expect(rendered.frames).toHaveLength(timing.totalFrames);
+    expect(rendered.roots).toHaveLength(timing.totalFrames);
+    expect(rendered.dict.some(svg => svg.includes('scale(0.55)'))).toBe(true);
+    expect(rendered.dict.some(svg => svg.includes('id="deck-door-aperture"'))).toBe(true);
   }, 120_000);
 });

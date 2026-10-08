@@ -166,40 +166,61 @@ The motion engine, catalogue and library story recipes remain unchanged.
 
 ## Deck stickman provider
 
-`scripts\site\deck-provider.mjs` combines a deck rendered by the
-dynamic-presentations MCP with a stickman performance.
-The MCP stays read-only; its output is post-processed.
+`scripts\site\deck-provider.mjs` post-processes a dynamic-presentations MCP
+deck; the presentation MCP remains read-only. The cloud story lasts **58 seconds
+(1740 frames at 30 fps)**. Its co-presenter is approximately **122 px tall**
+standing at a 1440×900 viewport, with every slide reserving an architecture scene.
 
-1. Deck inputs live in `examples\cloud-deck\` (`brief.json`, `brand.json`,
-   `storyboard.json`). Five slides are used because the pilot needs three
-   distinct layouts and scenes are only allowed on `architecture` slides:
-   a framing question, three architecture slides with a `stickman` scene,
-   and a recommendation.
-2. Render with the MCP CLI (`validate`, `pilot`, `approve`, `deck`), with
-   `DP_INPUT_ROOTS` and `DP_OUTPUT_ROOT` pointing outside both repositories.
-3. Inject the provider:
+1. Inputs and the honest autonomous approval live in `examples\cloud-deck\`.
+   The MCP permits scenes only on architecture layouts, but requires three
+   different layouts in its pilot. The seven-slide source therefore includes
+   five story scenes plus two declared, pilot-only framing/recommendation pages.
+   The generator removes those two pages from HTML, index and runtime metadata;
+   it rejects undeclared extras rather than silently dropping content.
+2. Copy the inputs to a work folder outside both repositories. Run the MCP CLI
+   `validate`, `pilot`, `approve`, then `deck`, using `DP_INPUT_ROOTS` and
+   `DP_OUTPUT_ROOT` for that folder. Approval must describe the actual review;
+   the checked-in approval records an autonomous review, not user acceptance.
+3. Inject and verify:
 
    ```powershell
-   node scripts\site\deck-provider.mjs --deck <out>\workload-migration\deck.html --out <story.html>
+   node scripts\site\deck-provider.mjs --deck <work>\workload-migration\deck.html --out <story.html>
+   node scripts\site\verify-deck.mjs <story.html> final-v5 --output <work> --full
    ```
 
-The generator composes **one continuous performance** with
-`composePerformance` (approved motions only, auto bridges, continuity ≤ 14),
-splits it into per-slide/per-beat ranges, renders every frame to compact,
-theme-tokenised SVG and fails if the story exceeds 1800 frames. It then adds:
+One `composeFilm` performance uses approved-library gating and automatic bridges.
+A deck-local airborne replant avoids dragging feet during generated joins; the
+rendered-world gate requires joint steps ≤14 and zero planted-foot slides. The
+camera/projection never changes between slides. Approved choreography:
 
-- `#data` JSON (`totalFrames`, `fps`, `timeline`) for `inspectSlide`;
-- `#stickman-frames` JSON (deduplicated frame dictionary);
-- `deck-provider-client.js`, which registers the `stickman` motion provider
-  (`absoluteSeek`, `staticState`, `cleanup`, `offline`) and draws per-slide props
-  (load meter, elastic cloud, evidence steps) that exist only while their cue is
-  active and stay inside the slot;
-- a timed autoplay wrapper (Play/Pause/Replay and a frame `#seek` in the deck
-  toolbar). It advances beats with the deck's own Next button so reveals animate,
-  hands control back on manual navigation, honours `?paused=1` and reduced
-  motion, and exchanges `stickman:play` / `stickman:pause` with the showcase.
+| Slide | Performance |
+| --- | --- |
+| Question | enter-door → think |
+| Fixed capacity | rack-server → shrug → idea |
+| Cloud option | generated walk → present → sit-down → video-call → type-at-desk → stand-up |
+| Evidence | generated walks along all four steps → present → thumbs-up |
+| Decision | basketball-shot → exit-door |
 
-`tests\deck-provider.test.ts` covers injection, theming and the timeline limit.
+The generator preserves referenced door clips and two-decimal SVG precision,
+and writes `#data` timing for `inspectSlide` plus deduplicated
+`#stickman-frames`. The adapter-1.0 provider supports absolute seek, static
+state, cleanup and offline use; props and illustrative charts stay in the slot.
+
+Autoplay starts with the MCP Replay control for entrances, then advances through
+its Next control for animated build reveals (including Validate). Since the MCP
+suppresses its fallback flow when a provider mounts, the provider mounts a
+sanitised copy of the MCP-authored native flow. The existing CSS packet/trace
+animations are clocked from the shared playhead, remain deterministic on seek,
+and are removed on cleanup. Play/Pause/Replay and the frame slider honour
+`?paused=1`, reduced motion, manual navigation and the showcase's
+`stickman:play` / `stickman:pause` messages.
+
+The browser verifier captures every beat and checks provider negotiation,
+120–150 px standing height, bounds, slide/scene and SVG text overlaps,
+deterministic actor/native-flow seek, native entrance/build/packet animation,
+console errors, full autoplay and 390 px mobile overflow.
+`tests\deck-provider.test.ts` covers injection, theming, projection/clip
+precision, pilot selection, client syntax and the continuous five-scene timeline.
 
 ## Checks and client integration
 
