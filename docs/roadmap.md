@@ -9,13 +9,9 @@ of visual qualification.
 ## Repository synchronization
 
 Development is canonical in the private
-[`t-vwallerich_microsoft/stickman-mcp`](https://github.com/t-vwallerich_microsoft/stickman-mcp)
-repository. The private
 [`vallahrich/stickman-mcp`](https://github.com/vallahrich/stickman-mcp)
-repository is mirrored manually with `git push vallahrich` (non-forcing),
-because Enterprise policy disables GitHub-hosted Actions runners for the
-corporate repository; the former mirror workflow was removed. See the mirror
-instructions in the README.
+repository. The former corporate copy `t-vwallerich_microsoft/stickman-mcp` is
+retired: no mirroring in either direction.
 ## Next stages
 
 **Presentation-first audience:** prioritize IT and digital services—cloud

@@ -2,31 +2,22 @@
 
 An original, deterministic 2D vector stick-figure animation engine for presentation-ready SVG/HTML and optional GIF/MP4 export. The local library, CLI, and stdio MCP server share the same strict contract, compiler, playhead sampler, and renderer. Animation instructions are validated data; the runtime does not execute authored code or call a video-generation service.
 
-## Canonical repository and mirror
+## Canonical repository
 
 The canonical private repository is
-[`t-vwallerich_microsoft/stickman-mcp`](https://github.com/t-vwallerich_microsoft/stickman-mcp)
-(the linked corporate GitHub login is `t-vwallerich_microsoft`). The private
-[`vallahrich/stickman-mcp`](https://github.com/vallahrich/stickman-mcp)
-repository is a downstream mirror, not a second source of truth.
+[`vallahrich/stickman-mcp`](https://github.com/vallahrich/stickman-mcp); all
+development happens there, on the default branch `vallahrich-stickman-mcp-engine`.
+The former corporate copy `t-vwallerich_microsoft/stickman-mcp` is no longer
+maintained and receives no syncs.
 
-Mirroring is manual. GitHub-hosted Actions runners are disabled for the
-corporate repository by Enterprise policy, so there is no mirror workflow.
-`origin` points only at the corporate repository; the mirror is a separate
-`vallahrich` remote (SSH host alias `github-vallahrich`, authenticated with the
-vallahrich account). After pushing a version to `origin`, push the same refs to
-the mirror:
+Clones use the SSH host alias `github-vallahrich` (authenticated with the
+vallahrich account):
 
 ```powershell
-git remote add vallahrich git@github-vallahrich:vallahrich/stickman-mcp.git  # once per clone
-git push origin HEAD:refs/heads/<branch>
-git push vallahrich HEAD:refs/heads/<branch>
-git push vallahrich --tags
+git clone git@github-vallahrich:vallahrich/stickman-mcp.git
 ```
 
-Verify by comparing `git ls-remote origin` with `git ls-remote vallahrich`. Do
-not force push; if the mirror rejects a ref as non-fast-forward, inspect and
-reconcile the divergence before retrying.
+Do not force push to shared branches.
 ## Requirements and setup
 
 - Node.js 20 or newer
