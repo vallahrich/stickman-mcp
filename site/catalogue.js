@@ -1,6 +1,4 @@
 const catalogue = JSON.parse(document.getElementById("catalogueData").textContent);
-const comparison = JSON.parse(document.getElementById("comparisonData").textContent);
-const stories = JSON.parse(document.getElementById("storyData").textContent);
 const $ = id => document.getElementById(id);
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 const theme = document.documentElement.getAttribute("data-theme");
@@ -89,7 +87,7 @@ for (const family of [...new Set(catalogue.motions.map(m => m.family))]) {
   const option = document.createElement("option"); option.value = family; option.textContent = family; $("category").append(option);
 }
 $("category").value = "IT";
-$("heroStatus").textContent = `${stories.length} combined stories · ${catalogue.motionCount} motion building blocks · private, local-first preview${catalogue.development ? " · development review mode" : ""}`;
+$("heroStatus").textContent = `One slide + two short films · ${catalogue.motionCount} motion building blocks · private, local-first preview${catalogue.development ? " · development review mode" : ""}`;
 $("search").addEventListener("input", renderCatalogue);
 $("category").addEventListener("change", renderCatalogue);
 $("runtimeOnly").addEventListener("change", renderCatalogue);
@@ -119,47 +117,15 @@ $("copyCommand").addEventListener("click", async () => {
   try { await navigator.clipboard.writeText($("connectCommand").textContent); $("copyStatus").textContent = "Copied. Review before running; adding a server changes your client configuration."; }
   catch (error) { $("copyStatus").textContent = `Clipboard unavailable: ${error.message}. Select and copy the command manually.`; }
 });
-for (const [index, slide] of comparison.slides.entries()) {
-  const option = document.createElement("option"); option.value = index; option.textContent = slide.title; $("demoSlide").append(option);
-}
-let enhanced = false;
-function updateComparison() {
-  const slide = comparison.slides[Number($("demoSlide").value) || 0];
-  if (!slide) { $("sourceSlide").alt = "Comparison assets have not been built"; return; }
-  $("sourceSlide").src = slide.image;
-  $("sourceSlide").alt = `Original source slide: ${slide.title}`;
-  $("sourceSlide").hidden = enhanced;
-  $("inSlidePlayer").hidden = !enhanced;
-  if (enhanced) $("inSlidePlayer").src = slide.player + (reducedMotion.matches ? "?paused=1" : "");
-  else $("inSlidePlayer").removeAttribute("src");
-  $("before").setAttribute("aria-pressed", String(!enhanced));
-  $("after").setAttribute("aria-pressed", String(enhanced));
-}
-$("before").addEventListener("click", () => { enhanced = false; updateComparison(); });
-$("after").addEventListener("click", () => { enhanced = true; updateComparison(); });
-$("demoSlide").addEventListener("change", updateComparison);
-function closeStory() {
-  $("storyPlayer").removeAttribute("src");
-  $("storyDetails").hidden = true;
-}
-for (const story of stories) {
-  const card = document.createElement("article"); card.className = "story-card";
-  const image = document.createElement("img"); image.src = story.poster; image.alt = story.title; image.loading = "lazy";
-  const body = document.createElement("div"); body.className = "card-body";
-  const title = document.createElement("h3"); title.textContent = story.title;
-  const summary = document.createElement("p"); summary.textContent = story.summary;
-  const steps = document.createElement("p"); steps.textContent = "Illustrative slide narrative · presenter-controlled beats";
-  const button = document.createElement("button"); button.textContent = "Play story"; button.dataset.story = story.id;
-  button.onclick = () => {
-    stopPreview();
-    $("storyTitle").textContent = story.title;
-    $("storyDescription").textContent = `${story.summary} ${story.durationMs / 1000}s · ${story.actions.length} actions · ${story.cues} content cues.`;
-    $("storyAnimation").href = story.animation; $("storyRecipe").href = story.recipe; $("storyMotion").href = story.motionPreview;
-    $("storyPlayer").src = story.preview + (reducedMotion.matches ? "?paused=1" : "");
-    $("storyDetails").hidden = false;
-    $("storyDetails").scrollIntoView({ behavior: reducedMotion.matches ? "instant" : "smooth", block: "start" });
-  };
-  body.append(title, summary, steps, button); card.append(image, body); $("storyGrid").append(card);
-}
-$("closeStory").onclick = closeStory;
-renderCatalogue(); updateCommand(); updateComparison();
+const showcaseVideos = [...document.querySelectorAll("#showcase video")];
+for (const video of showcaseVideos) video.addEventListener("play", () => {
+  stopPreview();
+  for (const other of showcaseVideos) if (other !== video) other.pause();
+  $("cloudSlide")?.contentWindow?.postMessage({ type: "stickman:pause" }, location.origin);
+});
+window.addEventListener("message", event => {
+  if (event.origin !== location.origin || event.source !== $("cloudSlide")?.contentWindow || event.data?.type !== "stickman:play") return;
+  stopPreview();
+  for (const video of showcaseVideos) video.pause();
+});
+renderCatalogue(); updateCommand();

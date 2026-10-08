@@ -7,7 +7,7 @@ import { RUNTIME_MOTION_LIBRARY, RUNTIME_ACTION_NAMES } from "../../dist/motion-
 
 export const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 export const aliases = { kick: "kick-ball", throw: "throw-ball", "pull-banner": "pull-banner-top" };
-const variants = { throw: ["basketball-shot"], "pull-banner": ["pull-banner-bottom", "pull-banner-left", "pull-banner-right"] };
+export const variants = { throw: ["basketball-shot"], "pull-banner": ["pull-banner-bottom", "pull-banner-left", "pull-banner-right"] };
 const useCases = {
   "rack-server": ["cloud", "infrastructure", "datacenter", "digital services"],
   "plug-cable": ["network", "connectivity", "integration"],

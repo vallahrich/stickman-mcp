@@ -43,7 +43,7 @@ This serves `dist\site-dev`, with 98 historically approved entries, review
 scores/notes, pending entries in JSON and a visible requalification flag on
 `sneak`. Neither build deploys publicly or changes repository visibility.
 
-## Combined stories
+## Runtime story recipes
 
 The first combined-story layout was rejected by the user at **2/10**:
 "no one would present it like that." Mechanical checks were not visual approval.
@@ -54,7 +54,7 @@ The preview's **Next beat** control lets a presenter stop at an explanation
 point rather than race the autoplay. This revision is awaiting user review;
 it has no invented replacement score or presentation-quality approval.
 
-The first gallery section presents stories before individual motions:
+The library retains these recipes outside the active presentation showcase:
 `cloud-journey`, `incident-resolution`, and `deployment-rollout`. Each recipe
 uses supported runtime actions on a single continuous actor timeline. Travel,
 gestures and a bound release package remain in the same world; timed cues
@@ -92,55 +92,75 @@ metadata and a disallow-all robots file; the loopback server also sends noindex.
 There is no deployment or registry submission. Public release needs a separate
 readiness review, including outstanding motions, dependencies and runtime assembly.
 
-## NIST before / after and 60-second video
+## Focused showcase: one slide and two videos
 
-**Development evaluation: rejected at 1/10.** The user rated the NIST IT
-presentation comparison 1/10. It is not an approved design reference,
-presentation-quality example or evidence that the enhanced treatment improves
-the source. Retain it as a reproducible rejected experiment, not a quality claim.
-The first three-slide source-deck HTML pilot was also rejected at **2/10**.
-Individual motion approvals and successful behavior checks do not establish
-usable slide design or storytelling. The next pilot must change the actor's
-role in the content, not merely polish pointing, selected cards or a co-presenter.
-These evaluations belong in development history, not release catalogue assets.
+The active presentation example is the private, reviewed on-premises-to-cloud
+HTML slide. It is not the older `cloud-journey` procedural recipe. The current
+slide lasts 58.3 seconds, keeps comparison and decision evidence visible, and
+uses a smaller actor with shared prop transforms. Its latest user rating is
+**7/10**, recorded here only as development feedback, not a claim of perfection.
 
-The revised three-slide candidate uses approved push, laptop-opening and
-lift/carry clips with their real props, a released-data handoff and a single
-retained payload across access routes. It separates control-flow completion
-from successful output and hands the full slide to the original recording.
-This is another review candidate, not a replacement score or user approval.
+Two original, silent animated stories accompany it, each **56 seconds**:
+**Open source: a small fix, shared** follows a developer from a missing feature
+through license rights, a working copy, maintainer review, release and community
+reuse. **Julius Caesar: ambition changes Rome** follows his origins, political
+alliances, campaigns, Rubicon crossing, reforms and concentrated power,
+assassination and the later rise of Augustus. Caesar's death is symbolic and
+non-graphic; Caesar is explicitly not described as the first emperor.
 
-Install `scripts/site/requirements.txt` in a chosen Python environment if
-PyMuPDF is not already available. `PYTHON` can point at that environment's
-interpreter. Download the exact official PDF linked in
-[source notices](showcase-sources.md), then run:
+The earlier slide-like story videos and the later multi-shot cut (camera
+push-ins and per-shot clip restarts) were rejected as shaky and disconnected.
+Each film is now **one continuous performance under a locked camera**
+(`scripts\site\performance.mjs`): approved clips are joined by eased pose
+blends, and generated walks (built from the approved walk-on gait and gated
+like any authored motion) carry the actor between actions, e.g. stand up →
+walk → inspect → walk back → sit down → type. A continuity gate rejects any
+join where a joint jumps more than 14 units in a frame. Caesar's changes of
+place (Senate, Gaul, Rubicon) are brief world dissolves, not camera moves.
+Overlays and props appear only while their beat uses them and then fade out;
+readable text cues explain the story without a voiceover. There is no slide
+header, card grid, source footer or progress strip.
+
+Only current, user-approved authored key-pose motions (and approved variants
+such as `basketball-shot`) are allowed, including the reviewed `video-call`
+and `type-at-desk` performances. The builder rejects unapproved motions and
+all five legacy runtime fixtures. This is a curated composition, not
+arbitrary simultaneous action blending.
+All three items are individually under one minute;
+the limit is per item, not the sum of all three.
+
+Generate the local assets using the reviewed slide outside the repository:
 
 ```powershell
-npm run site:demo -- --source C:\Downloads\NIST-CSF-Pascoe.pdf
-npm run site:video
+npm run site:showcase -- --slide "C:\private\on-prem-to-cloud-story.html"
 npm run site:build
 npm run site:serve
 ```
 
-The demo checks the reviewed source's SHA-256. The original excerpt retains
-pages 1, 2, 4 and 5 whole as raster images. The enhanced deck summarizes and
-re-layouts those ideas, adding an actor that walks and reveals content inside
-the slide. A shared scene builder samples actual runtime walk/point actions
-and synchronizes content beats. This is explicit authored choreography,
-not qualification of arbitrary novel combinations.
-The source PDF, visual-source excerpt and enhanced PPTX are downloadable in the
-private site. Animated GIFs play in PowerPoint Slide Show; preview renderers can
-show only the first frame. Complete-slide GIFs are a portable playback package,
-not individually editable PowerPoint elements. Reproducible SVG/scene sources
-remain editable. The source is a **historical February 2023 pre-release
-briefing**, not current cybersecurity advice.
+The source slide remains outside Git. The ignored `dist\site\showcase` folder
+contains its local copy, two H.264 MP4 files, PNG posters, VTT captions and a
+duration manifest. The manifest records each motion's source-spec SHA-256 and
+each encoded video's SHA-256; media URLs use the latter to invalidate older
+cached films. `site:showcase` checks the embedded slide timeline, current
+keyed-motion approval/mechanical gates, generated-walk gates and the
+performance continuity gate. `site:build` requires complete assets before
+displaying the three-item showcase; without them it shows setup instructions,
+not broken media. No remote generation or publication occurs.
 
-`site:video` samples real approved motions into 1,800 frames at 30 fps and uses
-the optional local `ffmpeg-static` encoder for a 60-second, silent H.264 MP4.
-It includes an actual source-slide comparison, visible explanatory text, a VTT
-caption track and a storyboard manifest. No unapproved motion is advertised,
-no remote video-generation API is called, and discrete scene cuts are not
-presented as general contact-safe choreography.
+Non-looping performances play in full; looping motions run whole cycles. The
+builder rejects a film exceeding one minute (1800 frames at 30 fps). Each large, burned-in
+text cue remains for at least 2.5 seconds and fits at most two lines. Optional VTT
+captions follow those same cue timings and are not enabled by default, avoiding
+duplicate text. Encoding explicitly excludes audio: no voice or music track.
+Sources and factual limitations are in
+[showcase sources](showcase-sources.md). The slide opens paused in the showcase. Starting a video pauses the slide and
+the other video; starting the slide pauses both videos. A full-size slide link
+retains its own controls. Motion ratings and review notes are not displayed.
+
+The NIST/NASA presentations, old comparison UI, mixed showcase video and their
+generation scripts are retired. Every release/development rebuild deletes
+only their explicitly named generated files, preserving unrelated assets.
+The motion engine, catalogue and library story recipes remain unchanged.
 
 ## Checks and client integration
 
@@ -153,7 +173,7 @@ Browser checks use locally installed Edge on Windows; otherwise Playwright's
 Chromium is required. Set `STICKMAN_SITE_BROWSER` to choose a supported browser
 channel. Checks cover catalogue/asset availability, hover lifecycle, actual
 playhead progression, search/filtering, keyboard/reduced-motion behavior,
-copyable configuration, source comparison, story actions/cues/seek/replay,
+copyable configuration, three-item showcase playback/durations/seek,
 rating-free release assets, retained development feedback and mobile overflow.
 Build both `site:build` and `site:dev` before running `site:test`.
 

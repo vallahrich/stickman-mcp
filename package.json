@@ -53,8 +53,7 @@
     "site:build": "npm run -s build && node scripts/site/build.mjs",
     "site:dev": "npm run -s build && node scripts/site/build.mjs --dev",
     "site:serve": "node scripts/site/serve.mjs",
-    "site:demo": "node --expose-gc scripts/site/prepare-demo.mjs",
-    "site:video": "node --expose-gc scripts/site/media.mjs",
+    "site:showcase": "npm run -s build && node --expose-gc scripts/site/build-showcase.mjs",
     "site:test": "playwright test --config playwright.site.config.mjs"
   },
   "dependencies": {

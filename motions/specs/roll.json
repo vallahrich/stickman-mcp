@@ -2,51 +2,46 @@
   "id": "roll",
   "label": "Roll",
   "status": "draft",
-  "source": {
-    "dataset": "CMU",
-    "file": "128_09.bvh",
-    "subject": "128",
-    "trial": "09",
-    "range120": [
-      40,
-      170
-    ],
-    "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/128/128_09.bvh"
-  },
+  "withheld": true,
   "kind": "oneshot",
   "travel": "travel",
   "view": "side",
-  "expect": {
-    "pose": "low-roll-rotation",
-    "contacts": [
-      "lFoot",
-      "rFoot"
-    ],
-    "travel": "travel",
-    "facingChange": 0
-  },
-  "contacts": [
-    "lFoot",
-    "rFoot"
-  ],
+  "expect": {"pose":"complete-forward-shoulder-roll","contacts":["lFoot","rFoot","lHand","rHand","shoulder","back","hip"],"travel":"travel","facingChange":0},
+  "contacts": ["lFoot","rFoot","lHand","rHand","shoulder","back","hip"],
   "prop": null,
   "aim": null,
   "facingChange": 0,
   "mirrorable": true,
-  "tags": [
-    "run",
-    "roll",
-    "underneath",
-    "closest",
-    "roll",
-    "somersault",
-    "action",
-    "fast",
-    "run",
-    "in",
-    "then",
-    "low"
-  ],
-  "notes": "Closest roll/somersault action; fast run-in then low roll-underneath, ending still low.",
-  "approvedBaseline": false
+  "tags": ["roll","forward","shoulder","tuck","floor","recovery"],
+  "notes": "WITHHELD: failed rendered head-clearance and non-head floor-support review despite passing existing joint/limb gates. Actual renderer head center is shoulder + normalized head direction * headRadius (16.5 units), not the sampled 20.5-unit neck/head offset. Its circle therefore cannot clear the floor when the shoulder outline touches it: maximum head-outline clearance equals shoulder-outline clearance, attained only with head directly above shoulder. At 180-degree inversion that direction intersects the straight torso. Avoiding head/torso disk intersection needs head at/below shoulder, forcing at least 16.5 units (12.375 review pixels) shoulder-outline floor gap. Neck angle cannot retract/translate the drawn head; there is no articulated spine or independent shoulder/back surface. Spec-only supported shoulder inversion is blocked by this fixed geometry. Current diagnostic sequence has actual head-outline penetration -0.666 units at f74 and 27 unsupported inversion frames even allowing a generous 1px contact tolerance (longest run 13 frames, above the permitted 3). Do not present, register or approve this motion. Gates remain unchanged. See session roll/support-audit.json and support-audit-per-frame.json.",
+  "approvedBaseline": false,
+  "frames": 162,
+  "loop": false,
+  "markers": {"crouch":24,"palms":36,"inversion":72,"back":84,"seated":108,"stand":150,"neutral":161},
+  "gates": {"maxJointStep":14},
+  "review": {"prop":null},
+  "poseKeys": [
+    {"frame":0,"pose":{"anchor":"both","lean":2,"neck":-1,"bob":0,"rLeg":{"hip":5,"knee":13},"lLeg":{"hip":-8,"knee":14},"rArm":{"shoulder":-8,"elbow":45},"lArm":{"shoulder":8,"elbow":45},"rFoot":{"x":5,"y":0},"lFoot":{"x":-7,"y":0},"rHand":{"x":14.524451,"y":66.180479},"lHand":{"x":27.829118,"y":71.691453},"dx":0,"facing":1},"ease":"inOut"},
+    {"frame":12,"pose":{"anchor":"both","lean":18,"neck":-9,"bob":-8,"rLeg":{"hip":44,"knee":68},"lLeg":{"hip":33,"knee":64},"rArm":{"shoulder":6,"elbow":70},"lArm":{"shoulder":18,"elbow":66},"rFoot":{"x":5,"y":0},"lFoot":{"x":-7,"y":0},"rHand":{"x":39,"y":67},"lHand":{"x":45.405,"y":74.291},"dx":-5,"facing":1},"ease":"inOut"},
+    {"frame":24,"pose":{"anchor":null,"lean":38,"neck":-20,"bob":0,"dy":-38,"rLeg":{"hip":82,"knee":96},"lLeg":{"hip":72,"knee":90},"rArm":{"shoulder":20,"elbow":72},"lArm":{"shoulder":30,"elbow":68},"rFoot":{"x":5,"y":0},"lFoot":{"x":-7,"y":0},"rHand":{"x":48,"y":3},"lHand":{"x":44,"y":3},"dx":-13,"facing":1},"ease":"inOut"},
+    {"frame":36,"pose":{"anchor":null,"lean":60,"neck":-10,"bob":0,"dy":-20,"dx":-15,"facing":1,"rLeg":{"hip":130,"knee":140},"lLeg":{"hip":125,"knee":135},"rArm":{"shoulder":0,"elbow":80},"lArm":{"shoulder":0,"elbow":80},"rFoot":{"x":-12.928,"y":6.412},"lFoot":{"x":-16.928,"y":9.412},"rHand":{"x":48,"y":3},"lHand":{"x":44,"y":3}},"ease":"linear"},
+    {"frame":42,"pose":{"anchor":null,"lean":90,"neck":-20,"bob":0,"dy":-8,"dx":-8,"facing":1,"rLeg":{"hip":130,"knee":140},"lLeg":{"hip":125,"knee":135},"rArm":{"shoulder":0,"elbow":80},"lArm":{"shoulder":0,"elbow":80},"rFoot":{"x":-16,"y":20},"lFoot":{"x":-20,"y":23},"rHand":{"x":48,"y":3},"lHand":{"x":44,"y":3}},"ease":"linear"},
+    {"frame":48,"pose":{"anchor":null,"lean":120,"neck":40,"bob":0,"dy":19,"dx":6,"facing":1,"rLeg":{"hip":130,"knee":140},"lLeg":{"hip":125,"knee":135},"rArm":{"shoulder":0,"elbow":80},"lArm":{"shoulder":0,"elbow":80},"rFoot":{"x":-9.928,"y":53.412},"lFoot":{"x":-13.928,"y":56.412},"rHand":{"x":48,"y":3},"lHand":{"x":44,"y":3}},"ease":"linear"},
+    {"frame":51,"pose":{"anchor":null,"lean":135,"neck":85,"bob":0,"dy":29,"dx":15,"facing":1,"rLeg":{"hip":130,"knee":140},"lLeg":{"hip":125,"knee":135},"rArm":{"shoulder":0,"elbow":80},"lArm":{"shoulder":0,"elbow":80},"rFoot":{"x":-3.385,"y":67.929},"lFoot":{"x":-7.385,"y":70.929},"rHand":{"x":48,"y":3},"lHand":{"x":44,"y":3}},"ease":"linear"},
+    {"frame":60,"pose":{"anchor":null,"lean":150,"neck":130,"bob":0,"dy":14,"dx":24,"facing":1,"rLeg":{"hip":130,"knee":140},"lLeg":{"hip":125,"knee":135},"rArm":{"shoulder":0,"elbow":80},"lArm":{"shoulder":0,"elbow":80},"rFoot":{"x":4.412,"y":57.928},"lFoot":{"x":0.412,"y":60.928},"rHand":{"x":48,"y":3},"lHand":{"x":44,"y":3}},"ease":"linear"},
+    {"frame":64,"pose":{"anchor":null,"lean":156.666667,"neck":134.444444,"bob":0,"dy":11.777778,"dx":28.444444,"facing":1,"rLeg":{"hip":130,"knee":140},"lLeg":{"hip":125,"knee":135},"rArm":{"shoulder":0,"elbow":80},"lArm":{"shoulder":0,"elbow":80},"rFoot":{"x":8.915,"y":57.99},"lFoot":{"x":4.915,"y":60.99},"rHand":{"x":20.269,"y":12.456},"lHand":{"x":18.269,"y":15.456}},"ease":"linear"},
+    {"frame":69,"pose":{"anchor":null,"lean":165,"neck":140,"bob":0,"dy":9,"dx":34,"facing":1,"rLeg":{"hip":130,"knee":140},"lLeg":{"hip":125,"knee":135},"rArm":{"shoulder":0,"elbow":80},"lArm":{"shoulder":0,"elbow":80},"rFoot":{"x":14.543,"y":58.068},"lFoot":{"x":10.543,"y":61.068},"rHand":{"x":25.647,"y":31.533},"lHand":{"x":22.647,"y":34.533}},"ease":"linear"},
+    {"frame":72,"pose":{"anchor":null,"lean":180,"neck":150,"bob":0,"dy":3,"dx":44,"facing":1,"rLeg":{"hip":130,"knee":140},"lLeg":{"hip":125,"knee":135},"rArm":{"shoulder":0,"elbow":80},"lArm":{"shoulder":0,"elbow":80},"rFoot":{"x":26,"y":57},"lFoot":{"x":22,"y":60},"rHand":{"x":39,"y":44},"lHand":{"x":34,"y":41}},"ease":"linear"},
+    {"frame":78,"pose":{"anchor":null,"lean":210,"neck":140,"bob":0,"dy":-4,"dx":60,"facing":1,"rLeg":{"hip":130,"knee":140},"lLeg":{"hip":125,"knee":135},"rArm":{"shoulder":0,"elbow":80},"lArm":{"shoulder":0,"elbow":80},"rFoot":{"x":48.412,"y":57.928},"lFoot":{"x":44.412,"y":60.928},"rHand":{"x":32.5,"y":43.029},"lHand":{"x":27.5,"y":40.029}},"ease":"linear"},
+    {"frame":84,"pose":{"anchor":null,"lean":240,"neck":120,"bob":0,"dy":-20,"dx":74,"facing":1,"rLeg":{"hip":130,"knee":140},"lLeg":{"hip":125,"knee":135},"rArm":{"shoulder":0,"elbow":80},"lArm":{"shoulder":0,"elbow":80},"rFoot":{"x":71.928,"y":45.588},"lFoot":{"x":67.928,"y":48.588},"rHand":{"x":30.029,"y":43.5},"lHand":{"x":25.029,"y":40.5}},"ease":"linear"},
+    {"frame":90,"pose":{"anchor":null,"lean":270,"neck":90,"bob":0,"dy":-42,"dx":84,"facing":1,"rLeg":{"hip":130,"knee":140},"lLeg":{"hip":125,"knee":135},"rArm":{"shoulder":0,"elbow":80},"lArm":{"shoulder":0,"elbow":80},"rFoot":{"x":92,"y":22},"lFoot":{"x":88,"y":25},"rHand":{"x":34,"y":44},"lHand":{"x":29,"y":41}},"ease":"linear"},
+    {"frame":96,"pose":{"anchor":null,"lean":300,"neck":60,"bob":0,"dy":-42,"dx":90,"facing":1,"rLeg":{"hip":130,"knee":140},"lLeg":{"hip":125,"knee":135},"rArm":{"shoulder":0,"elbow":80},"lArm":{"shoulder":0,"elbow":80},"rFoot":{"x":105.928,"y":15.588},"lFoot":{"x":101.928,"y":18.588},"rHand":{"x":46.029,"y":66.5},"lHand":{"x":41.029,"y":63.5}},"ease":"linear"},
+    {"frame":102,"pose":{"anchor":null,"lean":330,"neck":30,"bob":0,"dy":-42,"dx":94,"facing":1,"rLeg":{"hip":130,"knee":140},"lLeg":{"hip":125,"knee":135},"rArm":{"shoulder":0,"elbow":80},"lArm":{"shoulder":0,"elbow":80},"rFoot":{"x":113.588,"y":6.072},"lFoot":{"x":109.588,"y":9.072},"rHand":{"x":31.5,"y":42.971},"lHand":{"x":36.5,"y":46.971}},"ease":"linear"},
+    {"frame":108,"pose":{"anchor":null,"lean":360,"neck":0,"bob":0,"dy":-42,"dx":96,"facing":1,"rLeg":{"hip":130,"knee":140},"lLeg":{"hip":125,"knee":135},"rArm":{"shoulder":0,"elbow":80},"lArm":{"shoulder":0,"elbow":80},"rFoot":{"x":125,"y":0},"lFoot":{"x":113,"y":0},"rHand":{"x":96,"y":3},"lHand":{"x":92,"y":3}},"ease":"inOut"},
+    {"frame":120,"pose":{"anchor":null,"lean":327,"neck":25,"bob":0,"dy":-34,"rLeg":{"hip":98,"knee":104},"lLeg":{"hip":90,"knee":100},"rArm":{"shoulder":-106,"elbow":52},"lArm":{"shoulder":34,"elbow":74},"rFoot":{"x":125,"y":0},"lFoot":{"x":113,"y":0},"rHand":{"x":96,"y":3},"lHand":{"x":114.778,"y":35.18},"dx":97,"facing":1},"ease":"inOut"},
+    {"frame":130,"pose":{"anchor":null,"lean":335,"neck":17,"bob":0,"dy":-24,"rLeg":{"hip":94,"knee":100},"lLeg":{"hip":86,"knee":96},"rArm":{"shoulder":-82,"elbow":54},"lArm":{"shoulder":28,"elbow":72},"rFoot":{"x":125,"y":0},"lFoot":{"x":113,"y":0},"rHand":{"x":96,"y":15},"lHand":{"x":122.702,"y":42.923},"dx":101,"facing":1},"ease":"inOut"},
+    {"frame":140,"pose":{"anchor":"both","lean":368,"neck":-2,"bob":-18,"rLeg":{"hip":82,"knee":96},"lLeg":{"hip":72,"knee":90},"rArm":{"shoulder":-46,"elbow":72},"lArm":{"shoulder":30,"elbow":68},"rFoot":{"x":125,"y":0},"lFoot":{"x":113,"y":0},"rHand":{"x":100,"y":45},"lHand":{"x":154.99,"y":69.573},"dx":107,"facing":1},"ease":"inOut"},
+    {"frame":150,"pose":{"anchor":"both","lean":362,"neck":-1,"bob":0,"rLeg":{"hip":5,"knee":13},"lLeg":{"hip":-8,"knee":14},"rArm":{"shoulder":-8,"elbow":45},"lArm":{"shoulder":8,"elbow":45},"rFoot":{"x":125,"y":0},"lFoot":{"x":113,"y":0},"rHand":{"x":134.524451,"y":66.180479},"lHand":{"x":147.829118,"y":71.691453},"dx":120,"facing":1},"ease":"inOut"},
+    {"frame":161,"pose":{"anchor":"both","lean":362,"neck":-1,"bob":0,"rLeg":{"hip":5,"knee":13},"lLeg":{"hip":-8,"knee":14},"rArm":{"shoulder":-8,"elbow":45},"lArm":{"shoulder":8,"elbow":45},"rFoot":{"x":125,"y":0},"lFoot":{"x":113,"y":0},"rHand":{"x":134.524451,"y":66.180479},"lHand":{"x":147.829118,"y":71.691453},"dx":120,"facing":1},"ease":"inOut"}
+  ]
 }

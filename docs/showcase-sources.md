@@ -1,51 +1,77 @@
 # Showcase sources and notices
 
-The primary audience is IT and digital-services presenters: infrastructure,
-cloud architecture, cybersecurity, service operations and digital workflows.
-
-## Real presentation source
-
-Cherilyn Pascoe, Senior Tech Policy Advisor and Lead, NIST CSF Program:
-**Journey to the NIST Cybersecurity Framework 2.0**, February 28, 2023.
-
-- [Official presentation page](https://csrc.nist.gov/presentations/2023/nist-cybersecurity-framework-csf-20).
-- [Official PDF slide download](https://csrc.nist.gov/csrc/media/Presentations/2023/nist-cybersecurity-framework-csf-2-0/6-1115am%20NIST%20CSF%202.0%20-Pascoe.pdf).
-- [NIST reuse statement](https://www.nist.gov/open/copyright-fair-use-and-licensing-statements-srd-data-software-and-technical-series-publications), “Fair Use of Other NIST Data/Works”.
-
-This employee-authored, non-SRD work falls under NIST's employee-work reuse
-statement, which grants worldwide royalty-free derivative-work and distribution
-rights subject to attribution and its stated terms. This is not a blanket
-license for every third-party item hosted on a government website.
-
-The demo uses pages 1, 2, 4 and 5. The original excerpt retains each whole page
-as an image, not an editable reconstruction. The enhanced version summarizes
-and re-layouts its ideas into a title/network scene, attribute cards, a timeline
-and priority cards. A stickman travels **inside** each slide and reveals its
-content; there is no separate presenter column. The altered layout and motion
-are identified in captions and notes, and full source text remains in notes.
-The original PDF is included alongside it. No NIST endorsement is implied.
-
-**Historical context:** this is a February 2023 pre-release briefing. Its
-proposals, dates and calls for feedback are historical, not current CSF guidance.
-For current framework material use [NIST's CSF site](https://www.nist.gov/cyberframework).
+The active showcase contains one illustrative on-premises-to-cloud HTML slide
+and two original, 56-second stickman story videos. It contains no NIST or NASA presentations.
+The comparison metric is an example, not customer telemetry or a savings claim.
+Cloud is not automatically cheaper; a migration decision needs workload,
+security, performance and total-cost evidence.
 
 ## Original motion and tooling
 
-Unapproved dance and withheld roll are not included in the gallery or showcase.
-Development review records remain in the repository; release-style catalogue
-downloads contain no scores or review notes.
-The video and GIFs sample the reviewed motion clips through the real renderer;
-they are not neural video outputs or a demonstration of arbitrary combined
-contact-safe choreography.
+The two silent shorts use only current, user-approved authored key-pose motions
+sampled through the shipping renderer, not the older runtime fixtures. Each film
+is one continuous performance under a locked camera, with eased blends and
+walks generated from the approved gait, original full-frame environments, timed
+state changes and brief text cues rather than presentation layouts.
+Unused props disappear; non-looping actions play in full.
+They do not demonstrate arbitrary contact-safe choreography,
+simultaneous action blending or general-purpose story generation.
+Unapproved dance, withheld roll and mechanically unqualified
+motions are not used. Ratings and review notes remain in development records,
+not the presentation or video UI.
 
-The five legacy clips are the existing runtime fixtures. See the repository
-NOTICE for CMU mocap provenance. Other keyed clips and review props are original
-authored vector work. Font rendering uses local fonts.
+The five legacy clips remain elsewhere as existing runtime fixtures, but are
+explicitly excluded from these films. See NOTICE for CMU mocap provenance.
+The keyed clips and review props are original authored vector work.
+Fonts are local. No remote video-generation API is used.
 
-`ffmpeg-static` is an optional local encoding tool; its binary has its own
-licensing terms. It is not embedded in the exported MP4 or slides.
-Complete-slide animated GIFs play in PowerPoint Slide Show; their content is
-not individually editable PowerPoint objects. Source SVG/scene code is editable
-and reproducible. Static preview renderers may show only the first frame.
-The exported MP4 is silent, with visible explanatory
-text and an English caption track on the website.
+`ffmpeg-static` and the local SVG rasterizer are optional encoding tools with
+their own licensing terms. Their binaries are not embedded in the output.
+The two videos are silent H.264 MP4 files with burned-in text and optional,
+cue-timed English VTT captions, each 56 seconds long. Non-looping lead actions
+are not truncated. Source-spec fingerprints and encoded-file hashes are recorded
+in the local manifest so the selected motion versions and media are identifiable.
+The slide's timeline is 58.3 seconds.
+
+## Open-source story
+
+**Open source: a small fix, shared** is an original fictional contribution
+journey, not a recording of a real repository. It explains rights to use,
+inspect, modify and redistribute, the distinction between open source and
+merely visible code, and license-specific obligations. Open source need not
+be free of charge. A maintainer accepting a contribution is an example, not
+a guarantee. Licensing does not prescribe the illustrated review workflow.
+
+Factual reference, read on 8 October 2026:
+[Open Source Initiative: The Open Source Definition](https://opensource.org/osd).
+No third-party animation, source-code sample, logo or artwork is reused.
+The video explains open-source software; it does not change this repository's
+license or publish it as open source.
+
+## Julius Caesar story
+
+**Julius Caesar: ambition changes Rome** is an original, selective historical
+overview, not an exhaustive biography or a depiction of ancient testimony.
+It covers birth in 100 BCE, consulship in 59 BCE, campaigns in Gaul in
+58–50 BCE, the Rubicon in 49 BCE, calendar reform, dictator-for-life status in
+44 BCE, assassination on 15 March 44 BCE, and Augustus becoming the first
+emperor in 27 BCE. The campaign range includes the aftermath of the decisive
+conquest, not eight identical years of battle. Birth-year alternatives exist;
+100 BCE is the conventional date used here.
+
+Conquest's human cost is acknowledged. Assassination is conveyed by a
+disappearing figure and fallen laurel motif, without weapons or graphic violence.
+The figures, temples, river and campaign markers are symbolic original drawings,
+not accurate maps, portraits or reconstructed sites. The closing figure is
+explicitly labeled Augustus, not a return of Caesar.
+
+Factual reference, read on 8 October 2026:
+[World History Encyclopedia: Julius Caesar](https://www.worldhistory.org/Julius_Caesar/).
+Calendar implementation date cross-checked with
+[Julian calendar](https://en.wikipedia.org/wiki/Julian_calendar), citing
+E. G. Richards, *Explanatory Supplement to the Astronomical Almanac* (2013).
+Only historical facts informed the original script; no source prose, image,
+map or animation is copied into the output.
+
+All output remains local/private and ignored by Git. The build does not publish
+a site or change repository visibility.

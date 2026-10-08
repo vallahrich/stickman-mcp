@@ -36,7 +36,7 @@ test("rating-free release assets, truthful runtime scope and private indexing", 
   await expect(page.locator(".score")).toHaveCount(0);
 });
 
-test("combined stories use one timeline with real actions, synchronized cues and replay", async ({ page, request }) => {
+test("existing runtime recipes remain available outside the focused showcase", async ({ request }) => {
   const stories = await (await request.get("/stories.json")).json();
   expect(stories).toHaveLength(3);
   for (const story of stories) {
@@ -46,47 +46,19 @@ test("combined stories use one timeline with real actions, synchronized cues and
     expect(animation.actions).toHaveLength(story.actions.length);
     expect((await request.get("/" + story.motionPreview)).status()).toBe(200);
   }
-  await page.goto("/");
-  await page.locator('[data-story="cloud-journey"]').click();
-  const frame = page.frameLocator("#storyPlayer");
-  await expect(frame.locator("#scene > svg")).toHaveAttribute("data-action", "walk");
-  const x = await frame.locator("#scene > svg").getAttribute("data-actor-x");
-  await page.waitForTimeout(500);
-  expect(await frame.locator("#scene > svg").getAttribute("data-actor-x")).not.toBe(x);
-  const seek = async milliseconds => {
-    await frame.locator("#scrub").evaluate((el, value) => { el.value = String(value); el.dispatchEvent(new Event("input", { bubbles: true })); }, milliseconds / 1000 * 30);
-  };
-  await seek(4400);
-  await expect(frame.locator("#scene > svg")).toHaveAttribute("data-cue", "application");
-  await expect(frame.locator("#scene > svg")).toHaveAttribute("data-action", "point");
-  await seek(13000);
-  await expect(frame.locator("#scene > svg")).toHaveAttribute("data-actor-x", "720.000");
-  await seek(1000);
-  await expect(frame.locator("#scene > svg")).toHaveAttribute("data-cue", "request");
-  await frame.locator("#nextBeat").click();
-  await expect(frame.locator("#scene > svg")).toHaveAttribute("data-cue", "application");
-  await expect(frame.locator("#play")).toHaveText("Play");
-  await seek(17500);
-  await expect(frame.locator("#scene > svg")).toHaveAttribute("data-complete", "true");
-  await frame.locator("#play").click();
-  await expect(frame.locator("#scene > svg")).toHaveAttribute("data-cue", "request");
-  await expect(frame.locator("#scene > svg")).toHaveAttribute("data-complete", "false");
-  await page.locator("#closeStory").click();
-  await expect(page.locator("#storyPlayer")).not.toHaveAttribute("src", /.+/);
 });
 
-test("story playback is paused for reduced motion on mobile", async ({ page }) => {
+test("cloud slide starts paused and remains readable on mobile", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  await page.locator('[data-story="deployment-rollout"]').click();
-  const frame = page.frameLocator("#storyPlayer");
-  await expect(frame.locator("#frameNo")).toHaveText("0");
+  const frame = page.frameLocator("#cloudSlide");
+  await expect(frame.locator("#play")).toHaveText("Play");
+  await expect(frame.locator("#seek")).toHaveValue("0");
   await page.waitForTimeout(500);
-  await expect(frame.locator("#frameNo")).toHaveText("0");
+  await expect(frame.locator("#seek")).toHaveValue("0");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.goto("/stories/cloud-journey.html?paused=1&scoutTheme=light");
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(frame.locator(".information article")).toHaveCount(3);
 });
 
 test("development retains ratings and mechanical requalification independently of release", async ({ page, request }) => {
@@ -183,26 +155,73 @@ test("client commands quote paths, do not invent endpoints and never install set
   await expect(page.locator("#connectCommand")).toContainText("--root");
 });
 
-test("real NIST comparison animates inside the deck and media supports seeking", async ({ page, request }) => {
-  const comparison = await (await request.get("/demo/comparison.json")).json();
-  expect(comparison.slides.map(s => s.page)).toEqual([1, 2, 4, 5]);
-  expect(comparison.historicalPreRelease).toBe(true);
+test("only the cloud slide and two playable videos remain, each under one minute", async ({ page, request }) => {
+  const errors = [];
+  page.on("pageerror", error => errors.push(error.message));
+  const manifest = await (await request.get("/showcase/manifest.json")).json();
+  expect(manifest.videos).toHaveLength(2);
+  expect(manifest.videos.map(video => video.id)).toEqual(["open-source", "julius-caesar"]);
+  expect(manifest.slide.seconds).toBeLessThanOrEqual(60);
   await page.goto("/");
-  await expect(page.locator("#inSlidePlayer")).toBeHidden();
-  await page.locator("#after").click();
-  await expect(page.locator("#inSlidePlayer")).toBeVisible();
-  await expect(page.locator("#sourceSlide")).toBeHidden();
-  const scene = page.frameLocator("#inSlidePlayer");
-  await expect(scene.locator('[data-actor="inside-slide"]')).toBeVisible();
-  const x = await scene.locator("#scene svg").getAttribute("data-actor-x");
-  await page.waitForTimeout(3100);
-  expect(await scene.locator("#scene svg").getAttribute("data-actor-x")).not.toBe(x);
-  await page.locator("#before").click();
-  await expect(page.locator("#inSlidePlayer")).not.toHaveAttribute("src", /.+/);
-  for (const file of ["nist-original.pptx", "nist-with-stickman.pptx", "nist-original.pdf"]) expect((await request.get("/demo/" + file)).status()).toBe(200);
-  const video = await request.get("/showcase.mp4", { headers: { Range: "bytes=0-99" } });
+  await expect(page.locator("#showcase iframe")).toHaveCount(1);
+  await expect(page.locator("#showcase video")).toHaveCount(2);
+  await expect(page.locator("#comparison, #stories")).toHaveCount(0);
+  expect(await page.locator("body").textContent()).not.toMatch(/\b(?:NIST|NASA)\b/);
+  const frame = page.frameLocator("#cloudSlide");
+  await expect(frame.locator("#play")).toHaveText("Play");
+  await frame.locator("#seek").focus();
+  await frame.locator("#seek").press("End");
+  await expect(frame.locator("#seek")).toHaveValue(String(Math.round(manifest.slide.seconds * 30) - 1));
+  await expect(frame.locator("#play")).toHaveText("Replay");
+  for (const [index, film] of manifest.videos.entries()) {
+    expect(film.fps).toBe(30);
+    expect(film.scenes).toHaveLength(index ? 7 : 6);
+    expect(film.seconds).toBeGreaterThan(45);
+    expect(film.seconds).toBeLessThanOrEqual(60);
+    expect(film.frames).toBe(Math.round(film.seconds * 30));
+    expect(film.style).toBe("silent-short-film");
+    expect(film.audio).toBe(false);
+    const authored = film.provenance.filter(item => item.kind === "authored-key-pose");
+    expect(film.provenance.every(item => ["authored-key-pose", "generated-from-walk-on-gait", "continuous-composite"].includes(item.kind))).toBe(true);
+    expect(authored.every(item => !["walk", "point", "idle", "stop", "jump"].includes(item.id))).toBe(true);
+    expect(film.provenance.at(-1)).toMatchObject({ kind: "continuous-composite", camera: "locked" });
+    expect(film.provenance.at(-1).maxJointStep).toBeLessThanOrEqual(14);
+    expect(film.sha256).toMatch(/^[a-f0-9]{64}$/);
+    for (const motion of authored) expect(motion.specSha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(new Set(film.scenes.map(scene => scene.state)).size).toBe(film.scenes.length);
+    const captions = await (await request.get("/showcase/" + film.captions)).text();
+    for (const scene of film.scenes) for (const cue of scene.cues) expect(captions).toContain(cue.text);
+    expect(film.scenes[0].startFrame).toBe(0);
+    expect(film.scenes.reduce((frames, scene) => {
+      expect(scene.startFrame).toBe(frames);
+      return frames + scene.frames;
+    }, 0)).toBe(film.frames);
+    expect(film.frames / film.fps).toBeCloseTo(film.seconds, 2);
+    const video = page.locator("#showcase video").nth(index);
+    await expect(video.locator("source")).toHaveAttribute("src", `showcase/${film.src}?v=${film.sha256}`);
+    await video.evaluate(async el => {
+      if (el.readyState < 1) await new Promise((resolve, reject) => { el.addEventListener("loadedmetadata", resolve, { once: true }); el.addEventListener("error", reject, { once: true }); el.load(); });
+      await el.play();
+    });
+    expect(await video.evaluate(el => el.duration)).toBeCloseTo(film.seconds, 1);
+    expect(await video.evaluate(el => el.duration)).toBeLessThanOrEqual(60);
+    await expect.poll(() => video.evaluate(el => el.currentTime)).toBeGreaterThan(.1);
+    await video.evaluate(el => { el.currentTime = el.duration - .25; });
+    await expect.poll(() => video.evaluate(el => el.ended)).toBe(true);
+    expect(await video.evaluate(el => el.error)).toBeNull();
+  }
+  await page.locator("#showcase video").first().evaluate(el => { el.currentTime = 0; return el.play(); });
+  await frame.locator("#play").click();
+  await expect.poll(() => page.locator("#showcase video").first().evaluate(el => el.paused)).toBe(true);
+  await page.locator("#showcase video").last().evaluate(el => { el.currentTime = 0; return el.play(); });
+  await expect(frame.locator("#play")).toHaveText("Play");
+  await page.locator("#showcase video").last().evaluate(el => el.pause());
+  for (const file of ["nist-original.pptx", "nist-with-stickman.pptx", "nist-original.pdf", "nasa-original.pptx", "comparison.json"]) expect((await request.get("/demo/" + file)).status()).toBe(404);
+  for (const id of ["it-workplace", "expressive"]) expect((await request.get(`/showcase/${id}.mp4`)).status()).toBe(404);
+  const video = await request.get("/showcase/open-source.mp4", { headers: { Range: "bytes=0-99" } });
   expect(video.status()).toBe(206);
   expect((await video.body()).length).toBe(100);
-  const badRange = await request.get("/showcase.mp4", { headers: { Range: "bytes=999999999999-" } });
+  const badRange = await request.get("/showcase/open-source.mp4", { headers: { Range: "bytes=999999999999-" } });
   expect(badRange.status()).toBe(416);
+  expect(errors).toEqual([]);
 });

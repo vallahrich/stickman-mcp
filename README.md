@@ -76,8 +76,11 @@ serve that with `npm run site:serve -- --dev --port 4175`.
 Both builds remain private/noindex. The gallery explicitly distinguishes
 preview availability from runtime integration. It does not publish a site,
 promote motions, or change agent
-settings. See [showcase creation](docs/designer-showcase.md) for the one-minute
-IT video and historical NIST comparison experiment, and
+settings. See [showcase creation](docs/designer-showcase.md) for the
+on-premises-to-cloud slide and two original 56-second silent animated shorts—an
+open-source contribution journey and the life and legacy of Julius Caesar.
+The shorts use newer approved keyed motions, full-frame scenery and readable
+text cues rather than presentation layouts. See
 [MCP setup](docs/mcp-setup.md) for Copilot, Claude Code and Codex.
 The presentation treatments remain unqualified visual experiments, not approved
 examples of improving a source deck.

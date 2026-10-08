@@ -22,11 +22,20 @@ instructions in the README.
 architecture, infrastructure, cybersecurity, operations and service workflows.
 The local designer gallery shows approved review versions, searchable categories,
 lazy accessible previews and client setup, separately from the runtime library.
-The showcase uses actual rendered motions and an attributed historical NIST
-presentation comparison. Actors work inside the slide—travelling on timelines
-and revealing cards—not in a separate presenter column. This is explicit
-authored choreography, not neural generation or universal composition.
-The gallery now leads with combined stories, not separate gesture clips.
+The active showcase is limited to the on-premises-to-cloud slide and two
+stickman story videos, each at most one minute. The videos explain an open-source
+contribution journey and Julius Caesar's life/legacy in under a minute each,
+replacing the workplace/personality compilations. NIST and NASA presentation
+experiments and their generated downloads have been removed. The slide keeps
+substantive comparison and decision evidence readable while a smaller actor
+supports the story. Each video is a silent full-frame short staged as one
+continuous performance under a locked camera: newer approved key-pose motions
+joined by eased blends and generated walks, a per-frame continuity gate, short
+burned-in text cues and overlays that appear only while used, not slide
+layouts, camera push-ins or legacy fixtures.
+Source-spec and encoded-media fingerprints prevent ambiguous motion versions
+and stale cached videos. These authored films do not establish
+universal story generation or arbitrary seamless choreography.
 Three reusable runtime recipes connect travel, gestures, prop movement and
 host content cues through `stickman_story` and the library's `composeStory`.
 The first combined-story visual treatment received a user **2/10** rejection.
@@ -43,7 +52,7 @@ authorized expansion of the revised object-interaction candidate, not a new
 quality score or template approval. Private source material and derived HTML are not repository
 examples, gallery assets or mirror content. This is not universal conversion or
 an automatic animation-authoring capability.
-Development feedback now rejects both the NIST IT comparison (**1/10**) and the
+Development feedback rejected the retired IT comparison (**1/10**) and the
 actual three-slide source-deck HTML pilot (**2/10**). Neither treatment is an
 approved template. The rejected treatment was reworked with real push,
 laptop-opening and carry props, delayed released-data handoff, explicit diagram
