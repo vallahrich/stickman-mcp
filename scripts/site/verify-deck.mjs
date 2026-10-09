@@ -231,6 +231,43 @@ try {
     check(frame>=film.events.cloud.arrival+12 || state.units==="2","capacity expanded before arrival");
     report.causalEvents.push(state);
   }
+  report.diagramAlignment = {};
+  for (const id of ["on-prem","cloud","evidence","decision"]) {
+    const entry = timing.timeline.filter(e=>e.slide===id).at(-1);
+    await snapshot(entry.start+entry.frames-1);
+    report.diagramAlignment[id] = await page.evaluate(id=>{
+      const stage=document.querySelector("#"+id+" .stickman-stage");
+      const box=selector=>{
+        const el=stage.querySelector(selector);
+        if(!el) return null;
+        const b=el.getBBox();
+        return {x:b.x,y:b.y,w:b.width,h:b.height};
+      };
+      const collisions=[];
+      const texts=[...stage.querySelectorAll("text")].map(el=>({label:el.textContent,rect:el.getBoundingClientRect()}));
+      for(const connector of stage.querySelectorAll("[data-connector=flow] path")) {
+        const length=connector.getTotalLength(), matrix=connector.getScreenCTM();
+        for(let d=0;d<=length;d+=2) {
+          const p=connector.getPointAtLength(d).matrixTransform(matrix);
+          for(const text of texts) {
+            const b=text.rect;
+            if(p.x>b.left+1&&p.x<b.right-1&&p.y>b.top+1&&p.y<b.bottom-1) collisions.push(text.label);
+          }
+        }
+      }
+      return { workload:stage.querySelector('[data-object="workload"]').getAttribute("transform"),
+        move:box('[data-object="move-route"] > rect'),retain:box('[data-object="retain-route"] > rect'),
+        connectorTextCollisions:[...new Set(collisions)] };
+    },id);
+    check(!report.diagramAlignment[id].connectorTextCollisions.length,
+      id+": directional connectors cross labels: "+report.diagramAlignment[id].connectorTextCollisions.join(", "));
+  }
+  check(report.diagramAlignment["on-prem"].workload===report.diagramAlignment.cloud.workload,
+    "on-prem and cloud workload nodes do not share the comparison grid");
+  const {move,retain}=report.diagramAlignment.decision;
+  check(move&&retain&&move.x===retain.x&&move.w===retain.w&&move.h===retain.h,
+    "conditional outcome nodes are not aligned and equally sized");
+
   report.contacts=[];
   for(const contact of timing.stickman.contacts) {
     await page.evaluate(f=>window.StickmanDeckAutoplay.seek(f),contact.frame);

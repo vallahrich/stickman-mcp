@@ -24,6 +24,13 @@ Motion quality and overall presentation quality remain subject to user review.
 The embedded preview also observes its document size and refreshes the renderer
 when the panel is resized or made visible again. This avoids retaining a stale
 presentation scale when the host does not deliver a window resize event.
+The user still identified misalignment and unconvincing flowchart placement in
+v12. The next layout revision aligns the on-premises and cloud workload nodes
+at the same coordinates, adds directional connectors terminating at node edges,
+and connects W1 to the evidence sequence at its actual entry height. The final
+flow now has a bounded evidence node, one shared branching spine, and two
+equal-width outcome nodes with aligned text insets. These changes address
+diagram structure, not a new motion-quality approval.
 
 `scripts\site\render-cloud-deck.mjs` now calls the installed Dynamic Presentation
 MCP over stdio: `get_authoring_guide`, `validate_deck`, `motion_status`, and

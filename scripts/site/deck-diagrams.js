@@ -10,6 +10,10 @@ function wire(points, c, dashed) {
   return '<path d="' + points + '" fill="none" stroke="' + c.b + '" stroke-width="2.5"' +
     (dashed ? ' stroke-dasharray="7 7"' : '') + '/>';
 }
+function arrow(points, x, y, c) {
+  return '<g data-connector="flow">' + wire(points, c) +
+    '<path d="M' + (x-7) + ' ' + (y-5) + 'l7 5-7 5" fill="none" stroke="' + c.b + '" stroke-width="2.5"/></g>';
+}
 function rackIcon(x, y, c) {
   var out = '<rect x="' + x + '" y="' + y + '" width="100" height="108" rx="6" fill="' + c.s + '" stroke="' + c.t + '" stroke-width="3"/>';
   for (var i = 0; i < 3; i++) out += '<rect x="' + (x + 12) + '" y="' + (y + 12 + i * 30) + '" width="76" height="22" rx="3" fill="none" stroke="' + c.b + '" stroke-width="2"/>';
@@ -40,23 +44,27 @@ function bookendScene(beat, local, c, rootX, events) {
 function demand(u) { return .19 + .06 * Math.sin(u * 10) + .61 * Math.exp(-Math.pow((u - .7) / .1, 2)); }
 function loadMeter(beat, local, c, rootX, events) {
   var revealed = events && events.demand;
-  var out = workload(305, 105, c) + wire("M270 105H260V306M339 105H455", c) +
-    text(185, 50, "Inspect the rack", 22, c.t, 700, "middle") +
-    text(670, 42, "Demand vs fixed capacity", 26, c.t, 700, "middle") +
-    text(670, 72, "Illustrative · relative units", 18, c.m, 500, "middle");
-  var left = 455, right = 920, top = 108, bottom = 260;
-  out += '<g data-object="fixed-capacity">' + wire("M455 260H920M455 108H920", c) +
+  var out = workload(305, 210, c) + wire("M260 306H305V237",c) +
+    '<path d="M300 244l5-7 5 7" fill="none" stroke="'+c.b+'" stroke-width="2.5"/>' +
+    arrow("M339 210H440",440,210,c) +
+    text(220, 42, "Existing workload", 26, c.t, 700, "middle") +
+    text(220, 72, "Inspect before comparing",18,c.m,500,"middle") +
+    text(685, 42, "Demand vs fixed capacity", 26, c.t, 700, "middle") +
+    text(685, 72, "Illustrative · relative units", 18, c.m, 500, "middle");
+  var left = 465, right = 905, top = 145, bottom = 250;
+  out += '<g data-object="fixed-capacity"><rect x="440" y="106" width="490" height="202" rx="10" fill="none" stroke="'+c.l+'" stroke-width="2"/>' +
+    wire("M465 250H905M465 145H905", c) +
     text(left, 100, "Installed capacity", 18, c.t, 600) + '</g>';
   if (revealed) {
     var progress = ease(revealed.elapsed / 30), pts = [];
     for (var i = 0; i <= Math.floor(60 * progress); i++) pts.push(r(left + (right-left)*i/60) + " " + r(bottom - (bottom-top)*demand(i/60)));
     out += '<g data-object="demand"><path d="M' + pts.join("L") + '" fill="none" stroke="' + c.a + '" stroke-width="4"/>' +
-      text(left, 292, "Demand", 20, c.a, 600) +
-      text(right, 292, "One illustrative day →", 18, c.m, 500, "end") + '</g>';
-  } else out += text(670, 200, "What does W1 actually need?", 22, c.m, 500, "middle");
+      text(left, 286, "Demand", 20, c.a, 600) +
+      text(right, 286, "One illustrative day →", 18, c.m, 500, "end") + '</g>';
+  } else out += text(685, 210, "What does W1 actually need?", 22, c.m, 500, "middle");
   if (beat >= 2) out += '<g data-object="operations">' +
-    text(450, 348, "Patch · Power · Recover", 23, c.t, 600) +
-    text(450, 378, "CPU alone does not prove waste or savings.", 19, c.m, 500) + '</g>';
+    text(440, 346, "Patch · Power · Recover", 23, c.t, 600) +
+    text(440, 378, "CPU alone does not prove waste or savings.", 19, c.m, 500) + '</g>';
   return result(out, ["load-meter"].concat(beat >= 2 ? ["upkeep-tags"] : []));
 }
 function consoleControl(x, y, c) {
@@ -69,22 +77,25 @@ function cloudScene(beat, local, c, rootX, events) {
   var drained = events && events.drained, processing = events && events.processing;
   var queue = !arrival ? 0 : drained ? 0 : processing ? Math.max(1,6-Math.floor(processing.elapsed/9)) : 6;
   var units = !arrival || arrival.elapsed < 12 || drained ? 2 : 2 + Math.ceil(queue / 2);
-  var out = workload(305, 110, c) + wire("M249 334H305V137M339 110H505V155", c) +
+  var out = workload(305, 210, c) + wire("M249 334H305V237", c) +
+    arrow("M339 210H490",490,210,c) +
     consoleControl(249,334,c) +
-    text(305, 55, "Submit W1 jobs", 22, c.t, 700, "middle") +
+    text(220, 48, "Submit W1 jobs", 26, c.t, 700, "middle") +
+    text(220,80,"One workload · changing demand",18,c.m,500,"middle") +
     '<g data-object="batch" data-queue="' + queue + '">';
-  for (var i = 0; i < queue; i++) out += '<rect x="' + (370 + i * 22) + '" y="99" width="14" height="22" rx="3" fill="' + c.a + '"/>';
-  if (submitted && !arrival) out += '<rect data-object="released-batch" x="'+r(345+25*ease(submitted.elapsed/24))+'" y="99" width="22" height="22" rx="3" fill="'+c.a+'"/>';
-  out += text(435, 142, queue ? "Jobs pending" : drained ? "Jobs processed" : submitted ? "Batch in transit" : "Await submission", 16, c.m, 500, "middle") +
+  for (var i = 0; i < queue; i++) out += '<rect x="' + (355 + i * 22) + '" y="168" width="14" height="22" rx="3" fill="' + c.a + '"/>';
+  if (submitted && !arrival) out += '<rect data-object="released-batch" x="'+r(345+25*ease(submitted.elapsed/24))+'" y="168" width="22" height="22" rx="3" fill="'+c.a+'"/>';
+  out += text(415, 253, queue ? "Jobs pending" : drained ? "Jobs processed" : submitted ? "In transit" : "Waiting", 16, c.m, 500, "middle") +
     '</g><g data-object="capacity-units" data-units="' + units + '">' +
     '<rect x="500" y="150" width="415" height="115" rx="16" fill="none" stroke="' + c.b + '" stroke-width="2.5"/>';
-  for (var j = 0; j < units; j++) out += '<rect x="' + (521 + j * 76) + '" y="178" width="60" height="58" rx="8" fill="' + c.s + '" stroke="' + c.a + '" stroke-width="3"/>' +
-    text(551 + j * 76, 214, String(j+1), 18, c.t, 600, "middle");
+  for (var j = 0; j < 5; j++) out += '<rect x="' + (521 + j * 76) + '" y="178" width="60" height="58" rx="8" fill="' + (j<units?c.s:"none") + '" stroke="' + (j<units?c.a:c.l) + '" stroke-width="3"' +
+    (j<units?'':' stroke-dasharray="5 5"') + '/>' +
+    (j<units?text(551 + j * 76, 214, String(j+1), 18, c.t, 600, "middle"):"");
   out += '</g>' + text(710, 48, "Instances serving W1", 26, c.t, 700, "middle") +
-    text(710, 80, "Illustrative · configured scaling policy", 18, c.m, 500, "middle") +
+    text(710, 80, "Illustrative · dashed slots are inactive", 18, c.m, 500, "middle") +
     text(710, 298, !arrival ? "Minimum capacity · waiting for jobs" : queue ? "Arrival → expand → process jobs" : "Jobs drain → release capacity", 23, c.t, 600, "middle");
-  if (beat === 2) out += '<g data-object="cost-tags">' + text(450, 350, "Migration + Usage + Operations + Egress", 22, c.t, 700) +
-    text(450, 381, "Compare the full bill—not just the unit rate.", 19, c.m, 500) + '</g>';
+  if (beat === 2) out += '<g data-object="cost-tags">' + text(500, 346, "Migration + Usage + Operations + Egress", 22, c.t, 700) +
+    text(500, 378, "Compare the full bill—not just the unit rate.", 19, c.m, 500) + '</g>';
   return result(out, ["batch", "capacity-units"].concat(beat === 2 ? ["cost-tags"] : []));
 }
 var stages = [["Baseline",220], ["Requirements",429], ["Total cost",638], ["Pilot",847]];
@@ -94,47 +105,52 @@ function station(i, x, c) {
   if (i === 1) out += wire("M"+(x-50)+" 170H"+(x+50)+"M"+x+" 170V135",c) +
     '<circle cx="'+(x-50)+'" cy="170" r="12" fill="'+c.s+'" stroke="'+c.a+'" stroke-width="3"/><circle cx="'+(x+50)+'" cy="170" r="12" fill="'+c.s+'" stroke="'+c.a+'" stroke-width="3"/>' +
     text(x,146,"?",22,c.a,700,"middle") + text(x,198,"Latency · Recovery?",18,c.m,600,"middle") + text(x,222,"Checks still needed",17,c.t,600,"middle");
-  if (i === 2) out += text(x-48,136,"Local",18,c.t,600,"middle") + text(x+48,136,"Cloud",18,c.t,600,"middle") +
-    text(x-48,162,"Hardware",17,c.m,500,"middle") + text(x+48,162,"Migration",17,c.m,500,"middle") +
-    text(x-48,188,"Licences",17,c.m,500,"middle") + text(x+48,188,"Usage",17,c.m,500,"middle") +
-    text(x-48,214,"Operations",17,c.m,500,"middle") + text(x+48,214,"Operations",17,c.m,500,"middle") +
-    text(x+48,240,"Egress",17,c.m,500,"middle");
+  if (i === 2) out += text(x,100,"Inputs · same time period",16,c.m,500,"middle") +
+    text(x-55,136,"Local",18,c.t,600,"middle") + text(x+55,136,"Cloud",18,c.t,600,"middle") +
+    text(x-55,162,"Hardware",17,c.m,500,"middle") + text(x+55,162,"Migration",17,c.m,500,"middle") +
+    text(x-55,188,"Licences",17,c.m,500,"middle") + text(x+55,188,"Usage",17,c.m,500,"middle") +
+    text(x-55,214,"Operations",17,c.m,500,"middle") + text(x+55,214,"Operations",17,c.m,500,"middle") +
+    text(x+55,240,"Egress",17,c.m,500,"middle");
   if (i === 3) out += text(x,146,"Test → Compare",19,c.t,600,"middle") +
     text(x,178,"Latency · Recovery",18,c.m,500,"middle") + text(x,205,"Plan rollback",18,c.a,600,"middle") + text(x,230,"No result yet",17,c.m,500,"middle");
   return out + '</g>';
 }
 function evidenceScene(beat, local, c, rootX, events) {
-  var out = workload(70, 85, c);
+  var out = workload(70, 29, c) + arrow("M104 29H125",125,29,c);
   for(var i=0;i<4;i++) {
     var reached = events && events["artifact"+i];
-    if (reached) out += station(i,stages[i][1],c);
+    if (reached) out += wire("M"+stages[i][1]+" 53V"+(i===2?80:110),c) + station(i,stages[i][1],c);
     var proximity = 1 - ease((Math.abs(rootX-stages[i][1])-20)/65);
     if (proximity > 0) out += '<g opacity="'+r(proximity)+'">' + consoleControl(stages[i][1]+29,334,c) + '</g>';
   }
-  out += text(550,92, ["Record demand over a representative period","Check dependencies, latency and recovery","Comparison inputs · same time period · no result yet","Define pilot criteria and rollback before testing"][beat],22,c.m,500,"middle");
   return result(out, ["baseline", "dependency-map", "cost-comparison", "pilot-gate"].filter(function(_, i) {return events && events["artifact"+i];}));
 }
 function decisionScene(beat, local, c, rootX, events) {
   var supplied = events && events.evidence;
-  var out = workload(170,155,c) + wire("M204 155H335",c,true);
-  out += '<g data-object="decision-gate">' +
-    text(350,88,"Evidence gate",25,c.t,700) +
-    text(350,132,"Requirements",21,c.t,600) +
-    text(350,172,"Total cost",21,c.t,600) +
-    text(350,212,"Pilot evidence",21,c.t,600) + '</g>';
+  var out = workload(170,155,c) + arrow("M204 155H320",320,155,c);
+  out += '<g data-object="decision-gate"><rect x="320" y="54" width="260" height="202" rx="10" fill="none" stroke="'+c.b+'" stroke-width="2.5"/>' +
+    text(450,88,"Compare evidence",25,c.t,700,"middle") +
+    text(450,132,"Requirements",21,c.t,600,"middle") +
+    text(450,172,"Total cost",21,c.t,600,"middle") +
+    text(450,212,"Pilot evidence",21,c.t,600,"middle") + '</g>';
   if (!events.routes) out += consoleControl(876,334,c);
   if (supplied && !events.routes) {
-    out += '<g data-object="evidence-input">' + text(350,270,"Compare the evidence",20,c.m,500) + '</g>';
+    out += '<g data-object="evidence-input">' + text(450,288,"Review before choosing",20,c.m,500,"middle") + '</g>';
   }
   if (events && events.routes) {
-    out += wire("M560 150H610V68H650M610 150V210H650",c,true);
-    out += '<g data-object="move-route">' + text(665,48,"Move if",22,c.t,700) +
-      text(665,80,"Requirements, costs",18,c.m,500) + text(665,108,"and pilot support it",18,c.m,500) + cloudIcon(920,83,c) + '</g>';
-    out += '<g data-object="retain-route">' + text(665,180,"Retain if",22,c.t,700) +
-      text(665,212,"Requirements cannot",18,c.m,500) + text(665,240,"be met, or local",18,c.m,500) + text(665,268,"fits better",18,c.m,500) + rackIcon(890,160,c) + '</g>';
+    out += wire("M580 155H615V90M615 155V210",c) +
+      arrow("M615 90H650",650,90,c) + arrow("M615 210H650",650,210,c);
+    out += '<g data-object="move-route"><rect x="650" y="40" width="310" height="100" rx="10" fill="none" stroke="'+c.l+'" stroke-width="2"/>' +
+      text(670,68,"Move if",22,c.t,700) +
+      text(670,98,"Requirements, costs",18,c.m,500) + text(670,126,"and pilot support it",18,c.m,500) +
+      '<g transform="translate(920 61) scale(0.24)">'+cloudIcon(0,0,c)+'</g></g>';
+    out += '<g data-object="retain-route"><rect x="650" y="160" width="310" height="100" rx="10" fill="none" stroke="'+c.l+'" stroke-width="2"/>' +
+      text(670,188,"Retain if",22,c.t,700) +
+      text(670,218,"Requirements cannot be met",18,c.m,500) + text(670,246,"or local fits better",18,c.m,500) +
+      '<g transform="translate(904 170) scale(0.24)">'+rackIcon(0,0,c)+'</g></g>';
   }
-  out += '<g data-object="pilot-action">' + text(350,355,"Pilot one workload",30,c.a,700) +
-    text(350,390,"Time-box it. Keep rollback. Then decide.",20,c.m,500) + '</g>';
+  out += '<g data-object="pilot-action">' + text(320,346,"Pilot one workload",30,c.a,700) +
+    text(320,378,"Time-box it. Keep rollback. Then decide.",20,c.m,500) + '</g>';
   return result(out, ["decision-gate","move-route","retain-route","pilot-action"]);
 }
 var sceneProps = {question:bookendScene, "on-prem":loadMeter, cloud:cloudScene, evidence:evidenceScene, decision:decisionScene};

@@ -168,6 +168,17 @@ describe("stickman deck provider", () => {
     expect(final).not.toContain('data-object="action-console"');
     expect(final).not.toContain("Supply evidence to the gate");
     expect(final).not.toContain("M876 334H940");
+    const measured = context.loadMeter(2,149,c,220,eventsAt("on-prem",lastFrame)).markup;
+    expect(glyph(measured)).toBe("translate(305 210)");
+    expect(glyph(context.cloudScene(2,149,c,220,eventsAt("cloud",lastFrame)).markup))
+      .toBe(glyph(measured));
+    expect(measured).toContain('data-connector="flow"');
+    expect(final).toContain("M580 155H615V90M615 155V210");
+    expect(final).toContain('x="650" y="40" width="310" height="100"');
+    expect(final).toContain('x="650" y="160" width="310" height="100"');
+    expect(measured).toContain("M339 210H440");
+    expect(measured).toContain('x="440" y="106" width="490" height="202"');
+    expect(atStation).not.toContain("Define pilot criteria and rollback before testing");
   },120_000);
 
   it("rejects missing story beats and impossible reading budgets", async () => {
