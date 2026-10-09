@@ -10,6 +10,8 @@ const folder = outputIndex >= 0 ? path.resolve(process.argv[outputIndex + 1]) : 
 const file = path.resolve(process.argv[2]);
 const tag = process.argv[3] && !process.argv[3].startsWith("--") ? process.argv[3] : "shots";
 const full = process.argv.includes("--full");
+const siteIndex = process.argv.indexOf("--site");
+const site = siteIndex < 0 ? null : process.argv[siteIndex + 1];
 const shots = path.join(folder, tag);
 await fs.mkdir(shots, { recursive: true });
 const url = pathToFileURL(file).href;
@@ -80,6 +82,11 @@ try {
       texts.slice(i + 1).forEach(other => {
         if (touches(el.bounds, other.bounds)) out.svgTextOverlaps.push(el.label + " / " + other.label);
       });
+      out.actorObjectOverlaps = [];
+      for (const el of scene.querySelectorAll("[data-object]")) {
+        const b = el.getBoundingClientRect();
+        if (a?.height && b.width && b.height && touches(a, b)) out.actorObjectOverlaps.push(el.getAttribute("data-object"));
+      }
     });
     out.svg = content ? content.innerHTML.length : 0;
     out.frame = content?.getAttribute("data-frame");
@@ -106,7 +113,8 @@ try {
           check(p.diagram && p.diagram.w >= p.slot.w * 0.5, `${entry.slide}/${entry.beat}: diagram is too narrow for the scene`);
         }
         check(!p.svgTextOverlaps.length, `${entry.slide}/${entry.beat}: SVG text overlap: ${p.svgTextOverlaps.join(" | ")}`);
-        check(p.actor || entry.slide === "decision" && label === "end", `${entry.slide}/${entry.beat}: missing actor`);
+        check(!p.actorObjectOverlaps.length, `${entry.slide}/${entry.beat}: actor overlaps illustrative objects: ${p.actorObjectOverlaps.join(" | ")}`);
+        check(p.actor, `${entry.slide}/${entry.beat}: missing actor`);
         check(!p.overlaps.length, `${entry.slide}/${entry.beat}: text overlaps slot: ${p.overlaps.join(" | ")}`);
         check(!p.actor || (p.actor.h >= 65 && p.actor.h <= 160), `${entry.slide}/${entry.beat}: stickman outside co-presenter height range (${p.actor?.h})`);
       }
@@ -119,28 +127,51 @@ try {
   const standing = report.beats.filter(b => b.actor && b.slide === "on-prem").map(b => b.actor.h);
   report.standingHeight = { min: Math.min(...standing), max: Math.max(...standing) };
   check(report.standingHeight.min >= 120 && report.standingHeight.max <= 150, "standing co-presenter height outside 120-150px");
-  for (const [name, frame] of [["rack-extended", 300], ["typing", 821], ["celebration-release", 1443], ["celebration-swish", 1463], ["exit-through", 1623]]) {
+  for (const [name, frame] of [["question", 160], ["rack-extended", 300], ["demand-and-operations", 525], ["batch-expansion", 765], ["batch-contraction", 837], ["evidence-complete", 1398], ["final-decision", timing.totalFrames - 1]]) {
     await page.evaluate(f => window.StickmanDeckAutoplay.seek(f), frame);
     await page.waitForTimeout(700); await settle();
     await page.screenshot({ path: path.join(shots, name + ".png") });
   }
   const diag = await page.evaluate(() => window.DynamicDeck.diagnostics());
   report.motionDiagnostics = diag.motion;
-  report.exitDoor = [];
-  for (const frame of [1623, 1710]) {
+  const required = {
+    question: ["workload", "criterion"],
+    "on-prem": ["workload", "fixed-capacity", "demand", "operations"],
+    cloud: ["workload", "batch", "capacity-units", "cost-tags"],
+    evidence: ["workload", "baseline", "dependency-map", "cost-comparison", "pilot-gate"],
+    decision: ["workload", "decision-gate", "move-route", "retain-route", "pilot-action"]
+  };
+  report.comprehension = [];
+  for (const [slide, objects] of Object.entries(required)) {
+    const entries = timing.timeline.filter(e => e.slide === slide);
+    const frame = entries.at(-1).start + entries.at(-1).frames - 1;
     await page.evaluate(f => window.StickmanDeckAutoplay.seek(f), frame);
-    await settle();
-    const door = await page.evaluate(() => {
-      const scene = document.querySelector("#decision figure.scene"), slot = scene.getBoundingClientRect();
-      return [...scene.querySelectorAll('[data-prop="door-frame"],[data-prop="door-leaf"]')].map(el => {
-        const bounds = el.getBoundingClientRect();
-        return { x: (bounds.left - slot.left) / slot.width, bottom: (bounds.bottom - slot.top) / slot.height, height: bounds.height };
+    await page.waitForTimeout(700); await settle();
+    const result = await page.evaluate(({slide, objects}) => {
+      const scene = document.querySelector("#" + slide + " figure.scene"), slot = scene.getBoundingClientRect();
+      return objects.map(id => {
+        const el = scene.querySelector('[data-object="' + id + '"]'), b = el?.getBoundingClientRect();
+        return { id, visible: !!b?.width && !!b?.height, inside: !!b && b.left >= slot.left-2 && b.right <= slot.right+2 && b.top >= slot.top-2 && b.bottom <= slot.bottom+2 };
       });
-    });
-    check(door.length > 0 && door.every(bounds => bounds.x > 0.6 && bounds.bottom > 0.75 && bounds.bottom < 0.95 && bounds.height > 100),
-      `exit frame ${frame}: door detached from its ground-level position`);
-    report.exitDoor.push({ frame, bounds: door });
+    }, {slide, objects});
+    check(result.every(o => o.visible && o.inside), `${slide}: required diagram objects missing or out of bounds: ${JSON.stringify(result)}`);
+    report.comprehension.push({slide, frame, objects:result});
   }
+  const cloudBeat = timing.timeline.find(e => e.slide === "cloud" && e.beat === 1);
+  report.capacityResponse = [];
+  for (const offset of [0, 75, cloudBeat.frames-1]) {
+    await page.evaluate(f => window.StickmanDeckAutoplay.seek(f), cloudBeat.start + offset); await settle();
+    report.capacityResponse.push(await page.locator("#cloud [data-object=capacity-units]").getAttribute("data-units"));
+  }
+  check(report.capacityResponse.join() === "2,5,2", "incoming batch does not cause expansion and contraction");
+  const finalMarkup = () => page.locator("#decision .stickman-stage").innerHTML();
+  await page.evaluate(f => window.StickmanDeckAutoplay.seek(f), timing.totalFrames-91); await settle();
+  const holdA = await finalMarkup();
+  await page.evaluate(f => window.StickmanDeckAutoplay.seek(f), timing.totalFrames-1); await settle();
+  const holdB = await finalMarkup();
+  report.finalHold = {frames:90, identical:holdA === holdB, actor:await page.locator("#decision [data-stickman-actor] path").count()};
+  check(report.finalHold.identical && report.finalHold.actor > 0, "final scene must hold with the actor for three seconds");
+  check(await page.locator("#decision [data-prop=door-frame],#decision [data-prop=basketball-hoop]").count() === 0, "obsolete celebration/exit props present");
   check(!diag.motion.length, `motion diagnostics: ${JSON.stringify(diag.motion)}`);
   check(!diag.motion.some(d => /UNSUPPORTED/.test(d.code)), "MOTION_UNSUPPORTED present");
 
@@ -236,9 +267,42 @@ try {
   report.mobile = await mobile.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, width: window.innerWidth,
     play: document.getElementById("play").textContent, seek: document.getElementById("seek").value, slides: document.querySelectorAll(".slide").length }));
   await mobile.screenshot({ path: path.join(shots, "mobile-390.png"), fullPage: true });
+  for (const slide of Object.keys(required)) {
+    await mobile.evaluate(id => window.DynamicDeck.goTo(id, 0), slide);
+    await mobile.waitForTimeout(300);
+    await mobile.screenshot({path:path.join(shots, "mobile-" + slide + ".png"), fullPage:true});
+  }
   check(report.mobile.scrollWidth <= report.mobile.width, `mobile overflow ${JSON.stringify(report.mobile)}`);
   check(report.mobile.play === "Play" && report.mobile.seek === "0", `mobile controls ${JSON.stringify(report.mobile)}`);
   await mobile.close();
+
+  if (site) {
+    report.iframe = [];
+    for (const width of [1440, 390]) {
+      const host = await browser.newPage({viewport:{width,height:900}});
+      host.on("pageerror", e => errors.push(e.message));
+      await host.goto(site);
+      const iframe = host.locator("#cloudSlide");
+      await iframe.scrollIntoViewIfNeeded();
+      const embedded = await (await iframe.elementHandle()).contentFrame();
+      await embedded.waitForFunction(() => window.StickmanDeckAutoplay);
+      for (const id of Object.keys(required)) {
+        const end = timing.timeline.filter(e => e.slide === id).at(-1);
+        await embedded.evaluate(f => window.StickmanDeckAutoplay.seek(f), end.start+end.frames-1);
+        await host.waitForTimeout(700);
+        if (width === 390) await embedded.locator("#" + id).scrollIntoViewIfNeeded();
+        const status = await embedded.evaluate(() => ({
+          slide:window.DynamicDeck.state().slideId,
+          overflow:document.documentElement.scrollWidth > window.innerWidth,
+          view:window.DynamicDeck.state().view
+        }));
+        check(status.slide === id && !status.overflow, `iframe ${width}/${id}: incorrect state or overflow`);
+        await iframe.screenshot({path:path.join(shots, `iframe-${width}-${id}.png`)});
+        report.iframe.push({width, id, ...status});
+      }
+      await host.close();
+    }
+  }
 
   // Dark theme renders with theme colours (no leftover tokens).
   await page.evaluate(() => { document.documentElement.setAttribute("data-theme", "dark"); window.StickmanDeckAutoplay.seek(800); });
@@ -255,5 +319,5 @@ report.failures = failures;
 report.ok = !failures.length;
 await fs.writeFile(path.join(folder, `${tag}-verification.json`), JSON.stringify(report, null, 2));
 console.log(JSON.stringify({ ok: report.ok, failures, seconds: report.seconds, stickman: report.stickman, determinism: report.determinism, standingHeight: report.standingHeight, actorHeight: report.actorHeight, end: report.end, manual: report.manual,
-  autoplay: report.autoplay, nativeAnimations: report.nativeAnimations, mobile: report.mobile, actorHeights: report.beats.filter(b => b.actor).map(b => `${b.slide}/${b.beat}:${Math.round(b.actor.h)}`).join(" ") }, null, 1));
+  autoplay: report.autoplay, nativeAnimations: report.nativeAnimations, capacityResponse:report.capacityResponse, finalHold:report.finalHold, comprehension:report.comprehension, iframe:report.iframe, mobile: report.mobile, actorHeights: report.beats.filter(b => b.actor).map(b => `${b.slide}/${b.beat}:${Math.round(b.actor.h)}`).join(" ") }, null, 1));
 process.exitCode = report.ok ? 0 : 1;

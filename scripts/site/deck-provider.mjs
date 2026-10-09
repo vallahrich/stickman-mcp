@@ -17,26 +17,28 @@ export const MAX_FRAMES = 1800;
 export const cloudDeckPlan = {
   id: "cloud-deck",
   provider: "stickman",
-  // A fixed camera and uniform stage projection keep the co-presenter ~122 px tall at 1440x900.
-  view: { x: 0, y: 60, w: 1000, h: 595 },
-  projection: { scale: 0.55, x: 0, y: 243 },
+  // A fixed camera and anchored projection keep the co-presenter ~138 px tall at 1440x900.
+  view: { x: 0, y: 0, w: 1000, h: 420 },
+  projection: { scale: 0.44, positionScale: 0.55, x: 0, y: 162.4 },
   reviewSlides: ["pilot-framing", "pilot-recommendation"],
   slides: ["question", "on-prem", "cloud", "evidence", "decision"].map(id => ({ id, scene: true })),
   performance: [
-    { motion: "enter-door", root: 650, beat: "question/0" }, { motion: "think", until: 16 },
+    { motion: "present", root: 400, beat: "question/0" },
     { motion: "rack-server", until: 182, beat: "on-prem/0" },
     { motion: "shrug", until: 36, beat: "on-prem/1" },
-    { motion: "idea", beat: "on-prem/2" },
-    { walk: { to: 850, pace: 12 }, beat: "cloud/0" }, { motion: "present", until: 38 }, { motion: "sit-down" },
-    { motion: "video-call", until: 69, beat: "cloud/1" }, { motion: "type-at-desk", cycles: 1 },
-    { motion: "stand-up", beat: "cloud/2" },
-    { walk: { to: 480, pace: 12 }, beat: "evidence/0" }, { motion: "present", until: 38 },
+    { motion: "present", beat: "on-prem/2" },
+    { motion: "present", beat: "cloud/0" },
+    { motion: "present", beat: "cloud/1" },
+    { motion: "present", beat: "cloud/2" },
+    { motion: "present", until: 38, beat: "evidence/0" },
     { walk: { to: 780, pace: 12 }, beat: "evidence/1" },
-    { walk: { to: 1080, pace: 12 }, beat: "evidence/2" },
-    { walk: { to: 1380, pace: 12 }, beat: "evidence/3" }, { motion: "thumbs-up" },
-    { motion: "basketball-shot", beat: "decision/0" }, { motion: "exit-door" }
+    { motion: "present", until: 38 },
+    { walk: { to: 1160, pace: 12 }, beat: "evidence/2" }, { motion: "present", until: 38 },
+    { walk: { to: 1540, pace: 12 }, beat: "evidence/3" }, { motion: "present", until: 38 },
+    { motion: "present", beat: "decision/0" }
   ],
-  sets: { "on-prem": [{ motion: "rack-server", types: ["server-rack", "platform"], root: 650 }] }
+  beatFrames: [180, 201, 70, 89, 150, 150, 90, 60, 138, 138, 138, 270],
+  sets: { "on-prem": [{ motion: "rack-server", types: ["server-rack", "platform"], root: 400 }] }
 };
 
 const beatsOf = plan => plan.performance.filter(item => item.beat).map(item => item.beat);
@@ -76,7 +78,24 @@ export async function composeDeckPerformance(plan = cloudDeckPlan, resources) {
   resources ??= await loadShowcaseResources();
   // Film captions are not shown: slide copy belongs to the presentation runtime.
   const scenes = [{ id: beatsOf(plan)[0], state: plan.id, cues: [{ frame: 0, text: "Workload migration comparison" }] }];
-  const composed = await composeFilm({ id: plan.id, bridge: "auto", performance: plan.performance, scenes, set: [] }, resources);
+  const recipe = { id: plan.id, bridge: "auto", performance: plan.performance, scenes, set: [] };
+  let composed = await composeFilm(recipe, resources);
+  // Reading time is a still pose, not slowed or looped decorative choreography.
+  // Budget each beat including its generated bridge; authored motion data stays untouched.
+  if (plan.beatFrames) {
+    const beats = beatsOf(plan);
+    const items = plan.performance.map(item => ({ ...item }));
+    beats.forEach((beat, i) => {
+      const first = composed.performance.segments.find(seg => seg.beat === beat);
+      const next = composed.performance.segments.find(seg => seg.beat === beats[i + 1]);
+      const end = next?.gapStart ?? composed.performance.frames;
+      const extra = plan.beatFrames[i] - (end - first.gapStart);
+      if (extra < 0) throw new Error(`${beat}: motion exceeds reading-time budget by ${-extra} frames.`);
+      const last = composed.performance.segments.filter(seg => seg.gapStart < end).at(-1);
+      items[last.itemIndex].hold = (items[last.itemIndex].hold ?? 0) + extra;
+    });
+    composed = await composeFilm({ ...recipe, performance: items }, resources);
+  }
   const replants = composed.performance.segments.slice(1).map(seg => ({ kind: "generated-replant", startFrame: seg.gapStart, endFrame: seg.start - 1, frames: seg.start - seg.gapStart }));
   composed.continuity = deckContinuity(composed.performance, resources.sampleClipMotion);
   if (composed.continuity.maxJointStep > 14 || composed.continuity.footSlides.length) throw new Error("Deck joins failed continuity or planted-foot gates: " + JSON.stringify(composed.continuity));
@@ -177,9 +196,12 @@ export async function renderDeckFrames(plan, composed, resources, ranges) {
       layers.actor = ownerSegment.id === "exit-door" && local >= ownerSegment.spec.markers.clear ? "" :
         '<defs><clipPath id="deck-door-aperture"><rect x="' + x + '" y="' + y + '" width="' + door.w * unit + '" height="' + door.h * unit + '"/></clipPath></defs><g clip-path="url(#deck-door-aperture)">' + layers.actor + '</g>';
     }
-    const project = markup => plan.projection && markup ? `<g transform="translate(${plan.projection.x} ${plan.projection.y}) scale(${plan.projection.scale})">${markup}</g>` : markup;
+    // Reduce the figure around its planted world-space position, not around the camera origin.
+    const anchor = stagePosition(performance, f);
+    const projectedX = (plan.projection?.x ?? 0) + anchor * ((plan.projection?.positionScale ?? plan.projection?.scale ?? 1) - (plan.projection?.scale ?? 1));
+    const project = markup => plan.projection && markup ? `<g transform="translate(${projectedX} ${plan.projection.y}) scale(${plan.projection.scale})">${markup}</g>` : markup;
     frames.push([ref(project(layers.back)), ref(project(`<g transform="translate(0 ${-deckJoinLift(performance, f) * .75 * performance.scale})">${layers.actor}</g>`)), ref(project(layers.front))]);
-    roots.push(Math.round(stagePosition(performance, f) * (plan.projection?.scale ?? 1) + (plan.projection?.x ?? 0)));
+    roots.push(Math.round(anchor * (plan.projection?.positionScale ?? plan.projection?.scale ?? 1) + (plan.projection?.x ?? 0)));
   }
   return { dict, frames, roots };
 }
@@ -210,8 +232,9 @@ export function injectDeck(html, { timing, film, client }) {
   const controls = `\n<button type="button" id="play" aria-label="Play or pause the timed story">Play</button>` +
     `\n<input type="range" id="seek" min="0" max="${timing.totalFrames - 1}" step="1" value="0" aria-label="Story position (frames)">`;
   const style = `<style id="stickman-provider-style">.toolbar #seek{flex:0 1 180px;min-width:90px;accent-color:var(--cp-accent)}` +
-    `body[data-view=present] figure.scene{background:transparent;border-color:transparent;border-radius:0;box-shadow:none}` +
-    `.toolbar #play{min-width:72px;font-weight:600}.stickman-stage{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:hidden}.stickman-native-flow{position:absolute;left:130px;top:42px;width:calc(100% - 260px);height:128px;pointer-events:none}.scene[data-motion-active=true][data-flow-active=true] .stickman-native-flow .flow-ink{animation:flow-trace 580ms cubic-bezier(.2,.8,.2,1) both}.scene[data-motion-active=true][data-flow-active=true] .stickman-native-flow .flow-packet{animation:flow-travel-4 var(--stickman-flow-duration) ease-in-out both;opacity:1}.stickman-native-flow [data-step-complete=false] .flow-node{fill:var(--cp-surface);stroke:var(--cp-border-strong)}.stickman-native-flow [data-step-complete=false] .flow-label{fill:var(--cp-text)}.stickman-native-flow [data-step-complete=true] .flow-node{fill:var(--cp-accent);stroke:var(--cp-accent);stroke-width:3}.stickman-native-flow [data-step-complete=true] .flow-label{fill:var(--cp-accent-fg)}</style>`;
+    `body[data-view=present] figure.scene{background:transparent;border-color:transparent;border-radius:0;box-shadow:none;left:64px!important;top:196px!important;width:1152px!important;height:440px!important}` +
+    `body[data-view=present] .slide .block{visibility:hidden}` +
+    `.toolbar #play{min-width:72px;font-weight:600}.stickman-stage{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:hidden}.stickman-native-flow{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}.scene[data-motion-active=true][data-flow-active=true] .stickman-native-flow .flow-ink{animation:flow-trace 580ms cubic-bezier(.2,.8,.2,1) both}.scene[data-motion-active=true][data-flow-active=true] .stickman-native-flow .flow-packet{animation:flow-travel-4 var(--stickman-flow-duration) ease-in-out both;opacity:1}.stickman-native-flow [data-step-complete=false] .flow-node{fill:var(--cp-surface);stroke:var(--cp-border-strong)}.stickman-native-flow [data-step-complete=false] .flow-label{fill:var(--cp-text)}.stickman-native-flow [data-step-complete=true] .flow-node{fill:var(--cp-accent);stroke:var(--cp-accent);stroke-width:3}.stickman-native-flow [data-step-complete=true] .flow-label{fill:var(--cp-accent-fg)}</style>`;
   const payload = `<script id="data" type="application/json">${safeJson(timing)}</script>\n` +
     `<script id="stickman-frames" type="application/json">${safeJson(film)}</script>\n${style}\n<script>${client}</script>\n`;
   let out = html.replace(/(<div id="deck-toolbar"[^>]*>)/, `$1${controls}`);
@@ -231,7 +254,9 @@ export async function buildStickmanDeck({ deckPath, storyboardPath, outPath, pla
   const timing = { totalFrames, fps: FPS, seconds: Number((totalFrames / FPS).toFixed(2)), timeline,
     stickman: { continuity, bridges: composed.bridgeRecords.length, performanceFrames: composed.performance.frames } };
   const film = { provider: plan.provider, view: plan.view, scenes, cueSlides, dict, frames, roots };
-  const client = await fs.readFile(path.join(here, "deck-provider-client.js"), "utf8");
+  const diagrams = await fs.readFile(path.join(here, "deck-diagrams.js"), "utf8");
+  const client = (await fs.readFile(path.join(here, "deck-provider-client.js"), "utf8"))
+    .replace("/* DECK_DIAGRAMS */", () => diagrams);
   const html = injectDeck(selectStorySlides(await fs.readFile(deckPath, "utf8"), plan.slides.map(slide => slide.id), plan.reviewSlides), { timing, film, client });
   if (outPath) await fs.writeFile(outPath, html);
   return { html, timing, bytes: Buffer.byteLength(html) };

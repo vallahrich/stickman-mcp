@@ -17,7 +17,8 @@
   "desiredSlides": 7,
   "ideas": [
     "One IT admin acts out the story as a silent stickman",
-    "Fixed capacity is sized for peaks, so average use is low (illustrative 18%)",
+    "Follow one recognisable W1 workload through every scene",
+    "Compare illustrative variable demand with fixed capacity; CPU alone is not evidence of waste",
     "Cloud capacity can follow demand but has its own costs",
     "Measure, validate, compare total cost, then pilot",
     "Two supplemental pilot-only layout references meet the three-layout design review requirement; the timed output contains only the five architecture scenes."
@@ -30,7 +31,7 @@
     },
     {
       "slideId": "on-prem",
-      "instruction": "Show why fixed capacity sits idle"
+      "instruction": "Measure demand and operational work without assuming wasted capacity"
     },
     {
       "slideId": "cloud",
@@ -58,7 +59,7 @@
       "id": "illustrative-utilisation",
       "title": "Illustrative utilisation example (not a measurement)",
       "kind": "synthetic",
-      "note": "The 18% average-use figure is an illustrative example for the story, not measured data."
+      "note": "Demand shapes, capacity units and unpriced comparison ranges are illustrative, not measurements or financial claims."
     }
   ],
   "facts": []

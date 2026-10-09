@@ -94,13 +94,13 @@ readiness review, including outstanding motions, dependencies and runtime assemb
 
 ## Focused showcase: one slide and two videos
 
-The active presentation example is the private, reviewed on-premises-to-cloud
+The active presentation example is the private on-premises-to-cloud engineering-preview
 HTML deck. It is not the older `cloud-journey` procedural recipe. The current
-version is a 57-second, five-slide story rendered by the dynamic-presentations
-MCP, with one stickman IT admin acting out each architecture slide inside the
+version is a **55.8-second**, five-scene workload story using the dynamic-presentations
+renderer and actual adapter-1.0 runtime, with one stickman IT admin inside the
 scene slot the deck reserves (see [Deck stickman provider](#deck-stickman-provider)).
-The previous single-slide version was rated **7/10**; ratings are recorded here
-only as development feedback, not a claim of perfection.
+The previous version was rated **7/10**. The workload-led redesign is awaiting
+user review; implementation and mechanical verification do not confer a new rating.
 
 Two original, silent animated stories accompany it, each **56 seconds**:
 **Open source: a small fix, shared** follows a developer from a missing feature
@@ -166,71 +166,98 @@ The motion engine, catalogue and library story recipes remain unchanged.
 
 ## Deck stickman provider
 
-`scripts\site\deck-provider.mjs` post-processes a dynamic-presentations MCP
-deck; the presentation MCP remains read-only. The cloud story lasts **58 seconds
-(1740 frames at 30 fps)**. Its co-presenter is approximately **122 px tall**
-standing at a 1440×900 viewport, with every slide reserving an architecture scene.
+`scripts\site\deck-provider.mjs` post-processes a dynamic-presentations
+deck; the installed renderer remains read-only. The cloud story lasts **55.8 seconds
+(1674 frames at 30 fps)**. Its co-presenter measures **137–139 px tall**
+standing at a 1440×900 viewport.
 In Present view, scene backgrounds and borders are transparent so the character
 and diagrams sit directly on the slide, rather than inside a second white panel.
-Reading view keeps the presentation MCP's original scene styling.
-The on-premises and cloud scenes place the co-presenter in the left third and
-use wider diagrams across the centre, with cost tags below the animation.
-Scene-specific translations move the character and its contact props together;
-the choreography and character scale are unchanged.
-The deck supplies its own door-aperture clipping and disables the motion's
-duplicate figure wrapper when extracting prop layers, keeping the closing door
-on the ground beside the exiting character.
+One W1 glyph traverses two possible homes, a demand baseline, a batch-driven
+capacity pool, four evidence stations and a conditional decision gate.
+`deck-diagrams.js` owns the connected illustrative objects; explanations sit
+next to the change they describe, not in a duplicate right-column list.
+The camera and baseline stay fixed. Projection reduces actor/props around the
+actor's planted world position, preserving the evidence-station grid.
+Reading/reduced-motion mobile view retains content-equivalent static descriptions
+and the renderer's reading layer; it does not compress the desktop animation into
+unreadable tiny text.
 
-1. Inputs and the honest autonomous approval live in `examples\cloud-deck\`.
-   The MCP permits scenes only on architecture layouts, but requires three
-   different layouts in its pilot. The seven-slide source therefore includes
-   five story scenes plus two declared, pilot-only framing/recommendation pages.
+1. Inputs live in `examples\cloud-deck\`. The seven-slide source includes
+   five composed story scenes plus two pilot-only framing/recommendation pages,
+   preserving three representative compositions/layouts for renderer review.
    The generator removes those two pages from HTML, index and runtime metadata;
    it rejects undeclared extras rather than silently dropping content.
-2. Copy the inputs to a work folder outside both repositories. Run the MCP CLI
-   `validate`, `pilot`, `approve`, then `deck`, using `DP_INPUT_ROOTS` and
-   `DP_OUTPUT_ROOT` for that folder. Approval must describe the actual review;
-   the checked-in approval records an autonomous review, not user acceptance.
-3. Inject and verify:
+2. **No pilot-specific user approval was obtained or fabricated.**
+   `approval.json` is a historical, stale autonomous-review record and must NOT
+   be reused as user approval of this redesign. `render-cloud-deck.mjs` calls
+   the installed `prepareDeck` and real `renderPilot`, then the exported pure
+   `renderHtml` API for an explicitly unapproved engineering preview. It never
+   invokes `recordApproval` or gated `renderDeck`. `render-status.json` records
+   this limitation. The normal full-deck approval workflow still requires the
+   user's explicit approval of the exact current pilot.
+3. Reproduce with an installed renderer and a session-only work folder:
 
    ```powershell
-   node scripts\site\deck-provider.mjs --deck <work>\workload-migration\deck.html --out <story.html>
-   node scripts\site\verify-deck.mjs <story.html> final-v5 --output <work> --full
+   npm run build
+   node scripts\site\render-cloud-deck.mjs --renderer C:\dynamic-presentations-mcp --work <work> --out <story.html>
+   node scripts\site\verify-deck.mjs <story.html> final-v9 --output <work> --full
+   node scripts\site\update-showcase-deck.mjs <story.html>
+   npm run site:build
    ```
+
+   The deck-only update stages HTML/manifest writes with unique temporary names,
+   derives duration using the actual `inspectSlide` parser and checks both MP4
+   hashes before/after. Do not re-encode the films for a deck-only change.
 
 One `composeFilm` performance uses approved-library gating and automatic bridges.
 A deck-local airborne replant avoids dragging feet during generated joins; the
 rendered-world gate requires joint steps ≤14 and zero planted-foot slides. The
-camera/projection never changes between slides. Approved choreography:
+current gate reports **13.69**, zero foot slides and **14** bridge/replant records.
+Authored motions/specs remain untouched. Still-pose holds budget silent reading
+time instead of adding decorative cycles. Choreography and visible consequence:
 
-| Slide | Performance |
+| Scene / time | Action → visible result |
 | --- | --- |
-| Question | enter-door → think |
-| Fixed capacity | rack-server → shrug → idea |
-| Cloud option | generated walk → present → sit-down → video-call → type-at-desk → stand-up |
-| Evidence | generated walks along all four steps → present → thumbs-up |
-| Decision | basketball-shot → exit-door |
+| Question / 0–6s | present → W1 enters a two-destination comparison, no default winner |
+| Today / 6–18s | rack-server → shrug → present; demand appears against fixed capacity, then operational work |
+| Option / 18–31s | present at each change; an incoming batch causes 2 → 5 → 2 capacity units, then migration/usage/egress caveats |
+| Evidence / 31–46.8s | present → three generated walks/present gestures; each station leaves a baseline, dependency check, unpriced comparison or pilot criteria |
+| Decision / 46.8–55.8s | present → requirements/cost/pilot gate and conditional move/retain routes; persistent “Pilot one workload” |
 
-The generator preserves referenced door clips and two-decimal SVG precision,
-and writes `#data` timing for `inspectSlide` plus deduplicated
+There is no basketball, door, celebration, claimed success or automatic savings.
+CPU is explicitly not proof of waste. The final actor/diagram remain identical
+through the last **90 frames (3 seconds)** and persist after playback ends.
+The generator retains SVG precision and writes `#data` timing for `inspectSlide` plus deduplicated
 `#stickman-frames`. The adapter-1.0 provider supports absolute seek, static
 state, cleanup and offline use; props and illustrative charts stay in the slot.
 
 Autoplay starts with the MCP Replay control for entrances, then advances through
 its Next control for animated build reveals (including Validate). Since the MCP
 suppresses its fallback flow when a provider mounts, the provider mounts a
-sanitised copy of the MCP-authored native flow. The existing CSS packet/trace
+sanitised copy of the renderer-authored native flow aligned to the same four
+station centres. The existing CSS packet/trace
 animations are clocked from the shared playhead, remain deterministic on seek,
 and are removed on cleanup. Play/Pause/Replay and the frame slider honour
 `?paused=1`, reduced motion, manual navigation and the showcase's
 `stickman:play` / `stickman:pause` messages.
 
 The browser verifier captures every beat and checks provider negotiation,
-120–150 px standing height, bounds, slide/scene and SVG text overlaps,
+120–150 px standing height, bounds, slide/scene, actor/object and SVG text overlaps,
 deterministic actor/native-flow seek, native entrance/build/packet animation,
-console errors, full autoplay and 390 px mobile overflow.
+required workload/evidence/decision shapes, batch-triggered 2→5→2 scaling,
+the final 90-frame hold, console errors, full autoplay and 390 px mobile overflow.
+For actual gallery iframe screenshots at 1440 and 390 px, add
+`--site http://127.0.0.1:<your-preview-port>/` to verification.
+The weakest first-pass scene was the evidence grid: captions touched the actor
+and W1 touched the station panel. The revised projection, aligned native nodes,
+lower station panels and explicit unpriced-estimate caveat address those issues.
+Renderer validation has one advisory `TOPIC_HEADLINE` warning for the requested
+four-verb headline; costs/constraints address the `NO_RISKS` informational note.
+Provider-unavailable info in the raw renderer is resolved by the injected provider;
+the final browser reports no motion diagnostics.
 `tests\deck-provider.test.ts` covers injection, theming, projection/clip
-precision, pilot selection, client syntax and the continuous five-scene timeline.
+precision, pilot selection, client syntax, all five scenes' W1 continuity,
+causal capacity states, tangible evidence, conditional routes and the timeline.
 
 ## Checks and client integration
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { Script } from "node:vm";
+import { Script, createContext } from "node:vm";
 import {
   MAX_FRAMES,
   cloudDeckPlan,
@@ -26,7 +26,7 @@ describe("stickman deck provider", () => {
     expect(html).toContain('id="play"');
     expect(html).toContain('max="89"');
     expect(html).toContain('data-controls="shown"');
-    expect(html).toContain('body[data-view=present] figure.scene{background:transparent;border-color:transparent;border-radius:0;box-shadow:none}');
+    expect(html).toContain('body[data-view=present] figure.scene{background:transparent;border-color:transparent;border-radius:0;box-shadow:none;');
     expect(html).not.toMatch(/"<\/script>"/);
     expect(html.indexOf("window.ok=1;")).toBeLessThan(html.lastIndexOf("</body>"));
     expect(() => injectDeck(html, { timing, film: {}, client: "" })).toThrow(/already/);
@@ -61,7 +61,8 @@ describe("stickman deck provider", () => {
 
   it("keeps the injected browser client syntactically valid", async () => {
     const client = await fs.readFile(path.resolve("scripts", "site", "deck-provider-client.js"), "utf8");
-    expect(() => new Script(client)).not.toThrow();
+    const diagrams = await fs.readFile(path.resolve("scripts/site/deck-diagrams.js"), "utf8");
+    expect(() => new Script(client.replace("/* DECK_DIAGRAMS */", diagrams))).not.toThrow();
   });
 
   it("composes one continuous performance that fits the 60 second showcase", async () => {
@@ -70,19 +71,43 @@ describe("stickman deck provider", () => {
     expect(composed.continuity.maxJointStep).toBeLessThanOrEqual(14);
     const timing = deckTimeline(cloudDeckPlan, storyboard, composed);
     expect(timing.totalFrames).toBeLessThanOrEqual(MAX_FRAMES);
-    expect(timing.totalFrames).toBe(1740);
+    expect(timing.totalFrames).toBe(1674);
     expect(composed.continuity.footSlides).toEqual([]);
-    expect(composed.bridgeRecords).toHaveLength(18);
+    expect(composed.bridgeRecords).toHaveLength(14);
     expect(cloudDeckPlan.slides.every(slide => slide.scene)).toBe(true);
     expect(timing.timeline.map(entry => entry.slide)).toEqual(["question", "on-prem", "on-prem", "on-prem", "cloud", "cloud", "cloud", "evidence", "evidence", "evidence", "evidence", "decision"]);
-    expect(Object.keys(timing.cueSlides)).toEqual(["enter-and-think", "rack-for-peak", "elastic-cloud", "walk-the-steps", "celebrate-and-exit"]);
+    expect(Object.keys(timing.cueSlides)).toEqual(["bring-workload", "inspect-demand", "batch-capacity", "workload-evidence", "conditional-decision"]);
+    expect(timing.timeline.map(e => e.frames)).toEqual(cloudDeckPlan.beatFrames);
+    expect(cloudDeckPlan.performance.some(item => ["basketball-shot", "exit-door"].includes(item.motion))).toBe(false);
     expect(timing.timeline.every((entry, i) => entry.start === (i ? timing.timeline[i - 1].start + timing.timeline[i - 1].frames : 0))).toBe(true);
     expect(Object.keys(timing.scenes)).toHaveLength(5);
     const rendered = await renderDeckFrames(cloudDeckPlan, composed, resources, timing.scenes);
     expect(rendered.frames).toHaveLength(timing.totalFrames);
     expect(rendered.roots).toHaveLength(timing.totalFrames);
-    expect(rendered.dict.some(svg => svg.includes('scale(0.55)'))).toBe(true);
-    expect(rendered.dict.some(svg => svg.includes('id="deck-door-aperture"'))).toBe(true);
+    expect(rendered.dict.some(svg => svg.includes('scale(0.44)'))).toBe(true);
+    expect(rendered.dict.some(svg => svg.includes('id="deck-door-aperture"'))).toBe(false);
     expect(rendered.dict.some(svg => svg.includes("door-figure-clip"))).toBe(false);
   }, 120_000);
+
+  it("follows W1 through causal scaling, tangible evidence and conditional final routes", async () => {
+    const context = createContext({
+      r: (v: number) => Math.round(v * 10) / 10,
+      clamp: (v: number) => Math.max(0, Math.min(1, v)),
+      ease: (v: number) => { const t = Math.max(0, Math.min(1, v)); return t*t*(3-2*t); },
+      text: (_x: number, _y: number, label: string) => `<text>${label}</text>`
+    });
+    new Script(await fs.readFile(path.resolve("scripts/site/deck-diagrams.js"), "utf8")).runInContext(context);
+    const c = { t:"var(--cp-text)", s:"var(--cp-surface)", a:"var(--cp-accent)", b:"var(--cp-border-strong)", l:"var(--cp-border)", m:"var(--cp-text-muted)" };
+    for (const [id, fn] of Object.entries(context.sceneProps)) {
+      const diagram = (fn as Function)(id === "evidence" ? 3 : 2, 149, c, 847);
+      expect(diagram.markup).toContain('data-object="workload"');
+      expect(diagram.markup).not.toMatch(/18%|successful|basketball|door/);
+    }
+    expect([0,75,149].map(f => context.cloudScene(1,f,c).markup.match(/data-units="(\d+)"/)[1])).toEqual(["2","5","2"]);
+    const evidence = context.evidenceScene(3,137,c,847).markup;
+    for (const id of ["baseline","dependency-map","cost-comparison","pilot-gate"]) expect(evidence).toContain(`data-object="${id}"`);
+    const final = context.decisionScene(0,180,c).markup;
+    expect(final).toEqual(context.decisionScene(0,269,c).markup);
+    for(const label of ["Move if","Retain if","Requirements","Total cost","Pilot evidence","Pilot one workload"]) expect(final).toContain(label);
+  });
 });
