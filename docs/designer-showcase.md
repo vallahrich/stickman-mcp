@@ -170,6 +170,9 @@ The motion engine, catalogue and library story recipes remain unchanged.
 deck; the presentation MCP remains read-only. The cloud story lasts **58 seconds
 (1740 frames at 30 fps)**. Its co-presenter is approximately **122 px tall**
 standing at a 1440×900 viewport, with every slide reserving an architecture scene.
+In Present view, scene backgrounds and borders are transparent so the character
+and diagrams sit directly on the slide, rather than inside a second white panel.
+Reading view keeps the presentation MCP's original scene styling.
 
 1. Inputs and the honest autonomous approval live in `examples\cloud-deck\`.
    The MCP permits scenes only on architecture layouts, but requires three

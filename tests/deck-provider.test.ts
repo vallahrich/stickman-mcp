@@ -26,6 +26,7 @@ describe("stickman deck provider", () => {
     expect(html).toContain('id="play"');
     expect(html).toContain('max="89"');
     expect(html).toContain('data-controls="shown"');
+    expect(html).toContain('body[data-view=present] figure.scene{background:transparent;border-color:transparent;border-radius:0;box-shadow:none}');
     expect(html).not.toMatch(/"<\/script>"/);
     expect(html.indexOf("window.ok=1;")).toBeLessThan(html.lastIndexOf("</body>"));
     expect(() => injectDeck(html, { timing, film: {}, client: "" })).toThrow(/already/);

@@ -24,6 +24,13 @@ try {
   page.on("console", m => { if (m.type() === "error") errors.push(m.text()); });
   await page.goto(`${url}?paused=1`);
   await page.waitForFunction(() => window.StickmanDeckAutoplay && window.DynamicDeck);
+  report.sceneSurfaces = await page.locator("figure.scene").evaluateAll(scenes => scenes.map(scene => {
+    const style = getComputedStyle(scene);
+    return { background: style.backgroundColor, border: style.borderTopColor, radius: style.borderTopLeftRadius, shadow: style.boxShadow };
+  }));
+  check(report.sceneSurfaces.length > 0 && report.sceneSurfaces.every(style =>
+    style.background === "rgba(0, 0, 0, 0)" && style.border === "rgba(0, 0, 0, 0)" &&
+    style.radius === "0px" && style.shadow === "none"), "scene panels are not integrated into the slide surface");
   const timing = await page.evaluate(() => JSON.parse(document.getElementById("data").textContent));
   report.totalFrames = timing.totalFrames;
   report.seconds = timing.totalFrames / 30;
