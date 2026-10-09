@@ -18,6 +18,11 @@ git clone git@github-vallahrich:vallahrich/stickman-mcp.git
 ```
 
 Do not force push to shared branches.
+
+For the private-development/public-release plan and local, fail-closed release
+commands, see [releasing](docs/releasing.md). Nothing is publicly published by
+these commands; motion-data provenance and the public scope remain blockers.
+
 ## Requirements and setup
 
 - Node.js 20 or newer
