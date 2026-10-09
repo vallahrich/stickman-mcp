@@ -61,10 +61,7 @@ export function consoleSpec(neutral) {
       { frame: 0, pose: stance, ease: "inOut" },
       { frame: 6, pose: { ...stance, neck: -8 }, ease: "inOut" },
       { frame: 18, pose: pose(36, 87), ease: "inOut" },
-      { frame: 22, pose: pose(36, 83.333), ease: "inOut" },
-      { frame: 24, pose: pose(36, 87), ease: "inOut" },
       { frame: 26, pose: pose(36, 83.333), ease: "inOut" },
-      { frame: 30, pose: pose(36, 87), ease: "inOut" },
       { frame: 38, pose: stance, ease: "inOut" }
     ] };
   return { spec, clip: buildKeyPoseClip(spec, neutral), sourceId: spec.id };

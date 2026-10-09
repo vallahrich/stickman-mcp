@@ -155,6 +155,13 @@ describe("stickman deck provider", () => {
     for(const label of ["Move if","Retain if","Requirements","Total cost","Pilot evidence","Pilot one workload"]) expect(final).toContain(label);
     expect(context.bookendScene(0,179,c,220,eventsAt("question",179)).markup).toContain("W1 = one workload");
     expect(context.cloudScene(0,0,c,220,{}).markup).toContain("Instances serving W1");
+    const openingA = context.bookendScene(0,0,c,220,{}).markup;
+    const openingB = context.bookendScene(0,179,c,220,eventsAt("question",179)).markup;
+    expect(openingA).toEqual(openingB);
+    const glyph = (markup: string) => markup.match(/data-object="workload" transform="([^"]+)"/)![1];
+    expect(glyph(context.evidenceScene(0,0,c,220,{}).markup))
+      .toEqual(glyph(context.evidenceScene(3,145,c,847,eventsAt("evidence",lastFrame)).markup));
+    expect(evidence).not.toContain('<circle data-control');
   },120_000);
 
   it("rejects missing story beats and impossible reading budgets", async () => {

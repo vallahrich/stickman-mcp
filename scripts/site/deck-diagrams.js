@@ -22,7 +22,7 @@ function result(markup, props) {
   return { markup: wire("M60 400H940", {b:"var(--cp-border)"}) + markup, props: ["workload"].concat(props || []) };
 }
 function bookendScene(beat, local, c, rootX, events) {
-  var t = ease(events && events.introduce ? events.introduce.elapsed / 40 : 0), x = 290 + 210 * t, y = 220 - 40 * t;
+  var x = 500, y = 180;
   var out = wire("M466 180H210V137M534 180H790V137", c, true) +
     rackIcon(160, 30, c) + cloudIcon(790, 95, c) +
     text(210, 174, "On-premises", 26, c.t, 700, "middle") +
@@ -62,14 +62,14 @@ function loadMeter(beat, local, c, rootX, events) {
 function consoleControl(x, y, c) {
   return '<g data-object="action-console" data-interaction="hand-control"><path d="M'+(x-5)+' '+(y+6)+'h32v48m-32-48v48" fill="none" stroke="'+c.b+'" stroke-width="3"/>' +
     '<rect x="'+(x-5)+'" y="'+(y-13)+'" width="32" height="19" rx="3" fill="'+c.s+'" stroke="'+c.b+'" stroke-width="2"/>' +
-    '<circle data-control="" cx="'+x+'" cy="'+y+'" r="3" fill="'+c.a+'"/></g>';
+    '<path data-control="" data-x="'+x+'" data-y="'+y+'" d="M'+(x-2)+' '+y+'h8" stroke="'+c.b+'" stroke-width="2"/></g>';
 }
 function cloudScene(beat, local, c, rootX, events) {
   var submitted = events && events.submission, arrival = events && events.arrival;
   var drained = events && events.drained, processing = events && events.processing;
   var queue = !arrival ? 0 : drained ? 0 : processing ? Math.max(1,6-Math.floor(processing.elapsed/9)) : 6;
   var units = !arrival || arrival.elapsed < 12 || drained ? 2 : 2 + Math.ceil(queue / 2);
-  var out = workload(305, 110, c) + wire("M249 334H350V110M339 110H505V155", c) +
+  var out = workload(305, 110, c) + wire("M249 334H305V137M339 110H505V155", c) +
     consoleControl(249,334,c) +
     text(305, 55, "Submit W1 jobs", 22, c.t, 700, "middle") +
     '<g data-object="batch" data-queue="' + queue + '">';
@@ -90,30 +90,29 @@ function cloudScene(beat, local, c, rootX, events) {
 var stages = [["Baseline",220], ["Requirements",429], ["Total cost",638], ["Pilot",847]];
 function station(i, x, c) {
   var out = '<g transform="translate(0 12)" data-object="' + ["baseline","dependency-map","cost-comparison","pilot-gate"][i] + '">' +
-    '<rect x="' + (x-87) + '" y="110" width="174" height="122" rx="10" fill="' + c.s + '" stroke="' + c.l + '" stroke-width="2"/>';
-  if (i === 0) out += '<path d="M' + (x-64) + ' 194l24-8 20 3 22-47 20 36 24-15" fill="none" stroke="' + c.a + '" stroke-width="3"/>' + text(x,222,"Demand recorded",16,c.t,600,"middle");
+    '<rect x="' + (x-95) + '" y="110" width="190" height="140" rx="10" fill="none" stroke="' + c.l + '" stroke-width="2"/>';
+  if (i === 0) out += '<path d="M' + (x-64) + ' 194l24-8 20 3 22-47 20 36 24-15" fill="none" stroke="' + c.a + '" stroke-width="3"/>' + text(x,222,"Demand recorded",18,c.t,600,"middle");
   if (i === 1) out += wire("M"+(x-50)+" 170H"+(x+50)+"M"+x+" 170V135",c) +
     '<circle cx="'+(x-50)+'" cy="170" r="12" fill="'+c.s+'" stroke="'+c.a+'" stroke-width="3"/><circle cx="'+(x+50)+'" cy="170" r="12" fill="'+c.s+'" stroke="'+c.a+'" stroke-width="3"/>' +
-    text(x,146,"?",22,c.a,700,"middle") + text(x,198,"Latency · Recovery?",16,c.m,600,"middle") + text(x,218,"Checks still needed",15,c.t,600,"middle");
-  if (i === 2) out += text(x-42,132,"Local",16,c.t,600,"middle") + text(x+42,132,"Cloud",16,c.t,600,"middle") +
-    text(x-42,158,"Hardware",13,c.m,500,"middle") + text(x+42,158,"Migration",13,c.m,500,"middle") +
-    text(x-42,176,"Licences",13,c.m,500,"middle") + text(x+42,176,"Usage",13,c.m,500,"middle") +
-    text(x-42,194,"Operations",13,c.m,500,"middle") + text(x+42,194,"Operations",13,c.m,500,"middle") +
-    text(x+42,212,"Egress",13,c.m,500,"middle") + text(x,230,"Inputs · same period",11,c.m,500,"middle");
+    text(x,146,"?",22,c.a,700,"middle") + text(x,198,"Latency · Recovery?",18,c.m,600,"middle") + text(x,222,"Checks still needed",17,c.t,600,"middle");
+  if (i === 2) out += text(x-48,136,"Local",18,c.t,600,"middle") + text(x+48,136,"Cloud",18,c.t,600,"middle") +
+    text(x-48,162,"Hardware",17,c.m,500,"middle") + text(x+48,162,"Migration",17,c.m,500,"middle") +
+    text(x-48,188,"Licences",17,c.m,500,"middle") + text(x+48,188,"Usage",17,c.m,500,"middle") +
+    text(x-48,214,"Operations",17,c.m,500,"middle") + text(x+48,214,"Operations",17,c.m,500,"middle") +
+    text(x+48,240,"Egress",17,c.m,500,"middle");
   if (i === 3) out += text(x,146,"Test → Compare",19,c.t,600,"middle") +
-    text(x,180,"Latency · Recovery",17,c.m,500,"middle") + text(x,211,"Plan rollback",18,c.a,600,"middle") + text(x,232,"No result yet",15,c.m,500,"middle");
+    text(x,178,"Latency · Recovery",18,c.m,500,"middle") + text(x,205,"Plan rollback",18,c.a,600,"middle") + text(x,230,"No result yet",17,c.m,500,"middle");
   return out + '</g>';
 }
 function evidenceScene(beat, local, c, rootX, events) {
-  var out = wire("M220 92H847", c), position = Math.max(220,Math.min(847,rootX));
-  out += workload(position, 92, c);
+  var out = workload(70, 85, c);
   for(var i=0;i<4;i++) {
     var reached = events && events["artifact"+i];
     out += reached ? station(i,stages[i][1],c) :
-      '<rect x="'+(stages[i][1]-87)+'" y="122" width="174" height="122" rx="10" fill="none" stroke="'+c.l+'" stroke-width="2" stroke-dasharray="6 6"/>';
+      '<rect x="'+(stages[i][1]-95)+'" y="122" width="190" height="140" rx="10" fill="none" stroke="'+c.l+'" stroke-width="2" stroke-dasharray="6 6"/>';
     out += consoleControl(stages[i][1]+29,334,c);
   }
-  out += text(500,267, ["Record W1 demand over a representative period","Document dependencies, latency and recovery requirements","Comparison INPUTS · same time period · no prices or result","Design a reversible pilot · define criteria before testing"][beat],19,c.m,500,"middle");
+  out += text(550,92, ["Record demand over a representative period","Check dependencies, latency and recovery","Comparison inputs · same time period · no result yet","Define pilot criteria and rollback before testing"][beat],22,c.m,500,"middle");
   return result(out, ["baseline", "dependency-map", "cost-comparison", "pilot-gate"].filter(function(_, i) {return events && events["artifact"+i];}));
 }
 function decisionScene(beat, local, c, rootX, events) {

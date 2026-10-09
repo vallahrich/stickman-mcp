@@ -7,6 +7,22 @@ CSS approximation of the character. Presentation demos put the actor inside
 the slide content, travelling along timelines and revealing cards—not in a
 sidebar or co-presenter panel.
 
+### Current cloud review status
+
+The user rejected the release candidate's native cloud replacement at **3/10**.
+It is not the accepted presentation or a publication-ready demo. The richer
+Dynamic Presentation + Stickman v10 remains the baseline, also requiring repair.
+The next engineering preview keeps its motion library and five-scene argument,
+parks W1 during reading, removes the travelling evidence dot, increases evidence
+type sizes and replaces repeated fast console taps with one eased action.
+
+`scripts\site\render-cloud-deck.mjs` now calls the installed Dynamic Presentation
+MCP over stdio: `get_authoring_guide`, `validate_deck`, `motion_status`, and
+`render_pilot`. MCP responses are saved with the private preview. The full
+engineering preview still uses the pure renderer API; it is **not** an approved
+`render_deck` result. No pilot approval is fabricated, no external renderer
+source is modified, and these private integration outputs are not release assets.
+
 ## Gallery
 
 ```powershell

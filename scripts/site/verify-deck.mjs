@@ -129,6 +129,33 @@ try {
       report.beats.push({ ...p, shot: path.basename(shot), diag: p.diag.length });
     }
   }
+  if (full) {
+    report.frameLayout = await page.evaluate(async total => {
+      const violations = [];
+      const touches = (a,b) => a.left < b.right-1 && a.right > b.left+1 && a.top < b.bottom-1 && a.bottom > b.top+1;
+      for(let frame=0;frame<total;frame++) {
+        window.StickmanDeckAutoplay.seek(frame);
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        const id = window.DynamicDeck.state().slideId;
+        const scene = document.getElementById(id).querySelector("figure.scene");
+        const stage = scene.querySelector(".stickman-stage");
+        if (Number(stage.getAttribute("data-frame")) !== frame) {
+          violations.push({frame, issue:"stale rendered frame"}); continue;
+        }
+        const texts = [...scene.querySelectorAll(".stickman-stage text,.stickman-native-flow text")]
+          .map(el=>({label:el.textContent,rect:el.getBoundingClientRect()})).filter(x=>x.rect.width&&x.rect.height);
+        for(let i=0;i<texts.length;i++) for(let j=i+1;j<texts.length;j++) {
+          if(touches(texts[i].rect,texts[j].rect)) violations.push({frame,issue:texts[i].label+" / "+texts[j].label});
+        }
+        const workload=stage.querySelector('[data-object="workload"]').getBoundingClientRect();
+        for(const label of texts.filter(x=>x.label!=="W1")) if(touches(workload,label.rect)) {
+          violations.push({frame,issue:"W1 / "+label.label});
+        }
+      }
+      return {checkedFrames:total, violationCount:violations.length, examples:violations.slice(0,20)};
+    }, timing.totalFrames);
+    check(report.frameLayout.violationCount===0, "full timeline layout: "+JSON.stringify(report.frameLayout));
+  }
   report.actorHeight = { min: Math.min(...report.beats.filter(b => b.actor).map(b => b.actor.h)), max: Math.max(...report.beats.filter(b => b.actor).map(b => b.actor.h)) };
   const standing = report.beats.filter(b => b.actor && b.slide === "on-prem").map(b => b.actor.h);
   report.standingHeight = { min: Math.min(...standing), max: Math.max(...standing) };
@@ -213,8 +240,8 @@ try {
       const paths=stage.querySelectorAll("[data-stickman-actor] [data-stickman=exact-pivot] path");
       const hand=paths[paths.length-1];
       const h=hand.getPointAtLength(hand.getTotalLength()).matrixTransform(hand.getScreenCTM());
-      const control=stage.querySelector('[data-control][cx="'+contact.control.x+'"]');
-      const p=new DOMPoint(Number(control.getAttribute("cx")),Number(control.getAttribute("cy"))).matrixTransform(control.getScreenCTM());
+      const control=stage.querySelector('[data-control][data-x="'+contact.control.x+'"]');
+      const p=new DOMPoint(Number(control.getAttribute("data-x")),Number(control.getAttribute("data-y"))).matrixTransform(control.getScreenCTM());
       return {frame:Number(stage.getAttribute("data-frame")),hand:{x:h.x,y:h.y},control:{x:p.x,y:p.y},renderingPx:Math.hypot(h.x-p.x,h.y-p.y)};
     },contact);
     check(measured.frame===contact.frame && measured.renderingPx<=4,contact.beat+": actual rendered hand misses control");
@@ -268,16 +295,15 @@ try {
   await page.evaluate(f => { window.StickmanDeckAutoplay.seek(f - 2); window.StickmanDeckAutoplay.play(); }, flowFrame);
   await page.waitForTimeout(650);
   const flowSample = () => page.evaluate(() => {
-    const slot = document.querySelector("#evidence figure.scene"), packet = slot.querySelector(".stickman-native-flow .flow-packet");
-    return { active: slot.getAttribute("data-flow-active"), transform: getComputedStyle(packet).transform,
-      animations: packet.getAnimations().map(a => ({ name: a.animationName, time: a.currentTime })),
+    const slot = document.querySelector("#evidence figure.scene");
+    return { active: slot.getAttribute("data-flow-active"), packets: slot.querySelectorAll(".stickman-native-flow .flow-packet").length,
       completed: [...slot.querySelectorAll(".stickman-native-flow .flow-stage")].filter(n => n.getAttribute("data-step-complete") === "true").length };
   });
   const flowA = await flowSample();
   await page.waitForTimeout(1400);
   const flowB = await flowSample();
-  check(flowA.active === "true" && flowB.active === "true" && flowA.transform !== flowB.transform, "native flow packet not travelling during autoplay");
-  check(flowB.animations.some(a => a.name === "flow-travel-4" && a.time > 0), "native flow animation missing");
+  check(flowA.active === "true" && flowB.active === "true" && flowA.packets === 0 && flowB.packets === 0,
+    "evidence stages must not introduce a decorative travelling dot");
   await page.evaluate(() => window.StickmanDeckAutoplay.pause());
   await page.evaluate(f => window.StickmanDeckAutoplay.seek(f), film.events.evidence.artifact1+1);
   await settle();
@@ -291,8 +317,8 @@ try {
   await page.evaluate(() => window.StickmanDeckAutoplay.seek(0));
   await page.evaluate(f => window.StickmanDeckAutoplay.seek(f), flowFrame + 250);
   await settle(); const flowSeekB = await flowSample();
-  check(flowSeekA.transform === flowSeekB.transform, "native flow absolute seek is not deterministic");
-  report.nativeAnimations = { entrance: entrance.length, reveals: reveal.length, flowA, flowB, validateStep, flowCount, flowSeekA, flowSeekB, deterministic: flowSeekA.transform === flowSeekB.transform };
+  check(flowSeekA.completed === flowSeekB.completed, "native flow absolute seek is not deterministic");
+  report.nativeAnimations = { entrance: entrance.length, reveals: reveal.length, flowA, flowB, validateStep, flowCount, flowSeekA, flowSeekB, deterministic: flowSeekA.completed === flowSeekB.completed };
 
   // Scrub to the end with the keyboard as the gallery test does.
   await page.locator("#seek").focus();

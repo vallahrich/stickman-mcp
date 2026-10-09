@@ -41,7 +41,7 @@
   var r = function (v) { return Math.round(v * 10) / 10; };
   function text(x, y, label, size, fill, weight, anchor) {
     return '<text x="' + r(x) + '" y="' + r(y) + '" font-size="' + size + '" font-weight="' + (weight || 600) + '" fill="' + fill +
-      '" text-anchor="' + (anchor || "start") + '" font-family="Segoe UI, Aptos, sans-serif">' + label + "</text>";
+      '" style="font-size:' + size + 'px" text-anchor="' + (anchor || "start") + '" font-family="Segoe UI, Aptos, sans-serif">' + label + "</text>";
   }
   /* DECK_DIAGRAMS */
 
@@ -86,8 +86,9 @@
         });
       });
       var rail = flow.querySelector(".flow-rail"), packet = flow.querySelector(".flow-packet");
-      rail.setAttribute("x1", stages[0][1]); rail.setAttribute("x2", stages[3][1]); rail.setAttribute("y1", 62); rail.setAttribute("y2", 62);
-      packet.setAttribute("cx", stages[0][1]); packet.setAttribute("cy", 62); packet.setAttribute("r", 4);
+      // Evidence advances through completed stages, not an unrelated travelling dot.
+      rail.remove();
+      packet.remove();
       flow.style.setProperty("--stickman-flow-duration", (ranges[ranges.length - 1][1] - ranges[0][0]) / fps * 1000 + "ms");
       flow.querySelectorAll("[id]").forEach(function (el) { el.removeAttribute("id"); });
       flow.querySelectorAll("[role=button]").forEach(function (el) { el.removeAttribute("role"); el.removeAttribute("tabindex"); });
