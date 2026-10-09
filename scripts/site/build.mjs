@@ -23,7 +23,9 @@ const showcase = await showcaseSection(output);
 const css = await fs.readFile(path.join(repo, "site", "styles.css"), "utf8");
 const js = await fs.readFile(path.join(repo, "site", "catalogue.js"), "utf8");
 const encode = data => JSON.stringify(data).replaceAll("<", "\\u003c");
-let html = await fs.readFile(path.join(repo, "site", "index.html"), "utf8");
+// Checkout line endings differ across platforms. Normalize before matching
+// multiline installation snippets so candidate commands never retain npm ci.
+let html = (await fs.readFile(path.join(repo, "site", "index.html"), "utf8")).replace(/\r\n/g, "\n");
 if (candidate) {
   const version = JSON.parse(await fs.readFile(path.join(repo, "package.json"), "utf8")).version;
   html = html.replace('<meta name="robots" content="noindex,nofollow">', '<meta name="robots" content="index,follow">')
