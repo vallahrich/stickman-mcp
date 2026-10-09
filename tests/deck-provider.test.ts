@@ -83,5 +83,6 @@ describe("stickman deck provider", () => {
     expect(rendered.roots).toHaveLength(timing.totalFrames);
     expect(rendered.dict.some(svg => svg.includes('scale(0.55)'))).toBe(true);
     expect(rendered.dict.some(svg => svg.includes('id="deck-door-aperture"'))).toBe(true);
+    expect(rendered.dict.some(svg => svg.includes("door-figure-clip"))).toBe(false);
   }, 120_000);
 });

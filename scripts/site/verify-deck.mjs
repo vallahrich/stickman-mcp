@@ -126,6 +126,21 @@ try {
   }
   const diag = await page.evaluate(() => window.DynamicDeck.diagnostics());
   report.motionDiagnostics = diag.motion;
+  report.exitDoor = [];
+  for (const frame of [1623, 1710]) {
+    await page.evaluate(f => window.StickmanDeckAutoplay.seek(f), frame);
+    await settle();
+    const door = await page.evaluate(() => {
+      const scene = document.querySelector("#decision figure.scene"), slot = scene.getBoundingClientRect();
+      return [...scene.querySelectorAll('[data-prop="door-frame"],[data-prop="door-leaf"]')].map(el => {
+        const bounds = el.getBoundingClientRect();
+        return { x: (bounds.left - slot.left) / slot.width, bottom: (bounds.bottom - slot.top) / slot.height, height: bounds.height };
+      });
+    });
+    check(door.length > 0 && door.every(bounds => bounds.x > 0.6 && bounds.bottom > 0.75 && bounds.bottom < 0.95 && bounds.height > 100),
+      `exit frame ${frame}: door detached from its ground-level position`);
+    report.exitDoor.push({ frame, bounds: door });
+  }
   check(!diag.motion.length, `motion diagnostics: ${JSON.stringify(diag.motion)}`);
   check(!diag.motion.some(d => /UNSUPPORTED/.test(d.code)), "MOTION_UNSUPPORTED present");
 

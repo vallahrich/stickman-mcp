@@ -177,6 +177,9 @@ The on-premises and cloud scenes place the co-presenter in the left third and
 use wider diagrams across the centre, with cost tags below the animation.
 Scene-specific translations move the character and its contact props together;
 the choreography and character scale are unchanged.
+The deck supplies its own door-aperture clipping and disables the motion's
+duplicate figure wrapper when extracting prop layers, keeping the closing door
+on the ground beside the exiting character.
 
 1. Inputs and the honest autonomous approval live in `examples\cloud-deck\`.
    The MCP permits scenes only on architecture layouts, but requires three

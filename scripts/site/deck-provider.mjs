@@ -155,7 +155,8 @@ export async function renderDeckFrames(plan, composed, resources, ranges) {
   const rendererFor = slide => {
     const set = plan.sets?.[slide] ?? [];
     const key = JSON.stringify(set);
-    if (!renderers.has(key)) renderers.set(key, createPerformanceRenderer(performance, { sampleClipMotion, frameGeometry, propsCatalog, set, theme: tokenTheme, motions }));
+    // The deck clips its actor separately; nested figure wrappers break prop-layer extraction.
+    if (!renderers.has(key)) renderers.set(key, createPerformanceRenderer(performance, { sampleClipMotion, frameGeometry, propsCatalog, set, theme: tokenTheme, motions, clipFigure: false }));
     return renderers.get(key);
   };
   const owner = new Array(performance.frames).fill(null);

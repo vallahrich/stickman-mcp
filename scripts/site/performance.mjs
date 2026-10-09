@@ -266,7 +266,7 @@ function stripSpec(spec, types) {
 }
 
 /** Renders figure and props into back/actor/front SVG layers at fixed film coordinates. */
-export function createPerformanceRenderer(performance, { sampleClipMotion, frameGeometry, propsCatalog, set = [], theme = svg => svg, laurel, adorn, strip = [], motions }) {
+export function createPerformanceRenderer(performance, { sampleClipMotion, frameGeometry, propsCatalog, set = [], theme = svg => svg, laurel, adorn, strip = [], motions, clipFigure = true }) {
   const S = performance.scale;
   const setTypes = [...new Set([...set.flatMap(item => item.types), ...strip])];
   const cache = new Map();
@@ -276,7 +276,11 @@ export function createPerformanceRenderer(performance, { sampleClipMotion, frame
     if (!cache.has(key)) {
       let back = "", front = "";
       if (seg.kind === "motion") {
-        const spec = stripSpec(seg.spec, setTypes.filter(type => !seg.keep.includes(type)));
+        let spec = stripSpec(seg.spec, setTypes.filter(type => !seg.keep.includes(type)));
+        if (!clipFigure && spec.review?.prop) {
+          const { clipFigureFrom, clipFigureUntil, ...prop } = spec.review.prop;
+          spec = { ...spec, review: { ...spec.review, prop } };
+        }
         const svg = await renderStaticSvg({ clip: seg.clip, spec, propsCatalog, frameIndex: frame });
         const body = svg.replace(/^<svg\b[^>]*>/, "").replace(/<\/svg>\s*$/, "").replace(/<rect x="-10000"[^>]*\/>/, "")
           .replace(/<path id="ground"[^>]*\/>/, "").replace(/<text [^>]*y="-42"[\s\S]*?<\/text>/, "");
