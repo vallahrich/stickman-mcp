@@ -1,5 +1,6 @@
 // Private local inspection only. Ephemeral loopback server; no deployment.
 import http from "node:http";
+import { deepStrictEqual } from "node:assert";
 import { mkdir, writeFile } from "node:fs/promises";
 import { extname, join, resolve } from "node:path";
 import { chromium } from "@playwright/test";
@@ -23,7 +24,8 @@ if (catalogue.development || catalogue.motions.some(motion => motion.note || mot
   throw new Error("Unexpected private review data or approval state.");
 }
 const mime = { ".html": "text/html", ".json": "application/json", ".svg": "image/svg+xml",
-  ".png": "image/png", ".mp4": "video/mp4", ".vtt": "text/vtt", ".md": "text/plain", ".txt": "text/plain" };
+  ".js": "text/javascript", ".css": "text/css", ".png": "image/png",
+  ".mp4": "video/mp4", ".vtt": "text/vtt", ".md": "text/plain", ".txt": "text/plain" };
 const server = http.createServer(async (request, response) => {
   try {
     const path = decodeURIComponent(new URL(request.url, "http://localhost").pathname).replace(/^\//, "") || "index.html";
@@ -60,7 +62,13 @@ try {
   await page.locator("#category").selectOption("");
   if (await page.locator(".motion-card").count() !== catalogue.motionCount) throw new Error("Gallery inventory mismatch.");
   await page.locator("#search").fill("cloud");
-  if (await page.locator(".motion-card").count() !== 1) throw new Error("Gallery search failed.");
+  // Search includes descriptions and tags: more than one motion can match.
+  // Compare exact identities, not a stale assumed result count.
+  const cloudIds = catalogue.motions.filter(motion =>
+    `${motion.id} ${motion.label} ${motion.summary} ${motion.family} ${motion.tags.join(" ")}`.toLowerCase().includes("cloud")
+  ).map(motion => motion.id);
+  deepStrictEqual(await page.locator(".motion-card").evaluateAll(cards =>
+    cards.map(card => card.dataset.motion)), cloudIds, "Gallery search identities differ.");
   await page.locator("#search").fill("");
   await page.locator("#runtimeOnly").check();
   if (await page.locator(".motion-card").count() !== catalogue.motions.filter(motion => motion.runtimeIdAvailable).length) throw new Error("Runtime filter failed.");

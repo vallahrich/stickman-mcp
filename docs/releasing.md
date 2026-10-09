@@ -22,9 +22,8 @@ npm run build
 npm run typecheck
 npm test -- --maxWorkers=1 --no-file-parallelism
 npm run release:check
-npm run release:prepare
-# A later candidate must use a NEW immutable version:
-npm run release:prepare -- 0.1.0-rc.2
+# Choose a NEW immutable version; rc.1 through rc.3 already exist locally:
+npm run release:prepare -- 0.1.0-rc.4
 ```
 
 `release:check` prints exact input SHA-256, provenance/license inventory,
@@ -38,10 +37,10 @@ The bounded scan is not a complete secrets or history audit.
 names, never copies an existing `dist`, review deck or screenshot, and writes:
 
 ```text
-.release-local/0.1.0-rc.1/
-  vallahrich-stickman-mcp-0.1.0-rc.1.tgz
-  stickman-source-0.1.0-rc.1.zip
-  stickman-site-0.1.0-rc.1.zip
+.release-local/0.1.0-rc.3/
+  vallahrich-stickman-mcp-0.1.0-rc.3.tgz
+  stickman-source-0.1.0-rc.3.zip
+  stickman-site-0.1.0-rc.3.zip
   provenance.json
   site/                         # extracted site for local inspection
 ```
@@ -140,3 +139,66 @@ approved public release repository/snapshot under vallahrich with sanitized
 release notes and immutable versions, not a wholesale mirror of private history.
 Do not create it, publish npm, upload assets, change visibility or deploy until
 explicitly authorized. Continued development remains private.
+
+## Verified review candidate: 0.1.0-rc.3
+
+The deliverable is **rc.3**, built from committed source
+`ca0f9f7753ed11360f840f50a6e9b9655721f3b2`.
+Earlier local candidates are not deliverables: rc.1 exposed native presenter
+clipping; rc.2 retained checkout installation commands when the input HTML had
+Windows line endings. Both issues were corrected without altering approved
+motion specifications or the owner's private v10 review artifact.
+
+Artifacts live under `.release-local/0.1.0-rc.3/`. Their SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `vallahrich-stickman-mcp-0.1.0-rc.3.tgz` | `12b52c5b96eb9275f2f4aa46b796aa9c123ad18d8dc2883f0acc6480231b5899` |
+| `stickman-source-0.1.0-rc.3.zip` | `51e7d3e5253d8c08dc8a217c9dda7799a79aa561454f1dc94c40094fbe4147bd` |
+| `stickman-site-0.1.0-rc.3.zip` | `0b42caf3b1b42d7cb2836308fae847641b380ae9e801110c031aeb209ab894d5` |
+
+`provenance.json` retains exact inputs, dependency license evidence and the
+explicit `publicationApproved: false` / `local-review-required` status.
+The curated source ZIP is not a complete repository/history disclosure.
+
+Verification performed:
+
+- Full serial regression suite: **29 files / 491 tests passed**; the separate
+  native browser test passed as well. Typecheck and final diff checks passed.
+- Final actual rc.3 tarball: **all six release tests passed**, including
+  installation in a temporary directory outside the checkout. Library and
+  subpath imports, CLI, MCP version/discovery, assets, film composition/render
+  preview, joins, authoring, draft/approved preview, installed payload hashes,
+  approved-spec immutability and path/provenance/inventory negatives exercised.
+  The offline test provisioned a separately installed FFmpeg executable; it
+  does not mean an encoder is bundled.
+- Independent ZIP validation: source **168 entries**, site **338 entries**;
+  CRC, exact membership and every declared per-file hash passed. All three
+  archive hashes matched provenance.
+- Actual rc.3 gallery: **97 motions / 11 runtime IDs**, exact search identities,
+  runtime filtering, keyboard preview, installed-version instructions,
+  paused native demo, both film durations and mobile layout passed. No browser
+  exceptions, failed HTTP responses or external requests were observed.
+- Native presentation: all **1,701 frames** checked for text/actor clipping,
+  text collisions and reserved-column containment; continuous **56.7-second**
+  browser playback traversed all five scenes and finished without errors.
+  Minimum SVG text size 24; normalized presenter height 129.18–134.11.
+  Maximum visible step 1.762 and acceleration 1.728 passed the stricter
+  native limits of 4 and 2, respectively. Mobile semantic summaries and
+  reduced-motion behavior passed. This is not an owner quality rating.
+- Original MP4s were untouched; freshly rendered rc.3 films are bit-identical:
+  open-source `30dd6521147a7b3243ffe2420e1f7d13ede424ae91e23ee664756dcb469a8969`;
+  Julius Caesar `9f63cae1ffed0ccde9ae6c9c4fc1494bfd11b0c0314567adffaf3f57e8b2ea66`.
+
+Local evidence: `.release-local/native-review/` contains continuous playback,
+scene/mobile screenshots and frame checks;
+`.release-local/candidate-review-0.1.0-rc.3/` contains desktop/mobile gallery
+screenshots and `verification.json`. The extracted interface is
+`.release-local/0.1.0-rc.3/site/index.html`, with the new native story at
+`showcase/on-prem-to-cloud.html`.
+
+These checks used Node 24.13.0, Windows and Chromium. They are self-verification,
+not independent QA, cross-platform certification or legal approval.
+CMU and conversion permission evidence is resolved and documented; the actual
+remaining gates are owner final-file/hash review and explicit destination/
+publication authorization. No public publication or deployment occurred.
