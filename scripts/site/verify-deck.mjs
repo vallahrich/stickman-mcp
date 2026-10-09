@@ -34,6 +34,10 @@ try {
     style.background === "rgba(0, 0, 0, 0)" && style.border === "rgba(0, 0, 0, 0)" &&
     style.radius === "0px" && style.shadow === "none"), "scene panels are not integrated into the slide surface");
   const timing = await page.evaluate(() => JSON.parse(document.getElementById("data").textContent));
+  const film = await page.evaluate(() => {
+    const f=JSON.parse(document.getElementById("stickman-frames").textContent);
+    return {events:f.events, finalFrames:f.frames.slice(-90)};
+  });
   report.totalFrames = timing.totalFrames;
   report.seconds = timing.totalFrames / 30;
   report.stickman = timing.stickman;
@@ -85,7 +89,9 @@ try {
       out.actorObjectOverlaps = [];
       for (const el of scene.querySelectorAll("[data-object]")) {
         const b = el.getBoundingClientRect();
-        if (a?.height && b.width && b.height && touches(a, b)) out.actorObjectOverlaps.push(el.getAttribute("data-object"));
+        // Physical consoles are meant to meet a hand, not be isolated from the operator.
+        // Their actual SVG hand/control distance is independently gated below; no other object is exempt.
+        if (a?.height && b.width && b.height && touches(a, b) && el.getAttribute("data-interaction") !== "hand-control") out.actorObjectOverlaps.push(el.getAttribute("data-object"));
       }
     });
     out.svg = content ? content.innerHTML.length : 0;
@@ -127,7 +133,9 @@ try {
   const standing = report.beats.filter(b => b.actor && b.slide === "on-prem").map(b => b.actor.h);
   report.standingHeight = { min: Math.min(...standing), max: Math.max(...standing) };
   check(report.standingHeight.min >= 120 && report.standingHeight.max <= 150, "standing co-presenter height outside 120-150px");
-  for (const [name, frame] of [["question", 160], ["rack-extended", 300], ["demand-and-operations", 525], ["batch-expansion", 765], ["batch-contraction", 837], ["evidence-complete", 1398], ["final-decision", timing.totalFrames - 1]]) {
+  for (const [name, frame] of [["question", 160], ["rack-extended", film.events["on-prem"].demand], ["demand-and-operations", 525],
+    ["console-contact",film.events.cloud.submission], ["batch-expansion", film.events.cloud.arrival+12],
+    ["batch-contraction", film.events.cloud.drained], ["evidence-complete", film.events.evidence.artifact3+1], ["final-decision", timing.totalFrames - 1]]) {
     await page.evaluate(f => window.StickmanDeckAutoplay.seek(f), frame);
     await page.waitForTimeout(700); await settle();
     await page.screenshot({ path: path.join(shots, name + ".png") });
@@ -157,18 +165,72 @@ try {
     check(result.every(o => o.visible && o.inside), `${slide}: required diagram objects missing or out of bounds: ${JSON.stringify(result)}`);
     report.comprehension.push({slide, frame, objects:result});
   }
-  const cloudBeat = timing.timeline.find(e => e.slide === "cloud" && e.beat === 1);
   report.capacityResponse = [];
-  for (const offset of [0, 75, cloudBeat.frames-1]) {
-    await page.evaluate(f => window.StickmanDeckAutoplay.seek(f), cloudBeat.start + offset); await settle();
+  for (const frame of [film.events.cloud.submission-1, film.events.cloud.arrival+12, film.events.cloud.drained]) {
+    await page.evaluate(f => window.StickmanDeckAutoplay.seek(f), frame); await settle();
     report.capacityResponse.push(await page.locator("#cloud [data-object=capacity-units]").getAttribute("data-units"));
   }
   check(report.capacityResponse.join() === "2,5,2", "incoming batch does not cause expansion and contraction");
+  check(film.events.cloud.submission < film.events.cloud.arrival && film.events.cloud.arrival < film.events.cloud.processing &&
+    film.events.cloud.processing < film.events.cloud.drained, "cloud event causal order is invalid");
+  report.causalEvents=[];
+  const snapshot = async frame => {
+    await page.evaluate(f => window.StickmanDeckAutoplay.seek(f),frame); await settle();
+    return page.evaluate(() => {
+      const s=document.querySelector(".stickman-stage");
+      return {frame:Number(s.getAttribute("data-frame")),objects:[...s.querySelectorAll("[data-object]")].map(n=>n.getAttribute("data-object")),
+        queue:s.querySelector("[data-queue]")?.getAttribute("data-queue"),
+        units:s.querySelector("[data-units]")?.getAttribute("data-units"), text:s.textContent};
+    });
+  };
+  const revealChecks = [
+    ["on-prem","demand","demand"],
+    ...[0,1,2,3].map((i)=>["evidence","artifact"+i,["baseline","dependency-map","cost-comparison","pilot-gate"][i]]),
+    ["decision","routes","move-route"]
+  ];
+  for(const [slide,event,object] of revealChecks) {
+    const at=film.events[slide][event], before=await snapshot(at-1), after=await snapshot(at);
+    check(!before.objects.includes(object)&&after.objects.includes(object),`${slide}/${event}: result not tied to action marker`);
+    const markup=await page.locator(".stickman-stage").innerHTML();
+    await snapshot(0); await snapshot(at);
+    const replay=markup===await page.locator(".stickman-stage").innerHTML();
+    check(replay,`${slide}/${event}: marker replay differs after backwards seek`);
+    report.causalEvents.push({slide,event,at,before:before.objects,after:after.objects,replay});
+  }
+  for(const frame of [film.events.cloud.submission-1,film.events.cloud.submission,film.events.cloud.arrival-1,film.events.cloud.arrival]) {
+    const state=await snapshot(frame);
+    check(frame>=film.events.cloud.arrival || state.queue==="0","batch present before arrival");
+    check(frame>=film.events.cloud.submission || !state.objects.includes("released-batch"),"batch released before submission");
+    check(frame>=film.events.cloud.arrival+12 || state.units==="2","capacity expanded before arrival");
+    report.causalEvents.push(state);
+  }
+  report.contacts=[];
+  for(const contact of timing.stickman.contacts) {
+    await page.evaluate(f=>window.StickmanDeckAutoplay.seek(f),contact.frame);
+    await page.waitForTimeout(700); await settle();
+    const measured=await page.evaluate(contact=>{
+      const stage=document.querySelector(".stickman-stage");
+      const paths=stage.querySelectorAll("[data-stickman-actor] [data-stickman=exact-pivot] path");
+      const hand=paths[paths.length-1];
+      const h=hand.getPointAtLength(hand.getTotalLength()).matrixTransform(hand.getScreenCTM());
+      const control=stage.querySelector('[data-control][cx="'+contact.control.x+'"]');
+      const p=new DOMPoint(Number(control.getAttribute("cx")),Number(control.getAttribute("cy"))).matrixTransform(control.getScreenCTM());
+      return {frame:Number(stage.getAttribute("data-frame")),hand:{x:h.x,y:h.y},control:{x:p.x,y:p.y},renderingPx:Math.hypot(h.x-p.x,h.y-p.y)};
+    },contact);
+    check(measured.frame===contact.frame && measured.renderingPx<=4,contact.beat+": actual rendered hand misses control");
+    report.contacts.push({beat:contact.beat,...measured});
+    await page.screenshot({path:path.join(shots,contact.beat.replace("/","-")+"-contact.png")});
+  }
+  const costState=await snapshot(film.events.evidence.artifact2);
+  check(["Hardware","Licences","Operations","Migration","Usage","Egress","same time period"].every(t=>costState.text.includes(t)),
+    "same-period comparison inputs missing");
+  check(!/Unpriced estimates|Constraints fail|Rollback ready/.test(costState.text),"misleading evidence claim");
   const finalMarkup = () => page.locator("#decision .stickman-stage").innerHTML();
   await page.evaluate(f => window.StickmanDeckAutoplay.seek(f), timing.totalFrames-91); await settle();
   const holdA = await finalMarkup();
   await page.evaluate(f => window.StickmanDeckAutoplay.seek(f), timing.totalFrames-1); await settle();
   const holdB = await finalMarkup();
+  check(film.finalFrames.every(f=>JSON.stringify(f)===JSON.stringify(film.finalFrames[0])),"actor changes during final 90 frames");
   report.finalHold = {frames:90, identical:holdA === holdB, actor:await page.locator("#decision [data-stickman-actor] path").count()};
   check(report.finalHold.identical && report.finalHold.actor > 0, "final scene must hold with the actor for three seconds");
   check(await page.locator("#decision [data-prop=door-frame],#decision [data-prop=basketball-hoop]").count() === 0, "obsolete celebration/exit props present");
@@ -217,13 +279,13 @@ try {
   check(flowA.active === "true" && flowB.active === "true" && flowA.transform !== flowB.transform, "native flow packet not travelling during autoplay");
   check(flowB.animations.some(a => a.name === "flow-travel-4" && a.time > 0), "native flow animation missing");
   await page.evaluate(() => window.StickmanDeckAutoplay.pause());
-  await page.evaluate(f => window.StickmanDeckAutoplay.seek(f), timing.timeline.find(e => e.slide === "evidence" && e.beat === 1).start + 77);
+  await page.evaluate(f => window.StickmanDeckAutoplay.seek(f), film.events.evidence.artifact1+1);
   await settle();
   const validateStep = await flowSample();
   const flowCount = await page.locator(".stickman-native-flow").count();
   check(flowCount === 1, "native flow clones leaked across provider cleanup: " + flowCount);
   check(validateStep.active === "true", "native flow disabled after deterministic seek");
-  check(validateStep.completed === 2, "Validate never became active");
+  check(validateStep.completed === 2, "Requirements artifact never became active");
   await page.evaluate(f => window.StickmanDeckAutoplay.seek(f), flowFrame + 250);
   await settle(); const flowSeekA = await flowSample();
   await page.evaluate(() => window.StickmanDeckAutoplay.seek(0));

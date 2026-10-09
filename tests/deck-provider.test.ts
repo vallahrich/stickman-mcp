@@ -71,7 +71,7 @@ describe("stickman deck provider", () => {
     expect(composed.continuity.maxJointStep).toBeLessThanOrEqual(14);
     const timing = deckTimeline(cloudDeckPlan, storyboard, composed);
     expect(timing.totalFrames).toBeLessThanOrEqual(MAX_FRAMES);
-    expect(timing.totalFrames).toBe(1674);
+    expect(timing.totalFrames).toBe(1758);
     expect(composed.continuity.footSlides).toEqual([]);
     expect(composed.bridgeRecords).toHaveLength(14);
     expect(cloudDeckPlan.slides.every(slide => slide.scene)).toBe(true);
@@ -87,9 +87,19 @@ describe("stickman deck provider", () => {
     expect(rendered.dict.some(svg => svg.includes('scale(0.44)'))).toBe(true);
     expect(rendered.dict.some(svg => svg.includes('id="deck-door-aperture"'))).toBe(false);
     expect(rendered.dict.some(svg => svg.includes("door-figure-clip"))).toBe(false);
+    expect(composed.contacts).toHaveLength(6);
+    expect(composed.contacts.every(contact => contact.distance < 1)).toBe(true);
+    for (const beat of ["cloud/0", "evidence/0", "decision/0"]) {
+      const seg = composed.performance.segments.find(s => s.beat === beat)!;
+      expect(seg.id).toBe("deck-console");
+      expect(seg.spec.markers.preparation).toBeLessThan(seg.spec.markers.contact);
+      expect(seg.spec.markers.contact).toBeLessThan(seg.spec.markers.recovery);
+    }
   }, 120_000);
 
-  it("follows W1 through causal scaling, tangible evidence and conditional final routes", async () => {
+  it("follows W1 through marker-timed causal output, cost inputs and conditional routes", async () => {
+    const { composed } = await composeDeckPerformance(cloudDeckPlan);
+    const lastFrame = composed.performance.frames-1;
     const context = createContext({
       r: (v: number) => Math.round(v * 10) / 10,
       clamp: (v: number) => Math.max(0, Math.min(1, v)),
@@ -98,16 +108,61 @@ describe("stickman deck provider", () => {
     });
     new Script(await fs.readFile(path.resolve("scripts/site/deck-diagrams.js"), "utf8")).runInContext(context);
     const c = { t:"var(--cp-text)", s:"var(--cp-surface)", a:"var(--cp-accent)", b:"var(--cp-border-strong)", l:"var(--cp-border)", m:"var(--cp-text-muted)" };
+    const eventsAt = (id: string, frame: number) => Object.fromEntries(Object.entries(composed.events[id])
+      .filter(([,at]) => frame >= Number(at)).map(([name,at]) => [name,{frame:at,elapsed:frame-Number(at)}]));
     for (const [id, fn] of Object.entries(context.sceneProps)) {
-      const diagram = (fn as Function)(id === "evidence" ? 3 : 2, 149, c, 847);
+      const diagram = (fn as Function)(id === "evidence" ? 3 : 2, 149, c, 847,eventsAt(id,lastFrame));
       expect(diagram.markup).toContain('data-object="workload"');
-      expect(diagram.markup).not.toMatch(/18%|successful|basketball|door/);
+      expect(diagram.markup).not.toMatch(/18%|successful|basketball|door|Constraints fail|Unpriced estimates/);
     }
-    expect([0,75,149].map(f => context.cloudScene(1,f,c).markup.match(/data-units="(\d+)"/)[1])).toEqual(["2","5","2"]);
-    const evidence = context.evidenceScene(3,137,c,847).markup;
+    const cloud = composed.events.cloud;
+    expect(cloud.submission).toBeLessThan(cloud.arrival);
+    expect(cloud.arrival).toBeLessThan(cloud.processing);
+    expect(cloud.processing).toBeLessThan(cloud.drained);
+    expect([cloud.submission-1,cloud.arrival+12,cloud.drained].map(f =>
+      context.cloudScene(1,f,c,220,eventsAt("cloud",f)).markup.match(/data-units="(\d+)"/)[1])).toEqual(["2","5","2"]);
+    // Evaluate actual output at every cloud frame; the browser verifier also seeks backwards to markers.
+    for (let frame=540;frame<930;frame++) {
+      const output = context.cloudScene(0,frame-540,c,220,eventsAt("cloud",frame)).markup;
+      const units = Number(output.match(/data-units="(\d+)"/)[1]);
+      const queue = Number(output.match(/data-queue="(\d+)"/)[1]);
+      if(frame<cloud.arrival) expect(queue).toBe(0);
+      if(frame<cloud.arrival+12) expect(units).toBe(2);
+      if(frame<cloud.submission) expect(output).not.toContain('data-object="released-batch"');
+      if(frame>=cloud.drained) {expect(queue).toBe(0);expect(units).toBe(2);}
+    }
+    const evidence = context.evidenceScene(3,145,c,847,eventsAt("evidence",lastFrame)).markup;
     for (const id of ["baseline","dependency-map","cost-comparison","pilot-gate"]) expect(evidence).toContain(`data-object="${id}"`);
-    const final = context.decisionScene(0,180,c).markup;
-    expect(final).toEqual(context.decisionScene(0,269,c).markup);
+    for(const label of ["Hardware","Licences","Operations","Migration","Usage","Egress","No result yet"]) expect(evidence).toContain(label);
+    expect(evidence).not.toMatch(/stroke-width="5"|h60|m-50/);
+    const activeCost = context.evidenceScene(2,145,c,638,eventsAt("evidence",composed.events.evidence.artifact2)).markup;
+    expect(activeCost).toContain("same time period");
+    for (const [i,id] of ["baseline","dependency-map","cost-comparison","pilot-gate"].entries()) {
+      const at = composed.events.evidence["artifact"+i];
+      const before = context.evidenceScene(i,0,c,220+209*i,eventsAt("evidence",at-1)).markup;
+      const after = context.evidenceScene(i,0,c,220+209*i,eventsAt("evidence",at)).markup;
+      expect(before).not.toContain(`data-object="${id}"`);
+      expect(after).toContain(`data-object="${id}"`);
+      const seg = composed.performance.segments.find(s=>s.start<=at&&s.end>=at)!;
+      expect(at).toBe(seg.start+seg.spec.markers.contact);
+    }
+    expect(context.decisionScene(0,0,c,847,eventsAt("decision",composed.events.decision.evidence-1)).markup).not.toContain('data-object="move-route"');
+    expect(context.decisionScene(0,0,c,847,eventsAt("decision",composed.events.decision.routes-1)).markup).toContain('data-object="evidence-input"');
+    const final = context.decisionScene(0,180,c,847,eventsAt("decision",lastFrame-89)).markup;
+    for(let frame=lastFrame-89;frame<=lastFrame;frame++) {
+      expect(final).toEqual(context.decisionScene(0,269,c,847,eventsAt("decision",frame)).markup);
+    }
     for(const label of ["Move if","Retain if","Requirements","Total cost","Pilot evidence","Pilot one workload"]) expect(final).toContain(label);
-  });
+    expect(context.bookendScene(0,179,c,220,eventsAt("question",179)).markup).toContain("W1 = one workload");
+    expect(context.cloudScene(0,0,c,220,{}).markup).toContain("Instances serving W1");
+  },120_000);
+
+  it("rejects missing story beats and impossible reading budgets", async () => {
+    await expect(composeDeckPerformance({...cloudDeckPlan,beatFrames:cloudDeckPlan.beatFrames.map(()=>1)}))
+      .rejects.toThrow(/exceeds reading-time budget/);
+    const storyboard = JSON.parse(await fs.readFile("examples/cloud-deck/storyboard.json","utf8"));
+    const { composed } = await composeDeckPerformance();
+    storyboard.slides.find(s=>s.id==="cloud").beats.push({id:"invalid"});
+    expect(()=>deckTimeline(cloudDeckPlan,storyboard,composed)).toThrow(/no beat/);
+  },120_000);
 });

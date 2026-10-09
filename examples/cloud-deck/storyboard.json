@@ -15,10 +15,10 @@
         {"id": "economics", "label": "Total cost", "claim": "proposal"}
       ],
       "beats": [],
-      "notes": "W1 is an illustrative workload, not a measured customer system. Both destinations remain open.",
+      "notes": "W1 = one workload, an illustrative system rather than measured customer data. Both destinations remain open.",
       "scene": {
         "provider": "stickman",
-        "staticDescription": "W1 sits between on-premises and cloud, connected to both. Demand, requirements and total cost guide the decision.",
+        "staticDescription": "W1 = one workload. It sits between on-premises and cloud, connected to both. Demand, requirements and total cost guide the decision.",
         "cues": [{"id": "bring-workload", "semantic": "The admin presents W1, then considers both destinations", "effect": "perform", "fromBeat": 0, "untilBeat": 1, "propIds": ["workload", "destinations"]}]
       }
     },
@@ -54,7 +54,7 @@
       "beats": [{"id": "batch-shown", "reveal": ["effort"]}, {"id": "cost-shown", "reveal": ["cost"]}],
       "scene": {
         "provider": "stickman",
-        "staticDescription": "W1 sends a batch into a capacity pool. Two units expand to five, then return to two as the batch drains. Migration, ongoing usage and egress must enter the comparison.",
+        "staticDescription": "The admin operates a job-submission console for W1. Submission releases a batch; arrival precedes expansion from two to five instances serving W1. Processing drains the jobs, then instances return to two. Migration, usage, operations and egress are comparison inputs, not promised savings.",
         "cues": [{"id": "batch-capacity", "semantic": "Visible batches cause expansion and contraction, not independent oscillating bars", "effect": "perform", "fromBeat": 0, "untilBeat": 3, "propIds": ["workload", "batch", "capacity-units", "cost-tags"]}]
       },
       "notes": "Illustrative sequence, not a promise of instantaneous autoscaling. Policies, service limits and minimum capacity require validation."
@@ -65,9 +65,9 @@
       "composition": {"kind":"column","weights":[6,1],"gap":16,"children":[{"kind":"element","ref":"scene"},{"kind":"row","children":[{"kind":"element","ref":"measure"},{"kind":"element","ref":"validate"},{"kind":"element","ref":"compare"},{"kind":"element","ref":"pilot"}]}]},
       "takeaway": "Measure. Validate. Compare. Pilot.", "headlineKind": "proposal",
       "blocks": [
-        {"id": "measure", "label": "Measure", "claim": "proposal"},
-        {"id": "validate", "label": "Validate", "claim": "proposal"},
-        {"id": "compare", "label": "Compare", "claim": "proposal"},
+        {"id": "measure", "label": "Baseline", "claim": "proposal"},
+        {"id": "validate", "label": "Requirements", "claim": "proposal"},
+        {"id": "compare", "label": "Total cost", "claim": "proposal"},
         {"id": "pilot", "label": "Pilot", "claim": "proposal", "emphasis": true}
       ],
       "beats": [
@@ -77,11 +77,11 @@
       ],
       "scene": {
         "provider": "stickman",
-        "staticDescription": "W1 traverses four connected stations. Outputs are a demand baseline, dependency map with a latency question, like-for-like cost ranges and a reversible test with pass criteria. No station invents a successful outcome.",
-        "flow": {"stages": ["Measure", "Validate", "Compare", "Pilot"], "blockIds": ["measure", "validate", "compare", "pilot"]},
+        "staticDescription": "Admin records W1 Baseline, Requirements, Total cost and Pilot. Cost inputs for the same period: local hardware, licences, operations; cloud migration, usage, operations, egress. Requirements need testing. Pilot criteria and rollback plan are not results.",
+        "flow": {"stages": ["Baseline", "Requirements", "Total cost", "Pilot"], "blockIds": ["measure", "validate", "compare", "pilot"]},
         "cues": [{"id": "workload-evidence", "semantic": "Admin follows W1 and each station produces a tangible comparison artifact", "effect": "flow", "fromBeat": 0, "untilBeat": 4, "propIds": ["workload", "baseline", "dependency-map", "cost-comparison", "pilot-gate"]}]
       },
-      "notes": "The cost ranges are deliberately unpriced. Latency and recovery are test questions, not verified claims."
+      "notes": "Side-by-side cost inputs use the same time period, with no prices, bars, equal-cost claims or implied savings. Latency and recovery are test questions, not verified claims."
     },
     {
       "id": "decision", "purpose": "Keep both conditional routes and the next action on screen.",
@@ -97,7 +97,7 @@
       "notes": "Final composition holds for at least three seconds, with W1, admin, evidence criteria and both conditional routes. No celebration or exit.",
       "scene": {
         "provider": "stickman",
-        "staticDescription": "W1 remains at a decision gate: requirements, total cost and pilot evidence lead to conditional move or retain routes. Pilot one workload is the persistent next action.",
+        "staticDescription": "Admin supplies evidence to W1's gate; cloud and on-premises routes appear conditionally. Move if requirements, costs and pilot evidence support it. Retain if requirements cannot be met or local fits better. Next: pilot one workload.",
         "cues": [{"id": "conditional-decision", "semantic": "Admin considers the evidence and presents both routes; W1 never disappears", "effect": "perform", "fromBeat": 0, "untilBeat": 1, "propIds": ["workload", "decision-gate", "move-route", "retain-route", "pilot-action"]}]
       }
     },

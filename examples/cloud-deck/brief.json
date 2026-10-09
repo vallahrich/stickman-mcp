@@ -17,7 +17,7 @@
   "desiredSlides": 7,
   "ideas": [
     "One IT admin acts out the story as a silent stickman",
-    "Follow one recognisable W1 workload through every scene",
+    "Define W1 = one workload once, then distinguish instances serving W1 from the workload itself",
     "Compare illustrative variable demand with fixed capacity; CPU alone is not evidence of waste",
     "Cloud capacity can follow demand but has its own costs",
     "Measure, validate, compare total cost, then pilot",
@@ -59,7 +59,7 @@
       "id": "illustrative-utilisation",
       "title": "Illustrative utilisation example (not a measurement)",
       "kind": "synthetic",
-      "note": "Demand shapes, capacity units and unpriced comparison ranges are illustrative, not measurements or financial claims."
+      "note": "Demand shapes and capacity units are illustrative. Compare local hardware/licences/operations with cloud migration/usage/operations/egress over the same time period. No prices, equality or financial results are claimed."
     }
   ],
   "facts": []

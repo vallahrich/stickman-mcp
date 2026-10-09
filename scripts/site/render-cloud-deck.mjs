@@ -20,9 +20,9 @@ const roots = { inputRoots: [input, root], outputRoot: root };
 const prepared = await prepareDeck(sources, roots);
 await fs.writeFile(path.join(root, "renderer-validation.json"), JSON.stringify(publicValidation(prepared), null, 2));
 if (!prepared.ok) throw new Error(JSON.stringify(prepared.diagnostics));
-const pilot = await renderPilot(sources, roots, { name: "pilot-v9.html", overwrite: true });
+const pilot = await renderPilot(sources, roots, { name: "pilot-v10.html", overwrite: true });
 if (!pilot.ok) throw new Error(JSON.stringify(pilot.diagnostics));
-const raw = path.join(root, "workload-migration", "deck-v9-preview.html");
+const raw = path.join(root, "workload-migration", "deck.html");
 await fs.writeFile(raw, renderHtml(prepared.parsed.brief, prepared.parsed.brand, prepared.parsed.storyboard, { mode: "deck", assets: prepared.assets }));
 const built = await buildStickmanDeck({ deckPath: raw, storyboardPath: path.join(input, "storyboard.json"), outPath: path.resolve(out) });
 await fs.writeFile(path.join(root, "render-status.json"), JSON.stringify({

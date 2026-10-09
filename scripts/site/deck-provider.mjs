@@ -1,12 +1,13 @@
 // Stickman motion provider for dynamic-presentations decks.
-// Pre-composes one continuous stickman performance (approved motions, automatic bridges, continuity <= 14)
+// Pre-composes one continuous stickman performance (qualified sources, deck-local actions, continuity <= 14)
 // across the deck's scene slides, renders it per frame, and injects an offline adapter-1.0 provider plus a
 // timed autoplay wrapper into an already rendered deck HTML. The presentation MCP itself is never modified.
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { composeFilm, loadShowcaseResources } from "../film/runtime.mjs";
-import { createPerformanceRenderer } from "./performance.mjs";
+import { composePerformance, createPerformanceRenderer } from "./performance.mjs";
+import { buildKeyPoseClip, keyPoseGates } from "../motions/keypose.mjs";
 import { engineSampledFrame } from "../motions/review-renderer.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -37,11 +38,37 @@ export const cloudDeckPlan = {
     { walk: { to: 1540, pace: 12 }, beat: "evidence/3" }, { motion: "present", until: 38 },
     { motion: "present", beat: "decision/0" }
   ],
-  beatFrames: [180, 201, 70, 89, 150, 150, 90, 60, 138, 138, 138, 270],
+  beatFrames: [180, 201, 70, 89, 150, 150, 90, 90, 146, 146, 176, 270],
   sets: { "on-prem": [{ motion: "rack-server", types: ["server-rack", "platform"], root: 400 }] }
 };
 
 const beatsOf = plan => plan.performance.filter(item => item.beat).map(item => item.beat);
+
+// Deck-authored standing console operation, not a catalogue approval or a seated typing reuse.
+// Stable feet, preparation, two keyed taps, submit, and recovery. Source specs stay read-only.
+export function consoleSpec(neutral) {
+  const stance = { anchor: "both", facing: 1, dx: 0, bob: 0, lean: 2, neck: -3,
+    rLeg: { hip: 5, knee: 13 }, lLeg: { hip: -8, knee: 14 },
+    rFoot: { x: 5, y: 0 }, lFoot: { x: -7, y: 0 },
+    rArm: { shoulder: -8, elbow: 38 }, lArm: { shoulder: 10, elbow: 44 },
+    rHand: { x: 10, y: 62 }, lHand: { x: 12, y: 62 } };
+  const pose = (x, y, leftX = 28, leftY = 82) => ({ ...stance, lean: 5, neck: -8,
+    rArm: { shoulder: 50, elbow: 65 }, lArm: { shoulder: 45, elbow: 70 },
+    rHand: { x, y }, lHand: { x: leftX, y: leftY } });
+  const spec = { id: "deck-console", frames: 39, loop: false, prop: null, review: {},
+    markers: { preparation: 6, engage: 18, tap: 22, contact: 26, recovery: 38 },
+    poseKeys: [
+      { frame: 0, pose: stance, ease: "inOut" },
+      { frame: 6, pose: { ...stance, neck: -8 }, ease: "inOut" },
+      { frame: 18, pose: pose(36, 87), ease: "inOut" },
+      { frame: 22, pose: pose(36, 83.333), ease: "inOut" },
+      { frame: 24, pose: pose(36, 87), ease: "inOut" },
+      { frame: 26, pose: pose(36, 83.333), ease: "inOut" },
+      { frame: 30, pose: pose(36, 87), ease: "inOut" },
+      { frame: 38, pose: stance, ease: "inOut" }
+    ] };
+  return { spec, clip: buildKeyPoseClip(spec, neutral), sourceId: spec.id };
+}
 
 // A tiny airborne replant during generated joins avoids dragging a planted stance.
 // The same world-space offset is measured by the gate and applied to the actor SVG.
@@ -73,18 +100,33 @@ export function deckContinuity(performance, sampleClipMotion) {
   return { maxJointStep: Number(maxJointStep.toFixed(2)), worstFrame, footSlides };
 }
 
-/** Compose the lead performance through the shared film composer (approved gating, auto bridges). */
+/** Gate the library sources, then recompose deck-local actions through the shared pose composer. */
 export async function composeDeckPerformance(plan = cloudDeckPlan, resources) {
   resources ??= await loadShowcaseResources();
   // Film captions are not shown: slide copy belongs to the presentation runtime.
   const scenes = [{ id: beatsOf(plan)[0], state: plan.id, cues: [{ frame: 0, text: "Workload migration comparison" }] }];
   const recipe = { id: plan.id, bridge: "auto", performance: plan.performance, scenes, set: [] };
-  let composed = await composeFilm(recipe, resources);
+  const source = await composeFilm(recipe, resources);
+  const neutral = source.performance.clip.frames[0];
+  const consoleMotion = consoleSpec(neutral);
+  const gates = await keyPoseGates(consoleMotion.clip, consoleMotion.spec);
+  if (!gates.passed) throw new Error("Deck-local console failed mechanical gates: " + JSON.stringify(gates));
+  const motions = new Map(source.motions);
+  motions.set("deck-console", consoleMotion);
+  let currentBeat = "";
+  const localItems = plan.performance.map(item => {
+    currentBeat = item.beat ?? currentBeat;
+    const action = item.motion === "present" && (/^evidence\//.test(currentBeat) || currentBeat === "cloud/0" || currentBeat === "decision/0");
+    return action ? { ...item, motion: "deck-console", until: undefined, gap: 18 } : { ...item };
+  });
+  const compose = items => ({ ...source, motions,
+    performance: composePerformance(items, { motions, sampleClipMotion: resources.sampleClipMotion, neutral }) });
+  let composed = compose(localItems);
   // Reading time is a still pose, not slowed or looped decorative choreography.
   // Budget each beat including its generated bridge; authored motion data stays untouched.
   if (plan.beatFrames) {
     const beats = beatsOf(plan);
-    const items = plan.performance.map(item => ({ ...item }));
+    const items = localItems.map(item => ({ ...item }));
     beats.forEach((beat, i) => {
       const first = composed.performance.segments.find(seg => seg.beat === beat);
       const next = composed.performance.segments.find(seg => seg.beat === beats[i + 1]);
@@ -94,7 +136,11 @@ export async function composeDeckPerformance(plan = cloudDeckPlan, resources) {
       const last = composed.performance.segments.filter(seg => seg.gapStart < end).at(-1);
       items[last.itemIndex].hold = (items[last.itemIndex].hold ?? 0) + extra;
     });
-    composed = await composeFilm({ ...recipe, performance: items }, resources);
+    composed = compose(items);
+  }
+  for (const seg of composed.performance.segments.filter(seg => seg.kind === "walk")) {
+    const walkGates = await keyPoseGates(seg.clip, seg.spec);
+    if (!walkGates.passed) throw new Error("Deck-local generated walk failed mechanical gates: " + JSON.stringify(walkGates));
   }
   const replants = composed.performance.segments.slice(1).map(seg => ({ kind: "generated-replant", startFrame: seg.gapStart, endFrame: seg.start - 1, frames: seg.start - seg.gapStart }));
   composed.continuity = deckContinuity(composed.performance, resources.sampleClipMotion);
@@ -106,6 +152,37 @@ export async function composeDeckPerformance(plan = cloudDeckPlan, resources) {
     return { id, startFrame: segment.gapStart };
   });
   composed.timeline.scenes = starts.map((scene, i) => ({ ...scene, frames: (starts[i + 1]?.startFrame ?? composed.performance.frames) - scene.startFrame }));
+  const segment = beat => composed.performance.segments.find(seg => seg.beat === beat);
+  const contact = beat => {
+    const first = segment(beat);
+    return composed.performance.segments.find(seg => seg.gapStart >= first.gapStart && seg.id === "deck-console");
+  };
+  const marker = (seg, name) => {
+    const offset = seg.spec.markers?.[name];
+    if (!Number.isInteger(offset) || offset >= seg.n) throw new Error(`Unreachable marker ${name} in ${seg.id}.`);
+    return seg.start + offset;
+  };
+  const submitted = marker(contact("cloud/0"), "contact");
+  composed.events = {
+    question: { introduce: marker(segment("question/0"), "present") },
+    "on-prem": { demand: marker(segment("on-prem/0"), "check") },
+    cloud: { submission: submitted, arrival: submitted + 24,
+      processing: marker(segment("cloud/1"), "sweepStart"),
+      drained: marker(segment("cloud/1"), "stand") },
+    evidence: Object.fromEntries([0,1,2,3].map(i => ["artifact"+i, marker(contact("evidence/"+i), "contact")])),
+    decision: { evidence: marker(contact("decision/0"), "contact"), routes: marker(contact("decision/0"), "contact")+24 }
+  };
+  composed.contacts = ["cloud/0", ...[0,1,2,3].map(i => "evidence/"+i), "decision/0"].map(beat => {
+    const seg = contact(beat), frame = marker(seg, "contact");
+    const sample = engineSampledFrame(resources.sampleClipMotion, composed.performance.clip, frame);
+    const hand = sample.segments.find(part => part.id === "right-forearm");
+    const anchor = stagePosition(composed.performance, frame);
+    const point = { x: anchor * .11 + .44 * (composed.performance.rootTrack[frame] + (hand.x2-160)*2.4),
+      y: 162.4 + .44 * (540 + (hand.y2-150)*2.4) };
+    const control = { x: beat === "decision/0" ? 876 : beat === "cloud/0" ? 249 : 249+209*Number(beat.split("/")[1]), y: 334 };
+    return { beat, frame, hand: point, control, distance: Math.hypot(point.x-control.x,point.y-control.y) };
+  });
+  if (composed.contacts.some(contact => contact.distance > 3.5)) throw new Error("Console contact too far: " + JSON.stringify(composed.contacts));
   return { resources, composed };
 }
 
@@ -252,8 +329,8 @@ export async function buildStickmanDeck({ deckPath, storyboardPath, outPath, pla
   const { dict, frames, roots } = await renderDeckFrames(plan, composed, resources, scenes);
   const continuity = { maxJointStep: composed.continuity.maxJointStep, limit: 14, footSlides: composed.continuity.footSlides?.length ?? 0 };
   const timing = { totalFrames, fps: FPS, seconds: Number((totalFrames / FPS).toFixed(2)), timeline,
-    stickman: { continuity, bridges: composed.bridgeRecords.length, performanceFrames: composed.performance.frames } };
-  const film = { provider: plan.provider, view: plan.view, scenes, cueSlides, dict, frames, roots };
+    stickman: { continuity, bridges: composed.bridgeRecords.length, performanceFrames: composed.performance.frames, contacts: composed.contacts } };
+  const film = { provider: plan.provider, view: plan.view, scenes, cueSlides, events: composed.events, dict, frames, roots };
   const diagrams = await fs.readFile(path.join(here, "deck-diagrams.js"), "utf8");
   const client = (await fs.readFile(path.join(here, "deck-provider-client.js"), "utf8"))
     .replace("/* DECK_DIAGRAMS */", () => diagrams);

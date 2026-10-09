@@ -91,7 +91,7 @@
       flow.style.setProperty("--stickman-flow-duration", (ranges[ranges.length - 1][1] - ranges[0][0]) / fps * 1000 + "ms");
       flow.querySelectorAll("[id]").forEach(function (el) { el.removeAttribute("id"); });
       flow.querySelectorAll("[role=button]").forEach(function (el) { el.removeAttribute("role"); el.removeAttribute("tabindex"); });
-      flow.removeAttribute("aria-labelledby"); flow.setAttribute("aria-label", "Measure, Validate, Compare, Pilot");
+      flow.removeAttribute("aria-labelledby"); flow.setAttribute("aria-label", "Baseline, Requirements, Total cost, Pilot");
       stage.appendChild(flow);
     }
     var state = { beat: 0, t0: 0, raf: 0, drawn: -1, activeProps: [] };
@@ -112,7 +112,7 @@
         slot.setAttribute("data-flow-active", enabled ? "true" : "false");
         var elapsed = frame - ranges[0][0];
         flow.querySelectorAll(".flow-stage").forEach(function (node, i) {
-          node.setAttribute("data-step-complete", i < state.beat || (i === state.beat && (i === 0 || frame - ranges[state.beat][0] >= 70)) ? "true" : "false");
+          node.setAttribute("data-step-complete", frame >= film.events.evidence["artifact"+i] ? "true" : "false");
         });
         flow.getAnimations({ subtree: true }).forEach(function (animation) {
           animation.pause(); animation.currentTime = elapsed / fps * 1000;
@@ -123,7 +123,12 @@
       colors = palette(stage);
       var f = film.frames[frame];
       var local = frame - ranges[state.beat][0];
-      var scenePart = sceneProps[slideId](state.beat, local, colors, film.roots[frame]);
+      var events = {};
+      Object.keys(film.events[slideId]).forEach(function(name) {
+        var at = film.events[slideId][name];
+        if (frame >= at) events[name] = { frame: at, elapsed: frame-at };
+      });
+      var scenePart = sceneProps[slideId](state.beat, local, colors, film.roots[frame], events);
       state.activeProps = scenePart.props;
       back.innerHTML = paint(film.dict[f[0]], colors);
       props.innerHTML = scenePart.markup;

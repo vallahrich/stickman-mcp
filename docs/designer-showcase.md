@@ -96,10 +96,10 @@ readiness review, including outstanding motions, dependencies and runtime assemb
 
 The active presentation example is the private on-premises-to-cloud engineering-preview
 HTML deck. It is not the older `cloud-journey` procedural recipe. The current
-version is a **55.8-second**, five-scene workload story using the dynamic-presentations
+version (v10) is a **58.6-second**, five-scene workload story using the dynamic-presentations
 renderer and actual adapter-1.0 runtime, with one stickman IT admin inside the
 scene slot the deck reserves (see [Deck stickman provider](#deck-stickman-provider)).
-The previous version was rated **7/10**. The workload-led redesign is awaiting
+The v9 workload-led version was evaluated at approximately **8/10**. This polish is awaiting
 user review; implementation and mechanical verification do not confer a new rating.
 
 Two original, silent animated stories accompany it, each **56 seconds**:
@@ -167,12 +167,12 @@ The motion engine, catalogue and library story recipes remain unchanged.
 ## Deck stickman provider
 
 `scripts\site\deck-provider.mjs` post-processes a dynamic-presentations
-deck; the installed renderer remains read-only. The cloud story lasts **55.8 seconds
-(1674 frames at 30 fps)**. Its co-presenter measures **137–139 px tall**
+deck; the installed renderer remains read-only. The cloud story lasts **58.6 seconds
+(1758 frames at 30 fps)**. Its co-presenter measures **137–139 px tall**
 standing at a 1440×900 viewport.
 In Present view, scene backgrounds and borders are transparent so the character
 and diagrams sit directly on the slide, rather than inside a second white panel.
-One W1 glyph traverses two possible homes, a demand baseline, a batch-driven
+The opening defines **W1 = one workload**. One W1 glyph traverses two possible homes, a demand baseline, a batch-driven
 capacity pool, four evidence stations and a conditional decision gate.
 `deck-diagrams.js` owns the connected illustrative objects; explanations sit
 next to the change they describe, not in a duplicate right-column list.
@@ -200,7 +200,7 @@ unreadable tiny text.
    ```powershell
    npm run build
    node scripts\site\render-cloud-deck.mjs --renderer C:\dynamic-presentations-mcp --work <work> --out <story.html>
-   node scripts\site\verify-deck.mjs <story.html> final-v9 --output <work> --full
+   node scripts\site\verify-deck.mjs <story.html> final-v10 --output <work> --full
    node scripts\site\update-showcase-deck.mjs <story.html>
    npm run site:build
    ```
@@ -209,20 +209,36 @@ unreadable tiny text.
    derives duration using the actual `inspectSlide` parser and checks both MP4
    hashes before/after. Do not re-encode the films for a deck-only change.
 
-One `composeFilm` performance uses approved-library gating and automatic bridges.
+`composeFilm` loads and gates the actual qualified library sources, not their historically
+inconsistent source-spec status fields. The deck reuses those motion resources and the
+shared `composePerformance` helper. A **deck-local authored standing console transition**
+supplies preparation, keyed taps/contact and recovery; it is mechanically gated but has
+no invented user approval. It is not a seated typing motion, a generic pointing gesture,
+or a change to the catalogue/approved/candidate specs. The shared renderer's defaults are unchanged.
 A deck-local airborne replant avoids dragging feet during generated joins; the
 rendered-world gate requires joint steps ≤14 and zero planted-foot slides. The
-current gate reports **13.69**, zero foot slides and **14** bridge/replant records.
+current gate reports **11.48**, zero foot slides and **14** replant records.
 Authored motions/specs remain untouched. Still-pose holds budget silent reading
 time instead of adding decorative cycles. Choreography and visible consequence:
 
 | Scene / time | Action → visible result |
 | --- | --- |
-| Question / 0–6s | present → W1 enters a two-destination comparison, no default winner |
-| Today / 6–18s | rack-server → shrug → present; demand appears against fixed capacity, then operational work |
-| Option / 18–31s | present at each change; an incoming batch causes 2 → 5 → 2 capacity units, then migration/usage/egress caveats |
-| Evidence / 31–46.8s | present → three generated walks/present gestures; each station leaves a baseline, dependency check, unpriced comparison or pilot criteria |
-| Decision / 46.8–55.8s | present → requirements/cost/pilot gate and conditional move/retain routes; persistent “Pilot one workload” |
+| Question / 0–6s | `present` marker at frame 32 introduces the defined W1 into a two-destination comparison; neither wins by default |
+| Today / 6–18s | `rack-server/check` at frame 311 reveals demand against fixed capacity; the connector reaches the physical rack. Shrug/recovery and operational work follow |
+| Option / 18–31s | standing console contact at frame 583 submits W1 jobs; batch transit takes 24 frames, arrival precedes expansion by 12 frames. `present/sweepStart` at 717 starts processing; `present/stand` at 770 completes draining and contraction, 2 → 5 → 2 **instances serving W1** |
+| Evidence / 31–49.6s | standing station action → baseline (973), then three generated walks and station actions → requirements (1153), cost inputs (1299), pilot artifact (1445). Only contact reveals each output; W1 travels with the actual actor root |
+| Decision / 49.6–58.6s | console contact (1531) supplies an evidence packet to the gate; after 24 frames, both conditional routes appear with the opening rack/cloud symbols. Persistent “Pilot one workload”; no exit |
+
+Event frames are derived from the actual composed segment starts and reachable source/local
+markers. Transit/arrival delays are explicit causal offsets from those markers, not global
+wall-clock animation triggers. Seeking in either direction recomputes events and artifacts.
+The four minimal station captions are **Baseline / Requirements / Total cost / Pilot**.
+Active detail sits above the walking lane, while completed summaries stay visible.
+The side-by-side comparison lists **inputs**, not monetary bars: local
+hardware/licences/operations versus cloud migration/usage/operations/egress, over the
+**same time period**. Dependency questions, pilot criteria and a planned rollback do not
+claim validation passes, a completed pilot or readiness. Retention means
+“Requirements cannot be met” or local fits better.
 
 There is no basketball, door, celebration, claimed success or automatic savings.
 CPU is explicitly not proof of waste. The final actor/diagram remain identical
@@ -232,7 +248,7 @@ The generator retains SVG precision and writes `#data` timing for `inspectSlide`
 state, cleanup and offline use; props and illustrative charts stay in the slot.
 
 Autoplay starts with the MCP Replay control for entrances, then advances through
-its Next control for animated build reveals (including Validate). Since the MCP
+its Next control for animated build reveals (including Requirements). Since the MCP
 suppresses its fallback flow when a provider mounts, the provider mounts a
 sanitised copy of the renderer-authored native flow aligned to the same four
 station centres. The existing CSS packet/trace
@@ -244,20 +260,27 @@ and are removed on cleanup. Play/Pause/Replay and the frame slider honour
 The browser verifier captures every beat and checks provider negotiation,
 120–150 px standing height, bounds, slide/scene, actor/object and SVG text overlaps,
 deterministic actor/native-flow seek, native entrance/build/packet animation,
-required workload/evidence/decision shapes, batch-triggered 2→5→2 scaling,
+required workload/evidence/decision shapes, marker-timed before/after reveals and batch-triggered 2→5→2 scaling,
 the final 90-frame hold, console errors, full autoplay and 390 px mobile overflow.
 For actual gallery iframe screenshots at 1440 and 390 px, add
 `--site http://127.0.0.1:<your-preview-port>/` to verification.
-The weakest first-pass scene was the evidence grid: captions touched the actor
-and W1 touched the station panel. The revised projection, aligned native nodes,
-lower station panels and explicit unpriced-estimate caveat address those issues.
+The weakest first-pass scene was the evidence grid: active captions crossed the walking
+lane and a dependency summary touched the caption. Moving the active detail above the
+actor and tightening that summary resolved those overlaps. Intentional hand/control
+interaction is the only actor/object bounding-box overlap exemption; the verifier separately
+measures the **actual final SVG hand endpoint versus the console control**, at each of six
+contact frames, with a ≤4 rendering-pixel gate at 1440×900. The engine-space distance is
+0.488 stage units (0.568–0.577 rendering px); this is not a fabricated contact annotation or a diagram moved off its wire.
 Renderer validation has one advisory `TOPIC_HEADLINE` warning for the requested
 four-verb headline; costs/constraints address the `NO_RISKS` informational note.
 Provider-unavailable info in the raw renderer is resolved by the injected provider;
 the final browser reports no motion diagnostics.
 `tests\deck-provider.test.ts` covers injection, theming, projection/clip
 precision, pilot selection, client syntax, all five scenes' W1 continuity,
-causal capacity states, tangible evidence, conditional routes and the timeline.
+causal capacity states on every cloud frame, contact-marker artifact timing, same-period
+cost inputs without bars, conditional routes, rejection of impossible budgets/extra beats,
+and the timeline. Browser captures remain session artifacts outside Git. This is an
+engineering preview and mechanical/visual self-check, not independent QA or a new user rating.
 
 ## Checks and client integration
 
