@@ -63,14 +63,14 @@ describe("pose library and authoring", () => {
   it("exposes author and preview tools over MCP stdio", async () => {
     const root = await mkdtemp(resolve(`.motion-mcp-test-${process.pid}-`));
     const id = `mcp-draft-${process.pid}`;
-    const specPath = resolve("motions", "specs", `${id}.json`);
+    const specPath = join(root, "authored-preview", `${id}.json`);
     const client = new Client({ name: "motion-authoring-tests", version: "1.0.0" });
     try {
       await client.connect(new StdioClientTransport({ command: process.execPath, args: [resolve("dist", "mcp.js"), "--root", root], stderr: "pipe" }));
       const authored = await client.callTool({ name: "stickman_author_motion", arguments: { ...base(id), outputDir: "authored-preview" } });
       expect(authored.isError, JSON.stringify(authored)).not.toBe(true);
       expect(authored.structuredContent).toMatchObject({ result: { spec: { id, status: "draft" }, checks: { limit: 14, filmScale: 2.4 } } });
-      const preview = await client.callTool({ name: "stickman_preview_motion", arguments: { id, outputDir: "read-only-preview", count: 4 } });
+      const preview = await client.callTool({ name: "stickman_preview_motion", arguments: { id, draftDir: "authored-preview", outputDir: "read-only-preview", count: 4 } });
       expect(preview.isError, JSON.stringify(preview)).not.toBe(true);
       expect(preview.structuredContent).toMatchObject({ result: { id, status: "draft", preview: { samples: 4 } } });
       expect((await readFile(specPath, "utf8"))).toContain('"status": "draft"');
@@ -84,4 +84,3 @@ describe("pose library and authoring", () => {
     }
   }, 120_000);
 });
-

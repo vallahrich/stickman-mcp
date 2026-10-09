@@ -5,7 +5,7 @@ import { once } from "node:events";
 import { createHash } from "node:crypto";
 import ffmpeg from "ffmpeg-static";
 import { Resvg } from "@resvg/resvg-js";
-import { repo, readMotion, parseCatalogue, variants } from "../site/catalogue.mjs";
+import { repo, readMotion, loadCatalogueRows, variants } from "../site/catalogue.mjs";
 import { buildKeyPoseClip, keyPoseGates } from "../motions/keypose.mjs";
 import { loadEngineRenderer } from "../motions/review-renderer.mjs";
 import { RUNTIME_MOTION_LIBRARY } from "../../dist/motion-library.js";
@@ -46,7 +46,7 @@ export async function encodeVideo(filename, frameCount, render, frameRate = fps)
 
 export async function loadShowcaseResources() {
   const propsCatalog = JSON.parse(await fs.readFile(path.join(repo, "motions", "review-props.json"), "utf8"));
-  const approved = new Set(parseCatalogue(await fs.readFile(path.join(repo, "docs", "motion-catalog-plan.md"), "utf8"))
+  const approved = new Set((await loadCatalogueRows())
     .filter(row => row.status === "user-approved").flatMap(row => [row.id, ...(variants[row.id] ?? [])]));
   const css = await fs.readFile(path.join(repo, "site", "styles.css"), "utf8");
   const colors = Object.fromEntries([...css.split('html[data-theme="dark"]')[0].matchAll(/--cp-([\w-]+):\s*([^;]+);/g)].map(m => [m[1], m[2].trim()]));

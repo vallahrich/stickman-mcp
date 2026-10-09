@@ -1,7 +1,7 @@
 # Showcase sources and notices
 
 The active showcase contains one illustrative on-premises-to-cloud HTML slide
-and two original, 56-second stickman story videos. It contains no NIST or NASA presentations.
+and two original stickman story videos, each under one minute. It contains no NIST or NASA presentations.
 The comparison metric is an example, not customer telemetry or a savings claim.
 Cloud is not automatically cheaper; a migration decision needs workload,
 security, performance and total-cost evidence.
@@ -28,10 +28,14 @@ Fonts are local. No remote video-generation API is used.
 `ffmpeg-static` and the local SVG rasterizer are optional encoding tools with
 their own licensing terms. Their binaries are not embedded in the output.
 The two videos are silent H.264 MP4 files with burned-in text and optional,
-cue-timed English VTT captions, each 56 seconds long. Non-looping lead actions
+cue-timed English VTT captions. Exact durations are recorded in the manifest. Non-looping lead actions
 are not truncated. Source-spec fingerprints and encoded-file hashes are recorded
 in the local manifest so the selected motion versions and media are identifiable.
-The deck's timeline is 57 seconds; its 18% utilisation figure is illustrative, not measured.
+The private review deck's utilisation figure is illustrative, not measured.
+The release candidate instead uses an original native Stickman player with a
+fixed workload identity, aligned diagrams and a quieter qualified presenter.
+Its demand bars are illustrative, not telemetry. No external presentation
+runtime, private deck or screenshots are distributed with that candidate.
 
 ## Open-source story
 

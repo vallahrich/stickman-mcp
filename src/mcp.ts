@@ -14,6 +14,7 @@ import { getStory, storyCatalog } from "./stories.js";
 import { filmRecipeSchema } from "./film-schema.js";
 import { composeFilmRecipe, renderFilmRecipe, listFilmAssets, checkFilmJoin } from "./film.js";
 import { authorMotionDraft, previewMotionStrip } from "./motion-authoring.js";
+import { readFileSync } from "node:fs";
 
 type ObjectSchema = JsonSchemaType & { type: "object" };
 type DefinedTool = Omit<Tool, "inputSchema" | "outputSchema"> & {
@@ -114,7 +115,8 @@ const authorMotionInput: ObjectSchema = { type: "object", additionalProperties: 
   } } }
 } };
 const motionPreviewInput: ObjectSchema = { type: "object", additionalProperties: false, required: ["id", "outputDir"], properties: {
-  id: { type: "string", pattern: "^[a-z][a-z0-9-]{0,63}$" }, outputDir: { type: "string", minLength: 1 }, count: { type: "integer", minimum: 2, maximum: 24 }
+  id: { type: "string", pattern: "^[a-z][a-z0-9-]{0,63}$" }, outputDir: { type: "string", minLength: 1 }, count: { type: "integer", minimum: 2, maximum: 24 },
+  draftDir: { type: "string", minLength: 1, description: "Optional existing relative draft directory under --root (the author's outputDir). Otherwise read the packaged library." }
 } };
 const motionDraftResult: ObjectSchema = { type: "object", required: ["spec", "specPath", "preview", "checks"], properties: {
   spec: { type: "object" }, specPath: { type: "string" }, preview: { type: "object" }, checks: { type: "object" }
@@ -124,7 +126,7 @@ const motionPreviewResult: ObjectSchema = { type: "object", required: ["id", "st
 } };
 
 const toolDefinitions: DefinedTool[] = [
-  defineTool("stickman_compose_film", "Validate a strict JSON film recipe and compose continuous lead/supporting performances; return scene and item frame ranges, duration and joint-step continuity (limit 14). Source checkout required.", filmInput, filmResultSchema),
+  defineTool("stickman_compose_film", "Validate a strict JSON film recipe and compose continuous lead/supporting performances; return scene and item frame ranges, duration and joint-step continuity (limit 14). Composer and assets are included in the installed package.", filmInput, filmResultSchema),
   defineTool("stickman_render_film", "Render a JSON film recipe to silent MP4, poster PNG, captions VTT and optional QA PNG. outputDir must be a NEW relative directory inside the launch-time --root; existing paths and symlinks are refused. preview uses 640x360 at 15 fps, preserving duration.", {
     ...filmInput, required: ["recipe", "outputDir"], properties: { ...filmInput.properties,
       outputDir: { type: "string", minLength: 1 }, preview: { type: "boolean" }, qaFrames: { type: "integer", minimum: 1, maximum: 24 } }
@@ -137,7 +139,7 @@ const toolDefinitions: DefinedTool[] = [
       kits: { type: "array", items: { type: "string" } }, places: { type: "array", items: { type: "string" } }, overlays: { type: "array", items: { type: "string" } }, recipeSchema: { type: "object" }
     }
   }),
-  defineTool("stickman_author_motion", "Author a status=draft motion from named reusable pose keys, run engine anatomy/contact/joint-step gates plus film-scale continuity (2.4x, limit 14), write motions/specs/<id>.json, and save a preview strip PNG into a new relative outputDir under --root. Existing non-draft specs are protected; drafts are not film assets.", authorMotionInput, motionDraftResult, { writes: true }),
+  defineTool("stickman_author_motion", "Author a status=draft motion from named reusable pose keys, run engine anatomy/contact/joint-step gates plus film-scale continuity (2.4x, limit 14), write <id>.json and a preview PNG into a new relative outputDir under --root. The installed library is never modified; packaged non-draft IDs are protected; drafts are not film assets.", authorMotionInput, motionDraftResult, { writes: true }),
   defineTool("stickman_preview_motion", "Render a draft, candidate, or approved motion as a sampled preview strip PNG into a new relative outputDir under --root. Read-only on the motion spec.", motionPreviewInput, motionPreviewResult, { writes: true }),
   defineTool("stickman_check_join", "Check an approved motion pair and return its film-scale hard-join cost, continuity limit and suggested generated bridge length.", {
     type: "object", additionalProperties: false, required: ["motionA", "motionB"], properties: {
@@ -228,7 +230,8 @@ function isExportFormat(value: unknown): value is ExportFormat {
 }
 
 export function createMcpServer(outputRoot: string): Server {
-  const server = new Server({ name: "stickman-mcp", version: "0.1.0" }, { capabilities: { tools: {} } });
+  const version = (JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { version: string }).version;
+  const server = new Server({ name: "stickman-mcp", version }, { capabilities: { tools: {} } });
   server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: toolDefinitions }));
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: input = {} } = request.params;
@@ -245,7 +248,7 @@ export function createMcpServer(outputRoot: string): Server {
         case "stickman_list_film_assets": return result(await listFilmAssets());
         case "stickman_check_join": return result(await checkFilmJoin(stringArgument(args, "motionA"), stringArgument(args, "motionB")));
         case "stickman_author_motion": return result(await authorMotionDraft(args, outputRoot, stringArgument(args, "outputDir")));
-        case "stickman_preview_motion": return result(await previewMotionStrip(stringArgument(args, "id"), outputRoot, stringArgument(args, "outputDir"), args.count === undefined ? 8 : args.count as number));
+        case "stickman_preview_motion": return result(await previewMotionStrip(stringArgument(args, "id"), outputRoot, stringArgument(args, "outputDir"), args.count === undefined ? 8 : args.count as number, args.draftDir === undefined ? undefined : stringArgument(args, "draftDir")));
         case "stickman_render_film": return result(await renderFilmRecipe(args.recipe, outputRoot, stringArgument(args, "outputDir"), {
           ...(args.preview === undefined ? {} : { preview: args.preview as boolean }),
           ...(args.qaFrames === undefined ? {} : { qaFrames: args.qaFrames as number })

@@ -30,8 +30,19 @@ export function parseCatalogue(markdown) {
     const row = line.match(/^\| `([^`]+)` \| ([^|]+) \| ([^|]+) \| (.*) \|$/);
     if (row) rows.push({ id: row[1], status: row[2].trim(), family, note: row[4].trim() });
   }
+
   if (rows.length !== 100 || new Set(rows.map(r => r.id)).size !== 100) throw new Error("Catalogue must contain 100 unique motion records");
   return rows;
+}
+
+// Installed packages ship minimal runtime status metadata, not private review notes.
+export async function loadCatalogueRows() {
+  try {
+    return JSON.parse(await fs.readFile(path.join(repo, "motions", "catalogue.json"), "utf8")).rows;
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+    return parseCatalogue(await fs.readFile(path.join(repo, "docs", "motion-catalog-plan.md"), "utf8"));
+  }
 }
 
 export async function readMotion(id) {
@@ -49,7 +60,7 @@ export function releaseMotionSpec(spec) {
 }
 
 export async function buildCatalogue(output, { development = false } = {}) {
-  const rows = parseCatalogue(await fs.readFile(path.join(repo, "docs", "motion-catalog-plan.md"), "utf8"));
+  const rows = await loadCatalogueRows();
   const approved = rows.filter(r => r.status === "user-approved");
   const propsCatalog = JSON.parse(await fs.readFile(path.join(repo, "motions", "review-props.json"), "utf8"));
   const motions = [];
@@ -85,6 +96,7 @@ export async function buildCatalogue(output, { development = false } = {}) {
       tags: [...(publicSpec.tags ?? []), ...(useCases[row.id] ?? [])], duration: +(clip.frames.length / clip.fps).toFixed(2), loop: Boolean(clip.loop),
       ...(development ? { status: row.status, note: row.note, score: row.note.match(/\b(\d+(?:\.\d+)?)\/10\b/)?.[1] ?? null } : {}),
       runtimeIdAvailable: RUNTIME_ACTION_NAMES.includes(sourceId),
+      approval: row.status,
       mechanicalCheck: gates?.passed === false ? "needs-requalification" : gates ? "passed" : "runtime-fixture",
       poster: `posters/${row.id}.svg`, preview: `motions/${row.id}.html`, spec: `specs/${row.id}.json`
     };

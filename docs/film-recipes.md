@@ -178,9 +178,11 @@ file URL, which works from arbitrary client working directories on Windows.
 
 This is the least-risk option: retaining the reviewed `.mjs` rendering code
 avoids a TS port changing clip samples, rounding, font outlining or video bytes.
-The private server runs **from a built source checkout**, not a dist-only/npm
-installation: retain `scripts`, `motions`, `docs` and `site`, and run the build
-after schema changes. Original showcase recipes remain trusted JS and keep their
+The reviewed full-product tarball includes the shared scripts, motion assets,
+minimal approval metadata and styles required by the server. It works outside
+the source checkout; film/PNG features require the optional rasterizer/encoder
+dependencies. Source development still needs a build after schema changes.
+Original showcase recipes remain trusted JS and keep their
 existing bespoke overlays; public JSON recipes always use declarative overlays,
 even if their ID matches a showcase ID. No approved motion specifications were
 changed. Automatic pair analysis and bounded transitions are available in Phase 2; they do

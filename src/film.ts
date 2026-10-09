@@ -1,8 +1,8 @@
 import { mkdir, rm } from "node:fs/promises";
 import { resolveSafeOutputPath } from "./export.js";
 
-// The private source checkout owns the shared .mjs composer. Resolve relative to
-// this module, not the launch directory (which may be a client's output folder).
+// The package ships the shared composer and its assets. Resolve relative to
+// this module, never the client's working directory.
 const runtimeUrl = new URL("../scripts/film/api.mjs", import.meta.url);
 type FilmApi = {
   composeRecipe(recipe: unknown): Promise<Record<string, unknown>>;

@@ -68,7 +68,7 @@ function renderCatalogue() {
     const body = document.createElement("div"); body.className = "card-body";
     const title = document.createElement("h3"); title.textContent = motion.label;
     const meta = document.createElement("div"); meta.className = "card-meta";
-    const family = document.createElement("span"); family.textContent = motion.family;
+    const family = document.createElement("span"); family.textContent = `${motion.family} · ${motion.approval ?? "approval not recorded"}`;
     meta.append(family);
     if (catalogue.development) {
       const score = document.createElement("span"); score.className = "score"; score.textContent = motion.score ? `${motion.score}/10` : "Dev approved";
@@ -87,7 +87,7 @@ for (const family of [...new Set(catalogue.motions.map(m => m.family))]) {
   const option = document.createElement("option"); option.value = family; option.textContent = family; $("category").append(option);
 }
 $("category").value = "IT";
-$("heroStatus").textContent = `One slide + two short films · ${catalogue.motionCount} motion building blocks · private, local-first preview${catalogue.development ? " · development review mode" : ""}`;
+$("heroStatus").textContent = `One native story + two short films · ${catalogue.motionCount} motion building blocks · local-first${catalogue.development ? " · development review mode" : ""}`;
 $("search").addEventListener("input", renderCatalogue);
 $("category").addEventListener("change", renderCatalogue);
 $("runtimeOnly").addEventListener("change", renderCatalogue);

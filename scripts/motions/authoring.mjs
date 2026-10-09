@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { randomUUID } from "node:crypto";
 import { Resvg } from "@resvg/resvg-js";
 import { buildKeyPoseClip, keyPoseGates } from "./keypose.mjs";
 import { engineSampledFrame, loadEngineRenderer, renderStaticSvg } from "./review-renderer.mjs";
@@ -151,5 +152,4 @@ export async function previewMotion(id, { specDir = defaultSpecsDir, outputFile,
   const preview = await renderMotionStrip(spec, outputFile, { count, clip });
   return { id, status: spec.status, preview, checks: gates };
 }
-
 

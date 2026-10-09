@@ -10,12 +10,22 @@ Runtime dependency:
 Optional video renderer:
 - @resvg/resvg-js 2.6.2 and its platform binding packages, MPL-2.0; upstream
   source and license: https://github.com/yisibl/resvg-js.
-- FFmpeg is an external system executable, not bundled here. Its applicable
-  license depends on the user's separately installed build and enabled codecs.
+- ffmpeg-static is an optional npm dependency. Its JavaScript package is
+  GPL-3.0-or-later; it installs a platform-specific FFmpeg executable whose
+  license and source obligations depend on that build. Neither dependency
+  copies nor executables are bundled in our release tarball or static demo.
+  npm may install them separately. Redistributing an executable requires
+  checking that build's terms; a system FFmpeg is not assumed license-free.
 
 Motion clip data:
 - The data used in this project was obtained from mocap.cs.cmu.edu. The
   database was created with funding from NSF EIA-0196217. The repository
   contains only compact 2D derived clips; raw BVH files are not bundled.
+- CMU permits copying, modification and redistribution without permission
+  and use in commercial products, but not resale of the dataset itself,
+  including converted forms. These motion data are not relicensed as MIT.
+  See docs/rights.md for dated evidence and conversion provenance.
+- Original authored key-pose specifications, poses and vector props use the
+  repository's MIT license; CMU-derived fixtures remain separately identified.
 
 Dependency copies, where installed, retain their upstream license files.

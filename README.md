@@ -19,9 +19,10 @@ git clone git@github-vallahrich:vallahrich/stickman-mcp.git
 
 Do not force push to shared branches.
 
-For the private-development/public-release plan and local, fail-closed release
+For the connected MCP/library/demo preparation and local, fail-closed release
 commands, see [releasing](docs/releasing.md). Nothing is publicly published by
-these commands; motion-data provenance and the public scope remain blockers.
+these commands. CMU/conversion permissions and full-product scope are documented;
+final owner content/hash review and publication authorization remain separate.
 
 ## Requirements and setup
 
@@ -53,8 +54,9 @@ films (MP4, poster, captions and optional QA sheet). Automatic pose-space bridge
 are on by default for MCP recipes; each is reported with its join, frame range and
 before/after continuity cost. Scene/actor timelines and continuity are checked
 before writing to a new relative directory under `--root`.
-The private source checkout and optional `ffmpeg-static` / `@resvg/resvg-js`
-packages are required. Preview mode samples at 640x360 / 15 fps.
+The reviewed release candidate ships the composer and assets; a private source
+checkout is no longer required. Optional `ffmpeg-static` / `@resvg/resvg-js`
+packages are required for film/PNG features. Preview mode samples at 640x360 / 15 fps.
 See [film recipes](docs/film-recipes.md) and the runnable
 [`team-handoff` example](examples/films/team-handoff.json) and the
 [`bridge-demo` walk-to-look-around transition](examples/films/bridge-demo.json):
@@ -68,6 +70,8 @@ node examples\films\render.mjs .\output
 
 Build a new mechanically checked motion draft from reusable key poses with
 `stickman_author_motion`, then inspect it using `stickman_preview_motion`.
+Draft JSON and PNG go into the new outputDir under --root, never the installed
+library. Preview that draft with `draftDir` equal to its authoring outputDir.
 Drafts stay out of films until explicitly user-approved. See the [motion
 authoring guide](docs/motion-authoring.md) and regenerate the pose library with
 `npm run motions:poses`.
@@ -154,7 +158,8 @@ node dist/mcp.js --root C:\Projects\MyPresentation\stickman-output
 ```
 
 The MCP tools are `stickman_discover`, `stickman_describe`, `stickman_schema`, `stickman_validate`, `stickman_compile`, `stickman_preview`, `stickman_export`, `stickman_story`, `stickman_list_film_assets`,
-`stickman_check_join`, `stickman_compose_film`, and `stickman_render_film`. Their advertised input schemas are enforced without type coercion. Results retain the existing JSON text and add schema-described structured output; unknown tools are protocol errors, while argument and execution failures are actionable tool errors. The server does not edit client configuration or accept an output-root override from a tool request.
+`stickman_check_join`, `stickman_compose_film`, `stickman_render_film`,
+`stickman_author_motion`, and `stickman_preview_motion`. Their advertised input schemas are enforced without type coercion. Results retain the existing JSON text and add schema-described structured output; unknown tools are protocol errors, while argument and execution failures are actionable tool errors. The server does not edit client configuration or accept an output-root override from a tool request.
 
 Call `stickman_story` with `{}` to discover the combined stories, or
 `{"id":"cloud-journey"}` to get an executable `animation` plus host `cues`.
@@ -233,4 +238,4 @@ Future work should first broaden tested locomotion/facing and prop-contact profi
 
 ## Rights and notices
 
-The source and geometric actor are original to this repository and released under [MIT](LICENSE). No source, assets, or derivatives from the separate TemplatePresentation project are included. `@resvg/resvg-js` (optional), FFmpeg (external), and the compact CMU-derived motion clips retain their own notices; see [NOTICE](NOTICE). No third-party character or reference artwork is bundled.
+The source and geometric actor are original to this repository and released under [MIT](LICENSE). No source, assets, or derivatives from the separate TemplatePresentation project are included. `@resvg/resvg-js`, the optional `ffmpeg-static` dependency and its separately installed executable, and compact CMU-derived motion clips retain their own terms; see [NOTICE](NOTICE) and [rights](docs/rights.md). Package metadata points to NOTICE because CMU data is not MIT. No third-party character or reference artwork is bundled.

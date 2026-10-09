@@ -3,7 +3,7 @@ import { GENERATED_MOTION_LIBRARY } from "./generated/motion-library.js";
 
 type MetaSeed = Pick<MotionClipMeta, "id" | "label" | "summary" | "kind" | "travel" | "facingChange" | "contacts" | "aim" | "prop" | "mirrorable" | "tags">;
 
-const license = "CMU-derived/generated local motion clip; keep private until legal review.";
+const license = "CMU motion data: copying, modification and redistribution permitted; not for standalone dataset resale. See NOTICE and docs/rights.md. Not MIT.";
 const source = "runtime fixture library";
 
 function meta(seed: MetaSeed, clip: MotionClip): MotionClipMeta {

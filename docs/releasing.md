@@ -1,141 +1,142 @@
-# Private development, reviewed public releases
+# Connected product: private preparation, reviewed public releases
 
-## Status and decisions
+## Scope and authorization (2026-10-09)
 
-On 2026-10-09, read-only GitHub metadata showed `vallahrich/stickman-mcp`
-is **private**, default branch `vallahrich-stickman-mcp-engine`, no releases,
-and `has_pages: false`. The Pages endpoint returned 404. No visibility,
-release, account, deployment or registry settings have been changed.
+The owner explicitly selected **the MCP, library and connected demo interface**,
+not a core-only package. Local preparation is authorized; public upload,
+repository creation/visibility change, npm publishing and Pages deployment are
+**not**. Keep development private under `vallahrich/stickman-mcp`. Do not push
+to the retired corporate `origin`.
 
-The owner was unavailable to choose public repository + demo, repository
-visibility change, or demo only. This implementation is **local preparation,
-not public launch**. Keep the canonical repository private. Do not push to
-the retired corporate `origin`; use `vallahrich`.
+The previous core-only gate is replaced, not retained as a separate product.
+CMU permits copying, modification and redistribution; the documented BVH
+conversion adds no additional restriction. CMU's current no-standalone-dataset-
+resale restriction and acknowledgment remain. See [rights.md](rights.md).
+These evidence-backed terms are separate from MIT for our original code/work.
+No blanket legal certification is claimed.
 
-## Plan
-
-1. **Keep private development.** Work in feature branches, test, review and
-   fast-forward/merge under the repository's contribution policy.
-2. **Resolve ownership and provenance.** The engine imports embedded
-   CMU-derived data from `src/motion-clips.ts` and
-   `src/generated/motion-library.ts`. `src/motion-library.ts` explicitly says
-   to keep clips private until legal review. `user-approved` motion status is
-   a visual/mechanical review, not redistribution permission. Obtain and
-   document permission/attribution or replace the data, including derivatives.
-   Do not strip attribution or assume MIT covers third-party motion data.
-3. **Agree public scope.** Recommended first scope: versioned core library/CLI
-   artifacts in a **separate, owner-approved public release repository** under
-   vallahrich, with a sanitized README and no private Git history. This remains
-   a recommendation, not authorization to create that repository. Full MCP,
-   film tooling and a public demo need separate scope/provenance reviews.
-4. **Audit and prepare locally.** Exact inputs, clean isolated compilation,
-   content hashes, license inventory and exact npm tarball membership;
-   no reuse of `dist` and no dependencies bundled.
-5. **Review an immutable version.** Use SemVer, e.g. `0.1.0-rc.1` for a
-   prerelease. Record private source commit, candidate hash, permission
-   evidence, verification and an owner sign-off in a private release log.
-   Add sanitized public CHANGELOG/release notes describing the actual scope.
-6. **Publish only after explicit approval.** In the approved destination,
-   upload only the reviewed artifact, checksum and sanitized release notes
-   under a version tag. Never mirror branches/history or use checkout-root
-   `npm pack`. Tags/assets should remain stable; fixes get a new version.
-7. **Continue improving privately.** Public users retain the stable release
-   while private feature branches move forward. Repeat the same review and
-   versioned release process for each update. Public feedback may be triaged
-   in the eventual public repository without exposing private context.
-
-## Implemented local commands
+## Local candidate commands
 
 ```powershell
+npm run build
+npm run typecheck
+npm test -- --maxWorkers=1 --no-file-parallelism
 npm run release:check
 npm run release:prepare
+# A later candidate must use a NEW immutable version:
+npm run release:prepare -- 0.1.0-rc.2
 ```
 
-`release:check` prints a JSON audit to stdout: version, exact source/docs
-paths and SHA-256, scope, exclusions, license inventory and blockers.
-It exits **1 while blocked**. It writes no artifact and is **not a secret scan,
-legal review or certification**; do not upload the audit without reviewing it.
+`release:check` prints exact input SHA-256, provenance/license inventory,
+scope and remaining review requirements. `ready: true` means **private
+preparation can run**, never permission to publish. `publicationApproved`
+remains false. Unknown motion origins, missing license metadata, suspicious
+private-content signatures, traversal, symlinks and changed input hashes fail.
+The bounded scan is not a complete secrets or history audit.
 
-`release:prepare` performs the same audit and currently exits **1 before
-staging**. No production candidate can currently be built or published.
-After owner scope approval and documented content/provenance review, update
-the reviewed `scripts/release/policy.mjs` in a normal tested change, recording
-every reviewed input hash in `approvedInputs`. Missing, extra or changed hash
-entries keep the gate blocked. There is
-no `--force`, approval environment variable, publisher or upload workflow.
-Do not clear blockers merely to make a command green. Any included file
-change requires renewed review and an updated approved hash; hashes identify
-content, not permission.
+`release:prepare` compiles a fresh full-product workspace from explicit file
+names, never copies an existing `dist`, review deck or screenshot, and writes:
 
-When the gate is legitimately cleared, preparation:
+```text
+.release-local/0.1.0-rc.1/
+  vallahrich-stickman-mcp-0.1.0-rc.1.tgz
+  stickman-source-0.1.0-rc.1.zip
+  stickman-site-0.1.0-rc.1.zip
+  provenance.json
+  site/                         # extracted site for local inspection
+```
 
-- copies only the exact core TypeScript allowlist, LICENSE, NOTICE and the
-  dedicated candidate README into a fresh temporary directory;
-- compiles there using installed TypeScript/types (run setup first), checks
-  emitted files against the allowlist and removes source/build configuration;
-- generates a separate `@vallahrich/stickman-core` package, retaining
-  `private: true`, and a SHA-256 manifest of every payload file (the manifest
-  does not hash itself); the returned tarball checksum covers the whole archive;
-- runs `npm pack --dry-run --ignore-scripts --offline`, verifies membership,
-  and then packs locally without install scripts, uploads or network access;
-- writes only `.release-local/vallahrich-stickman-core-<version>.tgz`,
-  refusing existing artifacts or a symlink output directory, and removes
-  temporary staging on success or failure.
+Existing version directories are refused. Failure removes only that attempt's
+new output directory and temporary workspace; it never overwrites a candidate.
+No command uploads anything. Root `npm pack` is guarded; use the isolated
+builder, not a private-checkout pack. Main package and candidate stay
+`private: true` until a separate, explicitly authorized publication change.
 
-The public candidate is **not the existing full package**. It excludes the
-MCP server and its source-checkout-dependent film/motion-authoring tools,
-SDK, gallery, specs/ratings, presentations, examples, videos, existing
-`dist`, browser captures, credentials and repository history. Core SVG/HTML
-library and CLI remain usable; optional video dependencies must be installed
-separately. LICENSE/NOTICE must be corrected where necessary during legal
-review; the current notices are not proof that redistribution is permitted.
+### Package
 
-Tests exercise the future staging/packing path with a test-only ready audit;
-that does **not** clear the production blockers or approve the tested data.
+One package, **@vallahrich/stickman-mcp**, contains:
 
-## Public demo / full MCP follow-up
+- compiled engine/library and declarations; `/browser`, `/room`, `/keyboard`;
+- `stickman` CLI and `stickman-mcp` stdio server;
+- shared film composer, renderer, join checker and authoring modules;
+- motion specs, minimal approval metadata, pose library, props and join matrix;
+- example animation/film recipes, candidate README, LICENSE, NOTICE and rights;
+- exact payload manifest and upstream dependency license inventory.
 
-The external dynamic presentation MCP is private/UNLICENSED; do not copy,
-package or publish it or its private source deck/output. Full MCP films also
-need reviewed script/data dependencies; the core artifact must not advertise
-those tools. A demo must be built from independently reviewed public-safe
-assets and content, with no private deck screenshots, URLs or end-user data.
+The SDK and optional renderers are npm dependencies, not vendored copies.
+Film/PNG rendering needs @resvg/resvg-js and an installed FFmpeg binary from
+ffmpeg-static. Ordinary npm installation runs that dependency's installer;
+an offline smoke test uses `--ignore-scripts` and separately provisions a
+known local encoder. That exception does not claim FFmpeg is in our tarball.
 
-GitHub Pages is a hosting option, not implemented here. GitHub Free requires
-a public repository for Pages; private-repository eligibility depends on
-the plan or organization. Verify the account's current plan and the intended
-site's visibility before enabling it:
-https://docs.github.com/en/pages/getting-started-with-github-pages/creating-a-github-pages-site
-Do not assume a private source repository makes a Pages site private.
+MCP runs outside the checkout. Authoring writes JSON drafts and previews into
+the requested new outputDir under --root, never into installed approved specs.
+Preview a saved draft with `draftDir` equal to the author's outputDir.
+Packaged non-draft IDs, path escapes and draft symlinks are protected.
 
-## Release review checklist
+### Demo interface
 
-- [ ] Owner approves exact public scope/destination and any repository creation.
-- [ ] Ownership and third-party redistribution evidence covers all derivatives.
-- [ ] Every allowlisted file, candidate README and notice reviewed for private
-      content/secrets; no claim that excluded history has been audited.
-- [ ] Correct license inventory/attribution; dependencies audited if added.
-- [ ] `npm test` and `npm run typecheck` pass.
-- [ ] Local preparation, exact tar membership, installed CLI/library smoke
-      checks and hashes reviewed for the actual version.
-- [ ] Sanitized CHANGELOG/release notes, immutable tag and checksum agreed.
-- [ ] Explicit owner authorization for publication; no npm publishing assumed.
+The existing gallery remains the single interface: demos, motion library,
+local installation/stdio connection and rights links. Production catalogue
+shows actual approval and runtime availability without ratings or private
+review notes. Mechanically failing entries are excluded, not falsely approved.
 
-Nothing in this document authorizes a visibility change or publication.
+The public-safe cloud story uses an original native shell, aligned diagrams,
+a fixed workload identity and a quiet, slower qualified presenter derivative.
+No moving W1 glyph, decorative flow dot, four cramped miniature cards, console
+taps or deck replant hops. Native-specific timing does not modify or newly
+approve any library spec. Mobile uses readable semantic scene summaries rather
+than shrinking diagram microtext. Playback defaults to paused; reduced motion,
+keyboard seeking, text summaries and visibility pause are supported.
 
-## Preparation verification (2026-10-09)
+The two original silent films are rebuilt from the repository's reviewed
+recipes and motion assets. Existing private review media is untouched.
+The external dynamic presentation renderer, its JS/output, private templates
+and screenshots are not distributed. Its private review presentation is
+not evidence of publication readiness; the owner's 7/10 feedback motivated
+the native replacement, not a claim that sampled v10 tests proved polish.
 
-- Full regression suite: 29 test files, 488 tests passed; build and typecheck
-  passed. There is no lint command configured in this repository.
-- Test-only staging produced the exact 41-file core package: 18 JavaScript
-  modules, 18 declarations, package metadata, candidate README, LICENSE,
-  NOTICE and hash manifest. Dry-run and actual tarball membership matched.
-- The tarball installed offline into a temporary directory outside the
-  checkout. CLI discovery, SVG preview, library import and manifest hashes
-  passed. The test artifact and installation were removed.
-- Both production release commands returned the expected blocked exit code;
-  no `.release-local` artifact directory was created.
+Only the explicitly isolated candidate site has indexable robots configuration;
+ordinary private builds retain noindex. A local static server is for inspection,
+not a public MCP endpoint. Serve the extracted site directory and open index.html.
 
-These checks verify preparation mechanics, not public content approval or
-third-party redistribution permission. No public repository, release, Pages
-site or npm package was created.
+### Source and manifests
+
+The curated source ZIP reconstructs this package and native demos, not the
+entire private repository. It includes the exact selected source/scripts,
+sanitized specs, minimal approval data, CSS/templates and installation docs.
+Excluded: private review ledger/ratings, history, scratch output, screenshots,
+raw BVH, external renderer and dependency binaries.
+
+ZIP files use deterministic stored entries and reject symlinks/ZIP64 sizes.
+Payload manifests hash every file except themselves. Whole-archive SHA-256
+in provenance covers the manifests too. Hashes identify bytes, not ownership.
+The private source commit and exact input hashes are recorded; if prepared
+before committing, hashes are authoritative and the commit is marked as
+possibly preceding release-preparation edits.
+
+## Verification and final approval
+
+Before handing a particular candidate to the owner:
+
+- check exact dry-run and real tarball membership;
+- install away from the checkout; exercise library imports, CLI and MCP stdio
+  discovery, film assets/compose/preview, joins, authoring and draft preview;
+- verify installed payload hashes and approved-library immutability;
+- check native layout on **every frame**, stricter visible displacement and
+  acceleration, actual continuous browser playback, mobile/reduced motion;
+- inspect candidate gallery, demo playback, installed connection commands,
+  notices and no private/absolute links; validate all archive hashes;
+- inspect the final diff; run the full serial regression suite and typecheck.
+
+Browser evidence is local under `.release-local/native-review/`, including
+continuous playback recording, screenshots and checks. This is self-verification,
+not independent QA, an owner rating, legal approval or a guarantee of arbitrary
+contact-safe choreography.
+
+The remaining real decisions are owner final-file content/ownership/hash
+sign-off and the publication destination/upload. Recommend a separately
+approved public release repository/snapshot under vallahrich with sanitized
+release notes and immutable versions, not a wholesale mirror of private history.
+Do not create it, publish npm, upload assets, change visibility or deploy until
+explicitly authorized. Continued development remains private.
