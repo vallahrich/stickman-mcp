@@ -347,6 +347,31 @@ try {
   else check(report.autoplay.playing && report.autoplay.frame > 120 && report.autoplay.slide === "on-prem", `autoplay ${JSON.stringify(report.autoplay)}`);
   await auto.close();
 
+  // A host can reopen a panel with a stale scale without issuing window resize.
+  const panel = await browser.newPage({ viewport: { width: 698, height: 595 } });
+  panel.on("pageerror", e => errors.push(e.message));
+  await panel.goto(`${url}?paused=1`);
+  await panel.click("#btn-view");
+  await panel.evaluate(() => window.StickmanDeckAutoplay.seek(1165));
+  await panel.waitForTimeout(700);
+  await panel.evaluate(() => {
+    document.documentElement.style.setProperty("--scale", "0.75");
+    window.dispatchEvent(new Event("pageshow"));
+  });
+  await panel.waitForTimeout(200);
+  report.panelFit = await panel.evaluate(() => ({
+    view: window.DynamicDeck.state().view,
+    stages: document.querySelectorAll("#evidence .stickman-native-flow .flow-stage").length,
+    outside: [...document.querySelectorAll("#evidence .scene-stage text")].filter(el => {
+      const r = el.getBoundingClientRect();
+      return r.width && (r.left < -1 || r.right > innerWidth + 1);
+    }).map(el => el.textContent)
+  }));
+  check(report.panelFit.view === "present" && report.panelFit.stages === 4 && !report.panelFit.outside.length,
+    "reopened narrow panel retains stale presentation scale: " + JSON.stringify(report.panelFit));
+  await panel.screenshot({ path: path.join(shots, "panel-698.png") });
+  await panel.close();
+
   // Mobile reading view with reduced motion.
   const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
   mobile.on("pageerror", e => errors.push(e.message));

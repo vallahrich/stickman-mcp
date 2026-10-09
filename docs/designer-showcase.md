@@ -21,6 +21,9 @@ only the station beside the actor has a visible console. The final decision
 uses a single readable fork with open criteria, larger route labels and no
 console-to-gate wiring or leftover instruction after the decision reveal.
 Motion quality and overall presentation quality remain subject to user review.
+The embedded preview also observes its document size and refreshes the renderer
+when the panel is resized or made visible again. This avoids retaining a stale
+presentation scale when the host does not deliver a window resize event.
 
 `scripts\site\render-cloud-deck.mjs` now calls the installed Dynamic Presentation
 MCP over stdio: `get_authoring_guide`, `validate_deck`, `motion_status`, and

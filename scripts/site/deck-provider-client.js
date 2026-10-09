@@ -7,6 +7,21 @@
   var film = JSON.parse(document.getElementById("stickman-frames").textContent);
   var deck = window.DynamicDeck;
   if (!deck) return;
+  // Embedded panels can change size without delivering the renderer's window resize event.
+  var layoutFrame = 0;
+  function refreshLayout() {
+    if (layoutFrame) cancelAnimationFrame(layoutFrame);
+    layoutFrame = requestAnimationFrame(function () {
+      layoutFrame = 0;
+      window.dispatchEvent(new Event("resize"));
+    });
+  }
+  var layoutObserver = new ResizeObserver(refreshLayout);
+  layoutObserver.observe(document.documentElement);
+  window.addEventListener("pageshow", refreshLayout);
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden) refreshLayout();
+  });
   var fps = timing.fps;
   var V = film.view;
   var clock = { external: null };
