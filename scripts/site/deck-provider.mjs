@@ -234,10 +234,13 @@ export function stagePosition(performance, frame) {
   const segments = performance.segments;
   const index = segments.findIndex(seg => frame <= seg.end);
   const seg = segments[index];
-  if (frame < seg.start) return segments[index - 1]?.root ?? seg.root;
+  // A walk finishes at the following segment's root, not at its own starting root.
+  // Reusing that start during the join briefly snaps the projection back a station.
+  if (frame < seg.start) return seg.root;
   if (seg.kind !== "walk") return seg.root;
   const to = segments[index + 1]?.root ?? seg.root;
-  return seg.root + (to - seg.root) * (frame - seg.start) / Math.max(1, seg.end - seg.start);
+  const progress = Math.min(1, (frame - seg.start) / Math.max(1, seg.length - 1));
+  return seg.root + (to - seg.root) * progress;
 }
 
 /** Render every performance frame into deduplicated back/actor/front SVG fragments. */

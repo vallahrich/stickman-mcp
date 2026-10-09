@@ -133,6 +133,7 @@ try {
     report.frameLayout = await page.evaluate(async total => {
       const violations = [];
       const touches = (a,b) => a.left < b.right-1 && a.right > b.left+1 && a.top < b.bottom-1 && a.bottom > b.top+1;
+      let previousHead = null, maxHeadStep = 0, worstHeadFrame = null;
       for(let frame=0;frame<total;frame++) {
         window.StickmanDeckAutoplay.seek(frame);
         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
@@ -142,6 +143,17 @@ try {
         if (Number(stage.getAttribute("data-frame")) !== frame) {
           violations.push({frame, issue:"stale rendered frame"}); continue;
         }
+        const head = stage.querySelector('[data-stickman-actor] [data-stickman="exact-pivot"] circle');
+        if(id==="evidence" && head) {
+          const point = new DOMPoint(head.cx.baseVal.value, head.cy.baseVal.value).matrixTransform(head.getScreenCTM());
+          const bounds = stage.getBoundingClientRect();
+          const position = {x:(point.x-bounds.x)*1000/bounds.width,y:(point.y-bounds.y)*1000/bounds.width};
+          if(previousHead) {
+            const step = Math.hypot(position.x-previousHead.x,position.y-previousHead.y);
+            if(step>maxHeadStep) {maxHeadStep=step;worstHeadFrame=frame;}
+          }
+          previousHead=position;
+        } else previousHead=null;
         const texts = [...scene.querySelectorAll(".stickman-stage text,.stickman-native-flow text")]
           .map(el=>({label:el.textContent,rect:el.getBoundingClientRect()})).filter(x=>x.rect.width&&x.rect.height);
         for(let i=0;i<texts.length;i++) for(let j=i+1;j<texts.length;j++) {
@@ -152,9 +164,12 @@ try {
           violations.push({frame,issue:"W1 / "+label.label});
         }
       }
-      return {checkedFrames:total, violationCount:violations.length, examples:violations.slice(0,20)};
+      return {checkedFrames:total, violationCount:violations.length, examples:violations.slice(0,20),
+        projectedEvidenceHead:{maxStep:maxHeadStep,worstFrame:worstHeadFrame}};
     }, timing.totalFrames);
     check(report.frameLayout.violationCount===0, "full timeline layout: "+JSON.stringify(report.frameLayout));
+    check(report.frameLayout.projectedEvidenceHead.worstFrame!==null &&
+      report.frameLayout.projectedEvidenceHead.maxStep<=12, "projected evidence actor jumps: "+JSON.stringify(report.frameLayout.projectedEvidenceHead));
   }
   report.actorHeight = { min: Math.min(...report.beats.filter(b => b.actor).map(b => b.actor.h)), max: Math.max(...report.beats.filter(b => b.actor).map(b => b.actor.h)) };
   const standing = report.beats.filter(b => b.actor && b.slide === "on-prem").map(b => b.actor.h);

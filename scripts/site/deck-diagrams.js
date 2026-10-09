@@ -2,9 +2,11 @@
 // The W1 glyph is the same workload in every scene; no customer measurements are implied.
 function workload(x, y, c) {
   return '<g data-object="workload" transform="translate(' + r(x) + ' ' + r(y) + ')">' +
-    '<rect x="-34" y="-27" width="68" height="54" rx="10" fill="' + c.s + '" stroke="' + c.a + '" stroke-width="3"/>' +
-    '<path d="M-22-12h12m-12 12h12m-12 12h12" stroke="' + c.a + '" stroke-width="3"/>' +
-    text(10, 7, "W1", 20, c.t, 700, "middle") + '</g>';
+    '<rect data-glyph="application" x="-34" y="-27" width="68" height="54" rx="4" fill="' + c.s + '" stroke="' + c.b + '" stroke-width="2.5"/>' +
+    '<path d="M-34-12h68" fill="none" stroke="' + c.b + '" stroke-width="2"/>' +
+    '<path d="M-23-20h13" stroke="' + c.a + '" stroke-width="3"/>' +
+    '<path d="M-24 0h12v15h-12Z" fill="none" stroke="' + c.a + '" stroke-width="2"/>' +
+    text(10, 13, "W1", 20, c.t, 700, "middle") + '</g>';
 }
 function wire(points, c, dashed) {
   return '<path d="' + points + '" fill="none" stroke="' + c.b + '" stroke-width="2.5"' +
@@ -56,9 +58,12 @@ function loadMeter(beat, local, c, rootX, events) {
     wire("M465 250H905M465 145H905", c) +
     text(left, 100, "Installed capacity", 18, c.t, 600) + '</g>';
   if (revealed) {
-    var progress = ease(revealed.elapsed / 30), pts = [];
+    var progress = clamp(revealed.elapsed / 180), pts = [];
     for (var i = 0; i <= Math.floor(60 * progress); i++) pts.push(r(left + (right-left)*i/60) + " " + r(bottom - (bottom-top)*demand(i/60)));
-    out += '<g data-object="demand"><path d="M' + pts.join("L") + '" fill="none" stroke="' + c.a + '" stroke-width="4"/>' +
+    var scanX = left + (right-left)*progress;
+    pts.push(r(scanX) + " " + r(bottom - (bottom-top)*demand(progress)));
+    out += '<g data-object="demand" data-progress="'+progress+'"><path d="M' + pts.join("L") + '" fill="none" stroke="' + c.a + '" stroke-width="4"/>' +
+      (progress<1?'<path data-object="demand-scan" d="M'+r(scanX)+' 151V250" fill="none" stroke="'+c.b+'" stroke-width="1.5" stroke-dasharray="4 4"/>':'') +
       text(left, 286, "Demand", 20, c.a, 600) +
       text(right, 286, "One illustrative day →", 18, c.m, 500, "end") + '</g>';
   } else out += text(685, 210, "What does W1 actually need?", 22, c.m, 500, "middle");
@@ -68,8 +73,11 @@ function loadMeter(beat, local, c, rootX, events) {
   return result(out, ["load-meter"].concat(beat >= 2 ? ["upkeep-tags"] : []));
 }
 function consoleControl(x, y, c) {
-  return '<g data-object="action-console" data-interaction="hand-control"><path d="M'+(x-5)+' '+(y+6)+'h32v48m-32-48v48" fill="none" stroke="'+c.b+'" stroke-width="3"/>' +
-    '<rect x="'+(x-5)+'" y="'+(y-13)+'" width="32" height="19" rx="3" fill="'+c.s+'" stroke="'+c.b+'" stroke-width="2"/>' +
+  return '<g data-object="action-console" data-interaction="hand-control">' +
+    '<path d="M'+(x-10)+' '+(y+7)+'h56m-51 0v48m46-48v48" fill="none" stroke="'+c.b+'" stroke-width="2.5"/>' +
+    '<rect data-glyph="laptop-screen" x="'+(x+7)+'" y="'+(y-33)+'" width="30" height="23" rx="2" fill="'+c.s+'" stroke="'+c.t+'" stroke-width="2"/>' +
+    '<path d="M'+(x+12)+' '+(y-25)+'h18m-18 6h12" stroke="'+c.a+'" stroke-width="2"/>' +
+    '<path data-glyph="laptop-keyboard" d="M'+(x+7)+' '+(y-10)+'h30l6 15h-50Z" fill="'+c.s+'" stroke="'+c.t+'" stroke-width="2"/>' +
     '<path data-control="" data-x="'+x+'" data-y="'+y+'" d="M'+(x-2)+' '+y+'h8" stroke="'+c.b+'" stroke-width="2"/></g>';
 }
 function cloudScene(beat, local, c, rootX, events) {

@@ -10,6 +10,7 @@ import {
   deckTimeline,
   injectDeck,
   renderDeckFrames,
+  stagePosition,
   selectStorySlides,
   tokenTheme
 } from "../scripts/site/deck-provider.mjs";
@@ -19,6 +20,18 @@ const fakeDeck = `<!doctype html><html><head><title>Deck</title></head>` +
   `<script id="deck-data" type="application/json">{}</script></body></html>`;
 
 describe("stickman deck provider", () => {
+  it("does not rewind to the walk origin while joining the next station", () => {
+    const performance = { segments: [
+      { kind: "walk", root: 400, gapStart: 0, start: 0, length: 80, end: 99 },
+      { kind: "motion", root: 780, gapStart: 100, start: 118, end: 160 }
+    ] };
+    expect(stagePosition(performance,79)).toBe(780);
+    expect(stagePosition(performance,89)).toBe(780);
+    expect(stagePosition(performance,99)).toBe(780);
+    expect(stagePosition(performance,100)).toBe(780);
+    expect(stagePosition(performance,117)).toBe(780);
+    expect(stagePosition(performance,118)).toBe(780);
+  });
   it("injects timing, frames and the client without touching the deck markup", () => {
     const timing = { totalFrames: 90, fps: 30, timeline: [{ slide: "a", beat: 0, start: 0, frames: 90 }] };
     const html = injectDeck(fakeDeck, { timing, film: { frames: ["</script>"] }, client: "window.ok=1;" });
@@ -82,6 +95,13 @@ describe("stickman deck provider", () => {
     expect(timing.timeline.every((entry, i) => entry.start === (i ? timing.timeline[i - 1].start + timing.timeline[i - 1].frames : 0))).toBe(true);
     expect(Object.keys(timing.scenes)).toHaveLength(5);
     const rendered = await renderDeckFrames(cloudDeckPlan, composed, resources, timing.scenes);
+    for (const seg of composed.performance.segments.filter(s=>s.kind==="walk")) {
+      const next = composed.performance.segments[composed.performance.segments.indexOf(seg)+1];
+      expect(stagePosition(composed.performance,seg.end)).toBe(next.root);
+      for(let frame=next.gapStart;frame<=next.start;frame++) {
+        expect(stagePosition(composed.performance,frame)).toBe(next.root);
+      }
+    }
     expect(rendered.frames).toHaveLength(timing.totalFrames);
     expect(rendered.roots).toHaveLength(timing.totalFrames);
     expect(rendered.dict.some(svg => svg.includes('scale(0.44)'))).toBe(true);
@@ -178,7 +198,16 @@ describe("stickman deck provider", () => {
     expect(final).toContain('x="650" y="160" width="310" height="100"');
     expect(measured).toContain("M339 210H440");
     expect(measured).toContain('x="440" y="106" width="490" height="202"');
+    expect(measured).toContain('data-glyph="application"');
+    expect(atStation).toContain('data-glyph="laptop-screen"');
+    expect(atStation).toContain('data-glyph="laptop-keyboard"');
     expect(atStation).not.toContain("Define pilot criteria and rollback before testing");
+    const demandFrame = (frame: number) => context.loadMeter(1,0,c,220,eventsAt("on-prem",frame)).markup;
+    const demandAt = composed.events["on-prem"].demand;
+    expect(demandFrame(demandAt+30)).toContain('data-object="demand-scan"');
+    expect(demandFrame(demandAt+120)).toContain('data-object="demand-scan"');
+    expect(demandFrame(demandAt+180)).not.toContain('data-object="demand-scan"');
+    expect(demandFrame(demandAt+30)).not.toBe(demandFrame(demandAt+120));
   },120_000);
 
   it("rejects missing story beats and impossible reading budgets", async () => {

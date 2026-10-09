@@ -31,6 +31,12 @@ and connects W1 to the evidence sequence at its actual entry height. The final
 flow now has a bounded evidence node, one shared branching spine, and two
 equal-width outcome nodes with aligned text insets. These changes address
 diagram structure, not a new motion-quality approval.
+The following motion repair keeps the walking choreography but fixes the
+projection anchor rewinding to a walk's starting station during its ending
+join. Demand tracing now runs for six seconds, with a finite scanning guide,
+rather than finishing in one second before the next explanation beat.
+The workload badge uses an application-window glyph; station controls use a
+recognizable laptop and keyboard in place of the ambiguous small lectern.
 
 `scripts\site\render-cloud-deck.mjs` now calls the installed Dynamic Presentation
 MCP over stdio: `get_authoring_guide`, `validate_deck`, `motion_status`, and
