@@ -57,6 +57,9 @@ try {
     const a = actor?.getBoundingClientRect();
     out.actor = a && a.height ? { x: a.x - slot.x, y: a.y - slot.y, w: a.width, h: a.height } : null;
     out.slot = { w: slot.width, h: slot.height };
+    const diagram = scene.querySelector("[data-stickman-diagram]")?.getBoundingClientRect();
+    out.diagram = diagram?.width ? { x: diagram.x - slot.x, w: diagram.width } : null;
+    out.diagramInside = !diagram?.width || (diagram.left >= slot.left - 2 && diagram.right <= slot.right + 2 && diagram.top >= slot.top - 2 && diagram.bottom <= slot.bottom + 2);
     out.inside = !a || !a.height || (a.left >= slot.left - 1 && a.right <= slot.right + 1 && a.top >= slot.top - 1 && a.bottom <= slot.bottom + 1);
     const content = scene.querySelector(".stickman-stage");
     const c = content?.getBoundingClientRect();
@@ -97,6 +100,11 @@ try {
       if (p.status !== undefined) {
         check(p.status === "running", `${entry.slide}/${entry.beat}: motion status ${p.status}`);
         check(p.inside && p.stageInside, `${entry.slide}/${entry.beat}: stickman outside slot`);
+        check(p.diagramInside, `${entry.slide}/${entry.beat}: diagram outside slot`);
+        if (["on-prem", "cloud"].includes(entry.slide)) {
+          check(p.actor && p.actor.x < p.slot.w * 0.3, `${entry.slide}/${entry.beat}: character leaves the left third empty`);
+          check(p.diagram && p.diagram.w >= p.slot.w * 0.5, `${entry.slide}/${entry.beat}: diagram is too narrow for the scene`);
+        }
         check(!p.svgTextOverlaps.length, `${entry.slide}/${entry.beat}: SVG text overlap: ${p.svgTextOverlaps.join(" | ")}`);
         check(p.actor || entry.slide === "decision" && label === "end", `${entry.slide}/${entry.beat}: missing actor`);
         check(!p.overlaps.length, `${entry.slide}/${entry.beat}: text overlaps slot: ${p.overlaps.join(" | ")}`);

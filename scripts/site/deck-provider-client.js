@@ -52,7 +52,7 @@
     return Math.min(0.97, base + peak);
   }
   function loadMeter(beat, local, c) {
-    var x = 620, y = 92, w = 335, h = 400, px = x + 28, pw = w - 56, top = y + 96, bottom = y + h - 44, ph = bottom - top;
+    var x = 390, y = 80, w = 565, h = 440, px = x + 28, pw = w - 56, top = y + 96, bottom = y + h - 44, ph = bottom - top;
     var o = beat === 0 ? ease((local - 20) / 30) : 1;
     var out = '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="16" fill="' + c.s + '" stroke="' + c.l + '" stroke-width="3"/>';
     out += text(x + 28, y + 44, "Server load", 26, c.t, 700) + text(x + 28, y + 72, "one illustrative day", 18, c.m, 500);
@@ -81,7 +81,7 @@
     var result = { markup: fade(o, out), props: o > 0.001 ? ["load-meter"] : [] };
     // Upkeep that stays with you: chores pile up above the rack while the admin checks the clock.
     if (beat === 2) {
-      var chores = [["patch", 444, 262], ["power", 468, 214], ["spares", 452, 166]], pile = "";
+      var chores = [["patch", 214, 262], ["power", 238, 214], ["spares", 222, 166]], pile = "";
       chores.forEach(function (chore, k) {
         var a = ease((local - 6 - k * 14) / 14), wdt = chore[0].length * 12 + 34;
         pile += fade(a, '<g transform="translate(0 ' + r((1 - a) * -16) + ')"><rect x="' + r(chore[1] - wdt / 2) + '" y="' + (chore[2] - 26) + '" width="' + r(wdt) +
@@ -98,10 +98,10 @@
       "a" + r(40 * k) + " " + r(40 * k) + " 0 0 1 " + r(4 * k) + " " + r(68 * k) + 'Z" fill="' + fill + '" stroke="' + stroke + '" stroke-width="4" stroke-linejoin="round"/>';
   }
   function cloudScene(beat, local, c) {
-    var cx = 780, cy = 215, k = 1.05;
+    var cx = 670, cy = 210, k = 1.35;
     var o = beat === 0 ? ease((local - 30) / 30) : 1;
     var out = cloudShape(cx, cy, k, c.s, c.a) + text(cx - 6, cy + 6, "cloud", 26, c.a, 700, "middle");
-    var bars = 7, bx = 660, bw = 290, base = 405, maxH = 150, gap = 10, w = (bw - gap * (bars - 1)) / bars;
+    var bars = 7, bx = 410, bw = 540, base = 445, maxH = 175, gap = 14, w = (bw - gap * (bars - 1)) / bars;
     // Demand moves; in beat 0 capacity stays flat, from beat 1 it follows demand with a short lag.
     var t = (beat === 0 ? 0 : beat === 1 ? local : 400 + local) / fps;
     var line = [], props = ["cloud"];
@@ -120,7 +120,7 @@
     if (beat >= 1) out += fade(ease(local / 25), '<path d="M' + line.join("L") + '" fill="none" stroke="' + c.t + '" stroke-width="4" stroke-dasharray="2 9" stroke-linecap="round"/>' +
       text(bx + bw, base + 30, "demand ···", 18, c.t, 700, "end"));
     if (beat === 2) {
-      var tags = ["migration effort", "egress $", "always-on $"], tx = 435, tagMarkup = "";
+      var tags = ["migration effort", "egress $", "always-on $"], tx = 90, tagMarkup = "";
       tags.forEach(function (tag, n) {
         var a = ease((local - 10 - n * 18) / 18), wdt = tag.length * 10 + 28;
         tagMarkup += fade(a, '<g transform="translate(0 ' + r((1 - a) * 18) + ')"><rect x="' + r(tx) + '" y="580" width="' + r(wdt) + '" height="38" rx="19" fill="' + c.s + '" stroke="' + c.t + '" stroke-width="2.5"/>' +
@@ -145,7 +145,7 @@
     return { markup: out, props: ["step-markers"] };
   }
   function bookendScene(beat, local, c, rootX, closing) {
-    var x = closing ? 480 : 650;
+    var x = closing ? 350 : 450;
     var out = text(x, 195, closing ? "Pilot first." : "A workload. A choice.", 40, c.t, 700, "middle") +
       text(x, 240, closing ? "Then choose with confidence." : "Let evidence lead the way.", 23, c.m, 500, "middle");
     out += '<line x1="70" y1="542" x2="940" y2="542" stroke="' + c.l + '" stroke-width="2"/>';
@@ -166,7 +166,10 @@
     svg.setAttribute("class", "stickman-stage");
     svg.setAttribute("data-slide", slideId);
     var back = document.createElementNS(svgNS, "g"), props = document.createElementNS(svgNS, "g");
+    props.setAttribute("data-stickman-diagram", "");
     var actor = document.createElementNS(svgNS, "g"), front = document.createElementNS(svgNS, "g");
+    var characterOffset = { question: -160, "on-prem": -230, cloud: -230, decision: -120 }[slideId] || 0;
+    [back, actor, front].forEach(function (layer) { layer.setAttribute("transform", "translate(" + characterOffset + " 0)"); });
     actor.setAttribute("data-stickman-actor", "");
     back.innerHTML = "";
     svg.appendChild(back); svg.appendChild(props); svg.appendChild(actor); svg.appendChild(front);
