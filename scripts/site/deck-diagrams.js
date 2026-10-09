@@ -89,8 +89,7 @@ function cloudScene(beat, local, c, rootX, events) {
 }
 var stages = [["Baseline",220], ["Requirements",429], ["Total cost",638], ["Pilot",847]];
 function station(i, x, c) {
-  var out = '<g transform="translate(0 12)" data-object="' + ["baseline","dependency-map","cost-comparison","pilot-gate"][i] + '">' +
-    '<rect x="' + (x-95) + '" y="110" width="190" height="140" rx="10" fill="none" stroke="' + c.l + '" stroke-width="2"/>';
+  var out = '<g transform="translate(0 12)" data-object="' + ["baseline","dependency-map","cost-comparison","pilot-gate"][i] + '">';
   if (i === 0) out += '<path d="M' + (x-64) + ' 194l24-8 20 3 22-47 20 36 24-15" fill="none" stroke="' + c.a + '" stroke-width="3"/>' + text(x,222,"Demand recorded",18,c.t,600,"middle");
   if (i === 1) out += wire("M"+(x-50)+" 170H"+(x+50)+"M"+x+" 170V135",c) +
     '<circle cx="'+(x-50)+'" cy="170" r="12" fill="'+c.s+'" stroke="'+c.a+'" stroke-width="3"/><circle cx="'+(x+50)+'" cy="170" r="12" fill="'+c.s+'" stroke="'+c.a+'" stroke-width="3"/>' +
@@ -108,38 +107,31 @@ function evidenceScene(beat, local, c, rootX, events) {
   var out = workload(70, 85, c);
   for(var i=0;i<4;i++) {
     var reached = events && events["artifact"+i];
-    out += reached ? station(i,stages[i][1],c) :
-      '<rect x="'+(stages[i][1]-95)+'" y="122" width="190" height="140" rx="10" fill="none" stroke="'+c.l+'" stroke-width="2" stroke-dasharray="6 6"/>';
-    out += consoleControl(stages[i][1]+29,334,c);
+    if (reached) out += station(i,stages[i][1],c);
+    var proximity = 1 - ease((Math.abs(rootX-stages[i][1])-20)/65);
+    if (proximity > 0) out += '<g opacity="'+r(proximity)+'">' + consoleControl(stages[i][1]+29,334,c) + '</g>';
   }
   out += text(550,92, ["Record demand over a representative period","Check dependencies, latency and recovery","Comparison inputs · same time period · no result yet","Define pilot criteria and rollback before testing"][beat],22,c.m,500,"middle");
   return result(out, ["baseline", "dependency-map", "cost-comparison", "pilot-gate"].filter(function(_, i) {return events && events["artifact"+i];}));
 }
 function decisionScene(beat, local, c, rootX, events) {
   var supplied = events && events.evidence;
-  var out = workload(170,155,c) + wire("M204 155H350",c,true);
-  out += '<g data-object="decision-gate"><rect x="350" y="50" width="240" height="205" rx="12" fill="'+c.s+'" stroke="'+c.a+'" stroke-width="3"/>' +
-    text(470,88,"Evidence gate",25,c.t,700,"middle") +
-    text(470,132,"Requirements",21,c.t,600,"middle") +
-    text(470,172,"Total cost",21,c.t,600,"middle") +
-    text(470,212,"Pilot evidence",21,c.t,600,"middle") + '</g>';
-  out += consoleControl(876,334,c) + wire("M876 334H940V280H590V255",c);
-  out += text(470,295,"Supply evidence to the gate",18,c.m,500,"middle");
+  var out = workload(170,155,c) + wire("M204 155H335",c,true);
+  out += '<g data-object="decision-gate">' +
+    text(350,88,"Evidence gate",25,c.t,700) +
+    text(350,132,"Requirements",21,c.t,600) +
+    text(350,172,"Total cost",21,c.t,600) +
+    text(350,212,"Pilot evidence",21,c.t,600) + '</g>';
+  if (!events.routes) out += consoleControl(876,334,c);
   if (supplied && !events.routes) {
-    var points = [[876,334],[940,334],[940,280],[590,280],[590,255]], distance = clamp(supplied.elapsed/24)*493, p = points[0];
-    for (var n=1;n<points.length;n++) {
-      var a=points[n-1], b=points[n], length=Math.hypot(b[0]-a[0],b[1]-a[1]), fraction=Math.min(1,distance/length);
-      p=[a[0]+(b[0]-a[0])*fraction,a[1]+(b[1]-a[1])*fraction]; distance-=length;
-      if(distance<=0) break;
-    }
-    out += '<rect data-object="evidence-input" x="'+r(p[0]-5)+'" y="'+r(p[1]-6)+'" width="10" height="12" fill="'+c.a+'"/>';
+    out += '<g data-object="evidence-input">' + text(350,270,"Compare the evidence",20,c.m,500) + '</g>';
   }
   if (events && events.routes) {
-    out += wire("M590 115H650V145H920V107M590 185H650V275H940V268",c,true);
-    out += '<g data-object="move-route">' + text(685,52,"Move if",22,c.t,700) +
-      text(685,82,"Requirements and",16,c.m,500) + text(685,106,"costs support it;",16,c.m,500) + text(685,130,"pilot evidence agrees",16,c.m,500) + cloudIcon(920,83,c) + '</g>';
-    out += '<g data-object="retain-route">' + text(685,180,"Retain if",22,c.t,700) +
-      text(685,210,"Requirements cannot",16,c.m,500) + text(685,234,"be met, or local",16,c.m,500) + text(685,258,"fits better",16,c.m,500) + rackIcon(890,160,c) + '</g>';
+    out += wire("M560 150H610V68H650M610 150V210H650",c,true);
+    out += '<g data-object="move-route">' + text(665,48,"Move if",22,c.t,700) +
+      text(665,80,"Requirements, costs",18,c.m,500) + text(665,108,"and pilot support it",18,c.m,500) + cloudIcon(920,83,c) + '</g>';
+    out += '<g data-object="retain-route">' + text(665,180,"Retain if",22,c.t,700) +
+      text(665,212,"Requirements cannot",18,c.m,500) + text(665,240,"be met, or local",18,c.m,500) + text(665,268,"fits better",18,c.m,500) + rackIcon(890,160,c) + '</g>';
   }
   out += '<g data-object="pilot-action">' + text(350,355,"Pilot one workload",30,c.a,700) +
     text(350,390,"Time-box it. Keep rollback. Then decide.",20,c.m,500) + '</g>';

@@ -162,6 +162,12 @@ describe("stickman deck provider", () => {
     expect(glyph(context.evidenceScene(0,0,c,220,{}).markup))
       .toEqual(glyph(context.evidenceScene(3,145,c,847,eventsAt("evidence",lastFrame)).markup));
     expect(evidence).not.toContain('<circle data-control');
+    const atStation = context.evidenceScene(3,145,c,847,eventsAt("evidence",lastFrame)).markup;
+    expect(atStation.match(/data-object="action-console"/g)).toHaveLength(1);
+    expect(atStation).not.toContain('stroke-dasharray="6 6"');
+    expect(final).not.toContain('data-object="action-console"');
+    expect(final).not.toContain("Supply evidence to the gate");
+    expect(final).not.toContain("M876 334H940");
   },120_000);
 
   it("rejects missing story beats and impossible reading budgets", async () => {

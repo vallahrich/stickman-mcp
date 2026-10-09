@@ -15,6 +15,12 @@ Dynamic Presentation + Stickman v10 remains the baseline, also requiring repair.
 The next engineering preview keeps its motion library and five-scene argument,
 parks W1 during reading, removes the travelling evidence dot, increases evidence
 type sizes and replaces repeated fast console taps with one eased action.
+The user rated that v11 preview **6/10**; it is also not accepted. The v12
+composition pass removes the evidence-card frames and four-console display:
+only the station beside the actor has a visible console. The final decision
+uses a single readable fork with open criteria, larger route labels and no
+console-to-gate wiring or leftover instruction after the decision reveal.
+Motion quality and overall presentation quality remain subject to user review.
 
 `scripts\site\render-cloud-deck.mjs` now calls the installed Dynamic Presentation
 MCP over stdio: `get_authoring_guide`, `validate_deck`, `motion_status`, and
