@@ -67,6 +67,44 @@ export function consoleSpec(neutral) {
   return { spec, clip: buildKeyPoseClip(spec, neutral), sourceId: spec.id };
 }
 
+export const deckActions = {
+  "cloud/0": "submit",
+  "evidence/0": "inspect",
+  "evidence/1": "connect",
+  "evidence/2": "compare",
+  "evidence/3": "test",
+  "decision/0": "review"
+};
+
+export function taskSpec(action, neutral) {
+  const original = consoleSpec(neutral);
+  if (action === "submit") return original;
+  const stance = original.spec.poseKeys[0].pose;
+  const reach = original.spec.poseKeys[2].pose;
+  const pose = (right, left, neck = -8) => ({
+    ...reach, neck, rHand: { x: right[0], y: right[1] }, lHand: { x: left[0], y: left[1] }
+  });
+  const gestures = {
+    inspect: [pose([20, 82], [30, 82], -16), pose([40, 88], [28, 88], -16), pose([40, 88], [28, 88], -16)],
+    connect: [pose([15, 70], [28, 83]), pose([26, 83.333], [40, 83.333]), pose([36, 83.333], [40, 83.333])],
+    compare: [pose([15, 85], [-12, 85], -3), pose([45, 85], [-40, 85], 3), pose([45, 85], [-40, 85], 0)],
+    test: [pose([20, 83.333], [12, 62]), pose([30, 83.333], [12, 62]), pose([48, 83.333], [12, 62])],
+    review: [pose([20, 105], [12, 62], -12), pose([20, 105], [12, 62], 8), pose([36, 96], [12, 62], -6)]
+  };
+  if (!gestures[action]) throw new Error("Unknown deck action: " + action);
+  const spec = {
+    ...original.spec, id: "deck-" + action,
+    poseKeys: [
+      { frame: 0, pose: stance, ease: "inOut" },
+      { frame: 6, pose: gestures[action][0], ease: "inOut" },
+      { frame: 18, pose: gestures[action][1], ease: "inOut" },
+      { frame: 26, pose: gestures[action][2], ease: "inOut" },
+      { frame: 38, pose: stance, ease: "inOut" }
+    ]
+  };
+  return { spec, clip: buildKeyPoseClip(spec, neutral), sourceId: spec.id };
+}
+
 // A tiny airborne replant during generated joins avoids dragging a planted stance.
 // The same world-space offset is measured by the gate and applied to the actor SVG.
 export function deckJoinLift(performance, frame) {
@@ -105,16 +143,18 @@ export async function composeDeckPerformance(plan = cloudDeckPlan, resources) {
   const recipe = { id: plan.id, bridge: "auto", performance: plan.performance, scenes, set: [] };
   const source = await composeFilm(recipe, resources);
   const neutral = source.performance.clip.frames[0];
-  const consoleMotion = consoleSpec(neutral);
-  const gates = await keyPoseGates(consoleMotion.clip, consoleMotion.spec);
-  if (!gates.passed) throw new Error("Deck-local console failed mechanical gates: " + JSON.stringify(gates));
   const motions = new Map(source.motions);
-  motions.set("deck-console", consoleMotion);
+  for (const action of new Set(Object.values(deckActions))) {
+    const motion = taskSpec(action, neutral);
+    const gates = await keyPoseGates(motion.clip, motion.spec);
+    if (!gates.passed) throw new Error(`Deck-local ${action} failed mechanical gates: ` + JSON.stringify(gates));
+    motions.set(motion.spec.id, motion);
+  }
   let currentBeat = "";
   const localItems = plan.performance.map(item => {
     currentBeat = item.beat ?? currentBeat;
-    const action = item.motion === "present" && (/^evidence\//.test(currentBeat) || currentBeat === "cloud/0" || currentBeat === "decision/0");
-    return action ? { ...item, motion: "deck-console", until: undefined, gap: 18 } : { ...item };
+    const action = item.motion === "present" && deckActions[currentBeat];
+    return action ? { ...item, motion: action === "submit" ? "deck-console" : "deck-" + action, until: undefined, gap: 18 } : { ...item };
   });
   const compose = items => ({ ...source, motions,
     performance: composePerformance(items, { motions, sampleClipMotion: resources.sampleClipMotion, neutral }) });
@@ -152,7 +192,8 @@ export async function composeDeckPerformance(plan = cloudDeckPlan, resources) {
   const segment = beat => composed.performance.segments.find(seg => seg.beat === beat);
   const contact = beat => {
     const first = segment(beat);
-    return composed.performance.segments.find(seg => seg.gapStart >= first.gapStart && seg.id === "deck-console");
+    const id = deckActions[beat] === "submit" ? "deck-console" : "deck-" + deckActions[beat];
+    return composed.performance.segments.find(seg => seg.gapStart >= first.gapStart && seg.id === id);
   };
   const marker = (seg, name) => {
     const offset = seg.spec.markers?.[name];
@@ -166,7 +207,10 @@ export async function composeDeckPerformance(plan = cloudDeckPlan, resources) {
     cloud: { submission: submitted, arrival: submitted + 24,
       processing: marker(segment("cloud/1"), "sweepStart"),
       drained: marker(segment("cloud/1"), "stand") },
-    evidence: Object.fromEntries([0,1,2,3].map(i => ["artifact"+i, marker(contact("evidence/"+i), "contact")])),
+    evidence: {
+      ...Object.fromEntries([0,1,2,3].map(i => ["artifact"+i, marker(contact("evidence/"+i), "contact")])),
+      testStart: marker(contact("evidence/3"), "preparation")
+    },
     decision: { evidence: marker(contact("decision/0"), "contact"), routes: marker(contact("decision/0"), "contact")+24 }
   };
   composed.contacts = ["cloud/0", ...[0,1,2,3].map(i => "evidence/"+i), "decision/0"].map(beat => {
@@ -176,7 +220,10 @@ export async function composeDeckPerformance(plan = cloudDeckPlan, resources) {
     const anchor = stagePosition(composed.performance, frame);
     const point = { x: anchor * .11 + .44 * (composed.performance.rootTrack[frame] + (hand.x2-160)*2.4),
       y: 162.4 + .44 * (540 + (hand.y2-150)*2.4) };
-    const control = { x: beat === "decision/0" ? 876 : beat === "cloud/0" ? 249 : 249+209*Number(beat.split("/")[1]), y: 334 };
+    const coordinates = { submit: [36,83.333], inspect: [40,88], connect: [36,83.333],
+      compare: [45,85], test: [48,83.333], review: [36,96] };
+    const target = coordinates[deckActions[beat]];
+    const control = { x: Math.round(anchor * .55 + target[0] * .792), y: Math.round(400 - target[1] * .792) };
     return { beat, frame, hand: point, control, distance: Math.hypot(point.x-control.x,point.y-control.y) };
   });
   if (composed.contacts.some(contact => contact.distance > 3.5)) throw new Error("Console contact too far: " + JSON.stringify(composed.contacts));

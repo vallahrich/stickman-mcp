@@ -11,6 +11,7 @@ import {
   injectDeck,
   renderDeckFrames,
   stagePosition,
+  deckActions,
   selectStorySlides,
   tokenTheme
 } from "../scripts/site/deck-provider.mjs";
@@ -111,10 +112,13 @@ describe("stickman deck provider", () => {
     expect(composed.contacts.every(contact => contact.distance < 1)).toBe(true);
     for (const beat of ["cloud/0", "evidence/0", "decision/0"]) {
       const seg = composed.performance.segments.find(s => s.beat === beat)!;
-      expect(seg.id).toBe("deck-console");
+      expect(seg.id).toBe(deckActions[beat] === "submit" ? "deck-console" : "deck-" + deckActions[beat]);
       expect(seg.spec.markers.preparation).toBeLessThan(seg.spec.markers.contact);
       expect(seg.spec.markers.contact).toBeLessThan(seg.spec.markers.recovery);
     }
+    const taskSegments = composed.performance.segments.filter(s => /^deck-/.test(s.id));
+    expect(new Set(taskSegments.map(s => s.id)).size).toBe(6);
+    expect(new Set(taskSegments.map(s => JSON.stringify(s.spec.poseKeys))).size).toBe(6);
   }, 120_000);
 
   it("follows W1 through marker-timed causal output, cost inputs and conditional routes", async () => {
@@ -199,8 +203,15 @@ describe("stickman deck provider", () => {
     expect(measured).toContain("M339 210H440");
     expect(measured).toContain('x="440" y="106" width="490" height="202"');
     expect(measured).toContain('data-glyph="application"');
-    expect(atStation).toContain('data-glyph="laptop-screen"');
-    expect(atStation).toContain('data-glyph="laptop-keyboard"');
+    expect(atStation).toContain('data-action="test"');
+    for (const [i,action] of ["inspect","connect","compare","test"].entries()) {
+      const output = context.evidenceScene(i,0,c,220+209*i,eventsAt("evidence",lastFrame)).markup;
+      expect(output).toContain(`data-action="${action}"`);
+      expect(output).not.toMatch(/NaN|undefined/);
+    }
+    const slider = (frame: number) => context.evidenceScene(3,0,c,847,eventsAt("evidence",frame)).markup;
+    expect(slider(composed.events.evidence.testStart)).not.toBe(slider(composed.events.evidence.testStart+12));
+    expect(slider(composed.events.evidence.artifact3)).toBe(slider(composed.events.evidence.artifact3+10));
     expect(atStation).not.toContain("Define pilot criteria and rollback before testing");
     const demandFrame = (frame: number) => context.loadMeter(1,0,c,220,eventsAt("on-prem",frame)).markup;
     const demandAt = composed.events["on-prem"].demand;

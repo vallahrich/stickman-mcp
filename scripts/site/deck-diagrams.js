@@ -80,6 +80,27 @@ function consoleControl(x, y, c) {
     '<path data-glyph="laptop-keyboard" d="M'+(x+7)+' '+(y-10)+'h30l6 15h-50Z" fill="'+c.s+'" stroke="'+c.t+'" stroke-width="2"/>' +
     '<path data-control="" data-x="'+x+'" data-y="'+y+'" d="M'+(x-2)+' '+y+'h8" stroke="'+c.b+'" stroke-width="2"/></g>';
 }
+function taskControl(x, action, c, completed, sliderFrame) {
+  var offset = {inspect:[32,330],connect:[29,334],compare:[36,333],test:[38,334],review:[29,324]}[action];
+  if (!offset) throw new Error("Unknown station action: " + action);
+  var cx = x + offset[0], cy = offset[1], ink = completed ? c.a : c.b;
+  var out = '<g data-object="action-console" data-action="'+action+'" data-interaction="hand-control">';
+  if (action==="inspect") out += '<rect x="'+(cx-12)+'" y="'+(cy-15)+'" width="30" height="32" rx="3" fill="'+c.s+'" stroke="'+c.t+'" stroke-width="2"/>' +
+    '<path d="M'+(cx-10)+' '+(cy+7)+'l6-9 5 3 7-12" fill="none" stroke="'+ink+'" stroke-width="2"/>';
+  if (action==="connect") out += '<rect x="'+(cx-8)+'" y="'+(cy-12)+'" width="48" height="25" rx="3" fill="'+c.s+'" stroke="'+c.t+'" stroke-width="2"/>' +
+    '<path d="M'+cx+' '+cy+'h20m-20 0v20h-24v-10" fill="none" stroke="'+ink+'" stroke-width="3"/>' +
+    '<rect x="'+(cx-4)+'" y="'+(cy-4)+'" width="8" height="8" fill="'+c.s+'" stroke="'+ink+'" stroke-width="2"/>';
+  if (action==="compare") [x-32,cx].forEach(function(card,i) {
+    out += '<rect x="'+(card-12)+'" y="'+(cy-17)+'" width="24" height="32" rx="2" fill="'+c.s+'" stroke="'+(i?c.a:c.b)+'" stroke-width="2"/>' +
+      '<path d="M'+(card-7)+' '+(cy-9)+'h14m-14 7h10m-10 7h14" stroke="'+(i?c.a:c.b)+'" stroke-width="2"/>';
+  });
+  if (action==="test") out += '<rect x="'+(x+9)+'" y="'+(cy-12)+'" width="42" height="24" rx="4" fill="'+c.s+'" stroke="'+c.t+'" stroke-width="2"/>' +
+    '<path d="M'+(x+15)+' '+cy+'h30" stroke="'+c.b+'" stroke-width="3"/>' +
+    '<rect x="'+r(x+(sliderFrame<12?16+8*ease(sliderFrame/12):24+14*ease((sliderFrame-12)/8))-4)+'" y="'+(cy-6)+'" width="8" height="12" rx="2" fill="'+ink+'"/>';
+  if (action==="review") out += '<path d="M'+(cx-20)+' '+(cy-12)+'h38v24h-38Z" fill="'+c.s+'" stroke="'+c.t+'" stroke-width="2"/>' +
+    '<path d="M'+(cx-14)+' '+(cy-5)+'h24m-24 7h18" stroke="'+ink+'" stroke-width="2"/>';
+  return out + '<path data-control="" data-x="'+cx+'" data-y="'+cy+'" d="M'+(cx-2)+' '+cy+'h4" stroke="'+ink+'" stroke-width="2"/></g>';
+}
 function cloudScene(beat, local, c, rootX, events) {
   var submitted = events && events.submission, arrival = events && events.arrival;
   var drained = events && events.drained, processing = events && events.processing;
@@ -129,7 +150,9 @@ function evidenceScene(beat, local, c, rootX, events) {
     var reached = events && events["artifact"+i];
     if (reached) out += wire("M"+stages[i][1]+" 53V"+(i===2?80:110),c) + station(i,stages[i][1],c);
     var proximity = 1 - ease((Math.abs(rootX-stages[i][1])-20)/65);
-    if (proximity > 0) out += '<g opacity="'+r(proximity)+'">' + consoleControl(stages[i][1]+29,334,c) + '</g>';
+    if (proximity > 0) out += '<g opacity="'+r(proximity)+'">' +
+      taskControl(stages[i][1],["inspect","connect","compare","test"][i],c,!!reached,
+        events && events.testStart ? events.testStart.elapsed : 0) + '</g>';
   }
   return result(out, ["baseline", "dependency-map", "cost-comparison", "pilot-gate"].filter(function(_, i) {return events && events["artifact"+i];}));
 }
@@ -141,7 +164,7 @@ function decisionScene(beat, local, c, rootX, events) {
     text(450,132,"Requirements",21,c.t,600,"middle") +
     text(450,172,"Total cost",21,c.t,600,"middle") +
     text(450,212,"Pilot evidence",21,c.t,600,"middle") + '</g>';
-  if (!events.routes) out += consoleControl(876,334,c);
+  if (!events.routes) out += taskControl(847,"review",c,!!supplied);
   if (supplied && !events.routes) {
     out += '<g data-object="evidence-input">' + text(450,288,"Review before choosing",20,c.m,500,"middle") + '</g>';
   }

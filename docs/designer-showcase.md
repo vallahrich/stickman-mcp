@@ -37,6 +37,13 @@ join. Demand tracing now runs for six seconds, with a finite scanning guide,
 rather than finishing in one second before the next explanation beat.
 The workload badge uses an application-window glyph; station controls use a
 recognizable laptop and keyboard in place of the ambiguous small lectern.
+The user rated v14 **7/10**, identifying repeated animation as the remaining
+problem. The next private revision replaces the repeated station console
+operation with six deck-local actions: submit jobs, inspect a demand tablet,
+connect requirement probes, compare two input cards, move a pilot test slider,
+and review an evidence sheet. Each action retains a marker-timed output and
+an explicit hand-contact target. These are deck-authored actions, not new
+approved catalogue motions or a new user rating.
 
 `scripts\site\render-cloud-deck.mjs` now calls the installed Dynamic Presentation
 MCP over stdio: `get_authoring_guide`, `validate_deck`, `motion_status`, and
