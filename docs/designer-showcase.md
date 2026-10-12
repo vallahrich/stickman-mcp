@@ -45,6 +45,40 @@ and review an evidence sheet. Each action retains a marker-timed output and
 an explicit hand-contact target. These are deck-authored actions, not new
 approved catalogue motions or a new user rating.
 
+### Separate Dynamic Presentations MCP 0.2.0 test
+
+The private `From draft to human approval` pilot is independent of the cloud
+story. Its three compositions retain the renderer's framing/process/
+recommendation layouts and its native three-stage handoff. An experimental
+local adapter adds distinct inspect/compare/review Stickman actions. This
+test does not update v15, package the external UNLICENSED renderer, or release
+anything publicly.
+
+```powershell
+npm run build
+node scripts\site\render-presentation-020.mjs --renderer C:\dynamic-presentations-mcp --work .release-local\presentation-020
+node scripts\site\verify-presentation-020.mjs .release-local\presentation-020
+npx vitest run tests\presentation-020.test.ts tests\deck-provider.test.ts --maxWorkers=1
+```
+
+Both the installed package and the compiled MCP handshake must report exactly
+`0.2.0`. The script saves validation, motion negotiation, pilot/review context,
+version and integration-hash records. Re-running uses the same review session;
+it does not reset the repair budget. The original MCP pilot has complete static
+fallbacks but no external provider. `with-stickman.html` is a separate
+experimental derivative, not the artifact hash qualified by MCP review.
+
+For the native pilot, obtain an independent report using the saved critic
+prompt, review context, rubric and actual browser evidence. Submit that report
+with `--review <report.json>` on the rendering command to run `record_review`
+and `finalize_delivery`. Do not invent pilot consent: no approval or full-deck
+expansion is recorded by this test. Qualification of the native pilot does not
+qualify the injected derivative. Its motion-on caveats explicitly preserve
+pending human approval, and props disappear after recovery instead of floating
+beside a neutral actor. Browser checks cover real playback/replay, mode changes,
+offline operation, rapid navigation and a narrow dark reading view; they do not
+establish Teams encoding, physical projection or audience outcomes.
+
 `scripts\site\render-cloud-deck.mjs` now calls the installed Dynamic Presentation
 MCP over stdio: `get_authoring_guide`, `validate_deck`, `motion_status`, and
 `render_pilot`. MCP responses are saved with the private preview. The full
