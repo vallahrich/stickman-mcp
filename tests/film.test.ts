@@ -5,6 +5,7 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { describe, expect, it } from "vitest";
 import { composeFilmRecipe, listFilmAssets, renderFilmRecipe } from "../src/film.js";
 import { buildJoinMatrix } from "../scripts/film/joins.mjs";
+import { storyTimeline, videoRecipes } from "../scripts/site/story-films.mjs";
 
 const example = JSON.parse(await readFile(new URL("../examples/films/team-handoff.json", import.meta.url), "utf8"));
 const bridgeDemo = JSON.parse(await readFile(new URL("../examples/films/bridge-demo.json", import.meta.url), "utf8"));
@@ -35,6 +36,40 @@ describe("film recipes", () => {
     ] };
     expect((await composeFilmRecipe(smooth)).bridges).toEqual([]);
   });
+  it("reports explicit support releases and keeps both showcase films contact-safe", async () => {
+    const results = await Promise.all(videoRecipes.map(recipe => {
+      const input = structuredClone(recipe);
+      delete input.sources;
+      input.summary = "Support transitions release and replant feet at qualified joins.";
+      return composeFilmRecipe(input);
+    }));
+    expect(results.map(result => result.id)).toEqual(["open-source", "julius-caesar"]);
+    for (const result of results) {
+      const lead = result.continuity.lead;
+      expect(lead.maxJointStep).toBeLessThanOrEqual(14);
+      expect(lead.footSlides).toEqual([]);
+      expect(lead.maxFootSlide).toBeLessThanOrEqual(1.2);
+      expect(lead.supportTransitions.length).toBeGreaterThan(0);
+      expect(lead.supportTransitions.every(transition => transition.lift === 1.25 && transition.rampFrames === 4)).toBe(true);
+    }
+    expect(results.map(result => result.continuity.lead.supportTransitions.length)).toEqual([6, 7]);
+  }, 180_000);
+  it("uses the same per-join support lift in continuity and rendered actor layers", async () => {
+    const { composeFilm, loadShowcaseResources } = await import("../scripts/film/runtime.mjs");
+    const { createPerformanceRenderer, performanceSupportLift } = await import("../scripts/site/performance.mjs");
+    const resources = await loadShowcaseResources();
+    const composed = await composeFilm(videoRecipes[0], resources);
+    const transition = composed.continuity.supportTransitions[0];
+    const segment = composed.performance.segments.find(item => item.itemIndex === transition.itemIndex);
+    const frame = segment.gapStart;
+    expect(performanceSupportLift(composed.performance, frame)).toBe(1.25);
+    const renderActor = createPerformanceRenderer(composed.performance, {
+      sampleClipMotion: resources.sampleClipMotion, frameGeometry: resources.frameGeometry,
+      propsCatalog: resources.propsCatalog, motions: composed.motions
+    });
+    const rendered = await renderActor(frame);
+    expect(rendered.actor).toContain('transform="translate(0 -3)"');
+  }, 120_000);
   it("keeps the approved-pair join matrix deterministic and analytically bridgeable", async () => {
     const saved = JSON.parse(await readFile(new URL("../motions/join-matrix.json", import.meta.url), "utf8"));
     expect(await buildJoinMatrix()).toEqual(saved);
@@ -62,7 +97,14 @@ describe("film recipes", () => {
     await expect(composeFilmRecipe({ ...small(), performance: [{ ...small().performance[0], beat: "missing-scene" }] })).rejects.toThrow("unknown scene reference");
     await expect(composeFilmRecipe({ ...small(), extras: [{ motion: "nod", root: 700, from: "missing", until: "first" }] })).rejects.toThrow("known scenes");
     await expect(composeFilmRecipe({ ...small(), performance: [{ ...small().performance[0], until: 1 }] })).rejects.toThrow("authored key frame");
-    await expect(composeFilmRecipe({ ...small(), performance: [{ ...small().performance[0], hold: 1800 }] })).rejects.toThrow("1800-frame limit");
+    const progress = [];
+    const long = await composeFilmRecipe({ ...small(), performance: [{ ...small().performance[0], hold: 1800 }] }, {
+      onProgress: event => progress.push(event.phase)
+    });
+    expect(long).toMatchObject({ frames: 1836, warnings: expect.arrayContaining([expect.stringContaining("curated showcase assets only")]) });
+    expect(progress).toEqual(["compose", "compose"]);
+    expect(() => storyTimeline({ ...small(), scenes: [{ id: "first", title: "First", state: "first", place: "office", cues: [{ frame: 0, text: "A small test." }] }] },
+      { segments: [{ beat: "first", gapStart: 0 }], frames: 1801 }, { showcase: true })).toThrow("one-minute story limit");
     await expect(composeFilmRecipe({ ...small(), scenes: [{ ...small().scenes[0], overlays: [{ ...small().scenes[0].overlays[0], to: 100 }] }] })).rejects.toThrow("visibility/fade window");
     await expect(composeFilmRecipe({ ...small(), scenes: [{ ...small().scenes[0], overlays: [{ ...small().scenes[0].overlays[0], text: "ignored" }] }] })).rejects.toThrow("text is not supported on tick");
     await expect(composeFilmRecipe({ ...small(), scenes: [{ ...small().scenes[0], overlays: [{ ...small().scenes[0].overlays[0], type: "text" }] }] })).rejects.toThrow("text requires text");
@@ -75,6 +117,12 @@ describe("film recipes", () => {
     await expect(composeFilmRecipe({ ...small(), performance: [{ ...small().performance[0], keep: ["unknown-prop"] }] })).rejects.toThrow("unknown keep prop type");
     await expect(composeFilmRecipe({ ...small(), performance: [{ relocate: -80 }, small().performance[0]] })).rejects.toThrow("root only positions");
     await expect(composeFilmRecipe({ ...small(), performance: [small().performance[0], small().performance[0]] })).rejects.toThrow("duplicate scene beat");
+  });
+  it("propagates composition cancellation and progress callback failures", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    await expect(composeFilmRecipe(small(), { signal: controller.signal })).rejects.toMatchObject({ name: "AbortError" });
+    await expect(composeFilmRecipe(small(), { onProgress: () => { throw new Error("progress consumer failed"); } })).rejects.toThrow("progress consumer failed");
   });
   it("reports the offending continuity join for lead and supporting actors", async () => {
     const performance = [{ motion: "wave", root: 400, hold: 39, beat: "first" }, { motion: "nod", gap: 1, hold: 39 }];
@@ -96,7 +144,7 @@ describe("film recipes", () => {
   });
   it("returns mechanically qualified assets and the strict schema", async () => {
     const assets = await listFilmAssets();
-    expect(assets).toMatchObject({ kits: ["legionary", "standard", "dagger"], fps: 30, maxFrames: 1800, continuityLimit: 14, joinCount: 9409,
+    expect(assets).toMatchObject({ kits: ["legionary", "standard", "dagger"], fps: 30, continuityLimit: 14, joinCount: 9409,
       recipeSchema: { additionalProperties: false } });
     expect(assets.motions).toEqual(expect.arrayContaining([{ id: "nod", frames: 36, kind: "oneshot" }]));
     expect(assets.places).toContain("office");

@@ -10,7 +10,8 @@ describe("native release presentation", () => {
     const candidate = await nativeCloudHtml();
     const review = join(process.cwd(), ".release-local", "native-review");
     await mkdir(review, { recursive: true });
-    const browser = await chromium.launch();
+    const channel = process.env.STICKMAN_SITE_BROWSER ?? (process.platform === "win32" ? "msedge" : undefined);
+    const browser = await chromium.launch(channel ? { channel } : undefined);
     const context = await browser.newContext({ viewport: { width: 1100, height: 760 },
       recordVideo: { dir: review, size: { width: 1100, height: 760 } } });
     const page = await context.newPage();

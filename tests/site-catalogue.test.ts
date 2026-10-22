@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
+import { createHash } from "node:crypto";
 
 describe("private designer catalogue", () => {
   it("keeps only the cloud slide and two videos in the active showcase", async () => {
@@ -34,8 +35,9 @@ describe("private designer catalogue", () => {
       expect(await showcaseSection(output)).toContain("have not been generated");
       const folder = path.join(output, "showcase");
       await fs.mkdir(folder);
-      const manifest = { slide: { src: "on-prem-to-cloud.html", seconds: 58.3 }, videos: ["open-source", "julius-caesar"].map(id => ({
-        id, src: `${id}.mp4`, poster: `${id}.png`, captions: `${id}.vtt`, seconds: 56
+      const manifest = { slide: { src: "on-prem-to-cloud.html", seconds: 58.6 }, videos: ["open-source", "julius-caesar"].map((id, index) => ({
+        id, src: `${id}.mp4`, poster: `${id}.png`, captions: `${id}.vtt`,
+        seconds: index === 0 ? 58.43 : 59.17, frames: index === 0 ? 1753 : 1775
       })) };
       for (const asset of [manifest.slide.src, ...manifest.videos.flatMap(video => [video.src, video.poster, video.captions])]) await fs.writeFile(path.join(folder, asset), "fixture");
       const write = () => fs.writeFile(path.join(folder, "manifest.json"), JSON.stringify(manifest));
@@ -64,7 +66,7 @@ describe("private designer catalogue", () => {
     // @ts-expect-error Repository authoring helpers are intentionally plain JavaScript.
     const { storyTimeline } = await import("../scripts/site/story-films.mjs");
     const html = (totalFrames: number) => `<section aria-label="Workload migration comparison"></section><script id="data" type="application/json">${JSON.stringify({ totalFrames })}</script>`;
-    expect(inspectSlide(html(1749))).toBe(58.3);
+    expect(inspectSlide(html(1758))).toBe(58.6);
     expect(() => inspectSlide(html(1801))).toThrow("60 seconds");
     expect(() => inspectSlide(html(0))).toThrow("longer than zero");
     expect(() => inspectSlide(html(100).replace("Workload migration comparison", "Other deck"))).toThrow("not the reviewed");
@@ -72,7 +74,8 @@ describe("private designer catalogue", () => {
     for (const recipe of videoRecipes) expect(() => storyTimeline(recipe, null)).toThrow("composed performance");
     const fake = (frames: number) => ({ frames, segments: [{ beat: "a", gapStart: 0 }] });
     const short = { id: "x", scenes: [{ id: "a", state: "s", cues: [{ frame: 0, text: "Hi" }] }] };
-    expect(() => storyTimeline(short, fake(1830))).toThrow("one-minute");
+    expect(storyTimeline(short, fake(1830)).frames).toBe(1830);
+    expect(() => storyTimeline(short, fake(1830), { showcase: true })).toThrow("one-minute");
     expect(() => storyTimeline({ ...short, scenes: [{ ...short.scenes[0], cues: [{ frame: 0, text: "Hi" }, { frame: 40, text: "Too soon" }] }] }, fake(300))).toThrow("2.5 seconds");
     expect(storyMotionSample({ loop: false, frames: Array(210) }, 220)).toBe(209);
     expect(storyMotionSample({ loop: true, frames: Array(48) }, 50)).toBe(2);
@@ -142,13 +145,33 @@ describe("private designer catalogue", () => {
     await expect(composeFilm(using("point"), resources)).rejects.toThrow("legacy fixture");
   });  it("parses the authoritative ledger and excludes unapproved motions", async () => {
     // @ts-expect-error Repository authoring helpers are intentionally plain JavaScript.
-    const { parseCatalogue } = await import("../scripts/site/catalogue.mjs");
+    const { ledgerMetadata, parseCatalogue } = await import("../scripts/site/catalogue.mjs");
     const source = await fs.readFile(path.resolve("docs", "motion-catalog-plan.md"), "utf8");
     const rows = parseCatalogue(source);
     expect(rows).toHaveLength(100);
+    expect(new Set(rows.map((row: { id: string }) => row.id)).size).toBe(100);
+    expect(Object.fromEntries([...new Set(rows.map((row: { status: string }) => row.status))].sort()
+      .map(status => [status, rows.filter((row: { status: string }) => row.status === status).length])))
+      .toEqual({ candidate: 1, rework: 1, "user-approved": 98 });
+    const canonical = rows.map((row: { id: string; status: string; family: string }) =>
+      `${row.id}\t${row.status}\t${row.family}`).sort().join("\n") + "\n";
+    expect(createHash("sha256").update(canonical).digest("hex"))
+      .toBe("53362dc2d0e27d4b4468c35a45a30dd487e0e7181311146e6d10b243370484e9");
+    expect(ledgerMetadata(rows)).toEqual({
+      ledgerCount: 100, ledgerSha256: "53362dc2d0e27d4b4468c35a45a30dd487e0e7181311146e6d10b243370484e9"
+    });
     expect(rows.filter((r: { status: string }) => r.status === "user-approved")).toHaveLength(98);
     expect(rows.filter((r: { status: string }) => r.status !== "user-approved").map((r: { id: string }) => r.id).sort()).toEqual(["dance", "roll"]);
     expect(() => parseCatalogue(source.replace("| `idle`", "| `walk`"))).toThrow("100 unique");
+  });
+  it("keeps pilot approval provenance distinct from engineering authorization", async () => {
+    const approval = JSON.parse(await fs.readFile(path.resolve("examples/cloud-deck/approval.json"), "utf8"));
+    const renderer = await fs.readFile(path.resolve("scripts/site/render-cloud-deck.mjs"), "utf8");
+    expect(approval.approvedBy).toContain("autonomous");
+    expect(approval.statement).toContain("not user review");
+    expect(approval.statement).toContain("subject to verification and user review");
+    expect(renderer).toContain('status:"unapproved-engineering-preview"');
+    expect(renderer).toContain("approvalRecorded:false");
   });
   it("reuses runtime baselines and builds keyed previews without mutating specs", async () => {
     // @ts-expect-error Repository authoring helpers are intentionally plain JavaScript.

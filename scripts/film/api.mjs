@@ -80,7 +80,7 @@ export async function listFilmAssets() {
   }
   const joinMatrix = await readJoinMatrix();
   return { motions, kits: ["legionary", "standard", "dagger"], headwear: ["none", "laurel"], places: Object.keys(places), overlays: overlayTypes,
-    setTypes: resources.propsCatalog.props.map(prop => prop.type), fps: 30, maxFrames: 1800, continuityLimit: 14,
+    setTypes: resources.propsCatalog.props.map(prop => prop.type), fps: 30, showcaseMaxFrames: 1800, continuityLimit: 14,
     joinCount: joinMatrix.joins.length, recipeSchema: filmRecipeSchema };
 }
 
@@ -99,7 +99,25 @@ function validateMotionOptions(recipe, composed, resources) {
   }
 }
 
-function summarize(recipe, composed, resources) {
+const throwIfAborted = signal => {
+  if (!signal?.aborted) return;
+  const error = new Error("Film composition was cancelled.");
+  error.name = "AbortError";
+  throw error;
+};
+const progress = async (callback, event) => { await callback?.(event); };
+export function estimateFilmWork(frames, width = 1280, qaFrames = 0) {
+  const height = Math.round(width * 9 / 16);
+  const frameCount = frames + 1 + qaFrames;
+  const pixelsPerFrame = width * height;
+  return { frameCount, pixelsPerFrame, totalRasterPixels: frameCount * pixelsPerFrame, width, height };
+}
+const filmWarnings = (frames, work) => [
+  ...(frames > 1800 ? [`Film has ${frames} frames; the 1800-frame (60-second) limit applies to curated showcase assets only.`] : []),
+  ...(work.totalRasterPixels > 90_000_000 ? [`Estimated raster work is ${work.totalRasterPixels} pixels; rendering may use significant CPU, memory, and disk.`] : [])
+];
+
+function summarize(recipe, composed, resources, signal) {
   const { performance, timeline, extraActors } = composed;
   const ranges = (cast, items) => items.map((item, index) => {
     const seg = cast.segments.find(seg => seg.itemIndex === index);
@@ -109,14 +127,16 @@ function summarize(recipe, composed, resources) {
     return { index, kind: "relocate", startFrame: next.start, endFrame: next.start, root: item.relocate, instantaneous: true, beat: item.beat ?? null };
   });
   const check = cast => {
-    const report = performanceContinuity(cast, resources.sampleClipMotion);
-    return { maxJointStep: report.maxJointStep, limit: 14, passed: report.maxJointStep <= 14, worstFrame: report.worstFrame, join: continuityJoin(cast, report.worstFrame) };
+    const report = performanceContinuity(cast, resources.sampleClipMotion, { signal });
+    return { maxJointStep: report.maxJointStep, limit: 14, passed: report.maxJointStep <= 14, worstFrame: report.worstFrame,
+      join: continuityJoin(cast, report.worstFrame), footSlides: report.footSlides, maxFootSlide: report.maxFootSlide,
+      supportTransitions: report.supportTransitions };
   };
   const actors = [...extraActors].map(([extra, cast]) => ({ extraIndex: recipe.extras.indexOf(extra), kind: "actor", frames: cast.frames, items: ranges(cast, extra.actor), continuity: check(cast) }));
   for (const [extraIndex, extra] of (recipe.extras ?? []).entries()) if (extra.motion) {
     const cast = composePerformance([{ motion: extra.motion, root: extra.root }], {
       motions: composed.motions, sampleClipMotion: resources.sampleClipMotion,
-      neutral: RUNTIME_MOTION_LIBRARY.clips.idle.frames[0], scale: FILM_SCALE * extra.scale
+      neutral: RUNTIME_MOTION_LIBRARY.clips.idle.frames[0], scale: FILM_SCALE * extra.scale, signal
     });
     const continuity = check(cast);
     if (!continuity.passed) throw new Error(`extras/${extraIndex}: continuity ${continuity.maxJointStep} exceeds limit 14 at offending join ${JSON.stringify(continuity.join)}.`);
@@ -142,15 +162,21 @@ function summarize(recipe, composed, resources) {
     if (extra.delay >= until.startFrame + until.frames - start) throw new Error(`extras/${i}: delay exceeds visibility window.`);
   }
   if (recipe.poster !== undefined && recipe.poster >= timeline.frames) throw new Error("Poster frame is outside the film timeline.");
+  const estimatedWork = estimateFilmWork(timeline.frames);
   return { valid: true, id: recipe.id, frames: timeline.frames, seconds: timeline.seconds, fps: 30, scenes: timeline.scenes, items: ranges(performance, recipe.performance),
-    bridges: composed.bridgeRecords ?? [], continuity: { lead: check(performance), actors } };
+    bridges: composed.bridgeRecords ?? [], continuity: { lead: check(performance), actors },
+    estimatedWork, warnings: filmWarnings(timeline.frames, estimatedWork) };
 }
 
-export async function composeRecipe(input) {
+export async function composeRecipe(input, options = {}) {
+  throwIfAborted(options.signal);
+  await progress(options.onProgress, { phase: "compose", current: 0, total: 1 });
   const recipe = normalizeRecipe(input), resources = await loadShowcaseResources();
-  const composed = await composeFilm(recipe, resources);
+  const composed = await composeFilm(recipe, resources, options);
   validateMotionOptions(recipe, composed, resources);
-  return summarize(recipe, composed, resources);
+  const result = summarize(recipe, composed, resources, options.signal);
+  await progress(options.onProgress, { phase: "compose", current: 1, total: 1 });
+  return result;
 }
 
 export async function checkFilmJoin(motionA, motionB) {
@@ -163,30 +189,53 @@ const stamp = frame => {
 };
 // destination is an exclusively-created, confined directory supplied by the TS adapter.
 export async function renderRecipe(input, destination, options = {}) {
+  throwIfAborted(options.signal);
+  await progress(options.onProgress, { phase: "compose", current: 0, total: 1 });
   const recipe = normalizeRecipe(input), resources = await loadShowcaseResources();
-  const composed = await composeFilm(recipe, resources);
+  const composed = await composeFilm(recipe, resources, options);
   validateMotionOptions(recipe, composed, resources);
-  const report = summarize(recipe, composed, resources);
+  const report = summarize(recipe, composed, resources, options.signal);
   const step = options.preview ? 2 : 1, width = options.preview ? 640 : 1280;
-  const { render, timeline, provenance } = await createStoryRenderer(recipe, resources, composed, options.preview ? { width } : {});
+  const { render, timeline, provenance } = await createStoryRenderer(recipe, resources, composed, { width, signal: options.signal });
   const encodedFrames = Math.ceil(timeline.frames / step);
   const png = async frame => (await render(frame)).png;
   const files = { video: `${recipe.id}.mp4`, poster: `${recipe.id}.png`, captions: `${recipe.id}.vtt` };
-  await fs.writeFile(path.join(destination, files.poster), await png(recipe.poster ?? Math.min(30, timeline.frames - 1)), { flag: "wx" });
-  await encodeVideo(path.join(destination, files.video), encodedFrames, i => png(Math.min(i * step, timeline.frames - 1)), 30 / step);
-  await fs.writeFile(path.join(destination, files.captions), "WEBVTT\n\n" + timeline.scenes.flatMap(scene => scene.cues.map(cue =>
-    `${stamp(scene.startFrame + cue.frame)} --> ${stamp(scene.startFrame + cue.endFrame)}\n${cue.text}\n`)).join("\n"), { flag: "wx" });
-  const qaFrames = options.qaFrames ?? 0;
-  if (qaFrames) {
-    files.qa = `${recipe.id}-qa.png`;
-    const columns = Math.min(4, qaFrames), rows = Math.ceil(qaFrames / columns);
-    const cells = [];
-    for (let i = 0; i < qaFrames; i++) {
-      const frame = qaFrames === 1 ? 0 : Math.round(i * (timeline.frames - 1) / (qaFrames - 1));
-      cells.push(`<image x="${(i % columns) * 320}" y="${Math.floor(i / columns) * 180}" width="320" height="180" href="data:image/png;base64,${(await png(frame)).toString("base64")}"/>`);
+  const created = [];
+  const renderWork = estimateFilmWork(timeline.frames, width, options.qaFrames ?? 0);
+  const warnings = filmWarnings(timeline.frames, renderWork);
+  try {
+    throwIfAborted(options.signal);
+    await progress(options.onProgress, { phase: "compose", current: 1, total: 1 });
+    created.push(files.poster);
+    await fs.writeFile(path.join(destination, files.poster), await png(recipe.poster ?? Math.min(30, timeline.frames - 1)), { flag: "wx" });
+    await progress(options.onProgress, { phase: "poster", current: 1, total: 1 });
+    await encodeVideo(path.join(destination, files.video), encodedFrames, i => png(Math.min(i * step, timeline.frames - 1)), 30 / step, {
+      signal: options.signal, onProgress: options.onProgress
+    });
+    created.push(files.video);
+    throwIfAborted(options.signal);
+    created.push(files.captions);
+    await fs.writeFile(path.join(destination, files.captions), "WEBVTT\n\n" + timeline.scenes.flatMap(scene => scene.cues.map(cue =>
+      `${stamp(scene.startFrame + cue.frame)} --> ${stamp(scene.startFrame + cue.endFrame)}\n${cue.text}\n`)).join("\n"), { flag: "wx" });
+    const qaFrames = options.qaFrames ?? 0;
+    if (qaFrames) {
+      files.qa = `${recipe.id}-qa.png`;
+      const columns = Math.min(4, qaFrames), rows = Math.ceil(qaFrames / columns);
+      const cells = [];
+      for (let i = 0; i < qaFrames; i++) {
+        throwIfAborted(options.signal);
+        const frame = qaFrames === 1 ? 0 : Math.round(i * (timeline.frames - 1) / (qaFrames - 1));
+        cells.push(`<image x="${(i % columns) * 320}" y="${Math.floor(i / columns) * 180}" width="320" height="180" href="data:image/png;base64,${(await png(frame)).toString("base64")}"/>`);
+        await progress(options.onProgress, { phase: "qa", current: i + 1, total: qaFrames });
+      }
+      created.push(files.qa);
+      await fs.writeFile(path.join(destination, files.qa), new Resvg(`<svg xmlns="http://www.w3.org/2000/svg" width="${columns * 320}" height="${rows * 180}">${cells.join("")}</svg>`, { font: { loadSystemFonts: false } }).render().asPng(), { flag: "wx" });
     }
-    await fs.writeFile(path.join(destination, files.qa), new Resvg(`<svg xmlns="http://www.w3.org/2000/svg" width="${columns * 320}" height="${rows * 180}">${cells.join("")}</svg>`).render().asPng(), { flag: "wx" });
+    const sha256 = createHash("sha256").update(await fs.readFile(path.join(destination, files.video))).digest("hex");
+    await progress(options.onProgress, { phase: "complete", current: timeline.frames, total: timeline.frames });
+    return { ...report, estimatedWork: renderWork, warnings, outputDir: destination, files, preview: !!options.preview, encodedFrames, encodedFps: 30 / step, width, height: width * 9 / 16, sha256, provenance };
+  } catch (error) {
+    await Promise.all(created.map(file => fs.rm(path.join(destination, file), { force: true })));
+    throw error;
   }
-  const sha256 = createHash("sha256").update(await fs.readFile(path.join(destination, files.video))).digest("hex");
-  return { ...report, outputDir: destination, files, preview: !!options.preview, encodedFrames, encodedFps: 30 / step, width, height: width * 9 / 16, sha256, provenance };
 }

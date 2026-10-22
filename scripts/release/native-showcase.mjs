@@ -23,28 +23,34 @@ decision:["Make a conditional decision","Move only if requirements and costs fit
 const box=(x,y,w,h)=>'<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="12" fill="var(--cp-surface)" stroke="var(--cp-border-strong)" stroke-width="2"/>';
 const txt=(x,y,s,anchor="start",size=26)=>'<text x="'+x+'" y="'+y+'" text-anchor="'+anchor+'" font-size="'+size+'" font-family="Segoe UI, Aptos, sans-serif" fill="var(--cp-text)">'+s+'</text>';
 function diagram(slide,local){
-  let out=box(270,30,660,76)+txt(600,79,"Workload · same requirements", "middle",28);
+  let out=box(270,30,660,76)+'<path d="M270 42a12 12 0 0 1 12-12h636a12 12 0 0 1 12 12v4H270Z" fill="var(--cp-accent)"/>'+txt(600,79,"Workload · same requirements", "middle",28);
   if(slide==="question"){
+    out+='<path d="M425 106v44m350-44v44" stroke="var(--cp-border-strong)" stroke-width="3"/>';
     out+=box(270,150,310,200)+box(620,150,310,200);
+    out+='<path d="M580 250h40" stroke="var(--cp-accent)" stroke-width="3" stroke-dasharray="6 6"/>';
     out+=txt(425,211,"Existing hosting","middle",28)+txt(425,269,"Measured baseline","middle",24);
     out+=txt(775,211,"Cloud option","middle",28)+txt(775,269,"Evidence required","middle",24);
   }else if(slide==="on-prem"){
     out+=box(270,150,660,200)+txt(310,201,"Current capacity", "start",28);
+    out+='<path d="M300 245h280" stroke="var(--cp-border-strong)" stroke-width="2" stroke-dasharray="5 5"/>';
     const bars=[.28,.40,.58,.83,.44];
-    bars.forEach((h,i)=>{out+='<rect x="'+(310+i*56)+'" y="'+(321-h*94)+'" width="34" height="'+(h*94)+'" rx="4" fill="var(--cp-accent)"/>';});
+    bars.forEach((h,i)=>{const active=local>=i*30?1:.45;out+='<rect x="'+(310+i*56)+'" y="'+(321-h*94)+'" width="34" height="'+(h*94)+'" rx="4" fill="var(--cp-accent)" opacity="'+active+'"/>';});
     out+=txt(745,262,"Demand varies","middle",24)+txt(745,310,"Measure first","middle",24);
   }else if(slide==="cloud"){
     out+=box(270,150,660,200)+txt(310,201,"Choose resource capacity","start",28);
+    out+='<path d="M470 275h24m160 0h24" stroke="var(--cp-border-strong)" stroke-width="3"/>';
     [0,1,2].forEach(i=>{
       const opacity=Math.max(0,Math.min(1,(local-(55+i*40))/20));
       out+='<g opacity="'+opacity+'">'+box(310+i*184,237,160,76)+txt(390+i*184,284,["Compute","Storage","Controls"][i],"middle",24)+'</g>';
     });
   }else if(slide==="evidence"){
+    out+='<path d="M580 191h40M580 310h40M425 239v24M775 239v24" stroke="var(--cp-border-strong)" stroke-width="2"/>';
     [["Baseline",270,144],["Requirements",620,144],["Total cost",270,263],["Pilot results",620,263]].forEach(([s,x,y],i)=>{
       out+=box(x,y,310,95)+txt(x+155,y+58,s,"middle",26);
-      if(local>=i*60)out+='<path d="M'+(x+22)+' '+(y+18)+'h32" stroke="var(--cp-accent)" stroke-width="5" stroke-linecap="round"/>';
+      if(local>=i*60)out+='<path d="M'+(x+22)+' '+(y+18)+'h56" stroke="var(--cp-accent)" stroke-width="5" stroke-linecap="round"/>';
     });
   }else{
+    out+='<path d="M600 106v22H425v22M600 128h175v22" fill="none" stroke="var(--cp-accent)" stroke-width="3"/>';
     out+=box(270,150,310,200)+box(620,150,310,200);
     out+=txt(425,198,"Move if","middle",28)+txt(425,251,"Requirements fit","middle",24)+txt(425,295,"Costs support it","middle",24);
     out+=txt(775,198,"Retain if","middle",28)+txt(775,251,"Local fits better","middle",24)+txt(775,295,"Constraints remain","middle",24);

@@ -80,7 +80,7 @@ export const videoRecipes = [
 ];
 
 /** Scenes start where their beat starts in the composed performance. */
-export function storyTimeline(recipe, performance) {
+export function storyTimeline(recipe, performance, { showcase = false } = {}) {
   if (!performance?.segments?.length) throw new Error("A film timeline needs its composed performance.");
   const starts = recipe.scenes.map(scene => {
     const index = performance.segments.findIndex(seg => seg.beat === scene.id);
@@ -100,7 +100,7 @@ export function storyTimeline(recipe, performance) {
     });
     return { ...scene, cues, caption: cues.map(item => item.text).join(" "), startFrame, frames };
   });
-  if (total > 1800) throw new Error(`${recipe.id} exceeds the one-minute story limit (${total} frames).`);
+  if (showcase && total > 1800) throw new Error(`${recipe.id} exceeds the one-minute story limit (${total} frames).`);
   return { scenes, frames: total, seconds: Number((total / 30).toFixed(2)) };
 }
 

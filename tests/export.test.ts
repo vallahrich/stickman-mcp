@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { compileAnimation } from "../src/compiler.js";
-import { exportAnimation, resolveSafeOutputPath } from "../src/export.js";
+import { exportAnimation, planAnimationExport, resolveSafeOutputPath } from "../src/export.js";
 import type { AnimationSpec } from "../src/contract.js";
 
 const folders: string[] = [];
@@ -39,5 +39,27 @@ describe("safe exports", () => {
     const elsewhere = await tempDirectory();
     await symlink(elsewhere, resolve(root, "linked"), "junction");
     await expect(resolveSafeOutputPath(root, "linked/output.svg")).rejects.toThrow("symlinks");
+  });
+
+  it("plans uncapped raster exports with advisory work and propagates cancellation/progress errors", async () => {
+    const root = await tempDirectory();
+    const longProgram = compileAnimation({
+      ...spec,
+      canvas: { ...spec.canvas, fps: 30 },
+      durationMs: 60_300,
+      actions: [{ action: "wave", startMs: 0, durationMs: 60_000 }]
+    }).program!;
+    const plan = planAnimationExport(longProgram, "mp4");
+    expect(plan.estimatedWork.frameCount).toBeGreaterThan(1800);
+    expect(plan.warnings.join(" ")).toContain("curated-showcase limit");
+    const controller = new AbortController();
+    controller.abort();
+    await expect(exportAnimation(compileAnimation(spec).program!, root, "cancelled.svg", "svg", { signal: controller.signal }))
+      .rejects.toMatchObject({ name: "AbortError" });
+    await expect(exportAnimation(compileAnimation(spec).program!, root, "progress.svg", "svg", {
+      onProgress: () => { throw new Error("progress consumer failed"); }
+    })).rejects.toThrow("progress consumer failed");
+    await expect(readFile(resolve(root, "cancelled.svg"))).rejects.toThrow();
+    await expect(readFile(resolve(root, "progress.svg"))).rejects.toThrow();
   });
 });

@@ -15,12 +15,31 @@ import {
   selectStorySlides,
   tokenTheme
 } from "../scripts/site/deck-provider.mjs";
+import { DECK_PROVIDER_CAPABILITIES, negotiateDeckProvider } from "../scripts/site/deck-provider.mjs";
+// @ts-expect-error Repository catalogue helpers are intentionally plain JavaScript.
+import { smallSizeMetadata } from "../scripts/site/catalogue.mjs";
 
 const fakeDeck = `<!doctype html><html><head><title>Deck</title></head>` +
   `<body data-controls="hidden"><div id="deck-toolbar" class="toolbar"><button id="btn-next">Next</button></div>` +
   `<script id="deck-data" type="application/json">{}</script></body></html>`;
 
 describe("stickman deck provider", () => {
+  it("negotiates a versioned, explicitly unapproved integration contract with static fallback diagnostics", async () => {
+    expect(DECK_PROVIDER_CAPABILITIES.version).toBe("stickman.deck-provider/v1");
+    expect(DECK_PROVIDER_CAPABILITIES.minActorHeightPx).toBe(96);
+    expect(DECK_PROVIDER_CAPABILITIES.actions).toHaveLength(6);
+    expect(DECK_PROVIDER_CAPABILITIES.actions.every(action => action.approvalStatus === "integration-preview-unapproved")).toBe(true);
+    expect(negotiateDeckProvider({ registerMotionProvider() {} }).compatible).toBe(true);
+    expect(negotiateDeckProvider({ registerMotionProvider() {}, adapterVersion: "2.0" }).diagnostics.join(" "))
+      .toContain("does not match required");
+    expect(negotiateDeckProvider({}).diagnostics.join(" ")).toContain("does not expose registerMotionProvider");
+    expect(smallSizeMetadata("Server check", "Check a server") ).toEqual({
+      minHeightPx: 96, semanticFallback: "Server check: Check a server", smallSizePropPolicy: "props-supplement-only"
+    });
+    const client = await fs.readFile(path.resolve("scripts", "site", "deck-provider-client.js"), "utf8");
+    expect(client).toContain("window.negotiateDeckProvider = negotiateDeckProvider");
+    expect(client).toContain("using static scene fallback");
+  });
   it("does not rewind to the walk origin while joining the next station", () => {
     const performance = { segments: [
       { kind: "walk", root: 400, gapStart: 0, start: 0, length: 80, end: 99 },

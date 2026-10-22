@@ -4,15 +4,26 @@ const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 const theme = document.documentElement.getAttribute("data-theme");
 let activePreview = null;
 let dialogVariants = [];
+const motionMode = $("motionMode");
+function effectiveMotionMode() {
+  return motionMode.value === "auto" ? (reducedMotion.matches ? "reduced" : "normal") : motionMode.value;
+}
 function stopPreview() {
   activePreview?.remove();
   activePreview = null;
 }
 function previewUrl(motion, hover = false) {
+  const mode = effectiveMotionMode();
   const query = new URLSearchParams({ scoutTheme: theme, onion: "0" });
-  if (hover) query.set("bare", "1");
-  if (hover && !reducedMotion.matches) query.set("animate", "1");
-  if (reducedMotion.matches) query.set("frame", "0");
+  query.set("mode", motionMode.value);
+  if (mode === "static") {
+    query.set("frame", String(motion.frames - 1));
+  } else if (mode === "reduced") {
+    query.set("frame", String(motion.frames - 1));
+  } else if (hover) {
+    query.set("bare", "1");
+    query.set("animate", "1");
+  }
   return motion.preview + "?" + query;
 }
 function openMotion(motion) {
@@ -53,7 +64,7 @@ function renderCatalogue() {
     image.src = motion.poster; image.alt = `${motion.label} key pose`; image.loading = "lazy";
     button.append(image);
     const play = () => {
-      if (reducedMotion.matches || $("motionDialog").open) return;
+      if (effectiveMotionMode() !== "normal" || $("motionDialog").open) return;
       stopPreview();
       const iframe = document.createElement("iframe");
       iframe.title = `${motion.label} hover preview`; iframe.tabIndex = -1;
@@ -91,10 +102,30 @@ $("heroStatus").textContent = `One native story + two short films · ${catalogue
 $("search").addEventListener("input", renderCatalogue);
 $("category").addEventListener("change", renderCatalogue);
 $("runtimeOnly").addEventListener("change", renderCatalogue);
+$("motionMode").addEventListener("change", () => {
+  $("motionModeHelp").textContent = ({
+    auto: reducedMotion.matches
+      ? "Your device requests reduced motion. The completed pose stays still; choose Normal to override."
+      : "Your device allows motion. Hover previews play at 1x.",
+    normal: "Motion plays on hover and in the preview dialog, regardless of the device preference.",
+    reduced: "Previews stay on a completed pose. Choose Normal to allow playback.",
+    static: "Previews show the completed pose with no playback controls or animation."
+  })[$("motionMode").value];
+  stopPreview();
+  renderCatalogue();
+  if ($("motionDialog").open) updateVariant();
+});
 $("closeDialog").addEventListener("click", () => $("motionDialog").close());
 $("motionDialog").addEventListener("close", () => { $("fullPreview").removeAttribute("src"); });
 document.addEventListener("visibilitychange", () => { if (document.hidden) stopPreview(); });
-reducedMotion.addEventListener("change", stopPreview);
+reducedMotion.addEventListener("change", () => {
+  $("motionMode").value = "auto";
+  $("motionModeHelp").textContent = reducedMotion.matches
+    ? "Your device requests reduced motion. The completed pose stays still; choose Normal to override."
+    : "Your device allows motion. Hover previews play at 1x.";
+  stopPreview();
+  if ($("motionDialog").open) updateVariant();
+});
 
 function quotePowerShell(value) { return "'" + value.replaceAll("'", "''") + "'"; }
 function updateCommand() {
@@ -122,6 +153,15 @@ for (const video of showcaseVideos) video.addEventListener("play", () => {
   stopPreview();
   for (const other of showcaseVideos) if (other !== video) other.pause();
   $("cloudSlide")?.contentWindow?.postMessage({ type: "stickman:pause" }, location.origin);
+});
+if ("IntersectionObserver" in window) {
+  const videoVisibility = new IntersectionObserver(entries => {
+    for (const entry of entries) if (!entry.isIntersecting && !entry.target.paused) entry.target.pause();
+  }, { threshold: 0.15 });
+  for (const video of showcaseVideos) videoVisibility.observe(video);
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) for (const video of showcaseVideos) video.pause();
 });
 window.addEventListener("message", event => {
   if (event.origin !== location.origin || event.source !== $("cloudSlide")?.contentWindow || event.data?.type !== "stickman:play") return;

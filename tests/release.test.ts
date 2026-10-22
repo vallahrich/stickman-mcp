@@ -1,13 +1,13 @@
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { copyFile, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
+import { copyFile, cp, mkdtemp, readFile, readdir, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 // @ts-expect-error Build scripts are standalone JS.
-import { audit, readAllowed, stageCandidate, npmPack, scanPublicText, motionOrigin } from "../scripts/release/prepare.mjs";
+import { audit, readAllowed, stageCandidate, npmPack, resolveNpmCli, scanPublicText, motionOrigin } from "../scripts/release/prepare.mjs";
 // @ts-expect-error Local policy is JS.
 import { inputFiles, blockers, scope } from "../scripts/release/policy.mjs";
 // @ts-expect-error Local archive helper is JS.
@@ -101,9 +101,17 @@ describe("connected private release preparation", () => {
     expect(expected).toContain("motions/poses/poses.json");
     expect(expected).not.toContain("docs/motion-catalog-plan.md");
     expect(expected.some((path: string) => /(?:^|\/)(?:scratch\.html|\.env|\.git)|deck-provider|site\/index/.test(path))).toBe(false);
-    const install = await temp(), npm = process.env.npm_execpath!;
+    const install = await temp(), npm = resolveNpmCli();
     await writeFile(join(install, "package.json"), '{"private":true}');
     const archive = (await readdir(stage)).find(name => name.endsWith(".tgz"))!;
+    for (const dependency of ["@modelcontextprotocol/sdk", "ffmpeg-static", "zod"]) {
+      try {
+        await stat(join(root, "node_modules", dependency, "package.json"));
+      } catch {
+        throw new Error(`Offline release installation is blocked: audited runtime dependency ${dependency} is missing from root/node_modules.`);
+      }
+    }
+    await cp(join(root, "node_modules"), join(install, "node_modules"), { recursive: true });
     execFileSync(process.execPath, [npm, "install", "--offline", "--ignore-scripts",
       "--no-audit", "--no-fund", "--package-lock=false", supplied ? resolve(supplied) : join(stage, archive)], { cwd: install, stdio: "pipe" });
     // Offline verification provisions a separately installed encoder, not a

@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { buildKeyPoseClip, keyPoseGates } from "../motions/keypose.mjs";
 import { renderReviewHtml, renderStaticSvg } from "../motions/review-renderer.mjs";
@@ -59,9 +60,28 @@ export function releaseMotionSpec(spec) {
   return { ...publicSpec, tags: (spec.tags ?? []).filter(tag => !/^(candidate|approved|rework|review|draft)(?:-|$)/i.test(tag)) };
 }
 
+export function smallSizeMetadata(label, summary) {
+  return {
+    minHeightPx: 96,
+    semanticFallback: `${label}: ${summary}`,
+    smallSizePropPolicy: "props-supplement-only"
+  };
+}
+
+export function ledgerMetadata(rows) {
+  const ledgerRows = rows.map(({ id, status, family }) => ({ id, status, family }))
+    .sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+  return {
+    ledgerCount: rows.length,
+    ledgerSha256: createHash("sha256").update(ledgerRows.map(row =>
+      `${row.id}\t${row.status}\t${row.family}`).join("\n") + "\n").digest("hex")
+  };
+}
+
 export async function buildCatalogue(output, { development = false } = {}) {
   const rows = await loadCatalogueRows();
   const approved = rows.filter(r => r.status === "user-approved");
+  const ledger = ledgerMetadata(rows);
   const propsCatalog = JSON.parse(await fs.readFile(path.join(repo, "motions", "review-props.json"), "utf8"));
   const motions = [];
   const requalification = [];
@@ -94,6 +114,8 @@ export async function buildCatalogue(output, { development = false } = {}) {
     return {
       id: row.id, family: row.family, sourceId, label: spec.label ?? row.id, summary: spec.summary ?? `${row.id.replaceAll("-", " ")} motion`,
       tags: [...(publicSpec.tags ?? []), ...(useCases[row.id] ?? [])], duration: +(clip.frames.length / clip.fps).toFixed(2), loop: Boolean(clip.loop),
+      frames: clip.frames.length,
+      ...smallSizeMetadata(spec.label ?? row.id, spec.summary ?? `${row.id.replaceAll("-", " ")} motion`),
       ...(development ? { status: row.status, note: row.note, score: row.note.match(/\b(\d+(?:\.\d+)?)\/10\b/)?.[1] ?? null } : {}),
       runtimeIdAvailable: RUNTIME_ACTION_NAMES.includes(sourceId),
       approval: row.status,
@@ -112,7 +134,8 @@ export async function buildCatalogue(output, { development = false } = {}) {
     motions.push(motion);
   }
   const catalogue = {
-    name: "Stickman MCP", version: 2, publication: "private-preview", development, motionCount: motions.length,
+    name: "Stickman MCP", version: 2, publication: "private-preview", development,
+    ...ledger, motionCount: motions.length,
     runtimeMotionIds: RUNTIME_ACTION_NAMES, motions,
     ...(development ? { approvedCount: approved.length, pending: rows.filter(r => r.status !== "user-approved"), requalification } : {}),
     scope: "Motion previews and authored specs are separate from runtime integration. A matching runtime ID does not guarantee the same version or props."

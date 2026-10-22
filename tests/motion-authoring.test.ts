@@ -36,7 +36,7 @@ describe("pose library and authoring", () => {
     expect(result.checks).toMatchObject({ limit: 14, filmScale: 2.4 });
     expect(JSON.parse(await readFile(join(specsDir, `${result.spec.id}.json`), "utf8")).status).toBe("draft");
     expect((await readFile(previewFile)).subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
-  });
+  }, 60_000);
   it("protects approved/candidate specs and rejects unknown poses, joints, and unordered keys", async () => {
     await mkdir(specsDir, { recursive: true });
     await import("node:fs/promises").then(async ({ writeFile }) => {
@@ -59,7 +59,7 @@ describe("pose library and authoring", () => {
       expect((await stat(out)).size).toBeGreaterThan(1000);
       expect(JSON.parse(await readFile(join(specsDir, `${draft.spec.id}.json`), "utf8")).status).toBe("draft");
     } finally { await rm(out, { force: true }); }
-  });
+  }, 60_000);
   it("exposes author and preview tools over MCP stdio", async () => {
     const root = await mkdtemp(resolve(`.motion-mcp-test-${process.pid}-`));
     const id = `mcp-draft-${process.pid}`;

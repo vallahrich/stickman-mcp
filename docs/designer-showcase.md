@@ -173,15 +173,21 @@ readiness review, including outstanding motions, dependencies and runtime assemb
 
 ## Focused showcase: one slide and two videos
 
-The active presentation example is the private on-premises-to-cloud engineering-preview
-HTML deck. It is not the older `cloud-journey` procedural recipe. The current
-version (v10) is a **58.6-second**, five-scene workload story using the dynamic-presentations
-renderer and actual adapter-1.0 runtime, with one stickman IT admin inside the
-scene slot the deck reserves (see [Deck stickman provider](#deck-stickman-provider)).
-The v9 workload-led version was evaluated at approximately **8/10**. This polish is awaiting
-user review; implementation and mechanical verification do not confer a new rating.
+The active presentation example is the private on-premises-to-cloud HTML deck.
+It is not the older `cloud-journey` procedural recipe. The gallery's historical
+HTML asset has SHA-256
+`0f490b0584cb10515618632d115ff86e20366942d3302408c0dd5cf227e440ea` and records
+five scenes, twelve beats and a **58.6-second** timeline. The separate v15
+engineering preview has SHA-256
+`083ffe6915a0f3e59c26c630fe6ecb93e0d7d610a18f1bfa9b6528b8479e40d0`; it is
+also 58.6 seconds, but remains explicitly `integration-preview-unapproved`.
+The historical gallery asset and the v15 preview are not interchangeable.
+The earlier v14 rating does not transfer to v15; implementation and mechanical
+verification do not confer an owner rating or user approval.
 
-Two original, silent animated stories accompany it, each **56 seconds**:
+Two original, silent animated stories accompany it: `open-source.mp4` is
+**58.43 seconds (1,753 frames)** and `julius-caesar.mp4` is
+**59.17 seconds (1,775 frames)**:
 **Open source: a small fix, shared** follows a developer from a missing feature
 through license rights, a working copy, maintainer review, release and community
 reuse. **Julius Caesar: ambition changes Rome** follows his origins, political
@@ -220,9 +226,14 @@ npm run site:serve
 
 The source slide remains outside Git. The ignored `dist\site\showcase` folder
 contains its local copy, two H.264 MP4 files, PNG posters, VTT captions and a
-duration manifest. The manifest records each motion's source-spec SHA-256 and
+duration manifest. The manifest records the slide SHA-256, five-scene/twelve-beat
+shape and explicit approval status, plus each motion's source-spec SHA-256 and
 each encoded video's SHA-256; media URLs use the latter to invalidate older
-cached films. `site:showcase` checks the embedded slide timeline, current
+cached films. The video playback profile is fixed at 30 fps, 1x, and silent.
+Offscreen videos pause, and active film playback suspends the deck's background
+animation loop. It rejects the known replacement deck whose hash begins
+`4499b85c`; no slide score is inferred from a different revision.
+`site:showcase` checks the embedded slide timeline, current
 keyed-motion approval/mechanical gates, generated-walk gates and the
 performance continuity gate. `site:build` requires complete assets before
 displaying the three-item showcase; without them it shows setup instructions,

@@ -90,12 +90,20 @@ export async function renderMotionStrip(spec, outputFile, { count = 8, width = 3
   for (let i = 0; i < count; i++) {
     const frameIndex = count === 1 ? 0 : Math.round(i * (clip.frames.length - 1) / (count - 1));
     const rendered = await renderStaticSvg({ clip, spec, propsCatalog: { props: [] }, frameIndex, width, height });
-    const png = new Resvg(rendered).render().asPng();
+    const png = new Resvg(rendered, {
+      font: {
+        loadSystemFonts: false,
+        ...(process.platform === "win32" ? {
+          fontFiles: [path.join(process.env.WINDIR ?? "C:\\Windows", "Fonts", "segoeui.ttf")],
+          defaultFontFamily: "Segoe UI"
+        } : {})
+      }
+    }).render().asPng();
     const x = (i % columns) * width, y = Math.floor(i / columns) * height;
     svgCells.push(`<image x="${x}" y="${y}" width="${width}" height="${height}" href="data:image/png;base64,${png.toString("base64")}"/>`);
   }
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${columns * width}" height="${rows * height}">${svgCells.join("")}</svg>`;
-  const png = new Resvg(svg).render().asPng();
+  const png = new Resvg(svg, { font: { loadSystemFonts: false } }).render().asPng();
   await fs.writeFile(outputFile, png, { flag: "wx" });
   return { file: outputFile, frames: clip.frames.length, samples: count, width: columns * width, height: rows * height };
 }
@@ -152,4 +160,3 @@ export async function previewMotion(id, { specDir = defaultSpecsDir, outputFile,
   const preview = await renderMotionStrip(spec, outputFile, { count, clip });
   return { id, status: spec.status, preview, checks: gates };
 }
-

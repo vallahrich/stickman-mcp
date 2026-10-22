@@ -14,12 +14,51 @@ import { storyTimeline, renderStoryFrame, filmExtras } from "../site/story-films
 
 const fps = 30;
 const rasterOptions = { font: { loadSystemFonts: false } };
-export async function encodeVideo(filename, frameCount, render, frameRate = fps) {
+const throwIfAborted = signal => {
+  if (!signal?.aborted) return;
+  const error = new Error("Film rendering was cancelled.");
+  error.name = "AbortError";
+  throw error;
+};
+const progress = async (callback, event) => { await callback?.(event); };
+
+// Release/replant only joins where the measured blend actually slides a planted foot.
+function addMeasuredSupportTransitions(items, performance, continuity) {
+  const indices = new Set();
+  for (const slide of continuity.footSlides) {
+    const segment = performance.segments.find(candidate =>
+      slide.frame >= candidate.gapStart && slide.frame <= candidate.start && !candidate.relocated);
+    if (segment) indices.add(segment.itemIndex);
+  }
+  if (!indices.size) return items.map(item => ({ ...item }));
+  return items.map((item, index) => {
+    if (!indices.has(index)) return { ...item };
+    const segment = performance.segments.find(candidate => candidate.itemIndex === index);
+    const previous = performance.segments[performance.segments.indexOf(segment) - 1];
+    return { ...item, _supportTransition: {
+      from: previous?.id ?? null, to: segment.id, lift: 1.25, rampFrames: 4,
+      joinSupport: segment.id === "fall-get-up" ? "fall-release" : "step-replant"
+    } };
+  });
+}
+
+function composeWithMeasuredSupport(items, options, sampleClipMotion, bridge, label) {
+  const initial = composeWithAutomaticBridges(items, options, sampleClipMotion, bridge, label);
+  if (!bridge) return initial;
+  const supportedItems = addMeasuredSupportTransitions(items, initial.performance, initial.continuity);
+  if (supportedItems.every((item, index) => !item._supportTransition || items[index]._supportTransition)) return initial;
+  return composeWithAutomaticBridges(supportedItems, options, sampleClipMotion, bridge, label);
+}
+
+export async function encodeVideo(filename, frameCount, render, frameRate = fps, { signal, onProgress } = {}) {
   if (!ffmpeg) throw new Error("ffmpeg-static is required for the two showcase videos.");
+  throwIfAborted(signal);
+  try { await fs.access(filename); throw new Error(`Video output already exists: ${filename}`); }
+  catch (error) { if (error.code !== "ENOENT") throw error; }
   const encoder = spawn(ffmpeg, ["-hide_banner", "-loglevel", "error", "-threads", "2",
     "-f", "image2pipe", "-vcodec", "png", "-framerate", String(frameRate), "-i", "pipe:0",
     "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",
-    "-an", "-threads", "2", "-movflags", "+faststart", "-y", filename], { stdio: ["pipe", "ignore", "pipe"] });
+    "-an", "-threads", "2", "-movflags", "+faststart", "-n", filename], { stdio: ["pipe", "ignore", "pipe"] });
   let diagnostics = "", inputError;
   encoder.stderr.on("data", chunk => { diagnostics = (diagnostics + chunk).slice(-8000); });
   encoder.stdin.on("error", error => { inputError = error; });
@@ -28,19 +67,31 @@ export async function encodeVideo(filename, frameCount, render, frameRate = fps)
     encoder.on("close", code => code === 0 ? resolve() : reject(new Error(`Video encoder failed (${code}): ${diagnostics}`)));
   });
   completion.catch(() => {});
+  const abort = () => encoder.kill();
+  signal?.addEventListener("abort", abort, { once: true });
   try {
     for (let frame = 0; frame < frameCount; frame++) {
+      throwIfAborted(signal);
       if (inputError) throw inputError;
       const png = await render(frame);
       if (!encoder.stdin.write(png)) await once(encoder.stdin, "drain");
+      await progress(onProgress, { phase: "encode", current: frame + 1, total: frameCount });
       if (frame % 60 === 0) globalThis.gc?.();
     }
     encoder.stdin.end();
     await completion;
   } catch (error) {
     encoder.kill();
-    await completion.catch(() => {});
+    let terminationError;
+    try { await completion; } catch (failure) { terminationError = failure; }
+    try { await fs.rm(filename, { force: true }); }
+    catch (cleanupError) { throw new AggregateError([error, cleanupError], "Video encoding failed and partial-output cleanup also failed."); }
+    if (terminationError && terminationError !== error && error.name !== "AbortError") {
+      throw new AggregateError([error, terminationError], `Video encoding failed: ${error.message}`);
+    }
     throw error;
+  } finally {
+    signal?.removeEventListener("abort", abort);
   }
 }
 
@@ -66,7 +117,7 @@ export async function loadShowcaseResources() {
 function composeWithAutomaticBridges(items, options, sampleClipMotion, enabled, label) {
   const adjusted = items.map(item => ({ ...item }));
   const original = composePerformance(adjusted, options);
-  const before = performanceContinuity(original, sampleClipMotion);
+  const before = performanceContinuity(original, sampleClipMotion, { signal: options.signal });
   if (!enabled || before.maxJointStep <= 14) return { performance: original, continuity: before, bridgeRecords: [] };
   const bridgeByItem = new Map();
   let performance = original, continuity = before;
@@ -100,7 +151,7 @@ function composeWithAutomaticBridges(items, options, sampleClipMotion, enabled, 
     bridgeByItem.set(segment.itemIndex, record);
     item._bridge = record;
     performance = composePerformance(adjusted, options);
-    continuity = performanceContinuity(performance, sampleClipMotion);
+    continuity = performanceContinuity(performance, sampleClipMotion, { signal: options.signal });
     record.costAfter = continuity.maxJointStep;
   }
   if (continuity.maxJointStep > 14) {
@@ -116,11 +167,12 @@ function composeWithAutomaticBridges(items, options, sampleClipMotion, enabled, 
   return { performance, continuity, bridgeRecords };
 }
 
-export async function composeFilm(recipe, resources) {
+export async function composeFilm(recipe, resources, { signal } = {}) {
   const { approved, sampleClipMotion } = resources;
   const ids = new Set([...recipe.performance.map(item => item.motion), ...(recipe.set ?? []).map(item => item.motion), ...(recipe.extras ?? []).flatMap(item => [item.motion, ...(item.actor ?? []).map(entry => entry.motion)])].filter(Boolean));
   const motions = new Map();
   for (const id of ids) {
+    throwIfAborted(signal);
     if (!approved.has(id)) throw new Error(`${id} is not user-approved.`);
     const motion = await readMotion(id);
     if (!motion.spec.poseKeys?.length) throw new Error(`${id} is a legacy fixture; films require current authored key-pose motions.`);
@@ -128,26 +180,33 @@ export async function composeFilm(recipe, resources) {
     motions.set(id, motion);
   }
   const neutral = RUNTIME_MOTION_LIBRARY.clips.idle.frames[0];
-  const lead = composeWithAutomaticBridges(recipe.performance, { motions, sampleClipMotion, neutral }, sampleClipMotion, recipe.bridge === "auto", `${recipe.id}/lead`);
+  const lead = composeWithMeasuredSupport(recipe.performance, { motions, sampleClipMotion, neutral, signal },
+    sampleClipMotion, recipe.bridge !== "off", `${recipe.id}/lead`);
   const performance = lead.performance;
+  for (const segment of performance.segments) if (segment.supportTransition) {
+    const previous = performance.segments[performance.segments.indexOf(segment) - 1];
+    if (previous?.id !== segment.supportTransition.from || segment.id !== segment.supportTransition.to)
+      throw new Error(`${recipe.id}: support transition ${segment.itemIndex} no longer matches ${segment.supportTransition.from} -> ${segment.supportTransition.to}.`);
+  }
   for (const seg of performance.segments.filter(item => item.kind === "walk"))
     if (!(await keyPoseGates(seg.clip, seg.spec)).passed) throw new Error(`${recipe.id}: a generated walk failed its mechanical gates.`);
   const continuity = lead.continuity;
-  assertContinuity(recipe.id + "/lead", performance, continuity);
+  const requireContactSafe = recipe.id === "open-source" || recipe.id === "julius-caesar";
+  assertContinuity(recipe.id + "/lead", performance, continuity, requireContactSafe);
   const extraWalks = new Map(), extraActors = new Map(), actorBridges = new Map();
   for (const extra of recipe.extras ?? []) if (extra.walk) {
     const spec = walkSpec(extra.walk, 1);
     extraWalks.set(extra, { spec, clip: buildKeyPoseClip(spec, neutral), sourceId: spec.id });
   } else if (extra.actor) {
     // A supporting actor is its own small continuous performance (soldier, conspirator), gated like the lead.
-    const actorResult = composeWithAutomaticBridges(extra.actor, { motions, sampleClipMotion, neutral, scale: FILM_SCALE * extra.scale },
-      sampleClipMotion, recipe.bridge === "auto", `${recipe.id}/extras/${recipe.extras.indexOf(extra)}`);
+    const actorResult = composeWithMeasuredSupport(extra.actor, { motions, sampleClipMotion, neutral, scale: FILM_SCALE * extra.scale },
+      sampleClipMotion, recipe.bridge !== "off", `${recipe.id}/extras/${recipe.extras.indexOf(extra)}`);
     const actor = actorResult.performance;
     actorBridges.set(extra, actorResult.bridgeRecords);
     for (const seg of actor.segments.filter(item => item.kind === "walk"))
       if (!(await keyPoseGates(seg.clip, seg.spec)).passed) throw new Error(`${recipe.id}: a supporting actor's walk failed its mechanical gates.`);
-    const check = performanceContinuity(actor, sampleClipMotion);
-    assertContinuity(`${recipe.id}/extras/${recipe.extras.indexOf(extra)}`, actor, check);
+    const check = performanceContinuity(actor, sampleClipMotion, { signal });
+    assertContinuity(`${recipe.id}/extras/${recipe.extras.indexOf(extra)}`, actor, check, requireContactSafe);
     extraActors.set(extra, actor);
   }
   const bridgeRecords = [...lead.bridgeRecords.map(record => ({ ...record, actor: "lead" })),
@@ -203,6 +262,7 @@ export async function createStoryRenderer(recipe, resources, composed, options =
     theme: themeMotion, adorn: extra.kit ? kit(extra.kit) : undefined, strip: ["glove", "palm", "box"], motions }) }]));
   const extraCache = new Map();
   const render = async frame => {
+    throwIfAborted(options.signal);
     const layers = await actor(frame);
     let extras = "";
     for (const extra of filmExtras(recipe, timeline, frame)) {
@@ -242,6 +302,7 @@ export function continuityJoin(performance, frame) {
   const seg = performance.segments[index];
   return { frame, from: performance.segments[index - 1]?.id ?? null, to: seg?.id ?? null, item: seg?.itemIndex ?? index, inBlend: !!seg && frame < seg.start };
 }
-function assertContinuity(label, performance, check) {
+function assertContinuity(label, performance, check, requireContactSafe = false) {
   if (check.maxJointStep > 14) throw new Error(`${label}: continuity ${check.maxJointStep} exceeds limit 14 at offending join ${JSON.stringify(continuityJoin(performance, check.worstFrame))}.`);
+  if (requireContactSafe && check.footSlides.length > 0) throw new Error(`${label}: planted-foot slides exceed the 1.2-unit contact limit at ${JSON.stringify(check.footSlides[0])}; transitions=${JSON.stringify(check.supportTransitions)}.`);
 }

@@ -202,3 +202,36 @@ not independent QA, cross-platform certification or legal approval.
 CMU and conversion permission evidence is resolved and documented; the actual
 remaining gates are owner final-file/hash review and explicit destination/
 publication authorization. No public publication or deployment occurred.
+
+The private showcase is a separate review surface, not release approval. Its
+historical gallery slide (`0f490b0584cb10515618632d115ff86e20366942d3302408c0dd5cf227e440ea`)
+and the later v15 engineering preview
+(`083ffe6915a0f3e59c26c630fe6ecb93e0d7d610a18f1bfa9b6528b8479e40d0`) are
+distinct 58.6-second assets with five scenes and twelve beats. The v15 asset is
+`integration-preview-unapproved`; it does not inherit an earlier revision's
+7/10 rating. The rejected replacement hash begins `4499b85c`.
+The accompanying silent films are 58.43 seconds/1,753 frames (open source)
+and 59.17 seconds/1,775 frames (Julius Caesar). These durations describe the
+existing assets and are not publication authorization.
+
+## Verified review candidate: 0.1.0-rc.4 (2026-10-22)
+
+Built on top of `f8be19c8ddaffec585e23e93f90c9e4bc2980d38` with Phases 0–5
+implemented (provenance metadata, reduced-motion Play guard and mode overrides,
+contact-safe film joins with `footSlides: []`, deterministic npm/offline package
+qualification, uncapped generic exports with warnings/progress/cancellation,
+versioned deck-provider capability negotiation, and upgraded native diagram
+connectors). Artifacts under `.release-local/0.1.0-rc.4/`:
+
+| Artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `vallahrich-stickman-mcp-0.1.0-rc.4.tgz` | 368,863 | `ce887cf0c6c5a616203d46e3f92909bfcde648dc55662fad955f3cb76a705316` |
+| `stickman-source-0.1.0-rc.4.zip` | 3,360,775 | `d015ff674def1bfae6d9ea1104ed56cd4c1e89f79bf8fa808d53d3956ca7a5a0` |
+| `stickman-site-0.1.0-rc.4.zip` | 39,375,130 | `d7ee10d8a6f315f2057853492e76d33914c308596f1fe4d3075e60c78cb02cb9` |
+| `showcase/open-source.mp4` (contact-safe rc.4 render) | — | `c674dbbb010bcb3dff1f921e2c8522f234a55b80683f025d341fae56483a2232` |
+| `showcase/julius-caesar.mp4` (contact-safe rc.4 render) | — | `7fc43b35e6ae9f44baf5a743e64fff7440f55ee0e82b16dc86f0b07fe2fa2cc4` |
+
+Both `verify-candidate.mjs .release-local/0.1.0-rc.4` (`archiveChecksums: "passed"`,
+`siteFiles: 337`, `motions: 97`, `runtimeIds: 11`, `errors: []`, `failed: []`)
+and `STICKMAN_CANDIDATE_TARBALL=.release-local/0.1.0-rc.4/vallahrich-stickman-mcp-0.1.0-rc.4.tgz`
+across all 6 release tests passed.

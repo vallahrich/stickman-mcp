@@ -13,6 +13,7 @@ test("rating-free release assets, truthful runtime scope and private indexing", 
   expect(catalogue.motions.some(m => ["dance", "roll", "sneak"].includes(m.id))).toBe(false);
   expect(catalogue.motions.find(m => m.id === "rack-server").runtimeIdAvailable).toBe(false);
   for (const motion of catalogue.motions.flatMap(m => [m, ...m.variants])) {
+    expect(motion.frames).toBeGreaterThan(0);
     for (const asset of [motion.poster, motion.preview, motion.spec]) expect((await request.get("/" + asset)).status(), asset).toBe(200);
     expect(motion).not.toHaveProperty("score");
     expect(motion).not.toHaveProperty("note");
@@ -138,11 +139,85 @@ test("reduced motion stays still and mobile does not overflow", async ({ page })
   await expect(page.locator(".preview iframe")).toHaveCount(0);
   await button.click();
   const frame = page.frameLocator("#fullPreview");
-  await expect(frame.locator("#frameNo")).toHaveText(/^0/);
+  const catalogue = await (await page.request.get("/catalogue.json")).json();
+  const completedFrame = catalogue.motions.find(m => m.id === "video-call").frames - 1;
+  await expect(frame.locator("#frameNo")).toHaveText(String(completedFrame));
   await page.waitForTimeout(500);
-  await expect(frame.locator("#frameNo")).toHaveText(/^0/);
+  await expect(frame.locator("#frameNo")).toHaveText(String(completedFrame));
   await page.locator("#closeDialog").click();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test("gallery and standalone motion modes honor reduced-motion playback and stop overrides", async ({ page }) => {
+  await page.addInitScript(() => {
+    if (!location.pathname.includes("/motions/")) return;
+    const request = window.requestAnimationFrame.bind(window);
+    window.__stickmanRafCount = 0;
+    window.requestAnimationFrame = callback => {
+      window.__stickmanRafCount++;
+      return request(callback);
+    };
+  });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  const selector = page.locator("#motionMode");
+  await expect(selector).toHaveValue("auto");
+  await selector.selectOption("static");
+  await page.locator('[data-motion="video-call"] .preview').click();
+  const staticFrame = page.frameLocator("#fullPreview");
+  const catalogue = await (await page.request.get("/catalogue.json")).json();
+  const completedFrame = catalogue.motions.find(m => m.id === "video-call").frames - 1;
+  expect(completedFrame).toBe(197);
+  await expect(staticFrame.locator("#frameNo")).toHaveText(String(completedFrame));
+  const staticSrc = await page.locator("#fullPreview").getAttribute("src");
+  expect(staticSrc).toContain(`frame=${completedFrame}`);
+  expect(staticSrc).toContain("mode=static");
+  await expect(staticFrame.locator("#mode")).toHaveValue("static");
+  await page.locator("#closeDialog").click();
+
+  await selector.selectOption("auto");
+  await page.locator('[data-motion="video-call"] .preview').click();
+  const reducedFrame = page.frameLocator("#fullPreview");
+  await expect(reducedFrame.locator("#frameNo")).toHaveText(String(completedFrame));
+  await reducedFrame.locator("#play").click();
+  await page.waitForTimeout(1100);
+  await expect(reducedFrame.locator("#frameNo")).toHaveText("197");
+  await expect(reducedFrame.locator("#play")).toHaveText("play");
+  expect(await page.frameLocator("#fullPreview").locator("body").evaluate(() => window.__stickmanRafCount)).toBe(0);
+
+  await reducedFrame.locator("#mode").selectOption("normal");
+  await expect(reducedFrame.locator("#frameNo")).toHaveText("0");
+  await reducedFrame.locator("#play").click();
+  await expect.poll(() => reducedFrame.locator("#frameNo").textContent()).not.toBe("0");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await expect(selector).toHaveValue("auto");
+  await expect(reducedFrame.locator("#mode")).toHaveValue("auto");
+  await expect(reducedFrame.locator("#play")).toHaveText("play");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await reducedFrame.locator("#mode").selectOption("normal");
+  await reducedFrame.locator("#play").click();
+  await expect.poll(() => reducedFrame.locator("#frameNo").textContent()).not.toBe("197");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(reducedFrame.locator("#mode")).toHaveValue("auto");
+  await expect(reducedFrame.locator("#frameNo")).toHaveText("197");
+  await expect(reducedFrame.locator("#play")).toHaveText("play");
+  const resetRaf = await page.frameLocator("#fullPreview").locator("body").evaluate(() => window.__stickmanRafCount);
+  await page.waitForTimeout(1100);
+  await expect(reducedFrame.locator("#frameNo")).toHaveText("197");
+  expect(await page.frameLocator("#fullPreview").locator("body").evaluate(() => window.__stickmanRafCount)).toBe(resetRaf);
+  await page.locator("#closeDialog").click();
+
+  await selector.selectOption("reduced");
+  await page.locator('[data-motion="video-call"] .preview').click();
+  await expect(page.frameLocator("#fullPreview").locator("#mode")).toHaveValue("reduced");
+  await expect(page.frameLocator("#fullPreview").locator("#frameNo")).toHaveText("197");
+  await page.locator("#closeDialog").click();
+
+  await selector.selectOption("normal");
+  await page.locator('[data-motion="video-call"] .preview').hover();
+  await expect(page.locator(".preview iframe")).toHaveCount(1);
+  await expect(page.frameLocator(".preview iframe").locator("#frameNo")).not.toHaveText("0");
 });
 
 test("client commands quote paths, do not invent endpoints and never install settings", async ({ page }) => {

@@ -142,7 +142,10 @@ describe("stdio MCP protocol", () => {
     });
     const contents = await readFile(resolve(root, "motion.svg"), "utf8");
     expect(contents).toBe(renderAnimatedSvg(program));
-    expectResult(exported, { format: "svg", path: "motion.svg", bytes: Buffer.byteLength(contents) });
+    expectResult(exported, {
+      format: "svg", path: "motion.svg", bytes: Buffer.byteLength(contents), warnings: [],
+      estimatedWork: { frameCount: 96, pixelsPerFrame: 640 * 360, totalRasterPixels: 96 * 640 * 360 }
+    });
     expect(stderr).toEqual([]);
     expect(transportErrors).toEqual([]);
   });

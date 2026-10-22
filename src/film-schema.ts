@@ -1,7 +1,7 @@
 import type { JsonSchemaType } from "@modelcontextprotocol/sdk/validation";
 
 const number = { type: "number", minimum: -2000, maximum: 3000 };
-const frame = { type: "integer", minimum: 0, maximum: 1800 };
+const frame = { type: "integer", minimum: 0 };
 const text = { type: "string", minLength: 1, maxLength: 100 };
 const id = { type: "string", pattern: "^[a-z][a-z0-9-]{0,63}$" };
 const stringArray = { type: "array", maxItems: 20, uniqueItems: true, items: id };

@@ -6,7 +6,35 @@
   var timing = JSON.parse(document.getElementById("data").textContent);
   var film = JSON.parse(document.getElementById("stickman-frames").textContent);
   var deck = window.DynamicDeck;
-  if (!deck) return;
+  var capability = film.capabilities;
+  function negotiateDeckProvider(host, contract) {
+    var diagnostics = [];
+    if (!contract || contract.version !== "stickman.deck-provider/v1") diagnostics.push("Unsupported or missing Stickman provider contract version.");
+    if (typeof host?.registerMotionProvider !== "function") diagnostics.push("Host does not expose registerMotionProvider.");
+    var adapter = host?.motionProviderAdapterVersion || host?.adapterVersion || "1.0";
+    if (adapter !== "1.0") diagnostics.push("Unsupported motion adapter version: " + adapter + ".");
+    if (!Array.isArray(contract?.actions) || contract.actions.length !== 6 ||
+        contract.actions.some(function (action) { return action.approvalStatus !== "integration-preview-unapproved"; })) {
+      diagnostics.push("Provider action approval metadata is missing or incomplete.");
+    }
+    if (Array.isArray(host?.motionProviderCapabilities)) {
+      ["absoluteSeek", "staticState", "cleanup", "offline"].forEach(function (required) {
+        if (!host.motionProviderCapabilities.includes(required)) diagnostics.push("Host is missing required motion capability: " + required + ".");
+      });
+    }
+    if (!Number.isFinite(contract?.minActorHeightPx) || contract.minActorHeightPx < 1) diagnostics.push("Provider minimum actor height is invalid.");
+    return { compatible: diagnostics.length === 0, diagnostics: diagnostics, minActorHeightPx: contract?.minActorHeightPx || 96 };
+  }
+  window.negotiateDeckProvider = negotiateDeckProvider;
+  var negotiation = negotiateDeckProvider(deck, capability);
+  window.StickmanDeckDiagnostics = negotiation.diagnostics.map(function (message) { return { level: "warning", message: message }; });
+  if (!negotiation.compatible) {
+    window.StickmanDeckDiagnostics.forEach(function (entry) { console.warn("Stickman deck provider: " + entry.message); });
+    return;
+  }
+  var mountedProviders = new Set(), providersSuspended = false;
+  function suspendProviders() { providersSuspended = true; mountedProviders.forEach(function (provider) { provider.pause(); }); }
+  function resumeProviders() { providersSuspended = false; mountedProviders.forEach(function (provider) { provider.resume(); }); }
   // Embedded panels can change size without delivering the renderer's window resize event.
   var layoutFrame = 0;
   function refreshLayout() {
@@ -62,6 +90,14 @@
 
   // ---------- provider ----------
   function mount(stage, scene) {
+    var displayHeight = stage.getBoundingClientRect().height || Number(scene.slot && scene.slot.h) || 0;
+    var staticOnly = displayHeight < negotiation.minActorHeightPx;
+    if (staticOnly) {
+      var diagnostic = { level: "warning", message: "Actor display height " + Math.round(displayHeight) +
+        "px is below the " + negotiation.minActorHeightPx + "px minimum; using static scene fallback." };
+      window.StickmanDeckDiagnostics.push(diagnostic);
+      console.warn("Stickman deck provider: " + diagnostic.message);
+    }
     var slideId = film.cueSlides[scene.cues[0] && scene.cues[0].id];
     var ranges = film.scenes[slideId];
     if (!ranges) throw new Error("Unknown stickman scene.");
@@ -110,7 +146,7 @@
       flow.removeAttribute("aria-labelledby"); flow.setAttribute("aria-label", "Baseline, Requirements, Total cost, Pilot");
       stage.appendChild(flow);
     }
-    var state = { beat: 0, t0: 0, raf: 0, drawn: -1, activeProps: [] };
+    var state = { beat: 0, t0: 0, raf: 0, drawn: -1, activeProps: [], suspended: providersSuspended || document.hidden, animationRequested: false };
     var colors = palette(stage);
 
     function currentFrame() {
@@ -154,9 +190,18 @@
     }
     function tick() {
       state.raf = 0;
+      if (state.suspended || document.hidden || staticOnly || !state.animationRequested) return;
       draw(currentFrame());
-      state.raf = requestAnimationFrame(tick);
+      scheduleTick();
     }
+    function scheduleTick() {
+      if (!state.raf && !state.suspended && !document.hidden && !staticOnly && state.animationRequested) state.raf = requestAnimationFrame(tick);
+    }
+    var controller = {
+      pause: function () { state.suspended = true; if (state.raf) cancelAnimationFrame(state.raf); state.raf = 0; },
+      resume: function () { state.suspended = false; scheduleTick(); }
+    };
+    mountedProviders.add(controller);
     return {
       ready: function () { return Promise.resolve(); },
       seek: function (beat, activeCueIds, options) {
@@ -164,11 +209,15 @@
         state.beat = Math.max(0, Math.min(ranges.length - 1, beat));
         state.drawn = -1;
         if (!activeCueIds.length) { back.innerHTML = props.innerHTML = actor.innerHTML = front.innerHTML = ""; state.activeProps = []; }
-        else if (options && options.static) draw(ranges[state.beat][1] - 1);
-        else { draw(currentFrame()); if (!state.raf) state.raf = requestAnimationFrame(tick); }
+        else if (staticOnly || options && options.static) {
+          state.animationRequested = false;
+          if (state.raf) cancelAnimationFrame(state.raf);
+          state.raf = 0;
+          draw(ranges[state.beat][1] - 1);
+        } else { state.animationRequested = true; draw(currentFrame()); scheduleTick(); }
         return { bounds: { x: 0, y: 0, w: scene.slot.w, h: scene.slot.h }, activeProps: state.activeProps.slice() };
       },
-      cleanup: function () { if (state.raf) cancelAnimationFrame(state.raf); state.raf = 0; svg.remove(); if (flow) flow.remove(); }
+      cleanup: function () { if (state.raf) cancelAnimationFrame(state.raf); state.raf = 0; mountedProviders.delete(controller); svg.remove(); if (flow) flow.remove(); }
     };
   }
   deck.registerMotionProvider({ id: film.provider, adapterVersion: "1.0",
@@ -213,6 +262,7 @@
     if (frame === 0) document.getElementById("btn-replay").click();
     playing = true; f0 = frame; t0 = performance.now();
     play.textContent = "Pause";
+    resumeProviders();
     // Embedded in the showcase: tell the host so it can pause its videos.
     if (window.parent !== window) window.parent.postMessage({ type: "stickman:play" }, location.origin);
     raf = requestAnimationFrame(loop);
@@ -220,6 +270,11 @@
   window.addEventListener("message", function (event) {
     if (event.source !== window.parent || event.origin !== location.origin || !event.data || event.data.type !== "stickman:pause") return;
     stop();
+    suspendProviders();
+  });
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) suspendProviders();
+    else if (playing) resumeProviders();
   });
   // Manual navigation (keys, clicks, toolbar) hands control back to the deck and parks the timeline there.
   function manual() {

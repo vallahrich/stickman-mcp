@@ -10,6 +10,12 @@ const ROOT_X = 160;
 const GROUND_Y = 150;
 const smooth = value => { const t = Math.max(0, Math.min(1, value)); return t * t * (3 - 2 * t); };
 const round = value => Number(value.toFixed(2));
+const checkAborted = signal => {
+  if (!signal?.aborted) return;
+  const error = new Error("Film composition was cancelled.");
+  error.name = "AbortError";
+  throw error;
+};
 
 const walkPose = (dx, r, l, anchor, rArm, extra = {}) => ({
   anchor, lean: 3, neck: -1, bob: 0, dx,
@@ -72,11 +78,20 @@ export function walkSpec(distance, facing = 1, pace = 18) {
   return { id: `walk-${facing > 0 ? "right" : "left"}`, frames: t + 9, loop: false, poseKeys: keys, prop: null, review: {} };
 }
 
+const pelvisCache = new WeakMap();
 /** Pelvis x relative to the clip root, in review-stage pixels. */
 function pelvisOffset(sampler, clip, frame) {
+  let byClip = pelvisCache.get(sampler);
+  if (!byClip) { byClip = new WeakMap(); pelvisCache.set(sampler, byClip); }
+  let byFrame = byClip.get(clip);
+  if (!byFrame) { byFrame = new Map(); byClip.set(clip, byFrame); }
+  const cached = byFrame.get(frame);
+  if (cached !== undefined) return cached;
   const sample = engineSampledFrame(sampler, clip, frame);
   const a = sample.segments.find(item => item.id === "left-thigh"), b = sample.segments.find(item => item.id === "right-thigh");
-  return (a.x1 + b.x1) / 2 - ROOT_X;
+  const offset = (a.x1 + b.x1) / 2 - ROOT_X;
+  byFrame.set(frame, offset);
+  return offset;
 }
 
 /**
@@ -84,7 +99,7 @@ function pelvisOffset(sampler, clip, frame) {
  * Items: { motion, cycles?, hold?, until?, gap?, keep?, laurel?, fadeOut?, beat?, root? } | { walk: { to, pace? }, beat? } | { relocate: filmX }.
  * Positions are film pixels: `root` / `walk.to` place the next motion's root; `relocate` places the next pelvis off-screen.
  */
-export function composePerformance(items, { motions, sampleClipMotion, neutral, scale = FILM_SCALE }) {
+export function composePerformance(items, { motions, sampleClipMotion, neutral, scale = FILM_SCALE, signal }) {
   const S = scale;
   const segments = [];
   const keys = [];
@@ -95,6 +110,7 @@ export function composePerformance(items, { motions, sampleClipMotion, neutral, 
     return motions.get(item.motion);
   };
   items.forEach((item, index) => {
+    checkAborted(signal);
     if (item.relocate !== undefined) { relocate = item.relocate; if (item.beat) beat = item.beat; return; }
     let clip, spec, id;
     if (item.walk) {
@@ -106,7 +122,6 @@ export function composePerformance(items, { motions, sampleClipMotion, neutral, 
       let distance = Math.abs(goal - start) / (S * UNIT);
       for (let attempt = 0; attempt < 3; attempt++) {
         spec = walkSpec(distance, facing, item.walk.pace ?? 18);
-        if (spec.frames > 1800) throw new Error(`Generated walk exceeds the 1800-frame limit (${spec.frames} frames).`);
         clip = buildKeyPoseClip(spec, neutral);
         const travelled = (pelvisOffset(sampleClipMotion, clip, clip.frames.length - 1) - pelvisOffset(sampleClipMotion, clip, 0)) * S;
         distance += facing * (goal - start - travelled) / (S * UNIT);
@@ -167,21 +182,23 @@ export function composePerformance(items, { motions, sampleClipMotion, neutral, 
     const joinIndex = keys.length;
     for (let c = 0; c < cycles; c++) for (const key of clip.poseKeys) keys.push(offset(c * n + key.frame, key));
     // A spread arm uses a different FK branch; make spread explicit on both sides of the join so the blend cannot snap.
+    let currentSpreadAdjusted = false;
     if (joinIndex) for (const arm of ["rArm", "lArm"]) for (const field of ["spread", "elbowSpread"]) {
       const before = keys[joinIndex - 1].pose, after = keys[joinIndex].pose;
-      if (before[arm][field] !== undefined && after[arm][field] === undefined) keys[joinIndex] = { ...keys[joinIndex], pose: { ...after, [arm]: { ...after[arm], [field]: 0 } } };
-      if (after[arm][field] !== undefined && before[arm][field] === undefined) keys[joinIndex - 1] = { ...keys[joinIndex - 1], pose: { ...before, [arm]: { ...before[arm], [field]: 0 } } };
+      if (before[arm][field] !== undefined && after[arm][field] === undefined) { keys[joinIndex] = { ...keys[joinIndex], pose: { ...after, [arm]: { ...after[arm], [field]: 0 } } }; currentSpreadAdjusted = true; }
+      if (after[arm][field] !== undefined && before[arm][field] === undefined) { keys[joinIndex - 1] = { ...keys[joinIndex - 1], pose: { ...before, [arm]: { ...before[arm], [field]: 0 } } }; previous.spreadAdjusted = true; }
     }
     if (clip.loop) keys.push(offset(cycles * n, clip.poseKeys[0]));
     let end = start + length - 1;
     if (item.hold) { keys.push({ ...keys.at(-1), frame: end + item.hold }); end += item.hold; }
-    if (end >= 1800) throw new Error(`Performance exceeds the 1800-frame limit (${end + 1} frames).`);
     keys[keys.length - 1] = { ...keys.at(-1), ease: "inOut" };
     const lastLocal = clip.loop ? 0 : n - 1;
     segments.push({ id, itemIndex: index, kind: item.walk ? "walk" : "motion", clip, spec, start, end, length, root, loop: clip.loop, n,
+      shift, hold: item.hold ?? 0, spreadAdjusted: currentSpreadAdjusted,
       keep: item.keep ?? [], laurel: item.laurel ?? false, fadeOut: item.fadeOut ?? 0, beat: item.beat ?? beat ?? null,
       gapStart: previous ? previous.end + 1 : 0, relocated: relocate !== null,
-      endFacing: clip.poseKeys.at(lastLocal === 0 ? 0 : -1).pose.facing ?? 1, bridge: item._bridge ?? null });
+      endFacing: clip.poseKeys.at(lastLocal === 0 ? 0 : -1).pose.facing ?? 1, bridge: item._bridge ?? null,
+      supportTransition: item._supportTransition ?? null });
     beat = null;
     pin = root + pelvisOffset(sampleClipMotion, clip, lastLocal) * S;
     relocate = null;
@@ -192,43 +209,87 @@ export function composePerformance(items, { motions, sampleClipMotion, neutral, 
   const rootTrack = new Float64Array(frames);
   let pinned = null;
   for (let i = 0; i < segments.length; i++) {
+    checkAborted(signal);
     const seg = segments[i];
-    for (let t = seg.gapStart; t < seg.start; t++) rootTrack[t] = seg.relocated ? seg.root : pinned - pelvisOffset(sampleClipMotion, clip, t) * S;
-    for (let t = seg.start; t <= seg.end; t++) {
-      const local = seg.loop ? (t - seg.start) % seg.n : Math.min(t - seg.start, seg.n - 1);
-      rootTrack[t] = seg.root + (pelvisOffset(sampleClipMotion, seg.clip, local) - pelvisOffset(sampleClipMotion, clip, t)) * S;
+    for (let t = seg.gapStart; t < seg.start; t++) {
+      if ((t & 127) === 0) checkAborted(signal);
+      rootTrack[t] = seg.relocated ? seg.root : pinned - pelvisOffset(sampleClipMotion, clip, t) * S;
+    }
+    if (seg.shift === 0 && !seg.loop && !seg.hold && !seg.spreadAdjusted && seg.clip.poseKeys.every(k => k.pose.facing !== undefined)) {
+      rootTrack.fill(seg.root, seg.start, seg.end + 1);
+      for (const boundary of [seg.start, seg.end]) {
+        const local = Math.min(boundary - seg.start, seg.n - 1);
+        rootTrack[boundary] = seg.root + (pelvisOffset(sampleClipMotion, seg.clip, local) - pelvisOffset(sampleClipMotion, clip, boundary)) * S;
+      }
+    } else {
+      for (let t = seg.start; t <= seg.end; t++) {
+        if ((t & 127) === 0) checkAborted(signal);
+        const local = seg.loop ? (t - seg.start) % seg.n : Math.min(t - seg.start, seg.n - 1);
+        rootTrack[t] = seg.root + (pelvisOffset(sampleClipMotion, seg.clip, local) - pelvisOffset(sampleClipMotion, clip, t)) * S;
+      }
     }
     pinned = seg.root + pelvisOffset(sampleClipMotion, seg.clip, seg.loop ? 0 : seg.n - 1) * S;
   }
   return { frames, clip, segments, rootTrack, scale: S };
 }
 
+/** Stage-space lift used to release/replant support across an explicitly qualified join. */
+export function performanceSupportLift(performance, frame) {
+  let lift = 0;
+  for (const segment of performance.segments) {
+    const transition = segment.supportTransition;
+    if (!transition) continue;
+    const ramp = transition.rampFrames;
+    const start = segment.gapStart - ramp, end = segment.start + ramp;
+    if (frame < start || frame > end) continue;
+    const progress = frame <= segment.gapStart
+      ? smooth((frame - start) / ramp)
+      : frame >= segment.start
+        ? smooth((end - frame) / ramp)
+        : 1;
+    lift = Math.max(lift, transition.lift * progress);
+  }
+  return lift;
+}
+
 /** Mechanical continuity of the whole film as rendered in world space. */
-export function performanceContinuity(performance, sampleClipMotion) {
+export function performanceContinuity(performance, sampleClipMotion, { signal } = {}) {
   const { clip, rootTrack, scale: S } = performance;
-  let previous = null, maxJointStep = 0, worstFrame = 0;
+  let previous = null, maxJointStep = 0, maxFootSlide = 0, worstFrame = 0;
   const slides = [];
   const cuts = new Set(performance.segments.filter(seg => seg.relocated).map(seg => seg.start));
   for (let t = 0; t < performance.frames; t++) {
+    if ((t & 127) === 0) checkAborted(signal);
     if (cuts.has(t)) previous = null;
     const sample = engineSampledFrame(sampleClipMotion, clip, t);
-    const shift = (rootTrack[t] - 640) / S;
-    const points = [sample.head, ...sample.segments.map(item => ({ x: item.x2, y: item.y2, id: item.id }))].map(p => ({ x: p.x + shift, y: p.y, id: p.id }));
+    const shift = (rootTrack[t] - 640) / S, supportLift = performanceSupportLift(performance, t);
+    const points = [sample.head, ...sample.segments.map(item => ({ x: item.x2, y: item.y2, id: item.id }))]
+      .map(p => ({ x: p.x + shift, y: p.y - supportLift, id: p.id }));
     if (previous) {
       points.forEach((point, i) => {
         const step = Math.hypot(point.x - previous[i].x, point.y - previous[i].y) / UNIT;
         if (step > maxJointStep) { maxJointStep = step; worstFrame = t; }
       });
-      for (const side of ["left", "right"]) {
+      const join = performance.segments.find(segment => t >= segment.gapStart && t <= segment.start);
+      if (join && !join.relocated) for (const side of ["left", "right"]) {
         const a = points.find(p => p.id === `${side}-shin`), b = previous.find(p => p.id === `${side}-shin`);
         const planted = a.y >= GROUND_Y - .5 && b.y >= GROUND_Y - .5;
         const slide = Math.abs(a.x - b.x) / UNIT;
+        if (planted) maxFootSlide = Math.max(maxFootSlide, slide);
         if (planted && slide > 1.2) slides.push({ frame: t, side, slide: round(slide) });
       }
     }
     previous = points;
   }
-  return { maxJointStep: round(maxJointStep), worstFrame, footSlides: slides };
+  const supportTransitions = performance.segments.flatMap(segment => segment.supportTransition ? [{
+    from: performance.segments[performance.segments.indexOf(segment) - 1]?.id ?? null,
+    to: segment.id, itemIndex: segment.itemIndex,
+    startFrame: segment.gapStart - segment.supportTransition.rampFrames,
+    endFrame: segment.start + segment.supportTransition.rampFrames,
+    joinSupport: segment.supportTransition.joinSupport,
+    lift: segment.supportTransition.lift, rampFrames: segment.supportTransition.rampFrames
+  }] : []);
+  return { maxJointStep: round(maxJointStep), worstFrame, footSlides: slides, maxFootSlide: round(maxFootSlide), supportTransitions };
 }
 
 /** Per-boundary maximum joint movement during a crossfade, in the same world-space metric. */
@@ -236,9 +297,9 @@ export function performanceJoinCosts(performance, sampleClipMotion) {
   const { clip, rootTrack, scale: S, segments } = performance;
   const pointsAt = frame => {
     const sample = engineSampledFrame(sampleClipMotion, clip, frame);
-    const shift = (rootTrack[frame] - 640) / S;
+    const shift = (rootTrack[frame] - 640) / S, supportLift = performanceSupportLift(performance, frame);
     return [sample.head, ...sample.segments.map(item => ({ x: item.x2, y: item.y2, id: item.id }))]
-      .map(point => ({ x: point.x + shift, y: point.y, id: point.id }));
+      .map(point => ({ x: point.x + shift, y: point.y - supportLift, id: point.id }));
   };
   return segments.slice(1).map((segment, index) => {
     const previous = segments[index];
@@ -344,10 +405,12 @@ export function createPerformanceRenderer(performance, { sampleClipMotion, frame
       figureOpacity = inGap ? 0 : since > 0 ? 1 - smooth(since / fading.fadeOut) : 1;
     }
     const root = performance.rootTrack[frame];
+    const supportLift = performanceSupportLift(performance, frame) * S;
+    const liftLayer = markup => supportLift > 0 ? `<g transform="translate(0 ${round(-supportLift)})">${markup}</g>` : markup;
     return {
-      back: setMarkup + rendered.map(layer => place(layer.seg.root, layer.back, (layer.backOpacity ?? layer.opacity) * layer.propAlpha)).join(""),
-      actor: figureOpacity > .001 ? place(root, theme(figure), figureOpacity) : "",
-      front: rendered.map(layer => place(layer.seg.root, layer.front, (layer.frontOpacity ?? layer.opacity) * layer.propAlpha)).join(""),
+      back: setMarkup + liftLayer(rendered.map(layer => place(layer.seg.root, layer.back, (layer.backOpacity ?? layer.opacity) * layer.propAlpha)).join("")),
+      actor: liftLayer(figureOpacity > .001 ? place(root, theme(figure), figureOpacity) : ""),
+      front: liftLayer(rendered.map(layer => place(layer.seg.root, layer.front, (layer.frontOpacity ?? layer.opacity) * layer.propAlpha)).join("")),
       segment: seg.id, root
     };
   };

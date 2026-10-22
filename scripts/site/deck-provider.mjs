@@ -13,6 +13,27 @@ import { engineSampledFrame } from "../motions/review-renderer.mjs";
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const FPS = 30;
 export const MAX_FRAMES = 1800;
+export const DECK_PROVIDER_CAPABILITIES = Object.freeze({
+  version: "stickman.deck-provider/v1",
+  adapterVersion: "1.0",
+  minActorHeightPx: 96,
+  actions: Object.freeze(["deck-console", "deck-inspect", "deck-connect", "deck-compare", "deck-test", "deck-review"]
+    .map(id => Object.freeze({ id, approvalStatus: "integration-preview-unapproved" })))
+});
+
+export function negotiateDeckProvider(host = {}) {
+  const diagnostics = [];
+  if (typeof host.registerMotionProvider !== "function") diagnostics.push("Host does not expose registerMotionProvider.");
+  const adapter = host.motionProviderAdapterVersion ?? host.adapterVersion ?? DECK_PROVIDER_CAPABILITIES.adapterVersion;
+  if (adapter !== DECK_PROVIDER_CAPABILITIES.adapterVersion) diagnostics.push(`Host adapter version ${String(adapter)} does not match required ${DECK_PROVIDER_CAPABILITIES.adapterVersion}.`);
+  const capabilities = host.motionProviderCapabilities;
+  if (Array.isArray(capabilities)) {
+    for (const required of ["absoluteSeek", "staticState", "cleanup", "offline"]) {
+      if (!capabilities.includes(required)) diagnostics.push(`Host is missing required motion capability: ${required}.`);
+    }
+  }
+  return { compatible: diagnostics.length === 0, diagnostics, ...DECK_PROVIDER_CAPABILITIES };
+}
 
 /** The cloud-migration story: who does what on which slide and beat ("slide/beat"). */
 export const cloudDeckPlan = {
@@ -377,7 +398,8 @@ export async function buildStickmanDeck({ deckPath, storyboardPath, outPath, pla
   const continuity = { maxJointStep: composed.continuity.maxJointStep, limit: 14, footSlides: composed.continuity.footSlides?.length ?? 0 };
   const timing = { totalFrames, fps: FPS, seconds: Number((totalFrames / FPS).toFixed(2)), timeline,
     stickman: { continuity, bridges: composed.bridgeRecords.length, performanceFrames: composed.performance.frames, contacts: composed.contacts } };
-  const film = { provider: plan.provider, view: plan.view, scenes, cueSlides, events: composed.events, dict, frames, roots };
+  const film = { provider: plan.provider, view: plan.view, scenes, cueSlides, events: composed.events, dict, frames, roots,
+    capabilities: DECK_PROVIDER_CAPABILITIES };
   const diagrams = await fs.readFile(path.join(here, "deck-diagrams.js"), "utf8");
   const client = (await fs.readFile(path.join(here, "deck-provider-client.js"), "utf8"))
     .replace("/* DECK_DIAGRAMS */", () => diagrams);

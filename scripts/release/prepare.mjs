@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { lstat, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
@@ -215,9 +216,18 @@ export async function stageCandidate(root, stage, report) {
   return payload;
 }
 
+export function resolveNpmCli() {
+  const candidates = [
+    process.env.npm_execpath,
+    resolve(dirname(process.execPath), "node_modules/npm/bin/npm-cli.js"),
+    resolve(dirname(process.execPath), "../lib/node_modules/npm/bin/npm-cli.js")
+  ].filter(Boolean);
+  const npm = candidates.find(candidate => isAbsolute(candidate) && existsSync(candidate));
+  if (!npm) throw new Error("Cannot locate npm CLI from npm_execpath or the Node installation; install npm and retry.");
+  return npm;
+}
 export function npmPack(stage, args = []) {
-  const npm = process.env.npm_execpath;
-  if (!npm || !isAbsolute(npm)) throw new Error("Run through npm run release:prepare (npm CLI path required).");
+  const npm = resolveNpmCli();
   return JSON.parse(execFileSync(process.execPath, [npm, "pack", "--ignore-scripts", "--offline", "--json", ...args],
     { cwd: stage, encoding: "utf8" }));
 }

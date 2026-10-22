@@ -34,7 +34,9 @@ composer/render and draft/preview APIs used by the MCP server.
 
 Use the CLI schema or `stickman_discover` and `stickman_schema` to learn the
 actual animation contract. Gallery previews and runtime actions are distinct:
-an approved authored film motion is not necessarily an integrated core action.
+the release catalogue includes 97 mechanically qualified film/preview motions
+(from the 100-entry ledger; `sneak`, `roll` and `dance` are excluded from
+release), whereas `stickman.animation/v1` exposes 11 canonical runtime action IDs.
 
 ## Connect the local MCP
 

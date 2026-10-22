@@ -104,8 +104,10 @@ Both builds remain private/noindex. The gallery explicitly distinguishes
 preview availability from runtime integration. It does not publish a site,
 promote motions, or change agent
 settings. See [showcase creation](docs/designer-showcase.md) for the
-on-premises-to-cloud slide and two original 56-second silent animated shorts—an
-open-source contribution journey and the life and legacy of Julius Caesar.
+58.6-second five-scene, twelve-beat on-premises-to-cloud presentation and two
+original silent animated shorts—a 58.43-second (1,753-frame) open-source
+contribution journey and a 59.17-second (1,775-frame) Julius Caesar historical
+short.
 The shorts use newer approved keyed motions, full-frame scenery and readable
 text cues rather than presentation layouts. See
 [MCP setup](docs/mcp-setup.md) for Copilot, Claude Code and Codex.
@@ -136,9 +138,14 @@ Documents use the strict, versioned `stickman.animation/v1` JSON Schema, availab
 | `push@1.0.0` | Actor and visible prop translate rightward together in two-hand handle contact | Bound prop ID and local handle |
 
 The action enum and `stickman_discover` catalog are now derived from the runtime
-motion library. In addition to the six legacy IDs above, any generated clip ID
-(for example `idle`, `stop`, `turn-around`, `hold-pose`, and future factory
-motions) can be used as an action. Clip metadata declares whether an action is a
+motion library. In addition to the six legacy IDs above, the canonical
+`stickman.animation/v1` compiler exposes 11 runtime action IDs (`walk`, `run`,
+`wave`, `point`, `jump`, `push`, `idle`, `stop`, `turn-around`, `hold-pose`,
+and `static-pose`). Separately, the 100-entry motion ledger records 98
+historical approvals and ships 97 mechanically qualified key-pose motions for
+the gallery and continuous film composer (`sneak` is excluded from release
+pending loop-wrap requalification, `roll` is in rework, and `dance` remains a
+candidate). Clip metadata declares whether an action is a
 travel loop, in-place loop, one-shot, or hold; travel clips require a named
 target and are root-motion warped to hit it exactly, aim clips use their target
 for hand/head IK, and one-shots may specify `speed` from `0.5` to `2`.

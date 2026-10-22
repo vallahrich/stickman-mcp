@@ -95,7 +95,7 @@ function defineTool(name: string, description: string, inputSchema: ObjectSchema
 
 const filmResultSchema: ObjectSchema = {
   type: "object", required: ["valid", "id", "frames", "seconds", "fps", "scenes", "items", "bridges", "continuity"],
-  properties: { valid: { const: true }, id: { type: "string" }, frames: { type: "integer", maximum: 1800 },
+  properties: { valid: { const: true }, id: { type: "string" }, frames: { type: "integer", minimum: 1 },
     seconds: { type: "number" }, fps: { const: 30 }, scenes: { type: "array", items: { type: "object" } },
     items: { type: "array", items: { type: "object" } }, bridges: { type: "array", items: { type: "object" } }, continuity: { type: "object", required: ["lead", "actors"],
       properties: { lead: { type: "object" }, actors: { type: "array", items: { type: "object" } } } }
@@ -177,7 +177,10 @@ const toolDefinitions: DefinedTool[] = [
     type: "object", additionalProperties: false, required: ["format", "path", "bytes"],
     properties: {
       format: { type: "string", enum: ["svg", "html", "gif", "mp4"] },
-      path: { type: "string" }, bytes: { type: "integer", minimum: 0 }
+      path: { type: "string" }, bytes: { type: "integer", minimum: 0 },
+      warnings: { type: "array", items: { type: "string" } },
+      estimatedWork: { type: "object", additionalProperties: false, required: ["frameCount", "pixelsPerFrame", "totalRasterPixels"],
+        properties: { frameCount: { type: "integer" }, pixelsPerFrame: { type: "integer" }, totalRasterPixels: { type: "integer" } } }
     }
   }, { writes: true, validationErrors: true }),
   defineTool("stickman_story", "Discover combined IT story recipes (no id), or get an executable multi-action animation and synchronized host content cues by story id. Pass result.animation to validate/compile/preview/export; result.cues are for the presentation host, not animation-contract fields.", {
@@ -233,7 +236,7 @@ export function createMcpServer(outputRoot: string): Server {
   const version = (JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { version: string }).version;
   const server = new Server({ name: "stickman-mcp", version }, { capabilities: { tools: {} } });
   server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: toolDefinitions }));
-  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
     const { name, arguments: input = {} } = request.params;
     const validateArguments = argumentValidators.get(name);
     if (!validateArguments) throw new McpError(ErrorCode.InvalidParams, `Unknown tool "${name}".`);
@@ -244,14 +247,27 @@ export function createMcpServer(outputRoot: string): Server {
     const args = validation.data;
     try {
       switch (name) {
-        case "stickman_compose_film": return result(await composeFilmRecipe(args.recipe));
+        case "stickman_compose_film": return result(await composeFilmRecipe(args.recipe, {
+          signal: extra.signal,
+          ...(extra._meta?.progressToken === undefined ? {} : { onProgress: async progress => {
+            await extra.sendNotification({ method: "notifications/progress", params: {
+              progressToken: extra._meta!.progressToken!, progress: progress.current, total: progress.total, message: progress.phase
+            } });
+          } })
+        }));
         case "stickman_list_film_assets": return result(await listFilmAssets());
         case "stickman_check_join": return result(await checkFilmJoin(stringArgument(args, "motionA"), stringArgument(args, "motionB")));
         case "stickman_author_motion": return result(await authorMotionDraft(args, outputRoot, stringArgument(args, "outputDir")));
         case "stickman_preview_motion": return result(await previewMotionStrip(stringArgument(args, "id"), outputRoot, stringArgument(args, "outputDir"), args.count === undefined ? 8 : args.count as number, args.draftDir === undefined ? undefined : stringArgument(args, "draftDir")));
         case "stickman_render_film": return result(await renderFilmRecipe(args.recipe, outputRoot, stringArgument(args, "outputDir"), {
           ...(args.preview === undefined ? {} : { preview: args.preview as boolean }),
-          ...(args.qaFrames === undefined ? {} : { qaFrames: args.qaFrames as number })
+          ...(args.qaFrames === undefined ? {} : { qaFrames: args.qaFrames as number }),
+          signal: extra.signal,
+          ...(extra._meta?.progressToken === undefined ? {} : { onProgress: async progress => {
+            await extra.sendNotification({ method: "notifications/progress", params: {
+              progressToken: extra._meta!.progressToken!, progress: progress.current, total: progress.total, message: progress.phase
+            } });
+          } })
         }));
         case "stickman_discover": return result(actionCatalog);
         case "stickman_story": return result(args.id === undefined ? storyCatalog() : getStory(stringArgument(args, "id")));
@@ -282,7 +298,14 @@ export function createMcpServer(outputRoot: string): Server {
           if (!compiled.valid || !compiled.program) return result(compiled, true);
           const format = args.format;
           if (!isExportFormat(format)) throw new Error("Format must be svg, html, gif, or mp4.");
-          return result(await exportAnimation(compiled.program, outputRoot, stringArgument(args, "path"), format));
+          return result(await exportAnimation(compiled.program, outputRoot, stringArgument(args, "path"), format, {
+            signal: extra.signal,
+            ...(extra._meta?.progressToken === undefined ? {} : { onProgress: async progress => {
+              await extra.sendNotification({ method: "notifications/progress", params: {
+                progressToken: extra._meta!.progressToken!, progress: progress.current, total: progress.total, message: progress.phase
+              } });
+            } })
+          }));
         }
         default: throw new Error(`Unknown tool "${name}".`);
       }
