@@ -235,3 +235,21 @@ Both `verify-candidate.mjs .release-local/0.1.0-rc.4` (`archiveChecksums: "passe
 `siteFiles: 337`, `motions: 97`, `runtimeIds: 11`, `errors: []`, `failed: []`)
 and `STICKMAN_CANDIDATE_TARBALL=.release-local/0.1.0-rc.4/vallahrich-stickman-mcp-0.1.0-rc.4.tgz`
 across all 6 release tests passed.
+
+## Verified release: 0.1.0 (2026-10-22)
+
+Prepared and verified in `.release-local/0.1.0/` alongside `RELEASE-NOTES-0.1.0.md`:
+
+| Artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `vallahrich-stickman-mcp-0.1.0.tgz` | 368,860 | `b026f0fe44f353ca0b39a255e105cb82d53dfc497b9f8581bd6da2a6f1fb028f` |
+| `stickman-source-0.1.0.zip` | 3,360,750 | `39a4db6d44f6b49314c5e65ab3d82cbcef20cafc5b116d10d3624c3154eb5ec9` |
+| `stickman-site-0.1.0.zip` | 39,375,110 | `c46dd32e5ee70b555b30be2b6a0146fc44433daeeb9eee12f43bb927a48b4d43` |
+| `showcase/open-source.mp4` | — | `c674dbbb010bcb3dff1f921e2c8522f234a55b80683f025d341fae56483a2232` |
+| `showcase/julius-caesar.mp4` | — | `7fc43b35e6ae9f44baf5a743e64fff7440f55ee0e82b16dc86f0b07fe2fa2cc4` |
+
+Verified with `node scripts/release/verify-candidate.mjs .release-local/0.1.0`
+(`archiveChecksums: "passed"`, `siteFiles: 337`, `motions: 97`, `runtimeIds: 11`,
+`noExternalRequests: true`, `errors: []`, `failed: []`) and all 6 outside-checkout
+install/MCP/CLI tests in `tests/release.test.ts`. Local tag `v0.1.0` created;
+no remote push or public upload performed without explicit owner destination sign-off.
