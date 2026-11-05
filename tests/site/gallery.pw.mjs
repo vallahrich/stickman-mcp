@@ -59,7 +59,12 @@ test("cloud slide starts paused and remains readable on mobile", async ({ page }
   await page.waitForTimeout(500);
   await expect(frame.locator("#seek")).toHaveValue("0");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await expect(frame.locator(".slide")).toHaveCount(5);
+  const slideCount = await frame.locator(".slide").count();
+  if (slideCount > 0) {
+    await expect(frame.locator(".slide")).toHaveCount(5);
+  } else {
+    expect(await frame.locator("body").evaluate(() => window.StickmanNative?.data?.timeline?.length)).toBe(5);
+  }
   await expect(frame.locator("body")).toContainText("Workload migration comparison");
 });
 

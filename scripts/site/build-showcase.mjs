@@ -46,9 +46,23 @@ export function inspectSlideMetadata(html) {
 }
 
 export async function buildShowcase(slidePath) {
-  const slide = await fs.readFile(slidePath, "utf8");
-  const slideMetadata = inspectSlideMetadata(slide);
-  const { seconds: slideSeconds } = slideMetadata;
+  let slide;
+  let slideMetadata;
+  if (slidePath) {
+    slide = await fs.readFile(slidePath, "utf8");
+    slideMetadata = inspectSlideMetadata(slide);
+  } else {
+    const { nativeCloudHtml } = await import("../release/native-showcase.mjs");
+    const native = await nativeCloudHtml();
+    slide = native.html;
+    slideMetadata = {
+      seconds: native.seconds,
+      frames: Math.round(native.seconds * fps),
+      runtime: "stickman-native",
+      continuity: native.continuity,
+      contacts: native.contacts
+    };
+  }
   const output = path.join(repo, "dist", "site", "showcase");
   await fs.mkdir(output, { recursive: true });
   await fs.rm(path.join(output, "manifest.json"), { force: true });
@@ -89,6 +103,11 @@ export async function buildShowcase(slidePath) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  if (process.argv.length !== 4 || process.argv[2] !== "--slide") throw new Error("Use site:showcase -- --slide <reviewed on-prem-to-cloud.html>");
-  await buildShowcase(path.resolve(process.argv[3]));
+  if (process.argv.length === 2) {
+    await buildShowcase();
+  } else if (process.argv.length === 4 && process.argv[2] === "--slide") {
+    await buildShowcase(path.resolve(process.argv[3]));
+  } else {
+    throw new Error("Use site:showcase or site:showcase -- --slide <reviewed on-prem-to-cloud.html>");
+  }
 }

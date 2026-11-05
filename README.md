@@ -2,40 +2,36 @@
 
 An original, deterministic 2D vector stick-figure animation engine for presentation-ready SVG/HTML and optional GIF/MP4 export. The local library, CLI, and stdio MCP server share the same strict contract, compiler, playhead sampler, and renderer. Animation instructions are validated data; the runtime does not execute authored code or call a video-generation service.
 
-## Canonical repository
+## Overview and quick start
 
-The canonical private repository is
-[`vallahrich/stickman-mcp`](https://github.com/vallahrich/stickman-mcp); all
-development happens there, on the default branch `vallahrich-stickman-mcp-engine`.
-The former corporate copy `t-vwallerich_microsoft/stickman-mcp` is no longer
-maintained and receives no syncs.
+- **Repository:** [`vallahrich/stickman-mcp`](https://github.com/vallahrich/stickman-mcp) (default branch: `vallahrich-stickman-mcp-engine`)
+- **Live visualization & motion gallery:** [`https://vallahrich.github.io/stickman-mcp/`](https://vallahrich.github.io/stickman-mcp/)
+- **Releases (`v0.1.0`):** [`https://github.com/vallahrich/stickman-mcp/releases/tag/v0.1.0`](https://github.com/vallahrich/stickman-mcp/releases/tag/v0.1.0)
 
-Clones use the SSH host alias `github-vallahrich` (authenticated with the
-vallahrich account):
+### Option 1: Install from the `v0.1.0` GitHub Release
+
+Download `vallahrich-stickman-mcp-0.1.0.tgz` (and optionally `stickman-site-0.1.0.zip` for the pre-rendered offline showcase gallery) from the [v0.1.0 release](https://github.com/vallahrich/stickman-mcp/releases/tag/v0.1.0):
 
 ```powershell
-git clone git@github-vallahrich:vallahrich/stickman-mcp.git
+npm install ./vallahrich-stickman-mcp-0.1.0.tgz
+npx stickman discover
+npx stickman-mcp --root .\stickman-output
 ```
 
-Do not force push to shared branches.
-
-For the connected MCP/library/demo preparation and local, fail-closed release
-commands, see [releasing](docs/releasing.md). Nothing is publicly published by
-these commands. CMU/conversion permissions and full-product scope are documented;
-final owner content/hash review and publication authorization remain separate.
-
-## Requirements and setup
+### Option 2: Clone and run from source
 
 - Node.js 20 or newer
-- FFmpeg on `PATH` and the optional `@resvg/resvg-js` package for GIF/MP4 export
+- FFmpeg on `PATH` (or the optional `ffmpeg-static` and `@resvg/resvg-js` packages) for GIF/MP4 and film export
 
 ```powershell
+git clone https://github.com/vallahrich/stickman-mcp.git
+cd stickman-mcp
 npm install
 npm run build
 npm test
 ```
 
-The repository is private and the package is not published. Run from a checkout:
+Run the CLI from a built checkout:
 
 ```powershell
 node dist/cli.js discover
@@ -45,6 +41,8 @@ node dist/cli.js export --input examples/wave.json --root .\output --output wave
 ```
 
 Exports are written only to a relative path under the explicit `--root`; existing output files, absolute paths, path traversal, and symlink directories are refused. Preview writes the artifact to stdout.
+
+For release-candidate preparation and verification commands, see [releasing](docs/releasing.md).
 
 ## Films via MCP
 
@@ -85,26 +83,24 @@ timelines and revealing ideas, not in a separate presenter panel.
 the final deliverable. Three executable examples follow an application-to-cloud
 journey, an incident response, and a release rollout. Each keeps one actor on
 one continuous animation timeline, with synchronized content cues.
-Build a private designer preview with category/search
-filters, lazy 1x hover and keyboard previews, reduced-motion support and
-copyable agent setup:
+Build and serve the interactive showcase and 97-motion gallery locally (or browse it live at [`https://vallahrich.github.io/stickman-mcp/`](https://vallahrich.github.io/stickman-mcp/)):
 
 ```powershell
+npm run site:showcase
 npm run site:build
 npm run site:serve
 ```
 
-Open `http://127.0.0.1:4173/`. The default, release-style gallery has **no ratings
+Open `http://127.0.0.1:4173/`. `npm run site:showcase` builds the self-contained native workload comparison slide and renders both silent short films into `dist/site/showcase/` (or extract `stickman-site-0.1.0.zip` from the [v0.1.0 release](https://github.com/vallahrich/stickman-mcp/releases/tag/v0.1.0) to serve the pre-rendered site immediately). The default, release-style gallery has **no ratings
 or review notes**, including its JSON, downloaded specs and embedded previews.
 It currently contains 97 motion entries; the historically approved `sneak`
 is excluded pending mechanical requalification. Ratings remain in the
 development ledger and the separate `npm run site:dev` build (`dist\site-dev`);
 serve that with `npm run site:serve -- --dev --port 4175`.
-Both builds remain private/noindex. The gallery explicitly distinguishes
-preview availability from runtime integration. It does not publish a site,
-promote motions, or change agent
+Local `site:build` and `site:dev` outputs retain `noindex` by default, while `--release-candidate` emits the indexable release site. The gallery explicitly distinguishes
+preview availability from runtime integration. It does not promote motions or change agent
 settings. See [showcase creation](docs/designer-showcase.md) for the
-58.6-second five-scene, twelve-beat on-premises-to-cloud presentation and two
+58.6-second five-scene, twelve-beat on-premises-to-cloud presentation (and the 56.7-second native Stickman presentation) plus two
 original silent animated shorts—a 58.43-second (1,753-frame) open-source
 contribution journey and a 59.17-second (1,775-frame) Julius Caesar historical
 short.

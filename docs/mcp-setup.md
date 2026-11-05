@@ -1,6 +1,6 @@
 # Local MCP setup and verification
 
-Stickman MCP is a private, local stdio server. It uses the repository's locked
+Stickman MCP is a local stdio server. It uses the repository's locked
 `@modelcontextprotocol/sdk` 1.x dependency and the same animation compiler as the
 library and CLI. It is not an HTTP service and does not require a GitHub token,
 OAuth, a cloud renderer, or publication to an npm registry.
@@ -13,7 +13,7 @@ locked SDK's actual initialization, discovery, calls, and output validation.
 
 ## Build and launch
 
-Use Node.js 20 or newer. From the corporate repository checkout:
+Use Node.js 20 or newer. From a repository checkout:
 
 ```powershell
 npm ci
@@ -47,16 +47,16 @@ Review the command before running it: it writes your user MCP configuration and
 makes the local server available to Copilot. The repository does not execute this
 command or modify your settings.
 
-Start with the seven non-writing tools:
+Start with the read-only tools:
 
 ```powershell
-copilot mcp add stickman --tools 'stickman_discover,stickman_describe,stickman_schema,stickman_validate,stickman_compile,stickman_preview,stickman_story,stickman_list_film_assets,stickman_compose_film' -- node 'C:\Projects\stickman-mcp\dist\mcp.js' --root 'C:\Projects\MyPresentation\stickman-output'
+copilot mcp add stickman --tools 'stickman_discover,stickman_describe,stickman_schema,stickman_validate,stickman_compile,stickman_preview,stickman_story,stickman_list_film_assets,stickman_check_join,stickman_compose_film' -- node 'C:\Projects\stickman-mcp\dist\mcp.js' --root 'C:\Projects\MyPresentation\stickman-output'
 copilot mcp get stickman
 ```
 
 The interactive alternative is `/mcp add`, selecting **STDIO**, the same command
 and arguments, and the tool names above. Use `/mcp show stickman` to inspect the
-server and its tools. Enable `stickman_export` or `stickman_render_film` only when you intend to write
+server and its tools. Enable `stickman_export`, `stickman_render_film`, `stickman_author_motion`, or `stickman_preview_motion` only when you intend to write
 artifacts in the approved root; enabling a tool is not authorization to overwrite
 or write outside that root.
 
@@ -118,7 +118,7 @@ No invented `--type`/`--command` Codex flags or `/mcp/metadata` endpoint are use
 
 ## Tool contracts and errors
 
-All eleven tools enforce their advertised JSON input schemas at runtime. Missing
+All fourteen tools enforce their advertised JSON input schemas at runtime. Missing
 required fields, unknown fields (including attempted root overrides), wrong
 types, and invalid enums are rejected without coercion. For example, preview
 `timeMs` must be a number, not `"500"` or `null`. Animation validation remains the
@@ -249,9 +249,6 @@ score or a new room-scene MCP/video-authoring contract. See the
 
 ## Deliberate remaining limits
 
-There are no HTTP/OAuth transports, exposed resources/prompts, SDK-major
-migration, task/progress API, or coordinated cancellation of FFmpeg exports in
-this milestone. GIF/MP4 still need the optional rasterizer and external encoder.
-Client roots do not override the launch-time output root. Corporate Actions
-runners remain Enterprise-disabled; publication continues to rely on verified
-dual pushes to the two private repositories.
+There are no HTTP/OAuth transports, exposed resources/prompts, or SDK-major
+migration in this milestone. GIF/MP4 still need the optional rasterizer and external encoder.
+Client roots do not override the launch-time output root.

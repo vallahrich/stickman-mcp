@@ -120,7 +120,7 @@ main{max-width:1100px;margin:auto}h1{font-size:clamp(22px,4vw,36px);margin:8px 0
 .controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:16px 0}
 input[type=range]{flex:1;min-width:160px;accent-color:var(--cp-accent)}
 button{border:1px solid var(--cp-border-strong);border-radius:.625rem;padding:8px 16px;background:var(--cp-surface);color:var(--cp-text)}
-</style></head><body><main><p class="eyebrow">Original native Stickman example</p>
+</style></head><body><main><p class="eyebrow">Workload migration comparison · Original native Stickman example</p>
 <h1 id="heading">Should this workload move?</h1><p id="message" aria-live="polite"></p>
 <svg id="stage" class="stage" viewBox="0 0 1000 420" role="img" aria-label="Stickman explains workload migration evidence"><g id="back"></g><g id="diagram"></g><g id="actor"></g><g id="front"></g></svg>
 <ul id="mobileEvidence" class="mobile-evidence" aria-label="Workload comparison summary"></ul>
@@ -147,12 +147,13 @@ function draw(){
     const summaries={question:["One workload, one set of requirements.","Existing hosting and cloud are both options."],"on-prem":["Measure demand and current capacity.","Use the same baseline for the comparison."],cloud:["Evaluate compute, storage and controls.","Resource flexibility does not guarantee lower cost."],evidence:["Baseline","Requirements","Total cost","Pilot results"],decision:["Move if requirements fit and costs support it.","Retain if local fits better or constraints remain."]};
     $("mobileEvidence").replaceChildren(...summaries[slide].map(s=>{const li=document.createElement("li");li.textContent=s;return li;}));}
   $("seek").value=frame;$("position").textContent=(frame/30).toFixed(1)+" / "+(film.framesTotal/30).toFixed(1)+" s";
-  $("play").textContent=playing?"Pause":"Play";$("play").setAttribute("aria-pressed",String(playing));
+  $("play").textContent=playing?"Pause":(frame>=film.framesTotal-1?"Replay":"Play");$("play").setAttribute("aria-pressed",String(playing));
 }
 function stop(){playing=false;cancelAnimationFrame(raf);draw();}
 function tick(time){if(!playing)return;frame=start+(time-t0)*30/1000;if(frame>=film.framesTotal-1){frame=film.framesTotal-1;stop();return;}draw();raf=requestAnimationFrame(tick);}
-$("play").onclick=()=>{if(playing){stop();return;}if(frame>=film.framesTotal-1)frame=0;start=frame;t0=performance.now();playing=true;draw();raf=requestAnimationFrame(tick);};
+$("play").onclick=()=>{if(playing){stop();return;}if(frame>=film.framesTotal-1)frame=0;start=frame;t0=performance.now();playing=true;if(window.parent!==window){try{window.parent.postMessage({type:"stickman:play"},location.origin||"*");}catch{}}draw();raf=requestAnimationFrame(tick);};
 $("restart").onclick=()=>{frame=0;stop();};$("seek").oninput=()=>{frame=Number($("seek").value);stop();};
+window.addEventListener("message",e=>{if(e.data?.type==="stickman:pause")stop();else if(e.data?.type==="stickman:play"&&!playing)$("play").click();});
 matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change",()=>stop());
 document.addEventListener("visibilitychange",()=>{if(document.hidden)stop();});
 draw();
