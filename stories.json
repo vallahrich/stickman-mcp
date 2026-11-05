@@ -1,0 +1,57 @@
+[
+  {
+    "id": "cloud-journey",
+    "title": "Keep the app simple. Scale the service.",
+    "summary": "A customer request leaves the application, reaches a managed service and returns a result. The architecture changes; the customer experience stays familiar.",
+    "durationMs": 17500,
+    "actions": [
+      "walk",
+      "point",
+      "walk",
+      "point",
+      "wave"
+    ],
+    "cues": 5,
+    "preview": "stories/cloud-journey.html",
+    "poster": "stories/cloud-journey.svg",
+    "recipe": "stories/cloud-journey.json",
+    "animation": "stories/cloud-journey.animation.json",
+    "motionPreview": "stories/cloud-journey.motion.html"
+  },
+  {
+    "id": "incident-resolution",
+    "title": "A failed instance need not stop the service.",
+    "summary": "A failed primary is identified, traffic shifts to a healthy replica, and the customer route recovers. An illustrative failover pattern, not a live operational runbook.",
+    "durationMs": 16500,
+    "actions": [
+      "run",
+      "point",
+      "walk",
+      "point",
+      "wave"
+    ],
+    "cues": 5,
+    "preview": "stories/incident-resolution.html",
+    "poster": "stories/incident-resolution.svg",
+    "recipe": "stories/incident-resolution.json",
+    "animation": "stories/incident-resolution.animation.json",
+    "motionPreview": "stories/incident-resolution.motion.html"
+  },
+  {
+    "id": "deployment-rollout",
+    "title": "Deploy is a step. Verification is the gate.",
+    "summary": "A release moves from staging into a deployment slot. Traffic remains closed until verification; only then does the new version become live.",
+    "durationMs": 11000,
+    "actions": [
+      "push",
+      "point",
+      "wave"
+    ],
+    "cues": 3,
+    "preview": "stories/deployment-rollout.html",
+    "poster": "stories/deployment-rollout.svg",
+    "recipe": "stories/deployment-rollout.json",
+    "animation": "stories/deployment-rollout.animation.json",
+    "motionPreview": "stories/deployment-rollout.motion.html"
+  }
+]

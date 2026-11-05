@@ -1,0 +1,62 @@
+{
+  "version": "stickman.animation/v1",
+  "canvas": {
+    "width": 1000,
+    "height": 720,
+    "fps": 30
+  },
+  "durationMs": 16500,
+  "actor": {
+    "x": 160,
+    "groundY": 560
+  },
+  "targets": {
+    "alert": {
+      "x": 420,
+      "y": 560
+    },
+    "evidence": {
+      "x": 490,
+      "y": 435
+    },
+    "service": {
+      "x": 800,
+      "y": 560
+    },
+    "status": {
+      "x": 870,
+      "y": 435
+    }
+  },
+  "actions": [
+    {
+      "action": "run",
+      "startMs": 0,
+      "durationMs": 3500,
+      "target": "alert"
+    },
+    {
+      "action": "point",
+      "startMs": 3500,
+      "durationMs": 2500,
+      "target": "evidence"
+    },
+    {
+      "action": "walk",
+      "startMs": 6000,
+      "durationMs": 6000,
+      "target": "service"
+    },
+    {
+      "action": "point",
+      "startMs": 12000,
+      "durationMs": 2500,
+      "target": "status"
+    },
+    {
+      "action": "wave",
+      "startMs": 14500,
+      "durationMs": 2000
+    }
+  ]
+}

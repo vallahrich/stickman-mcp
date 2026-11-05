@@ -1,0 +1,254 @@
+{
+  "slide": {
+    "title": "Native Stickman workload comparison",
+    "src": "on-prem-to-cloud.html",
+    "seconds": 56.7,
+    "runtime": "stickman-native",
+    "continuity": {
+      "maxJointStep": 2.61,
+      "worstFrame": 105,
+      "footSlides": [],
+      "maxFootSlide": 0,
+      "supportTransitions": [],
+      "maxVisibleStep": 1.7615457655168345,
+      "maxVisibleAcceleration": 1.7275108633692249,
+      "visibleLimits": {
+        "step": 4,
+        "acceleration": 2
+      }
+    },
+    "contacts": []
+  },
+  "videos": [
+    {
+      "id": "open-source",
+      "src": "open-source.mp4",
+      "poster": "open-source.png",
+      "captions": "open-source.vtt",
+      "seconds": 58.43,
+      "frames": 1753,
+      "sha256": "c674dbbb010bcb3dff1f921e2c8522f234a55b80683f025d341fae56483a2232",
+      "provenance": [
+        {
+          "id": "frustrated-pc",
+          "kind": "authored-key-pose",
+          "frames": 198,
+          "mechanicalCheck": "passed",
+          "specSha256": "fd13d1dd97b4f5880e880b3890466546506a36e82315dcaa45e27b54d15f8a51"
+        },
+        {
+          "id": "stand-up",
+          "kind": "authored-key-pose",
+          "frames": 70,
+          "mechanicalCheck": "passed",
+          "specSha256": "0f679c1e7274ae738c0e9062c34e618130402c7aa730eb80ddecbd69463bd894"
+        },
+        {
+          "id": "inspect-magnifier",
+          "kind": "authored-key-pose",
+          "frames": 162,
+          "mechanicalCheck": "passed",
+          "specSha256": "b3215623f7b65bc449ca9cc12a32f1312f6a2703b6dc3bc7a6e72ec10cdf32df"
+        },
+        {
+          "id": "reveal",
+          "kind": "authored-key-pose",
+          "frames": 76,
+          "mechanicalCheck": "passed",
+          "specSha256": "5c16392313f3233cf761bf15cebaef3b7eff49a764ff40d42a95dfe5011ae907"
+        },
+        {
+          "id": "sit-down",
+          "kind": "authored-key-pose",
+          "frames": 76,
+          "mechanicalCheck": "passed",
+          "specSha256": "3b5b638bd2964e5ff4650a86a9e6e027e8b7ea35f6e4538efc6667b7de0005c7"
+        },
+        {
+          "id": "type-at-desk",
+          "kind": "authored-key-pose",
+          "frames": 48,
+          "mechanicalCheck": "passed",
+          "specSha256": "d4b5ca551da7ac4f7e41faeb70ea4f533c1b087a85d73729d9b6763d7021c13e"
+        },
+        {
+          "id": "video-call",
+          "kind": "authored-key-pose",
+          "frames": 198,
+          "mechanicalCheck": "passed",
+          "specSha256": "757c56246092b16f02453ed79b75087e0cd192810169f7f59c098877b09a8eb2"
+        },
+        {
+          "id": "thumbs-up",
+          "kind": "authored-key-pose",
+          "frames": 54,
+          "mechanicalCheck": "passed",
+          "specSha256": "c846e6e4caaa1c7157c48444680e7ba680d124047b9558dbfb275bb8d0e4d930"
+        },
+        {
+          "id": "hand-over",
+          "kind": "authored-key-pose",
+          "frames": 120,
+          "mechanicalCheck": "passed",
+          "specSha256": "017bd2a04cc024f9a596a912f0d01ba765b6f13ddb041b9fd8b3a1229520c02c"
+        },
+        {
+          "id": "basketball-shot",
+          "kind": "authored-key-pose",
+          "frames": 125,
+          "mechanicalCheck": "passed",
+          "specSha256": "d53e0794cf62e841cda0add4c77f9a74c1272f14349d8d5e452affdfef77f120"
+        },
+        {
+          "id": "cheer",
+          "kind": "authored-key-pose",
+          "frames": 78,
+          "mechanicalCheck": "passed",
+          "specSha256": "374481219f4ab5023e6d3d9d85eeacdcf00e529f32112cb95838c52251c68858"
+        },
+        {
+          "id": "wave",
+          "kind": "authored-key-pose",
+          "frames": 60,
+          "mechanicalCheck": "passed",
+          "specSha256": "add58be566c56c5de16c469e91a8b7d1fcd2d3e70ea636830bcd20826df7dbf0"
+        },
+        {
+          "id": "clap",
+          "kind": "authored-key-pose",
+          "frames": 54,
+          "mechanicalCheck": "passed",
+          "specSha256": "e7021ec4974685d68ecc25d14a54793119117a75bb7d7437ab656ca5e4760225"
+        },
+        {
+          "id": "generated-walk",
+          "kind": "generated-from-walk-on-gait",
+          "count": 3,
+          "mechanicalCheck": "passed"
+        },
+        {
+          "id": "film-performance",
+          "kind": "continuous-composite",
+          "frames": 1753,
+          "maxJointStep": 11.57,
+          "camera": "locked"
+        }
+      ],
+      "sources": [
+        "https://opensource.org/osd"
+      ]
+    },
+    {
+      "id": "julius-caesar",
+      "src": "julius-caesar.mp4",
+      "poster": "julius-caesar.png",
+      "captions": "julius-caesar.vtt",
+      "seconds": 59.17,
+      "frames": 1775,
+      "sha256": "7fc43b35e6ae9f44baf5a743e64fff7440f55ee0e82b16dc86f0b07fe2fa2cc4",
+      "provenance": [
+        {
+          "id": "wave",
+          "kind": "authored-key-pose",
+          "frames": 60,
+          "mechanicalCheck": "passed",
+          "specSha256": "add58be566c56c5de16c469e91a8b7d1fcd2d3e70ea636830bcd20826df7dbf0"
+        },
+        {
+          "id": "present",
+          "kind": "authored-key-pose",
+          "frames": 72,
+          "mechanicalCheck": "passed",
+          "specSha256": "5aa7c933812e5662ec90b0f040ce55089417548e9440634f7e7f087ffd1bf621"
+        },
+        {
+          "id": "beckon",
+          "kind": "authored-key-pose",
+          "frames": 68,
+          "mechanicalCheck": "passed",
+          "specSha256": "9ee968802fb8bace4fe7339ffd37bbef0bca02d67aa591254b21af4a68920995"
+        },
+        {
+          "id": "arms-crossed",
+          "kind": "authored-key-pose",
+          "frames": 50,
+          "mechanicalCheck": "passed",
+          "specSha256": "6699bc59658219924fc74724ca90c24d38c7b632818b3c4e2abd2a4f37a118a1"
+        },
+        {
+          "id": "think",
+          "kind": "authored-key-pose",
+          "frames": 78,
+          "mechanicalCheck": "passed",
+          "specSha256": "6fd2c3a587339c2308cebd8bc24ce2c15eba5958335f42e04008a4b20836ab47"
+        },
+        {
+          "id": "write-notes",
+          "kind": "authored-key-pose",
+          "frames": 181,
+          "mechanicalCheck": "passed",
+          "specSha256": "1739bb80d4bb94a14841e29c12e6ebc875a708881ffd0ff27898cf36d27eb54a"
+        },
+        {
+          "id": "surprised",
+          "kind": "authored-key-pose",
+          "frames": 64,
+          "mechanicalCheck": "passed",
+          "specSha256": "d85887bd5375d4ae8f06d4a6023b1fb9a7c28074d033ddedf2ab2b8874fbf6c3"
+        },
+        {
+          "id": "fall-get-up",
+          "kind": "authored-key-pose",
+          "frames": 212,
+          "mechanicalCheck": "passed",
+          "specSha256": "b6dbd5eb234ec9ca6845994eb587d6e555e948a588e7be03c43f8955780dc51a"
+        },
+        {
+          "id": "nod",
+          "kind": "authored-key-pose",
+          "frames": 36,
+          "mechanicalCheck": "passed",
+          "specSha256": "d6e1cb426bc3ec7bfe1fadfdb0fbd6be4efeb43c4d5a0024678f02127b1d2b72"
+        },
+        {
+          "id": "thumbs-up",
+          "kind": "authored-key-pose",
+          "frames": 54,
+          "mechanicalCheck": "passed",
+          "specSha256": "c846e6e4caaa1c7157c48444680e7ba680d124047b9558dbfb275bb8d0e4d930"
+        },
+        {
+          "id": "punch",
+          "kind": "authored-key-pose",
+          "frames": 60,
+          "mechanicalCheck": "passed",
+          "specSha256": "a8264da1e53b59c89dbca92483e5ac55a641973ab2e75ddbcd57a454680e0f2e"
+        },
+        {
+          "id": "generated-walk",
+          "kind": "generated-from-walk-on-gait",
+          "count": 23,
+          "mechanicalCheck": "passed"
+        },
+        {
+          "id": "supporting-actors",
+          "kind": "continuous-composite",
+          "count": 17,
+          "maxJointStep": 13.75,
+          "camera": "locked"
+        },
+        {
+          "id": "film-performance",
+          "kind": "continuous-composite",
+          "frames": 1775,
+          "maxJointStep": 13.88,
+          "camera": "locked"
+        }
+      ],
+      "sources": [
+        "https://www.worldhistory.org/Julius_Caesar/",
+        "https://en.wikipedia.org/wiki/Julian_calendar"
+      ]
+    }
+  ]
+}

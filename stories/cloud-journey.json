@@ -1,0 +1,99 @@
+{
+  "id": "cloud-journey",
+  "title": "Keep the app simple. Scale the service.",
+  "summary": "A customer request leaves the application, reaches a managed service and returns a result. The architecture changes; the customer experience stays familiar.",
+  "animation": {
+    "version": "stickman.animation/v1",
+    "canvas": {
+      "width": 1000,
+      "height": 720,
+      "fps": 30
+    },
+    "durationMs": 17500,
+    "actor": {
+      "x": 120,
+      "groundY": 560
+    },
+    "targets": {
+      "app": {
+        "x": 310,
+        "y": 560
+      },
+      "appLabel": {
+        "x": 380,
+        "y": 435
+      },
+      "cloud": {
+        "x": 720,
+        "y": 560
+      },
+      "cloudLabel": {
+        "x": 790,
+        "y": 435
+      }
+    },
+    "actions": [
+      {
+        "action": "walk",
+        "startMs": 0,
+        "durationMs": 4000,
+        "target": "app"
+      },
+      {
+        "action": "point",
+        "startMs": 4000,
+        "durationMs": 2500,
+        "target": "appLabel"
+      },
+      {
+        "action": "walk",
+        "startMs": 6500,
+        "durationMs": 6500,
+        "target": "cloud"
+      },
+      {
+        "action": "point",
+        "startMs": 13000,
+        "durationMs": 2500,
+        "target": "cloudLabel"
+      },
+      {
+        "action": "wave",
+        "startMs": 15500,
+        "durationMs": 2000
+      }
+    ]
+  },
+  "cues": [
+    {
+      "id": "request",
+      "timeMs": 0,
+      "title": "A customer places an order",
+      "text": "The application owns the experience, not every backend capability."
+    },
+    {
+      "id": "application",
+      "timeMs": 4400,
+      "title": "One API boundary",
+      "text": "Send the request through a stable contract."
+    },
+    {
+      "id": "connect",
+      "timeMs": 6500,
+      "title": "Move the work, not the customer",
+      "text": "A managed service handles the backend request."
+    },
+    {
+      "id": "cloud",
+      "timeMs": 13400,
+      "title": "Scale behind the same interface",
+      "text": "Backend capacity can evolve without changing the application contract."
+    },
+    {
+      "id": "delivered",
+      "timeMs": 15500,
+      "title": "Order confirmed",
+      "text": "Same customer experience. Independently scalable backend."
+    }
+  ]
+}

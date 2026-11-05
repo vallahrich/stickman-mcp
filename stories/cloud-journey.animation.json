@@ -1,0 +1,62 @@
+{
+  "version": "stickman.animation/v1",
+  "canvas": {
+    "width": 1000,
+    "height": 720,
+    "fps": 30
+  },
+  "durationMs": 17500,
+  "actor": {
+    "x": 120,
+    "groundY": 560
+  },
+  "targets": {
+    "app": {
+      "x": 310,
+      "y": 560
+    },
+    "appLabel": {
+      "x": 380,
+      "y": 435
+    },
+    "cloud": {
+      "x": 720,
+      "y": 560
+    },
+    "cloudLabel": {
+      "x": 790,
+      "y": 435
+    }
+  },
+  "actions": [
+    {
+      "action": "walk",
+      "startMs": 0,
+      "durationMs": 4000,
+      "target": "app"
+    },
+    {
+      "action": "point",
+      "startMs": 4000,
+      "durationMs": 2500,
+      "target": "appLabel"
+    },
+    {
+      "action": "walk",
+      "startMs": 6500,
+      "durationMs": 6500,
+      "target": "cloud"
+    },
+    {
+      "action": "point",
+      "startMs": 13000,
+      "durationMs": 2500,
+      "target": "cloudLabel"
+    },
+    {
+      "action": "wave",
+      "startMs": 15500,
+      "durationMs": 2000
+    }
+  ]
+}

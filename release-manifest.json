@@ -1,0 +1,1694 @@
+{
+  "schema": "stickman.site-manifest/v1",
+  "version": "0.1.0",
+  "scope": "connected-mcp-library-cli-and-offline-demos",
+  "publicationApproved": false,
+  "nativePresentation": true,
+  "files": [
+    {
+      "path": "LICENSE",
+      "bytes": 1103,
+      "sha256": "f9b9414d4fb599f9d27dc63edeb466bd38230b6a2158991e2f8dd8c26b410489"
+    },
+    {
+      "path": "NOTICE",
+      "bytes": 1794,
+      "sha256": "454c4d1154f9d05f099883c0a691c188c9799859e533b17b690b6b51826a4870"
+    },
+    {
+      "path": "capabilities.json",
+      "bytes": 1235,
+      "sha256": "d7971688613eb272e4953ae9a0ba11f5c881934b5eb4500992b4b0679d1371fd"
+    },
+    {
+      "path": "catalogue.json",
+      "bytes": 81025,
+      "sha256": "7500536ed9b4ed59552bed1dab6141d0fd45fa28f3db9fd0c3d372144fbb02bf"
+    },
+    {
+      "path": "connection-guide.md",
+      "bytes": 4195,
+      "sha256": "10ab7ae8f29bce70589c45a4c2f6b16682c300f456e2899911dd97bc34fdb2a6"
+    },
+    {
+      "path": "index.html",
+      "bytes": 85823,
+      "sha256": "41aefbb036852a127f8b50678a06d2c21fa8cfcb36fe95aa8ebf3cc2f50c7641"
+    },
+    {
+      "path": "llms.txt",
+      "bytes": 4195,
+      "sha256": "10ab7ae8f29bce70589c45a4c2f6b16682c300f456e2899911dd97bc34fdb2a6"
+    },
+    {
+      "path": "motions/arms-crossed.html",
+      "bytes": 233665,
+      "sha256": "abe34d523f74bff84b96ffdf11f2a34562a33afe85938e89f9449316e37d4cbb"
+    },
+    {
+      "path": "motions/balance.html",
+      "bytes": 255066,
+      "sha256": "4c4b199698ef7015000f4e4f0985a6a754fe7bce1d481a499cee0c55ad0337b5"
+    },
+    {
+      "path": "motions/basketball-shot.html",
+      "bytes": 254802,
+      "sha256": "fee6df420c1f3616a87c31e0438283e39abbbb83f002d7a4994e482ad5c2d4b9"
+    },
+    {
+      "path": "motions/beckon.html",
+      "bytes": 238885,
+      "sha256": "13557c4f4685e05d0b211ba415326a84359bf984e35b02865167ceda60adf805"
+    },
+    {
+      "path": "motions/bow.html",
+      "bytes": 234855,
+      "sha256": "168943f0922148088c24eb7ae2d0a8434fc9688a5ef79a7ae8ee49f472c4ec7b"
+    },
+    {
+      "path": "motions/catch.html",
+      "bytes": 256159,
+      "sha256": "0c6bccd4f1ea9e34714a557181277e366969462501aabc4ee8a6437430da21aa"
+    },
+    {
+      "path": "motions/check-watch.html",
+      "bytes": 234954,
+      "sha256": "ef6aa73a0f470400ce0e6c47d464a548ad31504a5475af30dd4deba930bd2a0c"
+    },
+    {
+      "path": "motions/cheer.html",
+      "bytes": 248126,
+      "sha256": "5f6026f47200ef2dc4b169bb9512f5233464fc3e0c346199c3af41d2505a85da"
+    },
+    {
+      "path": "motions/clap.html",
+      "bytes": 236603,
+      "sha256": "f32cd2a7307d477d2360037487101e770aa6582e6c3ae5437d069b35099baee8"
+    },
+    {
+      "path": "motions/climb-down.html",
+      "bytes": 318092,
+      "sha256": "c88ac6ff0b3e8a48d6abbf5b909387f8e3704dc24c4daabfe31cae1d8b5a7dc3"
+    },
+    {
+      "path": "motions/climb-ladder.html",
+      "bytes": 335462,
+      "sha256": "82f25d85b2e6e24093a64918e6166240fcc88dc20ec45ca92676deb73f01a825"
+    },
+    {
+      "path": "motions/climb-ledge.html",
+      "bytes": 260966,
+      "sha256": "be9ff357a1a5ae6a56d8d4ead76bf3d1c3a40b1736ff34acac82d75bfdf0da5c"
+    },
+    {
+      "path": "motions/crawl.html",
+      "bytes": 308308,
+      "sha256": "b21eedf2821a14d102743266ea3275862632a640e9697ab4088a2d94c810446d"
+    },
+    {
+      "path": "motions/crouch.html",
+      "bytes": 229103,
+      "sha256": "14de9a1bbda97a4cdb9ff4c446da188fc9f913e16a846f5bb08b6e0b152cabd1"
+    },
+    {
+      "path": "motions/dodge.html",
+      "bytes": 235381,
+      "sha256": "7bc48e3bb03815ec8e71ee7bab74a42b65d05486f5ae3fab656ae1bb7ae2750d"
+    },
+    {
+      "path": "motions/drag-object.html",
+      "bytes": 267425,
+      "sha256": "5f0accf646039bfd538d61e4c8baf6263a647f71f11185c8a3b0fe426139c64a"
+    },
+    {
+      "path": "motions/drag-window.html",
+      "bytes": 255338,
+      "sha256": "b366c37a80c279df6fed168f5a9faebb1e3a66536a5d303f3124cfe6266df1a5"
+    },
+    {
+      "path": "motions/enter-door.html",
+      "bytes": 274229,
+      "sha256": "8c88ff2ebfa1f6b64884c090c4873f542fd69b895b5b214a8a1f648403346c6c"
+    },
+    {
+      "path": "motions/exit-door.html",
+      "bytes": 295431,
+      "sha256": "2795a000d4f163c220b1df5394680297ce8ba47f3128e185681a7bf91e13922d"
+    },
+    {
+      "path": "motions/facepalm.html",
+      "bytes": 238663,
+      "sha256": "b506a34184175315d12eaf4e431f70a0e785dec24d773cfc1ef7c21ea08eb4ba"
+    },
+    {
+      "path": "motions/fall-get-up.html",
+      "bytes": 301597,
+      "sha256": "1f41bd2b8b5c918f131ee8d464a2f7e1eaa0a1542f09b21742e0b640f44bca01"
+    },
+    {
+      "path": "motions/fist-pump.html",
+      "bytes": 233324,
+      "sha256": "04e3146457ca8f58dd6500d9833dacb7a692f3331bcf0b315479695535ce894f"
+    },
+    {
+      "path": "motions/frustrated-pc.html",
+      "bytes": 286063,
+      "sha256": "592ccc9ccf6e46464192f709462179a3111cb44ce0f8fdcf447257ad58b382e2"
+    },
+    {
+      "path": "motions/get-up.html",
+      "bytes": 237421,
+      "sha256": "5270567a7ec70d876c81d69ea1d32d4008f24f07d98bce642a1f1fca68cc7d34"
+    },
+    {
+      "path": "motions/hand-over.html",
+      "bytes": 252538,
+      "sha256": "d50d4651e75bc42fc7ccdfcc3e80048b0743f597c4cf1fe9e14877f443316707"
+    },
+    {
+      "path": "motions/hang-swing.html",
+      "bytes": 289487,
+      "sha256": "da74130761b22535687d7e8708c43755a586a8cc71893a07525e3eb060aa75f9"
+    },
+    {
+      "path": "motions/head-shake.html",
+      "bytes": 234386,
+      "sha256": "0c89523fa0d52cd2d1cf38fe815da4152b732038c2c2ca55e5a53b959af8bafd"
+    },
+    {
+      "path": "motions/hold-sign.html",
+      "bytes": 250260,
+      "sha256": "0faa9c6770590427b78d2ea401ab1e4bef80533800d566d0d39de237398cad32"
+    },
+    {
+      "path": "motions/hop.html",
+      "bytes": 238129,
+      "sha256": "d2948d82f86f51a1ccff2025bbef99f782e3e697ecedfa4833ae93a985aecec3"
+    },
+    {
+      "path": "motions/hurdle.html",
+      "bytes": 272880,
+      "sha256": "839852879b3a5b0cec5ce9d3b67d02f7561d7852f580be96d55eb6fe44741b9a"
+    },
+    {
+      "path": "motions/idea.html",
+      "bytes": 240647,
+      "sha256": "c8804f90725f37aec4a0ce5c3471edd16e7cf00581add406b6870352a7d3ef96"
+    },
+    {
+      "path": "motions/idle.html",
+      "bytes": 231523,
+      "sha256": "9669c2ed64684dbfc17f5ec06043dabed7693104130a7f18a70c7098c8aad293"
+    },
+    {
+      "path": "motions/inspect-magnifier.html",
+      "bytes": 275971,
+      "sha256": "3d9afe30e5566b156965e424595f8464305a44dfa8d2948072caeb93f2f33a07"
+    },
+    {
+      "path": "motions/jog.html",
+      "bytes": 228298,
+      "sha256": "35a20898e1d9bbe5ea63ec8a67a4b96a446842fa7f3b24ae9d391a830b972623"
+    },
+    {
+      "path": "motions/jump.html",
+      "bytes": 235423,
+      "sha256": "61fd4b91793df46feb025237035a5e45b600e004e1aa4eb028a20f00b4eac972"
+    },
+    {
+      "path": "motions/kick.html",
+      "bytes": 267482,
+      "sha256": "fbc975dd622724c5850b874af751611396bccad56a4594da359b9288791f6854"
+    },
+    {
+      "path": "motions/kneel-down.html",
+      "bytes": 231806,
+      "sha256": "5d7b556da01ba0804336f5fff22545c4c61168db0f009efafe977c21c3b68ef7"
+    },
+    {
+      "path": "motions/kneel-up.html",
+      "bytes": 230433,
+      "sha256": "b265ecb5c0e1d7ca73d9a601ccc11a7c47670e02b5ef5dbca9c5df8ab11f4036"
+    },
+    {
+      "path": "motions/lie-down.html",
+      "bytes": 269175,
+      "sha256": "e5dbc19b773393f5848b3d2acfa438c677c7fdcad8f9b7ca9ad53d07e3959e62"
+    },
+    {
+      "path": "motions/lift-carry.html",
+      "bytes": 281051,
+      "sha256": "19fc040795f606ca0b420361c38d0eaba1e6b2be36da0620991e8192efc2e013"
+    },
+    {
+      "path": "motions/long-jump.html",
+      "bytes": 267147,
+      "sha256": "44d12fb0bb7cfc2b661bcd0bf121fc6be2062ab4eb25b7dee03ebafc178a5518"
+    },
+    {
+      "path": "motions/look-around.html",
+      "bytes": 261808,
+      "sha256": "e57c36f3a9d53a11241316354b1d0136476e8d13998085d21c31ad1b649b6d0e"
+    },
+    {
+      "path": "motions/nod.html",
+      "bytes": 227693,
+      "sha256": "7b9dc7dae7e80a797af40ceeba90ea06acd162086810ad2c6e01054e5c31cb1e"
+    },
+    {
+      "path": "motions/open-door.html",
+      "bytes": 257118,
+      "sha256": "7e9f63ff0c401e2d028ad5b4ea6de9a27977f869138fea7c1ceff1a7d8c613dd"
+    },
+    {
+      "path": "motions/open-laptop.html",
+      "bytes": 272103,
+      "sha256": "989e57395bc20f4d54b20abce06abf53b7cb53e46bd08e802386d4dae4839173"
+    },
+    {
+      "path": "motions/phone-call.html",
+      "bytes": 265120,
+      "sha256": "573af0f23e0a4c9ad6f846f3d9ea45f18f1e78acd5671143bd532de94a66d696"
+    },
+    {
+      "path": "motions/pick-up.html",
+      "bytes": 247857,
+      "sha256": "0960375cbb8ca322ce0067e22bdff48292b96bb4c05f801ee51c0835619cc335"
+    },
+    {
+      "path": "motions/plug-cable.html",
+      "bytes": 269156,
+      "sha256": "4b504916521f92208b2ec4a43836f9259e7da3fd2823b458b3ed65e794d6545a"
+    },
+    {
+      "path": "motions/point.html",
+      "bytes": 226470,
+      "sha256": "c051e71413cfea24f5f88eadecaeeda4ecd3f96cdf54eec42d5f0a2de8e334eb"
+    },
+    {
+      "path": "motions/present-card.html",
+      "bytes": 238572,
+      "sha256": "31740062455e4a464892b8448850c504c6c17915a49444a2626fc77f37c01e07"
+    },
+    {
+      "path": "motions/present.html",
+      "bytes": 239562,
+      "sha256": "9e56cd3b7e9a5ed3459b2dcdc340142c77473f7d603f450c94717de07a005022"
+    },
+    {
+      "path": "motions/pull-banner-bottom.html",
+      "bytes": 243855,
+      "sha256": "d4c548e864f8195d74dd6f2eda7a7a0306fe89c0fc6e8cabed1b04b3d57659da"
+    },
+    {
+      "path": "motions/pull-banner-left.html",
+      "bytes": 257307,
+      "sha256": "3b8d9e09da793efc7c59ddea1006187375df18f1820fdc9166ca32180b08e4cc"
+    },
+    {
+      "path": "motions/pull-banner-right.html",
+      "bytes": 257282,
+      "sha256": "d424b4ad22dcef3ca6ebe3af5e7eda03de6d15f6a6b1c8881a420a7533611f4b"
+    },
+    {
+      "path": "motions/pull-banner.html",
+      "bytes": 244416,
+      "sha256": "f1e416f0a0df07a8a47a6ec810c3811e6da70b797ef2f4f1b963fbf6b784f7e4"
+    },
+    {
+      "path": "motions/pull.html",
+      "bytes": 256899,
+      "sha256": "44e1477f35c79e61d193468193e64713fc58e0de62e198dbf4287f6c7342545a"
+    },
+    {
+      "path": "motions/punch.html",
+      "bytes": 238602,
+      "sha256": "ee7fcd0ef31e61fc89a0ae119db321e4005a32d9dd6db67bd7b7c06417d0deaa"
+    },
+    {
+      "path": "motions/push-walk.html",
+      "bytes": 275038,
+      "sha256": "13a2e10fdcfe10246b94f466a7ab7fd8d4cf0a7792189712d800782b76f80f20"
+    },
+    {
+      "path": "motions/push.html",
+      "bytes": 257970,
+      "sha256": "0e9cb4c043ce86bb2dd3a21722c7fbdc5e2f34dcebbbc9e2d8910aa7f3dc4f75"
+    },
+    {
+      "path": "motions/put-down.html",
+      "bytes": 245091,
+      "sha256": "901d9fff25692d0830274be5be73fe1ec08301506b56a851b8e7101946c84f59"
+    },
+    {
+      "path": "motions/rack-server.html",
+      "bytes": 278036,
+      "sha256": "dfa347afe00352482b7d987cbe568fa7cd1d8ad22ca846dc5056ddb45e2f2ca8"
+    },
+    {
+      "path": "motions/reveal.html",
+      "bytes": 238668,
+      "sha256": "f00cba8de61096e830fce4ae6be6b037b3cad20f177c464f5f0ff3d4b76a0114"
+    },
+    {
+      "path": "motions/run-start.html",
+      "bytes": 232138,
+      "sha256": "82cf338927557ee6d1ffb195ded622f09571fedab529522ab5ba636454932614"
+    },
+    {
+      "path": "motions/run.html",
+      "bytes": 228870,
+      "sha256": "51c97a0d707fd77a0835384c5ebb547e8bd567b3beafa382532583545a091c71"
+    },
+    {
+      "path": "motions/sad-slump.html",
+      "bytes": 237691,
+      "sha256": "91598556eeec6d87e5f26e13e75635106812172fa676fe4aae5fe84ea7e79548"
+    },
+    {
+      "path": "motions/scratch-head.html",
+      "bytes": 236859,
+      "sha256": "75b820ebd2e34d221a735151c3ffedbe91b32de77a0f403b6d726596ec44640f"
+    },
+    {
+      "path": "motions/seated-idle.html",
+      "bytes": 266372,
+      "sha256": "801699c0d695f900501d14d042207d462413535ec9c1ca79332077e63c5e7fa5"
+    },
+    {
+      "path": "motions/shrug.html",
+      "bytes": 235157,
+      "sha256": "1d377b65f0ab7afbeda89be668e32737a0a219f69a72340a665455b59878d18c"
+    },
+    {
+      "path": "motions/sidestep.html",
+      "bytes": 242087,
+      "sha256": "4ed19926d0b882e8ada6d680cc5911bca174ddfc33c9602ba967671b2cfbbf46"
+    },
+    {
+      "path": "motions/sit-down.html",
+      "bytes": 239423,
+      "sha256": "9be46a72b9d8eaf4ec98c791aeba2c884ef291f972c7e33cf63ab66c34a1c83b"
+    },
+    {
+      "path": "motions/sit-floor.html",
+      "bytes": 237751,
+      "sha256": "d33bcf0fdf7923511f895c46e4d71cf42f4bac9991194b22359ea17e9b28417d"
+    },
+    {
+      "path": "motions/skip.html",
+      "bytes": 260805,
+      "sha256": "be24eb5fefd8ffacc00504462c1b1a71c9815833853d9be473cde725f05d5f4c"
+    },
+    {
+      "path": "motions/stairs-down.html",
+      "bytes": 237939,
+      "sha256": "605ca05cd8c8409684ddf8725cda99895fddab50fe820dff88174eeaef3dc229"
+    },
+    {
+      "path": "motions/stairs-up.html",
+      "bytes": 241472,
+      "sha256": "7d6e14f40e949efaf38903c481b9b40b7d1c4e03d3570ccfeb91c64fabfea4ab"
+    },
+    {
+      "path": "motions/stand-up.html",
+      "bytes": 239983,
+      "sha256": "d9d9b1e414029ce03b863cf8abbbcbca35b27b3b088bb22ac36381a1b6976ee1"
+    },
+    {
+      "path": "motions/step-up.html",
+      "bytes": 229257,
+      "sha256": "b0ef325190f0a7b8d19d7fa01b97f41f6a770c1c99a6a3d143df2f0aa52d8946"
+    },
+    {
+      "path": "motions/stop-hand.html",
+      "bytes": 236934,
+      "sha256": "7bd6713cd7efdb2e556f85a4a0c0feab0ec94bc04d6e98eec3bdda520a401495"
+    },
+    {
+      "path": "motions/stop.html",
+      "bytes": 231649,
+      "sha256": "c5a6a5c027b20374a70d578d8b83ec916a455302b74082519020b00c346bcbd1"
+    },
+    {
+      "path": "motions/surprised.html",
+      "bytes": 237993,
+      "sha256": "aff0fd431695e0047a3d609cfc63f6c02ba9e0636554f6398c4c5b5ba59f7934"
+    },
+    {
+      "path": "motions/swipe-next.html",
+      "bytes": 235383,
+      "sha256": "e57dc8d5cb68623725c1ac2ca03d5317815361eaad51d329f5c599b8d5fb8fb1"
+    },
+    {
+      "path": "motions/tablet-tap.html",
+      "bytes": 270185,
+      "sha256": "806580c560c1a00ba737f0d7bdad32a99f105d1f2702d50b0eaa0faea3ff5de3"
+    },
+    {
+      "path": "motions/tap-element.html",
+      "bytes": 233132,
+      "sha256": "3edda573b3ca71ee0b6b8a5f225170cb2264b3eb3130b86bd6c757cb45b4d607"
+    },
+    {
+      "path": "motions/think.html",
+      "bytes": 242523,
+      "sha256": "e9b93575bca427cfc74937656bbd0819ff0b372b4cdbf96333863e5b5d0a0929"
+    },
+    {
+      "path": "motions/throw.html",
+      "bytes": 258572,
+      "sha256": "edc0b6240fb4089f6f591c5028f2c7e5b10a3a059a62406d9c24ad9f35b7052d"
+    },
+    {
+      "path": "motions/thumbs-up.html",
+      "bytes": 234824,
+      "sha256": "e12214395567ff27c183ff19058dbb35b6f5266b5e7979d9a3baffe508d1e747"
+    },
+    {
+      "path": "motions/trip.html",
+      "bytes": 261232,
+      "sha256": "0e01508bf8f807134b906c4c4832018523d26cb20068595f5ecc71ec62316e5b"
+    },
+    {
+      "path": "motions/turn-90.html",
+      "bytes": 229641,
+      "sha256": "785348463fab299ea521b5f24afea82043a3d06c211cab15143ad66bb6343194"
+    },
+    {
+      "path": "motions/turn-around.html",
+      "bytes": 229741,
+      "sha256": "0b8c76c08a8d78f929158caa13ad6ec5ffcbc2904b20d59a334dc3672a16b62d"
+    },
+    {
+      "path": "motions/type-at-desk.html",
+      "bytes": 236840,
+      "sha256": "e6ab4c7414504632d456cd3f7cdbf94caf78fee47e774fb17787e43e02fb6b92"
+    },
+    {
+      "path": "motions/vault.html",
+      "bytes": 263319,
+      "sha256": "6a944c21081b0c720d23c5799516245aa558597bc084b68b090f749ee147d559"
+    },
+    {
+      "path": "motions/video-call.html",
+      "bytes": 283390,
+      "sha256": "1440cb731817e46ac3c2f0be6590890457acbf5674d4862917da49d6077cda27"
+    },
+    {
+      "path": "motions/walk-backwards.html",
+      "bytes": 240801,
+      "sha256": "ff3aecebfffbd5fe1bc49e35db4327c41cfca97d28059c1cb29cf6527a65e033"
+    },
+    {
+      "path": "motions/walk-off.html",
+      "bytes": 268497,
+      "sha256": "681d44efa4f03f7c1b35d6ff68d1891567895582de7080482cef5576ce616405"
+    },
+    {
+      "path": "motions/walk-on.html",
+      "bytes": 273997,
+      "sha256": "18e9b10ffaa148a493e54e015456637576e4fe2cb95a4b511e986b25e36dfc93"
+    },
+    {
+      "path": "motions/walk-start.html",
+      "bytes": 222294,
+      "sha256": "6e8fcd64b4c60a8d54d7eb986710a5cae7f9184ae0e410a205a8ce92c943d458"
+    },
+    {
+      "path": "motions/walk-stop.html",
+      "bytes": 226123,
+      "sha256": "6b92752014720688d5cf1ec2c00a9a9b0760b6f6b2df7f55d71b8a511a7ce4c0"
+    },
+    {
+      "path": "motions/walk-turn.html",
+      "bytes": 263087,
+      "sha256": "4726f11e0da36f6191c9df4dcbfbbb3340bf5217cd4eadd873a9bc2c18729b5c"
+    },
+    {
+      "path": "motions/walk.html",
+      "bytes": 226578,
+      "sha256": "c34f9316e065531d107a81a9bf7867acafc701d6dba32a3fb4f131c3f28ff8b9"
+    },
+    {
+      "path": "motions/wave.html",
+      "bytes": 236099,
+      "sha256": "b9a1e34b2b9bb749647181d0b23b1771ff256dc135eaed9f6bda2633fc34b402"
+    },
+    {
+      "path": "motions/write-board.html",
+      "bytes": 241035,
+      "sha256": "ab6bc201e5848df622735a7f7a79708d4a040c78827910739e13f30704e01133"
+    },
+    {
+      "path": "motions/write-notes.html",
+      "bytes": 335133,
+      "sha256": "8fd4af94dd6d87b85c7346afb457700320ecc502c975e151f43b6b5c536b2aea"
+    },
+    {
+      "path": "posters/arms-crossed.svg",
+      "bytes": 1197,
+      "sha256": "fcd06b45c0cf4afe0695bbd5b852463d3fe210ff4bd435410092651933ac022d"
+    },
+    {
+      "path": "posters/balance.svg",
+      "bytes": 1170,
+      "sha256": "f54181c4d8565dd472eada32c1cbe700f8f4089c43d2431fa9e5ca7d2a424d49"
+    },
+    {
+      "path": "posters/basketball-shot.svg",
+      "bytes": 2122,
+      "sha256": "1717263d728c696d05d0a206167c3150e8224223bdebb7521fa943c7945b9408"
+    },
+    {
+      "path": "posters/beckon.svg",
+      "bytes": 1206,
+      "sha256": "fe3d78c245ff6888f40fbd975672075026345677c4664aa0d9f07536fc7f55a4"
+    },
+    {
+      "path": "posters/bow.svg",
+      "bytes": 1200,
+      "sha256": "f216eb2bffa4d90f91514b7fa51145f3f7e0ea8be5c91fdd366e6062f8d2b571"
+    },
+    {
+      "path": "posters/catch.svg",
+      "bytes": 1972,
+      "sha256": "926557fa31c6618437abbd80c46bb92bab914031f7bda029b101327c19a61803"
+    },
+    {
+      "path": "posters/check-watch.svg",
+      "bytes": 1547,
+      "sha256": "48c1b9c27580df940b08b67cf8bb64d6d958790f0260b951d73f55a378ba23b0"
+    },
+    {
+      "path": "posters/cheer.svg",
+      "bytes": 1123,
+      "sha256": "4d9cdeb8e7e92aff92d1f5249a88fcec4273d4fe7872c6b3d846fc060060ad71"
+    },
+    {
+      "path": "posters/clap.svg",
+      "bytes": 1178,
+      "sha256": "00274fa3a1bc142624f949ca3d67421c0661b2f7d6a4f82032f6e924d40679a4"
+    },
+    {
+      "path": "posters/climb-down.svg",
+      "bytes": 1694,
+      "sha256": "f8075ec9b50d96fc95a311d78e7a41854e4b9a79a9b0172b51f1ea1f7d268137"
+    },
+    {
+      "path": "posters/climb-ladder.svg",
+      "bytes": 1699,
+      "sha256": "4d42b044c5a344d4219cee6e4a1c110a48ad8c0d36d9cc0a1d6a22d477a14646"
+    },
+    {
+      "path": "posters/climb-ledge.svg",
+      "bytes": 1379,
+      "sha256": "54d6dc75acb7b10928f1a8ce651e268a79e8fa6bc7bf44b836669db45311e440"
+    },
+    {
+      "path": "posters/crawl.svg",
+      "bytes": 1232,
+      "sha256": "cea6298f381dcc01a0e50f1608be02f0d188a6d863ce54bab3663d1164f76bf0"
+    },
+    {
+      "path": "posters/crouch.svg",
+      "bytes": 1212,
+      "sha256": "25acc10a4855fa5071cf1fb2f8e29815a72b1408b31788c65a44e275e311516e"
+    },
+    {
+      "path": "posters/dodge.svg",
+      "bytes": 1354,
+      "sha256": "e22677036fdd56ac47ae4c5aaee1bc8d3e0af3fe9a3051627ca0a68cb94996a1"
+    },
+    {
+      "path": "posters/drag-object.svg",
+      "bytes": 1364,
+      "sha256": "d1aa098ae599192fe40b56c77966f260a6a8c8835df2fe8edc8dcf0ede571407"
+    },
+    {
+      "path": "posters/drag-window.svg",
+      "bytes": 2638,
+      "sha256": "415cf292bac99af5a512b996cc72f1c7c0b594dcb7209b441bca7c005f2718c3"
+    },
+    {
+      "path": "posters/enter-door.svg",
+      "bytes": 2057,
+      "sha256": "fe261487dd08178945cf7a4b0b0e371ca14fccf7bc03b9ab663a44bad5cbf4c8"
+    },
+    {
+      "path": "posters/exit-door.svg",
+      "bytes": 2095,
+      "sha256": "b997b915f06ae30bff4ae3ad0c14474bb6a3194b09400fd2c4751c1fa89a9c07"
+    },
+    {
+      "path": "posters/facepalm.svg",
+      "bytes": 1182,
+      "sha256": "b55eb0eb5b10af0ee799e0f18afb30a88ad75cdceaacc60218bfadcd2f4b1a0b"
+    },
+    {
+      "path": "posters/fall-get-up.svg",
+      "bytes": 1996,
+      "sha256": "0b02cc53eb9caf1c958aa66ed765e67d8b901d71582e1337fa72e7ae56d6e6d1"
+    },
+    {
+      "path": "posters/fist-pump.svg",
+      "bytes": 1125,
+      "sha256": "2ab86e0b9ea86180f47caa8a79b641d59f258dd23976125045b0d00aa5b14e8a"
+    },
+    {
+      "path": "posters/frustrated-pc.svg",
+      "bytes": 2587,
+      "sha256": "9c898bd661b8509f5ce15da036c4ea80fd5d68152abcb62e2514960e5a022ac8"
+    },
+    {
+      "path": "posters/get-up.svg",
+      "bytes": 1218,
+      "sha256": "c8637418768a5e17e0b98711cb16feb5aebcbf9f2c91c8f3d7b434fcc58f8be1"
+    },
+    {
+      "path": "posters/hand-over.svg",
+      "bytes": 1723,
+      "sha256": "8bbb796b57a98718d7164aeb218f1262918aaf846dbb1fc1a5d24a281a1e25e5"
+    },
+    {
+      "path": "posters/hang-swing.svg",
+      "bytes": 1390,
+      "sha256": "3ab2ce2993b80ae8deb27c6688b1da41b3c1f3d0bc3842f08fbcb5426acd5048"
+    },
+    {
+      "path": "posters/head-shake.svg",
+      "bytes": 1110,
+      "sha256": "65b8ec099b5854c1275fd057981bdc1f9c276ec1aaaaad002727b45130bcf85e"
+    },
+    {
+      "path": "posters/hold-sign.svg",
+      "bytes": 1760,
+      "sha256": "0cca8ac7da9a361247aeb830247437c849d83c8cfef1b8966dd1ddc6e2378757"
+    },
+    {
+      "path": "posters/hop.svg",
+      "bytes": 1213,
+      "sha256": "db8c951ef717c5b6509c4c89fa606002d51510bf06e957f91f930d55269e3075"
+    },
+    {
+      "path": "posters/hurdle.svg",
+      "bytes": 1575,
+      "sha256": "eac7f321b6c69c4139944e894483074ccab8011dbc870e6b898d564fd2c5177a"
+    },
+    {
+      "path": "posters/idea.svg",
+      "bytes": 1184,
+      "sha256": "bf09d4508080173fff35a1623e7cdd42c8ca04ccd5f104ecb004fa02d97c0b04"
+    },
+    {
+      "path": "posters/idle.svg",
+      "bytes": 1056,
+      "sha256": "de49ab4c6e36fd92edf953a68e8f8a4c571062184d261a04df528afc653e2adf"
+    },
+    {
+      "path": "posters/inspect-magnifier.svg",
+      "bytes": 3808,
+      "sha256": "14537372e765d73d2c39a9b609fd974b29d9cdab0166d9dffa218eccfc3f836e"
+    },
+    {
+      "path": "posters/jog.svg",
+      "bytes": 1202,
+      "sha256": "f16204d50c3fa889479355f6da0529d1134e08e743bd46489ceb3fd15fd795ec"
+    },
+    {
+      "path": "posters/jump.svg",
+      "bytes": 1084,
+      "sha256": "8549f5090dad34eb35a21009d08e2f9f22a8e1b0ec4873074390244548b602a6"
+    },
+    {
+      "path": "posters/kick.svg",
+      "bytes": 2155,
+      "sha256": "08f714295b6626e3e26404c3ad5f458985e285ca85c8131d6147850e9d3a6052"
+    },
+    {
+      "path": "posters/kneel-down.svg",
+      "bytes": 1220,
+      "sha256": "593ee70bcccf762bc9772195f23a207f2ce4ba5cd4aa015b794eac9715ec4edb"
+    },
+    {
+      "path": "posters/kneel-up.svg",
+      "bytes": 1205,
+      "sha256": "7bc3471d132da16370e42ba61874cc9888100267f691aec617da1a50045dee8f"
+    },
+    {
+      "path": "posters/lie-down.svg",
+      "bytes": 1196,
+      "sha256": "7670399558a0dcfdd1d9b05ed0d37a7b8c9e9080c076c38623e70923b6cba5b6"
+    },
+    {
+      "path": "posters/lift-carry.svg",
+      "bytes": 1380,
+      "sha256": "7fc64b1caae66289d46978d7068d05cc2689a6891db589e4b0e803263e52a779"
+    },
+    {
+      "path": "posters/long-jump.svg",
+      "bytes": 2236,
+      "sha256": "7d6c65fb07c52536e600bc109fe688796eb235c706611e1f9f8cd2ec16bba581"
+    },
+    {
+      "path": "posters/look-around.svg",
+      "bytes": 1667,
+      "sha256": "9af133f9f772cba81744ab1056884f624771aa8c0e2495c2c3e61967f2e6203d"
+    },
+    {
+      "path": "posters/nod.svg",
+      "bytes": 1151,
+      "sha256": "a63aeaf734e79b34da1b0a881c40e1c7745c30cae473aa848e0f218dc81f3d6e"
+    },
+    {
+      "path": "posters/open-door.svg",
+      "bytes": 2069,
+      "sha256": "14b95fd8530eb09ccb83fda9eff735afab7d191c84b888c9ddcbeba5aa107e06"
+    },
+    {
+      "path": "posters/open-laptop.svg",
+      "bytes": 3801,
+      "sha256": "416a560a10e0523cae1d4f2528da861eb22a20f3c46a80368fa03c78270f601a"
+    },
+    {
+      "path": "posters/phone-call.svg",
+      "bytes": 1737,
+      "sha256": "e2bf2623afc2fa397b2a77cbf5e30218eb0e432142259e60a9992805e341580d"
+    },
+    {
+      "path": "posters/pick-up.svg",
+      "bytes": 1371,
+      "sha256": "b829fe377a980f4a854196a01fd1ceea998815e50fa6c4a3ed183a1731e52090"
+    },
+    {
+      "path": "posters/plug-cable.svg",
+      "bytes": 2400,
+      "sha256": "67a8d11b2320eb6a80f78da2167dda71bb80f138226404329f676a09a2707ba7"
+    },
+    {
+      "path": "posters/point.svg",
+      "bytes": 1039,
+      "sha256": "9a011c16084ff22fb99d0ae5b390e2d7e1990974ecfe1df7c166b1518aede2d1"
+    },
+    {
+      "path": "posters/present-card.svg",
+      "bytes": 1519,
+      "sha256": "6e6e2fa1e5d6fb22d1fdfef86cdfa50231bca7d22baa335d0af1555ce6ac3687"
+    },
+    {
+      "path": "posters/present.svg",
+      "bytes": 1210,
+      "sha256": "bbc3038416de2a719982da428a17b3ee2cf6d0b8607a0f5c19c402b21abab110"
+    },
+    {
+      "path": "posters/pull-banner-bottom.svg",
+      "bytes": 1647,
+      "sha256": "7b20aa1dfaa96be1349747b8d4f39bc28828c9b2e92ebe08d7b7cf7c40c2e489"
+    },
+    {
+      "path": "posters/pull-banner-left.svg",
+      "bytes": 1377,
+      "sha256": "f11ab7234912a9e485373aeb504f251e086683120aaa49c66e877a7019717e98"
+    },
+    {
+      "path": "posters/pull-banner-right.svg",
+      "bytes": 1410,
+      "sha256": "b680c38e7100528ce17ad8c9e99577909292bfa9b9bef2f3b34333f03b0a7431"
+    },
+    {
+      "path": "posters/pull-banner.svg",
+      "bytes": 1648,
+      "sha256": "4867e2d172c214f0c5ad6fe59424895f90e8226a4b361f8df63c24d5e2b9fd62"
+    },
+    {
+      "path": "posters/pull.svg",
+      "bytes": 1389,
+      "sha256": "8e07f325ac9359e89dcfec3539af509a4ec531e4359d1f8ba4d3ce2e09ff3c3e"
+    },
+    {
+      "path": "posters/punch.svg",
+      "bytes": 1985,
+      "sha256": "96cd3dbe1ca32241e379e3b243886ada1fb86016d69fffdafccf564f1eea7355"
+    },
+    {
+      "path": "posters/push-walk.svg",
+      "bytes": 1385,
+      "sha256": "155655bc1e15fcaf6530929058d87da8ca9d9a540d137849ca1022f4d379b376"
+    },
+    {
+      "path": "posters/push.svg",
+      "bytes": 1352,
+      "sha256": "41aa7c9b30e37a22d11b388ad1848e676e4ab3640bf9cc00f3b847d7bb87baf3"
+    },
+    {
+      "path": "posters/put-down.svg",
+      "bytes": 1335,
+      "sha256": "41120645c13bc51dc5b13fafaf773590cfa2ccc0d988ac9eb68f5015836188e8"
+    },
+    {
+      "path": "posters/rack-server.svg",
+      "bytes": 6584,
+      "sha256": "0869e734ec6b038529ea8e9fc16c56b44c4c1d17897287797e3fe8aa3042c41e"
+    },
+    {
+      "path": "posters/reveal.svg",
+      "bytes": 1198,
+      "sha256": "f1ba2b5e2b5f4984e795c3fe87196f0023a417cb699d672e2f746d86d96475be"
+    },
+    {
+      "path": "posters/run-start.svg",
+      "bytes": 1234,
+      "sha256": "c9f799039e15e6398915b9eb713d9125083a9326919d5b554e85250977bd4bbd"
+    },
+    {
+      "path": "posters/run.svg",
+      "bytes": 1227,
+      "sha256": "944b72c01b3afa1acd905c2bdc8a37010dc2640a4ef184bb9069a21797492c56"
+    },
+    {
+      "path": "posters/sad-slump.svg",
+      "bytes": 1218,
+      "sha256": "19e3907230f035f4bef615bd9615361d8272c26b6db726f3f5adcfc4e3330d51"
+    },
+    {
+      "path": "posters/scratch-head.svg",
+      "bytes": 1215,
+      "sha256": "a495a1eb627982e72ac52126ce4e06cdd31b9aa5d5141a8fa40b81b160897ac4"
+    },
+    {
+      "path": "posters/seated-idle.svg",
+      "bytes": 1415,
+      "sha256": "f4cdb66c86f2e47fbc92559efa97740cbb0fbac397be6519dde6a61309a290d9"
+    },
+    {
+      "path": "posters/shrug.svg",
+      "bytes": 1173,
+      "sha256": "133473ad845a0e239cc35092c7ef695fdc014b5fb51c06709396b96121269ea3"
+    },
+    {
+      "path": "posters/sidestep.svg",
+      "bytes": 1223,
+      "sha256": "7653bab8bb82a7c9e38ffaf5481adf3670718f18ce49bb9211b4465b729387ae"
+    },
+    {
+      "path": "posters/sit-down.svg",
+      "bytes": 1439,
+      "sha256": "318cfe54a8b479642234750f3bf56349534acdaff7d7116a8b61b19dceeb25ea"
+    },
+    {
+      "path": "posters/sit-floor.svg",
+      "bytes": 1203,
+      "sha256": "0dfb67346a1f4c776f92fd791282fba270ffccc6011b74a36a1ec0001b128689"
+    },
+    {
+      "path": "posters/skip.svg",
+      "bytes": 1223,
+      "sha256": "f8a0b5073b84c4942fc185fba80118fb9977ce2ccf3c8ab52db3b65d1e154791"
+    },
+    {
+      "path": "posters/stairs-down.svg",
+      "bytes": 1753,
+      "sha256": "d0182f02a413fb7ea184b3b9f7742003bb5a21ec957c77736f4d8981fe812215"
+    },
+    {
+      "path": "posters/stairs-up.svg",
+      "bytes": 1584,
+      "sha256": "605f2c58a941a996b5e9d80597343074f67799bcad3650883330adeeefe887ee"
+    },
+    {
+      "path": "posters/stand-up.svg",
+      "bytes": 1436,
+      "sha256": "aa10c61a7d95480f9688687fc4b86f4933ea49b267a54950499fa015148e5e8d"
+    },
+    {
+      "path": "posters/step-up.svg",
+      "bytes": 1398,
+      "sha256": "236791424e1ddc3c55d2ec964e7813c53a6bbbe5914c576f67a58afc3bb703d1"
+    },
+    {
+      "path": "posters/stop-hand.svg",
+      "bytes": 2121,
+      "sha256": "fd1271a3cb55cd65177c1d147eb1d5d7cd8c6201010f049403297d11214530a9"
+    },
+    {
+      "path": "posters/stop.svg",
+      "bytes": 1085,
+      "sha256": "2c4aef9fc4f0a7e1d3476e51b0cf757f11bfe4908a414d9c790ed47f38ee1632"
+    },
+    {
+      "path": "posters/surprised.svg",
+      "bytes": 1168,
+      "sha256": "b06a768245ceb039a49fe4f89e36e6324a10ca4cdf147489de920e8950ca8f78"
+    },
+    {
+      "path": "posters/swipe-next.svg",
+      "bytes": 1207,
+      "sha256": "74e25fa3b2f14eb5e66e5a6dcb3a06fe41b22ebe236e46e28757c5fe2a15e241"
+    },
+    {
+      "path": "posters/tablet-tap.svg",
+      "bytes": 1712,
+      "sha256": "65b0e36701c4f98e2f448f774a31fe69b8b89e4ac02f4a5ebe73d1a454624317"
+    },
+    {
+      "path": "posters/tap-element.svg",
+      "bytes": 1211,
+      "sha256": "72894a89e990fc09443b31ea93643291d15a3fc76b2ba0bbeba46a56ac5cbd3b"
+    },
+    {
+      "path": "posters/think.svg",
+      "bytes": 1167,
+      "sha256": "e84ff74b365a07d21814c34192921a32ee8ff03dfd19314266bfccedced5333b"
+    },
+    {
+      "path": "posters/throw.svg",
+      "bytes": 1970,
+      "sha256": "8e1f4493625cf05d0642d6c472499a877376cbd87e9f7050d189261c7782417b"
+    },
+    {
+      "path": "posters/thumbs-up.svg",
+      "bytes": 1756,
+      "sha256": "ee443bf538ccf4f319cf8a7c3063b42b38e350e56cd3c1f4346569973b70b072"
+    },
+    {
+      "path": "posters/trip.svg",
+      "bytes": 1206,
+      "sha256": "e0d121afc86c77edb64faedc3b06364e6594647c3bb3462ef7d8128dcb364591"
+    },
+    {
+      "path": "posters/turn-90.svg",
+      "bytes": 1189,
+      "sha256": "3900548815768d5dd5eb307c585c256fe228c204069ca2b636b159acc27783c2"
+    },
+    {
+      "path": "posters/turn-around.svg",
+      "bytes": 1196,
+      "sha256": "f5568719abe73150187cd810ff49a9edb3bef8e12fd72d65c54f6f13d50be1bd"
+    },
+    {
+      "path": "posters/type-at-desk.svg",
+      "bytes": 1917,
+      "sha256": "8090ae02f64e27cf3c28f5e0eb4f5386695f8e10647d40194c986fe2c7ea61a0"
+    },
+    {
+      "path": "posters/vault.svg",
+      "bytes": 1392,
+      "sha256": "5230ef522789b47d3a725829deb52c1e3c0e5dc5ce826c7dc5491ce2262da222"
+    },
+    {
+      "path": "posters/video-call.svg",
+      "bytes": 2774,
+      "sha256": "b743f3f7cbf859831be73bc54e4ac66e699600e2082a70ab03af263b6a539227"
+    },
+    {
+      "path": "posters/walk-backwards.svg",
+      "bytes": 1225,
+      "sha256": "02c2dd7fb6e8238495ba2979b8a6c0e73dfe607487d1a43cbca442901b464dba"
+    },
+    {
+      "path": "posters/walk-off.svg",
+      "bytes": 1211,
+      "sha256": "6562e79345998eb8c83a6c4dc44f1f909de248304515932747e920cb5a007e1a"
+    },
+    {
+      "path": "posters/walk-on.svg",
+      "bytes": 1182,
+      "sha256": "7a1c62a39415dec6e68d52684130ff05538dedfc6edf0de8f37429ff950549a0"
+    },
+    {
+      "path": "posters/walk-start.svg",
+      "bytes": 1210,
+      "sha256": "62de1f7ce3c1f44d03db1399fd238f1dde07555c4d8a164489cdc68a8765f384"
+    },
+    {
+      "path": "posters/walk-stop.svg",
+      "bytes": 1222,
+      "sha256": "38af8d639f4cd1e3f8aa870e985aef4db2126efd7631f6f2b1f3fa7b698bf926"
+    },
+    {
+      "path": "posters/walk-turn.svg",
+      "bytes": 1221,
+      "sha256": "c8e55ee69922d46d1095347422f9bf40e270ae12032fa7425633a3a57c14343f"
+    },
+    {
+      "path": "posters/walk.svg",
+      "bytes": 1073,
+      "sha256": "700b0544bf8f4d683ea90b1cb462d17102d9e2327ba7e26ec2cabd1be20579e5"
+    },
+    {
+      "path": "posters/wave.svg",
+      "bytes": 1151,
+      "sha256": "a9682dc17585cdbb3070fc4b898bbfc112efeda7829b9e01b422986b07db9f41"
+    },
+    {
+      "path": "posters/write-board.svg",
+      "bytes": 1792,
+      "sha256": "b756f46add22eec666b62614ff9b5e2006fd7a904f74630f759dfaf5b4f98da4"
+    },
+    {
+      "path": "posters/write-notes.svg",
+      "bytes": 3403,
+      "sha256": "58b05d488822941a38465f58bf01af1e600849f66b07a992888e9bcee796c521"
+    },
+    {
+      "path": "rights.md",
+      "bytes": 3295,
+      "sha256": "cbdc454f791d4cf93e783974886472d53be5ae101d78c4a8f54ba3641aaa09b3"
+    },
+    {
+      "path": "robots.txt",
+      "bytes": 23,
+      "sha256": "16ceb5ee3e0dc13aa9adf31a3ebbe45a1d965b8c2b9f72eaf84e5911e140ed95"
+    },
+    {
+      "path": "showcase/julius-caesar.mp4",
+      "bytes": 4384877,
+      "sha256": "7fc43b35e6ae9f44baf5a743e64fff7440f55ee0e82b16dc86f0b07fe2fa2cc4"
+    },
+    {
+      "path": "showcase/julius-caesar.png",
+      "bytes": 33444,
+      "sha256": "7ace11b4a9a4cfc9acfd85465ba4db60e3bb9e92066602b102f88007e8432591"
+    },
+    {
+      "path": "showcase/julius-caesar.vtt",
+      "bytes": 1000,
+      "sha256": "017a31d12aba2288352d9821845bbf5d044ef4082ca43be2251569e9033b8d95"
+    },
+    {
+      "path": "showcase/manifest.json",
+      "bytes": 8066,
+      "sha256": "dc8084ba568b31d9fc11ab11a7a9d8e3c407c9ae596ec3a2cc670a40016c7e0e"
+    },
+    {
+      "path": "showcase/on-prem-to-cloud.html",
+      "bytes": 323874,
+      "sha256": "96f7ed20a19f1eab8860aa30b2d7d92122254ce212aab1cf75c384a8b4619efa"
+    },
+    {
+      "path": "showcase/open-source.mp4",
+      "bytes": 1490130,
+      "sha256": "c674dbbb010bcb3dff1f921e2c8522f234a55b80683f025d341fae56483a2232"
+    },
+    {
+      "path": "showcase/open-source.png",
+      "bytes": 37034,
+      "sha256": "4556890d7762995857cd51feff28f897f42269a08ac911a10d4a2bbaf26a19df"
+    },
+    {
+      "path": "showcase/open-source.vtt",
+      "bytes": 838,
+      "sha256": "fdbae76457afefb8ff06b536321210a80b82864c429c6e3ef6f26b750b3a4cf8"
+    },
+    {
+      "path": "source-notices.md",
+      "bytes": 4749,
+      "sha256": "cfd19f672211820cd1c9a67278ed84b4d637e140508ff1013b4c2bae05ebf1ff"
+    },
+    {
+      "path": "specs/arms-crossed.json",
+      "bytes": 8178,
+      "sha256": "22131e82c03e303bcd8a3778368986f3ff79def0071db2d01aa1bbb0d722f376"
+    },
+    {
+      "path": "specs/balance.json",
+      "bytes": 11603,
+      "sha256": "4721f8b01f9f99f96ff247425dc7175ce7a5268121093f97dfe9cba9df73443e"
+    },
+    {
+      "path": "specs/basketball-shot.json",
+      "bytes": 11116,
+      "sha256": "b6833baa67f93c1f00a9f625e9e302f6f65c7c5684628411a828cf67b48dc25e"
+    },
+    {
+      "path": "specs/beckon.json",
+      "bytes": 9111,
+      "sha256": "17402d123f11400617dbc1aa97ed80ba9abfa73a388f0dc49e3945622f3f5bf0"
+    },
+    {
+      "path": "specs/bow.json",
+      "bytes": 7724,
+      "sha256": "aaeebeddd47097a9265bead434732bfe1c8de5885b1feba33a42a23f913519a2"
+    },
+    {
+      "path": "specs/catch.json",
+      "bytes": 14749,
+      "sha256": "a8a102b743cc0d2b30c4b7d8c6c8f3e93a4b8c4be9bcd2d7a0c4705adfd54602"
+    },
+    {
+      "path": "specs/check-watch.json",
+      "bytes": 8326,
+      "sha256": "5ebc46c6692b5d450a061da4258401423957622d61668a4a3da4438fa6ad360c"
+    },
+    {
+      "path": "specs/cheer.json",
+      "bytes": 16378,
+      "sha256": "fa4aa08ba3226a9ac57a1990c5090b73e43edb1db9b872228b5ee876843931be"
+    },
+    {
+      "path": "specs/clap.json",
+      "bytes": 10514,
+      "sha256": "cdff9bf3d74d28c5d816393bf13a34853a88bf348621ee2ae008a05c6a0dee41"
+    },
+    {
+      "path": "specs/climb-down.json",
+      "bytes": 31504,
+      "sha256": "cf4e23e28f297db57cc7b495cae63e90570e6d280b488cc40f04d11e44f9ed8a"
+    },
+    {
+      "path": "specs/climb-ladder.json",
+      "bytes": 41182,
+      "sha256": "9d24c730537968f547c915701370a5ba3d0599a8c9831d57783280c191d9aa17"
+    },
+    {
+      "path": "specs/climb-ledge.json",
+      "bytes": 18162,
+      "sha256": "13ec3747a52ceae0b7ce3a61ab0f62b3d77c80a6cca49fcfacea4a42fce8bf0d"
+    },
+    {
+      "path": "specs/crawl.json",
+      "bytes": 40632,
+      "sha256": "494d17ccba1a9e2dbb69126c4088cb7305a99d52141d074dadcbba6a60a2ad3d"
+    },
+    {
+      "path": "specs/crouch.json",
+      "bytes": 6389,
+      "sha256": "327b2b5becb8361dcd06e8a39e4cae057870feed0033cc3cd4d25ba0f563631e"
+    },
+    {
+      "path": "specs/dodge.json",
+      "bytes": 10131,
+      "sha256": "a13488effdab10b1d50c6ccee6a8193bd2b635c5615ed407dac879fba00cc005"
+    },
+    {
+      "path": "specs/drag-object.json",
+      "bytes": 16128,
+      "sha256": "5e55dc14c684b78e0fcc9498762489c5beb9a991ffdef77460dcffdb050bad54"
+    },
+    {
+      "path": "specs/drag-window.json",
+      "bytes": 15029,
+      "sha256": "47f9badef4bf6abc212073c470ead75fbde99e62879d3b82e7ede2b85258301e"
+    },
+    {
+      "path": "specs/enter-door.json",
+      "bytes": 23037,
+      "sha256": "c2548144fb209aa13f90b3220e71826f438ae14d9b2c68578dc7f51330692c8f"
+    },
+    {
+      "path": "specs/exit-door.json",
+      "bytes": 28670,
+      "sha256": "70061ce1525ac4a380901532131fa38a84f286602ef99ed10c27e46fd61167a2"
+    },
+    {
+      "path": "specs/facepalm.json",
+      "bytes": 10020,
+      "sha256": "111be2310018052ea5a834442828d2c4600d172853420101a6e48a25fc490748"
+    },
+    {
+      "path": "specs/fall-get-up.json",
+      "bytes": 38382,
+      "sha256": "c5a6c62ceecca2317be46c7071946eff77371f3e6c9876eba92847d0c680191f"
+    },
+    {
+      "path": "specs/fist-pump.json",
+      "bytes": 8979,
+      "sha256": "c40ec747f4c23a3f507b7049e632c9406c14a1890720a82c5bac9254d78d7f74"
+    },
+    {
+      "path": "specs/frustrated-pc.json",
+      "bytes": 38642,
+      "sha256": "37d7d23ec1e392cfee6274a71bd00e33ea7fa0b91b93fe37be5080604d7a28e5"
+    },
+    {
+      "path": "specs/get-up.json",
+      "bytes": 8560,
+      "sha256": "f8a8ec6688f2e579102a7f68984b67d34611208c115a5c831aebf94298ec4f41"
+    },
+    {
+      "path": "specs/hand-over.json",
+      "bytes": 9665,
+      "sha256": "80351a685bd8962a941053bf3097ebb9b07aea1be2678fc73de20bef52028476"
+    },
+    {
+      "path": "specs/hang-swing.json",
+      "bytes": 32496,
+      "sha256": "5a0a52211e0091b8da2e381b72e77e219c96e53bd96f5df91eb64e048fb314ae"
+    },
+    {
+      "path": "specs/head-shake.json",
+      "bytes": 7824,
+      "sha256": "08b968911327a3926806d2937394862dd872515bf6e1286d399f0bd09cc29cd6"
+    },
+    {
+      "path": "specs/hold-sign.json",
+      "bytes": 11045,
+      "sha256": "02cf99a2d3c5d2f060930d075e3e12b6eda7a868856a23ee2b27b8c845bd800f"
+    },
+    {
+      "path": "specs/hop.json",
+      "bytes": 10762,
+      "sha256": "a3e66050820e9c7eed14dfc393637b1925132cb9ed47fc037b0fa5c41d87ecbe"
+    },
+    {
+      "path": "specs/hurdle.json",
+      "bytes": 30578,
+      "sha256": "64d6e37b2a7f65f3e663f36d8461ea8ecb40e2c0a0f6f2a91b6b1fae0947e6d5"
+    },
+    {
+      "path": "specs/idea.json",
+      "bytes": 13116,
+      "sha256": "dddd0b68e8af205535b5f46028cb184b5e65d4c9175fde7f58f09bd912a27f22"
+    },
+    {
+      "path": "specs/idle.json",
+      "bytes": 640,
+      "sha256": "4ce228d36424153782269c4cff5b82d16fe9059e2ed51fc2bc52fa88c1539f05"
+    },
+    {
+      "path": "specs/inspect-magnifier.json",
+      "bytes": 42999,
+      "sha256": "5b9b700d4c7d44a29d2c76312feae32a1330f07fbb5edb4544bb10fa45e58be3"
+    },
+    {
+      "path": "specs/jog.json",
+      "bytes": 8920,
+      "sha256": "9192d0213fd43227ef554eb02e2793ce7651697315260401598ce2bed880234b"
+    },
+    {
+      "path": "specs/jump.json",
+      "bytes": 647,
+      "sha256": "29e50dceb43354868bfefe960738198ec87a81e081fbd4ad438d52dcf0712987"
+    },
+    {
+      "path": "specs/kick.json",
+      "bytes": 24722,
+      "sha256": "2e0f864be3f36b09fc883291d506226e3db7e02ebeb1440fc7c6ebd6faf0dd99"
+    },
+    {
+      "path": "specs/kneel-down.json",
+      "bytes": 7849,
+      "sha256": "65dd199052674f1c81742aa96a68ef193182e968db6a74ce1c5115e90641360c"
+    },
+    {
+      "path": "specs/kneel-up.json",
+      "bytes": 7248,
+      "sha256": "9ebf438ebe13bc6b11ef989ab7d5ab14e2e125ba45894d221fada18064fd317f"
+    },
+    {
+      "path": "specs/lie-down.json",
+      "bytes": 20457,
+      "sha256": "a0b815547cfebeaa22a1fc9677325b7048a3d0daf09558618ff1650426f4a5e1"
+    },
+    {
+      "path": "specs/lift-carry.json",
+      "bytes": 25251,
+      "sha256": "b047b86a4a0831cac484507337521ee11946b3da378b1dd0f934b1de18a81043"
+    },
+    {
+      "path": "specs/long-jump.json",
+      "bytes": 25769,
+      "sha256": "c7eef145ae38d141a32150f62aa4db626bc500f76417e3a171e295ae3453dfc8"
+    },
+    {
+      "path": "specs/look-around.json",
+      "bytes": 15514,
+      "sha256": "3c953c24c2415281ccfe85d9b225ef2b1dc34d2e84dc46663e4cee42aeae086f"
+    },
+    {
+      "path": "specs/nod.json",
+      "bytes": 5851,
+      "sha256": "5c8e01f91f2cf544765b298da01f044ac4374dab2fb7cc5b75aae75309ef4778"
+    },
+    {
+      "path": "specs/open-door.json",
+      "bytes": 21303,
+      "sha256": "fa5b1e8ed79aa6e935b27c5dd67d95b72a8ff05c1ec77c2b4af4c31d2d6e8dc6"
+    },
+    {
+      "path": "specs/open-laptop.json",
+      "bytes": 14351,
+      "sha256": "ebbfa88e16f164768e447d05484f00c52ed2e12c1b2d392cedefa6ef6fec3b22"
+    },
+    {
+      "path": "specs/phone-call.json",
+      "bytes": 18721,
+      "sha256": "b60fc28196b016155babbc40ab4480e94ef60d4e9fbc39d9293952328d864e7e"
+    },
+    {
+      "path": "specs/pick-up.json",
+      "bytes": 11640,
+      "sha256": "8f7341716568b8548a3bb657c97467bdf84c91ef1d794c924f20bb856d86822c"
+    },
+    {
+      "path": "specs/plug-cable.json",
+      "bytes": 10632,
+      "sha256": "5683b46fc84c553d898a87080972a5bd8368c51ad0014ff974e6215e0910429c"
+    },
+    {
+      "path": "specs/point.json",
+      "bytes": 666,
+      "sha256": "3314c0a7ee88f8b218413359d1bd69c079f2f3423eb31b2ac0ff356ef197ebda"
+    },
+    {
+      "path": "specs/present-card.json",
+      "bytes": 8907,
+      "sha256": "510dbd1c00628629d4b705a1a29fbec954abb1c2870900d46e73c68b8a8e2429"
+    },
+    {
+      "path": "specs/present.json",
+      "bytes": 8682,
+      "sha256": "2f2b7f48897c138472107ede3f1a23418d7b748f31ab11d71232012de0781d47"
+    },
+    {
+      "path": "specs/pull-banner-bottom.json",
+      "bytes": 10658,
+      "sha256": "595a3b3c31fea87a27a825efdbb82cc93505e623a47592e8aec6211f9a12b2c4"
+    },
+    {
+      "path": "specs/pull-banner-left.json",
+      "bytes": 17591,
+      "sha256": "4f6c55de0a07defca0fddc2e458250568ee75c3ee4589096d6d2279cb7769b40"
+    },
+    {
+      "path": "specs/pull-banner-right.json",
+      "bytes": 17583,
+      "sha256": "1647590c2b477e540387aad281b380e69124e4ce111cc70de70cc66a30122980"
+    },
+    {
+      "path": "specs/pull-banner.json",
+      "bytes": 11371,
+      "sha256": "e4c005abf6b020ac2e744053c1adc4a7ab9528f83ed8d13e2a0500998ab6cafd"
+    },
+    {
+      "path": "specs/pull.json",
+      "bytes": 17379,
+      "sha256": "a0b1898469d169879f062fe4137e3c4859b8715d5b5f5fd3f6457a232688025e"
+    },
+    {
+      "path": "specs/punch.json",
+      "bytes": 11354,
+      "sha256": "dc65163da5f8e6ea4ecbab940e66bfb6ab4fc18095b29de7a78941563f1da216"
+    },
+    {
+      "path": "specs/push-walk.json",
+      "bytes": 21740,
+      "sha256": "ea9382750c3a5a92de8e7eff838af2fd3beb722db1674c41ca3580bab9d36fdd"
+    },
+    {
+      "path": "specs/push.json",
+      "bytes": 16594,
+      "sha256": "59881eeb39444cb505f01c70a07e3a63a41ac0ac3bd126e56a4ce2067472d90a"
+    },
+    {
+      "path": "specs/put-down.json",
+      "bytes": 10260,
+      "sha256": "7e6ea94b4bc494f7b8c2abcaf189fbe39c49fbad3bcc307a26fa3fade6873cb1"
+    },
+    {
+      "path": "specs/rack-server.json",
+      "bytes": 12436,
+      "sha256": "fb0c32c75d4ccb30e142baf5796194fab6d46d22478ba0715ae303cd82ad1e2f"
+    },
+    {
+      "path": "specs/reveal.json",
+      "bytes": 6443,
+      "sha256": "fb3f2d2f8ead0e52c53d2ef2bd91628fe2b23a0ffb3f04408debdb13bca3c073"
+    },
+    {
+      "path": "specs/run-start.json",
+      "bytes": 11951,
+      "sha256": "9a181f9534428205497cf6d2a820e9cd8d558a58f0a7cd06bae963dd0f083f15"
+    },
+    {
+      "path": "specs/run.json",
+      "bytes": 10748,
+      "sha256": "d6661778fd0f9bccc21c0c0535b3b3f17b9a204782264826e1ce8fbdd13415f6"
+    },
+    {
+      "path": "specs/sad-slump.json",
+      "bytes": 7123,
+      "sha256": "fbf77d37f410eb826a45dfce47017e69214f71fd9d5be70db5106866cdbd86d0"
+    },
+    {
+      "path": "specs/scratch-head.json",
+      "bytes": 9109,
+      "sha256": "011ea9ec628205a9daf280e93500a7b17caaa64ee0000ee75c30037a5948ffd5"
+    },
+    {
+      "path": "specs/seated-idle.json",
+      "bytes": 7094,
+      "sha256": "267a60be75cf342f4dd0a856f4dfadc852e73a05934ddbfc73b5582482fd918f"
+    },
+    {
+      "path": "specs/shrug.json",
+      "bytes": 5916,
+      "sha256": "d56a6df964576555517a3ed6d6eb5a4ea84688ddf60a524f141f0878e7c1cc2a"
+    },
+    {
+      "path": "specs/sidestep.json",
+      "bytes": 11585,
+      "sha256": "e639e739389005e903c3b08b860403979255111844271c8ce5a94fc5a1856e27"
+    },
+    {
+      "path": "specs/sit-down.json",
+      "bytes": 7420,
+      "sha256": "deb83efb7c80a5ffb607c1d866427efbe36bbd583ff61e1b9a2ddd6a9cc386f8"
+    },
+    {
+      "path": "specs/sit-floor.json",
+      "bytes": 8394,
+      "sha256": "0a3738dc7f724cdf133df1f52f8370bc65e4aa7b6750d8ace37f3480abf6d38d"
+    },
+    {
+      "path": "specs/skip.json",
+      "bytes": 26232,
+      "sha256": "2968ae809c509126efdd3102dbcf390578b31ca0e1e65d51d381926c6570b903"
+    },
+    {
+      "path": "specs/stairs-down.json",
+      "bytes": 12143,
+      "sha256": "29746d07027531f70cb790bcf7d31948097847991df874b4efe4caa1e4cc50d4"
+    },
+    {
+      "path": "specs/stairs-up.json",
+      "bytes": 9945,
+      "sha256": "8e8ca33eac18ee2cd1c9fed38b49fcf61a533abed4e13ed6ca8f2079564fe654"
+    },
+    {
+      "path": "specs/stand-up.json",
+      "bytes": 9928,
+      "sha256": "c1ad0f535a1fb71a784889cae5cefacfd08b5991d88f145e30531697de12db8f"
+    },
+    {
+      "path": "specs/step-up.json",
+      "bytes": 7112,
+      "sha256": "365ed7f31b63caafced0ddf7b049dcb7ef06e0228dabd4018caede21c219366e"
+    },
+    {
+      "path": "specs/stop-hand.json",
+      "bytes": 9282,
+      "sha256": "abe685c32826f1559cdac8a6c537f8322fc095a416f07f78d7f47b0e1b068785"
+    },
+    {
+      "path": "specs/stop.json",
+      "bytes": 668,
+      "sha256": "0242650453d911c8a8306eb93f726d59e5b00329b61453d8b23b876d991c3df7"
+    },
+    {
+      "path": "specs/surprised.json",
+      "bytes": 8857,
+      "sha256": "057b3b0ae7776948c0eca023eec5210d4f2e21465ba931c9dffdaac89f4b5049"
+    },
+    {
+      "path": "specs/swipe-next.json",
+      "bytes": 7497,
+      "sha256": "e84cd3a0e10cae69099c8b03d92ee18b282f3daf88a2e6ddf6f0fe01e8a269b4"
+    },
+    {
+      "path": "specs/tablet-tap.json",
+      "bytes": 28130,
+      "sha256": "19bfc96676768135f9b8717df31e00cb17257693998fb1d159e979202d569713"
+    },
+    {
+      "path": "specs/tap-element.json",
+      "bytes": 7415,
+      "sha256": "7c4c3489a0095018044d6fd2ee2c049948f2ac92c6f04380a2c7fcacb98599b7"
+    },
+    {
+      "path": "specs/think.json",
+      "bytes": 10726,
+      "sha256": "03fd0d4bb430f60b033a2e886a1b8e73e2b9a77eba7045ca571da867fdb40d2e"
+    },
+    {
+      "path": "specs/throw.json",
+      "bytes": 19005,
+      "sha256": "b1796f6a06ec2c121e117ed100dd7d2b4c04410e87f9eb38f6fc6ed2acd48dd6"
+    },
+    {
+      "path": "specs/thumbs-up.json",
+      "bytes": 8427,
+      "sha256": "3eff3f905c21df0a3e9500b886153d55bd20efd80d43bd245317df2ac108212b"
+    },
+    {
+      "path": "specs/trip.json",
+      "bytes": 18874,
+      "sha256": "5b1036b808e9f749986acb1c17332d991831c7e8086632f8d13a970648de3be0"
+    },
+    {
+      "path": "specs/turn-90.json",
+      "bytes": 8010,
+      "sha256": "1b6fc5d05a0d6cc3a4f2ecd85a6b6d68748065232bdb58b67664e9ebdb00dda9"
+    },
+    {
+      "path": "specs/turn-around.json",
+      "bytes": 7581,
+      "sha256": "8871be8f5de890962850662010ff1595177e321fc9fe23e246fdccca8f92548f"
+    },
+    {
+      "path": "specs/type-at-desk.json",
+      "bytes": 13148,
+      "sha256": "6dc62bcd3277d851ae1f7f0a76b6077919d6065f99135c9f1ce8266228542cb8"
+    },
+    {
+      "path": "specs/vault.json",
+      "bytes": 23973,
+      "sha256": "badb8b8b7e8109c86a58cf841b467092ebcdb7adfe694888447ebceb2c911868"
+    },
+    {
+      "path": "specs/video-call.json",
+      "bytes": 33192,
+      "sha256": "f8b2d19d2010efee5e7b2b2a6bc2406cffaef0093f25e1fb0ebaccabc5ba313e"
+    },
+    {
+      "path": "specs/walk-backwards.json",
+      "bytes": 9096,
+      "sha256": "c75061394b70213be211a45121f9b478ae6a3c30db4b97a9648866591ac6960d"
+    },
+    {
+      "path": "specs/walk-off.json",
+      "bytes": 20027,
+      "sha256": "45e3ac5406b8cd99f587011ffd322a47debe0a74ed1d69dc8d7900afb311a99d"
+    },
+    {
+      "path": "specs/walk-on.json",
+      "bytes": 22662,
+      "sha256": "2af7453d0a4830f041d0604af6f0db98e660a1aa8a178dae5911aeb4f4b16c62"
+    },
+    {
+      "path": "specs/walk-start.json",
+      "bytes": 4795,
+      "sha256": "83387f20b4a5dce4f43035f144cba457c77eb8563fca46ce3822bd93f0fc3713"
+    },
+    {
+      "path": "specs/walk-stop.json",
+      "bytes": 5872,
+      "sha256": "a838e508752f410d94ab94b2854d75d3f6af03810148715468f697044d6a5d94"
+    },
+    {
+      "path": "specs/walk-turn.json",
+      "bytes": 18886,
+      "sha256": "ae1070742ce5f9edc9912a61f02b8bed699d528259e26ec857b0a57b39b98f0a"
+    },
+    {
+      "path": "specs/walk.json",
+      "bytes": 633,
+      "sha256": "692fddc0c8f88cb9cc876ac296bed288b3fd27552a72faacbf3da552187acec8"
+    },
+    {
+      "path": "specs/wave.json",
+      "bytes": 7931,
+      "sha256": "36e5bf831ac5208850c65588444674f6db0b8f07b5aa5f788c0d60745f58f57d"
+    },
+    {
+      "path": "specs/write-board.json",
+      "bytes": 9688,
+      "sha256": "c4a503267d42030afa17e55c1473156d9aacf0c627f17564980a2c49a8a910e1"
+    },
+    {
+      "path": "specs/write-notes.json",
+      "bytes": 104748,
+      "sha256": "e620759c917ec3df473ce4b32d51f177343e1b25436622ff0134fb72f001e576"
+    },
+    {
+      "path": "stories.json",
+      "bytes": 1986,
+      "sha256": "896f240b417efaa30ca9ddd0a7257539ab2759ddf6b5fa5acdc82ede0849a396"
+    },
+    {
+      "path": "stories/cloud-journey.animation.json",
+      "bytes": 974,
+      "sha256": "ef9e39e9632ced28a5faa26a286bbbb1847105fc28ccb9a6cf23fb1ff005f754"
+    },
+    {
+      "path": "stories/cloud-journey.html",
+      "bytes": 1841878,
+      "sha256": "cf149519021fdb712781d09b35607634805efee56ef6092a5ed5388330134a61"
+    },
+    {
+      "path": "stories/cloud-journey.json",
+      "bytes": 2257,
+      "sha256": "3d88db8bd37c6d913844bef85b92addf8eec89f8b7a48bfc8c478f68e4458715"
+    },
+    {
+      "path": "stories/cloud-journey.motion.html",
+      "bytes": 253802,
+      "sha256": "99e9d570139e8c90caa0eefb4357d17c4ed685e3157055bfb49c574e7e9865d5"
+    },
+    {
+      "path": "stories/cloud-journey.svg",
+      "bytes": 2829,
+      "sha256": "5b134d4720e5d27c1d095398eb4780b4c8d3facf663cbfd317b719d061ff314c"
+    },
+    {
+      "path": "stories/deployment-rollout.animation.json",
+      "bytes": 776,
+      "sha256": "c841e307dcd8c9f41b635f7992e24d97cfb995676ba5b4a64f006890a6290bc1"
+    },
+    {
+      "path": "stories/deployment-rollout.html",
+      "bytes": 1234374,
+      "sha256": "5d1ff9d0fc25542c18ebadd1eb917db8c63afd794dced2792d7c696b3e656514"
+    },
+    {
+      "path": "stories/deployment-rollout.json",
+      "bytes": 1711,
+      "sha256": "7a10c3513e32c60701ab2b6eb57951f0816260a796539bd16eb98285c882d10e"
+    },
+    {
+      "path": "stories/deployment-rollout.motion.html",
+      "bytes": 253691,
+      "sha256": "ea8161ae9748389ad492c52ff2f3021255614680c3f745829bc15fe22606b534"
+    },
+    {
+      "path": "stories/deployment-rollout.svg",
+      "bytes": 3081,
+      "sha256": "ff3df4ac7330a9762b3430f82c0e9d9d116c3b6542f4bdf427f5cf35610dee6c"
+    },
+    {
+      "path": "stories/incident-resolution.animation.json",
+      "bytes": 973,
+      "sha256": "25285dcecd175b824dd726a9a96a8845b8e3f7a749984da56121cbf4ae0d443d"
+    },
+    {
+      "path": "stories/incident-resolution.html",
+      "bytes": 1812089,
+      "sha256": "291dc14a9975a253b66a834f7ee84e26ffd8fe5e4e0f988febf45a43fac36607"
+    },
+    {
+      "path": "stories/incident-resolution.json",
+      "bytes": 2295,
+      "sha256": "24c6af9b85d223d89941ba9db34b53fad94c4afa577c4e8358cd812c85954c48"
+    },
+    {
+      "path": "stories/incident-resolution.motion.html",
+      "bytes": 253801,
+      "sha256": "955d001178ab063f6f8a349fe9f3d026d97438904d8725dfd1c0ec106a31b3a4"
+    },
+    {
+      "path": "stories/incident-resolution.svg",
+      "bytes": 3050,
+      "sha256": "e3dc79ac9d83ce3df8a143c613a4fd434bbd8e76a6338bfd814ca48a7d631593"
+    }
+  ]
+}

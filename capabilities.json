@@ -1,0 +1,48 @@
+{
+  "name": "Stickman MCP",
+  "description": "Local deterministic stick-figure SVG/HTML animation for IT and digital-services presentations, websites and videos",
+  "publication": "local-release-candidate-not-published",
+  "transport": "stdio",
+  "runtimeMotionIds": [
+    "hold-pose",
+    "idle",
+    "jump",
+    "point",
+    "push",
+    "run",
+    "static-pose",
+    "stop",
+    "turn-around",
+    "walk",
+    "wave"
+  ],
+  "tools": [
+    "stickman_discover",
+    "stickman_describe",
+    "stickman_schema",
+    "stickman_validate",
+    "stickman_compile",
+    "stickman_preview",
+    "stickman_export",
+    "stickman_story",
+    "stickman_compose_film",
+    "stickman_render_film",
+    "stickman_list_film_assets",
+    "stickman_check_join",
+    "stickman_author_motion",
+    "stickman_preview_motion"
+  ],
+  "catalogue": "catalogue.json",
+  "stories": "stories.json",
+  "setup": "connection-guide.md",
+  "examples": [
+    "cloud architecture explanation",
+    "IT service workflow",
+    "cybersecurity briefing"
+  ],
+  "limitations": [
+    "Catalogue previews are not runtime integration",
+    "Arbitrary contact-safe choreography and cross-slide continuity are not qualified",
+    "No guaranteed automatic client discovery"
+  ]
+}

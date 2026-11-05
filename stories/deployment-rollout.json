@@ -1,0 +1,75 @@
+{
+  "id": "deployment-rollout",
+  "title": "Deploy is a step. Verification is the gate.",
+  "summary": "A release moves from staging into a deployment slot. Traffic remains closed until verification; only then does the new version become live.",
+  "animation": {
+    "version": "stickman.animation/v1",
+    "canvas": {
+      "width": 1000,
+      "height": 720,
+      "fps": 30
+    },
+    "durationMs": 11000,
+    "actor": {
+      "x": 240,
+      "groundY": 560
+    },
+    "targets": {
+      "destination": {
+        "x": 490,
+        "y": 435
+      }
+    },
+    "prop": {
+      "id": "release-package",
+      "x": 285,
+      "y": 510,
+      "width": 54,
+      "height": 50,
+      "toX": 450,
+      "handle": {
+        "x": 5,
+        "y": 8
+      }
+    },
+    "actions": [
+      {
+        "action": "push",
+        "startMs": 0,
+        "durationMs": 6500,
+        "target": "release-package"
+      },
+      {
+        "action": "point",
+        "startMs": 6500,
+        "durationMs": 2500,
+        "target": "destination"
+      },
+      {
+        "action": "wave",
+        "startMs": 9000,
+        "durationMs": 2000
+      }
+    ]
+  },
+  "cues": [
+    {
+      "id": "deploy",
+      "timeMs": 0,
+      "title": "Load the new release",
+      "text": "The deployment slot receives the package; customer traffic is still closed."
+    },
+    {
+      "id": "verify",
+      "timeMs": 6900,
+      "title": "Verify before opening traffic",
+      "text": "Check the deployed version before routing customer requests to it."
+    },
+    {
+      "id": "handover",
+      "timeMs": 9000,
+      "title": "Open the serving route",
+      "text": "Deployment complete. Verification complete. Now the release is live."
+    }
+  ]
+}
