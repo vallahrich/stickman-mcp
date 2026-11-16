@@ -274,3 +274,26 @@ Verified with `node scripts/release/verify-candidate.mjs .release-local/0.2.0`
 install/MCP/CLI tests in `tests/release.test.ts` via `STICKMAN_CANDIDATE_TARBALL`,
 and the full serial regression suite (**36 files / 552 tests passed**).
 `publicationApproved` remains `false` pending explicit owner hash sign-off and upload authorization.
+
+## Verified release: 0.2.1 (2026-11-16)
+
+Built from clean committed source `ce7a61a4a31958095f5d65c4467e3c541e8035e7` and verified in `.release-local/0.2.1/` alongside `RELEASE-NOTES-0.2.1.md`:
+
+| Artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `vallahrich-stickman-mcp-0.2.1.tgz` | 575,057 | `fa485057b93d3fee9a913c0d544753361cc766ed54f2fb9112317b31ba3c12d5` |
+| `stickman-source-0.2.1.zip` | 7,167,836 | `a6aac4b2c9057aa5e7fdc7bcf5ec30dae71c93d9fec2b076f486d8b48fda2c82` |
+| `stickman-site-0.2.1.zip` | 50,949,218 | `6fa9837ed0fb9bbaa9c528c0c0eb97136ccb1c7204e401ffa9a65709afd45fa0` |
+| `provenance.json` | 87,250 | `ff44bb0867c598ae42374e1e80bd572211dac9723876bb4341fa522ab0201388` |
+| `showcase/open-source.mp4` | — | `c674dbbb010bcb3dff1f921e2c8522f234a55b80683f025d341fae56483a2232` |
+| `showcase/julius-caesar.mp4` | — | `7fc43b35e6ae9f44baf5a743e64fff7440f55ee0e82b16dc86f0b07fe2fa2cc4` |
+
+Verified with `node scripts/release/verify-candidate.mjs .release-local/0.2.1`
+(`archiveChecksums: "passed"`, `siteFiles: 337`, `motions: 97`, `runtimeIds: 106`,
+`nativePresentation: true`, `keyboardPreview: true`, `mobile: true`,
+`noExternalRequests: true`, `errors: []`, `failed: []`), `#blueprint` CAD showcase
+section + `v0.2.1` metadata checks, `npm run design:check`, all 6 outside-checkout
+install/MCP/CLI tests in `tests/release.test.ts` via `STICKMAN_CANDIDATE_TARBALL`,
+and the full serial regression suite (**37 files / 559 tests passed**).
+Published as GitHub Release `v0.2.1` on `vallahrich/stickman-mcp` with live
+visualization on GitHub Pages (`https://vallahrich.github.io/stickman-mcp/`).
