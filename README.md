@@ -10,11 +10,11 @@ An original, deterministic 2D vector stick-figure animation engine for presentat
 
 ### What's in `v0.2.1`
 
-- **CAD Blueprint storyboards & `DESIGN.md` precision polish:** Orthographic CAD dimensional storyboard sheets (`theme: "blueprint"` in `stickman_storyboard` / `renderStoryboardSvg`, `stickman storyboard --blueprint`, and `renderRoomBlueprintSvg`), `bindScrollTimeline` scroll-linked deck playback helper, `<stickman-player>` and HTML preview `tabular-nums` readouts + `ease-out` micro-interactions, and the `npm run design:check` WCAG AA / `--cp-*` token parity / anti-slop gate.
+- **Full-stage CAD Blueprint render mode & `DESIGN.md` precision polish:** Orthographic CAD Blueprint rendering (`style: "blueprint"` / `--blueprint` across `v2` `theme.style`, `stickman preview`/`export`/`storyboard`, `stickman_preview`/`stickman_export`/`stickman_storyboard`, `renderStoryboardSvg`, and `renderRoomBlueprintSvg`) with 45° diagonal hatched prop geometry (`#sm-bp-hatch`), `<stickman-player controls scroll-scrub blueprint>` + `bindScrollTimeline`, `tabular-nums` + `140–180ms` `cubic-bezier(0.22, 1, 0.36, 1)` micro-interactions, and the `npm run design:check` WCAG AA / `--cp-*` token parity / anti-slop gate.
 - **106 runtime actions & 53 geometric runtime props/add-ons:** 104 assembled clips (98 user-approved key-pose motions + 6 mocap baselines) plus static/hold/turn actions, paired with 53 geometric vector props/add-ons featuring appear, socket attachment, ballistic flight, and exit lifecycles.
 - **`stickman.animation/v2` & `stickman_choreograph`:** Multi-actor scenes (`2+` stickmen with `tie`, `hat`, `glasses`, and `badge` accessories), cross-actor `emitCue`/`afterCue` synchronization, semantic stage anchors, C1 Hermite transition blending, bilateral `push`, and zero-math auto-sequencing.
 - **`stickman_storyboard`:** Compact multi-panel SVG contact sheet (`default` or `blueprint` CAD theme), optional PNG `ImageContent` preview, and spatial/bounds/seam lint (`outOfBoundsCount`, `actorOverlapWarnings`, `maxSeamStepPx`).
-- **Full local MCP & browser surface:** 16 MCP tools, 9 MCP resources (`stickman://*`), 2 MCP prompts (`choreograph-slide`, `two-actor-dialogue`), `<stickman-player>` (`registerStickmanPlayerElement`), and `bindScrollTimeline` (`@vallahrich/stickman-mcp/browser`).
+- **Full local MCP & browser surface:** 16 MCP tools, 9 MCP resources (`stickman://*`), 2 MCP prompts (`choreograph-slide`, `two-actor-dialogue`), `<stickman-player controls scroll-scrub blueprint>` (`registerStickmanPlayerElement`), and `bindScrollTimeline` (`@vallahrich/stickman-mcp/browser`).
 
 ### Option 1: Install from the `v0.2.1` GitHub Release
 
@@ -47,6 +47,7 @@ node dist/cli.js validate --input examples/v2-presentation-story.json
 node dist/cli.js choreograph --input examples/v2-two-actors-collab.json
 node dist/cli.js storyboard --input examples/v2-presentation-story.json --lint-only
 node dist/cli.js storyboard --input examples/v2-two-actors-collab.json --blueprint > collab-blueprint.svg
+node dist/cli.js preview --input examples/v2-two-actors-collab.json --blueprint --format svg > collab-stage-blueprint.svg
 node dist/cli.js preview --input examples/wave.json --format html
 node dist/cli.js export --input examples/wave.json --root .\output --output wave.svg --format svg
 ```
@@ -170,7 +171,7 @@ Push supports both rightward and leftward movement. Validation resolves reach fr
 
 ## Library, CLI, MCP
 
-The public library entry exports `v1` and `v2` contract types and JSON schemas, `validateAnimation`, `compileAnimation`, `choreographAnimation`, `resolveStageAnchors`, `sampleAnimation`, `PlaybackSession`, `renderStoryboardSvg`, `analyzeStoryboard`, `rasterizeStoryboardPng`, preview renderers, `queryActionCatalog`, and safe export helpers. Subpath exports provide `/browser` (including `mountBrowserAnimation`, `bindScrollTimeline`, and `registerStickmanPlayerElement` for `<stickman-player>`), `/film`, `/motion-authoring`, `/room` (including `renderRoomBlueprintSvg`), and `/keyboard`. The CLI exposes `discover`, `describe`, `schema`, `validate`, `compile`, `choreograph`, `storyboard` (including `--blueprint`), `preview`, and `export`. Validate UI tokens, WCAG AA contrast, and anti-slop rules with `npm run design:check`.
+The public library entry exports `v1` and `v2` contract types and JSON schemas, `validateAnimation`, `compileAnimation`, `choreographAnimation`, `resolveStageAnchors`, `sampleAnimation`, `PlaybackSession`, `renderStoryboardSvg`, `analyzeStoryboard`, `rasterizeStoryboardPng`, preview renderers, `queryActionCatalog`, and safe export helpers. Subpath exports provide `/browser` (including `mountBrowserAnimation`, `bindScrollTimeline`, and `registerStickmanPlayerElement` for `<stickman-player controls scroll-scrub blueprint>`), `/film`, `/motion-authoring`, `/room` (including `renderRoomBlueprintSvg`), and `/keyboard`. The CLI exposes `discover`, `describe`, `schema`, `validate`, `compile`, `choreograph`, `storyboard`, `preview`, and `export` (with `--blueprint` / `--style blueprint` full-stage CAD rendering). Validate UI tokens, WCAG AA contrast, `140–180ms` `cubic-bezier(0.22, 1, 0.36, 1)` transitions, `tabular-nums`, and anti-slop rules with `npm run design:check`.
 
 Start the stdio server with an output root selected at launch:
 
@@ -216,7 +217,7 @@ of seamless game control or completed room-scene MCP/video authoring.
 
 - SVG frame/animation, multi-panel `storyboard-svg`, and self-contained HTML preview need no renderer service or external assets.
 - GIF, MP4, and `stickman_storyboard` PNG `ImageContent` rasterize deterministic SVG frames with optional `@resvg/resvg-js` (and encode video with FFmpeg). If optional packages are unavailable, video export fails with an actionable error while SVG, `storyboard-svg`, and HTML remain available.
-- `v0.2.1` ships 106 deterministic runtime actions, 53 geometric vector props/add-ons, multi-actor `v2` cue choreography, CAD Blueprint storyboards (`theme: "blueprint"`), bilateral prop push, `<stickman-player>`, and `bindScrollTimeline`. It does not claim arbitrary motion understanding, general physics, imported 3D/bitmap assets, speech, production qualification, or universal contact-safe novel combinations. Inspect exported visuals (and `stickman_storyboard` contact sheets) in the intended presentation and validate accessibility/brand requirements separately.
+- `v0.2.1` ships 106 deterministic runtime actions, 53 geometric vector props/add-ons, multi-actor `v2` cue choreography, full-stage CAD Blueprint rendering (`style: "blueprint"` / `--blueprint`) with 45° diagonal hatched prop geometry, bilateral prop push, `<stickman-player controls scroll-scrub blueprint>`, and `bindScrollTimeline`. It does not claim arbitrary motion understanding, general physics, imported 3D/bitmap assets, speech, production qualification, or universal contact-safe novel combinations. Inspect exported visuals (and `stickman_storyboard` contact sheets) in the intended presentation and validate accessibility/brand requirements separately.
 - `PlaybackSession.advance(ms)` is caller-driven and has a single clock; the library starts no hidden ticker or background process.
 
 ## Motion authoring and feedback
