@@ -26,7 +26,7 @@ No package is currently published on npm. The tarball retains `private: true`.
 
 ```js
 import { compileAnimation, choreographAnimation } from "@vallahrich/stickman-mcp";
-// Also available: /browser (<stickman-player> + overlay), /room, /keyboard, /film, /motion-authoring.
+// Also available: /browser (<stickman-player>, bindScrollTimeline, overlay), /room (renderRoomBlueprintSvg), /keyboard, /film, /motion-authoring.
 ```
 
 Node-only `/film` and `/motion-authoring` entries expose the same packaged

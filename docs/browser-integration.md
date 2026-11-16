@@ -81,8 +81,14 @@ el.play(); // also supports pause(), seek(ms), setMode("normal"|"reduced"|"stati
 ```
 
 `<stickman-player>` observes `program`, `mode`, and `autoplay` attributes,
-honors `prefers-reduced-motion: reduce` unless explicitly overridden, and emits
+honors `prefers-reduced-motion: reduce` unless explicitly overridden, renders
+`tabular-nums` time readouts with `ease-out` micro-interactions, and emits
 `stickman:marker` `CustomEvent`s as clip/choreography markers fire.
+
+For scroll-linked explainers and decks, `bindScrollTimeline(player, target,
+options)` maps a container's scroll progress deterministically onto
+`player.seek(ms)` (or settles on the canonical reduced/static summary state when
+`prefers-reduced-motion: reduce` is active).
 
 The consumer owns `host`, `groundY`, `compiledProgram`, the deck event API, and
 the notification/remapping callback. These placeholders are not automatic

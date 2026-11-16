@@ -108,8 +108,8 @@ async function runCliCaptured(argv: string[]): Promise<{ code: number; stdout: s
   }
 }
 
-describe("v0.2.0 End-to-End Product Simulation Suite", () => {
-  it("exports all public v0.2.0 symbols and keeps package.json at 0.2.0", async () => {
+describe("v0.2.1 End-to-End Product Simulation Suite", () => {
+  it("exports all public v0.2.1 symbols and keeps package.json at 0.2.1", async () => {
     const pkg = JSON.parse(await readFile(resolve(process.cwd(), "package.json"), "utf8")) as {
       version: string;
     };
@@ -117,9 +117,9 @@ describe("v0.2.0 End-to-End Product Simulation Suite", () => {
       version: string;
       packages: Record<string, { version?: string }>;
     };
-    expect(pkg.version).toBe("0.2.0");
-    expect(lock.version).toBe("0.2.0");
-    expect(lock.packages[""]?.version).toBe("0.2.0");
+    expect(pkg.version).toBe("0.2.1");
+    expect(lock.version).toBe("0.2.1");
+    expect(lock.packages[""]?.version).toBe("0.2.1");
 
     expect(CONTRACT_VERSION_V2).toBe("stickman.animation/v2");
     expect(typeof choreographAnimation).toBe("function");
@@ -537,7 +537,7 @@ describe("v0.2.0 End-to-End Product Simulation Suite", () => {
 
     await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
 
-    expect(client.getServerVersion()).toEqual({ name: "stickman-mcp", version: "0.2.0" });
+    expect(client.getServerVersion()).toEqual({ name: "stickman-mcp", version: "0.2.1" });
     const toolsList = await client.listTools();
     expect(toolsList.tools).toHaveLength(16);
     const resourcesList = await client.listResources();
