@@ -32,8 +32,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 1419214,
-      "sha256": "fba6edd910402956db02a93ba96da5f9d4d041be4484df4335a818483a108f07"
+      "bytes": 2326080,
+      "sha256": "e266e5cc17f10ed9390dfdac337095cde6e8d01ff574b4f5d4fa6aa710372a12"
     },
     {
       "path": "llms.txt",
@@ -1082,8 +1082,8 @@
     },
     {
       "path": "showcase/on-prem-to-cloud.html",
-      "bytes": 328455,
-      "sha256": "594f83738de90d0cb276232f0b85c56edf8fe2686f04dddf74011fcc954abd16"
+      "bytes": 330582,
+      "sha256": "7de618ab17393bbb5761cc8017b9f79a83a80c9238d104b2a3723b7c5c7d0e28"
     },
     {
       "path": "showcase/open-source.mp4",
@@ -1622,8 +1622,8 @@
     },
     {
       "path": "stories/cloud-journey.html",
-      "bytes": 1846459,
-      "sha256": "1e2a22c4bac7318d332533e5d6ad5852f78f873f30ad8410c01d59a025ae83d9"
+      "bytes": 1848586,
+      "sha256": "05722de4259614eb3c04d43b852bd3fd5c30cad115ee5f194079c45a4617ff34"
     },
     {
       "path": "stories/cloud-journey.json",
@@ -1647,8 +1647,8 @@
     },
     {
       "path": "stories/deployment-rollout.html",
-      "bytes": 1238955,
-      "sha256": "5220d7ccd9c25258a08a33181f37d487e5fab43216d04fe6dfe6b4484bfc3cf1"
+      "bytes": 1241082,
+      "sha256": "0d09195e3cd6910dc5acbbbffddef6c9ae2f2eebb3d0d9bf41bac469c888b17f"
     },
     {
       "path": "stories/deployment-rollout.json",
@@ -1672,8 +1672,8 @@
     },
     {
       "path": "stories/incident-resolution.html",
-      "bytes": 1816670,
-      "sha256": "fffd0b5b26297ac384fe9e6b9df7fa4aa7c75d438a17e638da91a8ac691c6ca2"
+      "bytes": 1818797,
+      "sha256": "61c4e253560242106f18a6c200c13dba95ab2197cc4bb314ddb456cc3e27e2d8"
     },
     {
       "path": "stories/incident-resolution.json",
