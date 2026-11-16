@@ -1,6 +1,8 @@
+import { execFileSync } from "node:child_process";
+import http from "node:http";
 import { chromium } from "@playwright/test";
-import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { extname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 // @ts-expect-error Local native demo builder is JS.
 import { nativeCloudHtml } from "../scripts/release/native-showcase.mjs";
@@ -92,4 +94,153 @@ describe("native release presentation", () => {
       await browser.close();
     }
   }, 180_000);
+
+  it("renders v0.2 #blueprint inline SVGs, toggles aria-pressed views, keeps video count === 2, and has zero mobile overflow", async () => {
+    const pkg = JSON.parse(await readFile(join(process.cwd(), "package.json"), "utf8")) as { version: string };
+    const siteOut = join(process.cwd(), ".release-local", "d2-site-verify");
+    await rm(siteOut, { recursive: true, force: true });
+    const showcaseDir = join(siteOut, "showcase");
+    await mkdir(showcaseDir, { recursive: true });
+
+    const slide = await nativeCloudHtml();
+    await writeFile(join(showcaseDir, "on-prem-to-cloud.html"), slide.html);
+    const videos = ["open-source", "julius-caesar"].map((id, index) => ({
+      id,
+      src: `${id}.mp4`,
+      poster: `${id}.png`,
+      captions: `${id}.vtt`,
+      seconds: index === 0 ? 58.43 : 59.17,
+      frames: index === 0 ? 1753 : 1775
+    }));
+    for (const v of videos) {
+      await writeFile(join(showcaseDir, v.src), "");
+      await writeFile(join(showcaseDir, v.poster), "");
+      await writeFile(join(showcaseDir, v.captions), "WEBVTT\n\n");
+    }
+    await writeFile(
+      join(showcaseDir, "manifest.json"),
+      JSON.stringify({
+        slide: { src: "on-prem-to-cloud.html", seconds: slide.seconds, runtime: "stickman-native" },
+        videos
+      })
+    );
+
+    execFileSync(process.execPath, [join(process.cwd(), "scripts", "site", "build.mjs"), "--release-candidate"], {
+      cwd: process.cwd(),
+      stdio: "pipe",
+      env: { ...process.env, STICKMAN_SITE_OUTPUT: siteOut }
+    });
+
+    const mime: Record<string, string> = {
+      ".html": "text/html; charset=utf-8",
+      ".json": "application/json",
+      ".svg": "image/svg+xml",
+      ".js": "text/javascript",
+      ".css": "text/css",
+      ".png": "image/png",
+      ".mp4": "video/mp4",
+      ".vtt": "text/vtt",
+      ".md": "text/plain; charset=utf-8",
+      ".txt": "text/plain; charset=utf-8"
+    };
+    const server = http.createServer(async (req, res) => {
+      try {
+        const urlPath = decodeURIComponent(new URL(req.url ?? "/", "http://localhost").pathname).replace(/^\//, "") || "index.html";
+        const body = await readFile(join(siteOut, urlPath));
+        res.writeHead(200, { "Content-Type": mime[extname(urlPath)] ?? "text/plain" });
+        res.end(body);
+      } catch {
+        res.writeHead(404).end();
+      }
+    });
+    await new Promise<void>((resolveServer) => server.listen(0, "127.0.0.1", () => resolveServer()));
+    const address = server.address();
+    const port = typeof address === "object" && address ? address.port : 0;
+    const base = `http://127.0.0.1:${port}`;
+
+    const channel = process.env.STICKMAN_SITE_BROWSER ?? (process.platform === "win32" ? "msedge" : undefined);
+    const browser = await chromium.launch(channel ? { channel } : undefined);
+    const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+    const errors: string[] = [];
+    const external: string[] = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    page.on("request", (request) => {
+      if (!request.url().startsWith(base + "/") && request.url() !== base) {
+        external.push(request.url());
+      }
+    });
+
+    try {
+      await page.goto(base);
+      await page.locator(".motion-card").first().waitFor();
+
+      expect(await page.locator("meta[name=robots]").getAttribute("content")).toBe("index,follow");
+      expect(await page.locator(".badge").textContent()).toBe(`v${pkg.version} · Local MCP`);
+      expect(await page.locator("#connect").textContent()).toContain(`vallahrich-stickman-mcp-${pkg.version}.tgz`);
+      expect(await page.locator("main").textContent()).toContain("106 runtime actions");
+      expect(await page.locator("main").textContent()).toContain("53 geometric");
+      expect(await page.locator("main").textContent()).toContain("stickman.animation/v2");
+      expect(await page.locator(".score").count()).toBe(0);
+
+      // Strict video-count invariant: exactly 2 <video> elements across the entire page
+      expect(await page.locator("video").count()).toBe(2);
+
+      // #blueprint live scriptless animated SVGs & spatial lint badges
+      const blueprint = page.locator("#blueprint");
+      await expect(blueprint.isVisible()).resolves.toBe(true);
+      expect(await blueprint.textContent()).toContain("0 out-of-bounds");
+      expect(await blueprint.textContent()).toContain("maxSeamStepPx");
+      expect(await page.locator("#bp-anim-collab [data-accessory-type='tie']").count()).toBeGreaterThan(0);
+      expect(await page.locator("#bp-anim-collab [data-accessory-type='glasses']").count()).toBeGreaterThan(0);
+      expect(await page.locator("#bp-anim-sports [data-addon='hurdle']").count()).toBeGreaterThan(0);
+      expect(await page.locator("#bp-anim-sports [data-addon='basketball']").count()).toBeGreaterThan(0);
+      expect(await page.locator("#bp-anim-sports [data-addon='hoop']").count()).toBeGreaterThan(0);
+
+      // Accessible aria-pressed view switcher (mouse + keyboard ArrowRight)
+      const cadBtn = page.locator("[data-blueprint-view='cad']");
+      const stdBtn = page.locator("[data-blueprint-view='standard']");
+      const roomBtn = page.locator("[data-blueprint-view='room']");
+
+      expect(await cadBtn.getAttribute("aria-pressed")).toBe("true");
+      expect(await stdBtn.getAttribute("aria-pressed")).toBe("false");
+      expect(await roomBtn.getAttribute("aria-pressed")).toBe("false");
+      expect(await page.locator("#blueprintPanelCad").isVisible()).toBe(true);
+      expect(await page.locator("#blueprintPanelStandard").isVisible()).toBe(false);
+      expect(await page.locator("#blueprintPanelRoom").isVisible()).toBe(false);
+      expect(await page.locator("#bp-cad-collab").getAttribute("data-theme")).toBe("blueprint");
+
+      await stdBtn.click();
+      expect(await cadBtn.getAttribute("aria-pressed")).toBe("false");
+      expect(await stdBtn.getAttribute("aria-pressed")).toBe("true");
+      expect(await page.locator("#blueprintPanelCad").isVisible()).toBe(false);
+      expect(await page.locator("#blueprintPanelStandard").isVisible()).toBe(true);
+      expect(await page.locator("#bp-std-collab [data-panel]").count()).toBe(8);
+
+      await stdBtn.focus();
+      await stdBtn.press("ArrowRight");
+      expect(await roomBtn.getAttribute("aria-pressed")).toBe("true");
+      expect(await stdBtn.getAttribute("aria-pressed")).toBe("false");
+      expect(await page.locator("#blueprintPanelRoom").isVisible()).toBe(true);
+      expect(await page.locator("#bp-room-datum [data-part='floor-grid']").count()).toBe(1);
+      expect(await page.locator("#bp-room-datum [data-occupiable='true']").count()).toBe(1);
+
+      // Mobile 390x844 containment check across all three blueprint views + dark theme
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.setViewportSize({ width: 390, height: 844 });
+      for (const btn of [cadBtn, stdBtn, roomBtn]) {
+        await btn.click();
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      }
+      await page.goto(`${base}/?scoutTheme=dark`);
+      expect(await page.locator("html").getAttribute("data-theme")).toBe("dark");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+
+      expect(errors).toEqual([]);
+      expect(external).toEqual([]);
+    } finally {
+      await browser.close();
+      await new Promise<void>((resolveClose) => server.close(() => resolveClose()));
+      await rm(siteOut, { recursive: true, force: true });
+    }
+  }, 120_000);
 });

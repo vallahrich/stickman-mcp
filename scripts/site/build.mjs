@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { blueprintSection } from "./blueprint-section.mjs";
 import { buildCatalogue, repo } from "./catalogue.mjs";
 import { buildStories } from "./stories.mjs";
 import { removeRetiredPresentationAssets } from "./retired-presentations.mjs";
@@ -20,8 +21,10 @@ if (candidate) {
 }
 const stories = await buildStories(output);
 const showcase = await showcaseSection(output);
+const blueprint = await blueprintSection(repo);
 const css = await fs.readFile(path.join(repo, "site", "styles.css"), "utf8");
 const js = await fs.readFile(path.join(repo, "site", "catalogue.js"), "utf8");
+const appJs = await fs.readFile(path.join(repo, "site", "app.js"), "utf8");
 const encode = data => JSON.stringify(data).replaceAll("<", "\\u003c");
 // Checkout line endings differ across platforms. Normalize before matching
 // multiline installation snippets so candidate commands never retain npm ci.
@@ -29,18 +32,22 @@ let html = (await fs.readFile(path.join(repo, "site", "index.html"), "utf8")).re
 if (candidate) {
   const version = JSON.parse(await fs.readFile(path.join(repo, "package.json"), "utf8")).version;
   html = html.replace('<meta name="robots" content="noindex,nofollow">', '<meta name="robots" content="index,follow">')
-    .replace('<span class="badge">Private preview</span>', '<span class="badge">Release candidate</span>')
-    .replace("Build the private checkout first. Review the setup command before adding the server to your agent.", "Install the matching reviewed tarball. Point your agent at the installed package directory.")
+    .replace('<span class="badge">v0.2 · Deterministic MCP</span>', `<span class="badge">v${version} · Local MCP</span>`)
+    .replace("Build the local checkout first. Review the setup command before adding the server to your agent.", "Install the matching reviewed tarball. Point your agent at the installed package directory.")
     .replace('<h3>1. Build</h3><pre>npm ci\nnpm run build</pre>', `<h3>1. Install</h3><pre>npm install ./vallahrich-stickman-mcp-${version}.tgz\nnpx stickman discover</pre>`)
     .replace("Checkout path", "Installed package path")
     .replace("C:\\Projects\\stickman-mcp", "C:\\Projects\\demo\\node_modules\\@vallahrich\\stickman-mcp")
     .replaceAll("0.1.0-rc.1", version);
   html = html.replace('href="source-notices.md">Sources &amp; notices</a>', 'href="source-notices.md">Sources &amp; notices</a><a href="NOTICE">Attribution</a><a href="rights.md">Rights</a><a href="LICENSE">MIT license</a>');
+  if (!html.includes(`vallahrich-stickman-mcp-${version}.tgz`)) {
+    throw new Error("Candidate installation snippet failed to inject tarball version.");
+  }
 }
-html = html.replace('<link rel="stylesheet" href="styles.css"><script src="catalogue.js" defer></script>', `<style>${css}</style>`)
+html = html.replace('<link rel="stylesheet" href="styles.css"><script src="catalogue.js" defer></script><script src="app.js" defer></script>', `<style>${css}</style>`)
   .replace("__CATALOGUE_DATA__", encode(catalogue))
   .replace("__SHOWCASE_SECTION__", showcase)
-  .replace("</body>", `<script>${js}</script></body>`);
+  .replace("__BLUEPRINT_SECTION__", blueprint)
+  .replace("</body>", `<script>${js}\n${appJs}</script></body>`);
 await fs.writeFile(path.join(output, "index.html"), html);
 await fs.writeFile(path.join(output, "robots.txt"), candidate ? "User-agent: *\nAllow: /\n" : "User-agent: *\nDisallow: /\n");
 await fs.copyFile(path.join(repo, "docs", "mcp-setup.md"), path.join(output, "connection-guide.md"));

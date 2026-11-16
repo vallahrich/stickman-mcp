@@ -13,9 +13,9 @@ export const runtimeScripts = Object.freeze([
   "scripts/site/catalogue.mjs", "scripts/site/performance.mjs", "scripts/site/story-films.mjs"
 ]);
 export const siteInputs = Object.freeze([
-  "scripts/site/build.mjs", "scripts/site/stories.mjs", "scripts/site/showcase-section.mjs",
+  "scripts/site/build.mjs", "scripts/site/blueprint-section.mjs", "scripts/site/stories.mjs", "scripts/site/showcase-section.mjs",
   "scripts/site/retired-presentations.mjs", "scripts/release/native-showcase.mjs",
-  "site/index.html", "site/styles.css", "site/catalogue.js", "site/scene-player.html",
+  "site/index.html", "site/styles.css", "site/catalogue.js", "site/app.js", "site/scene-player.html",
   "docs/mcp-setup.md", "docs/agent-integration.md", "docs/showcase-sources.md"
 ]);
 const motionIds = `arms-crossed balance basketball-shot beckon bow catch check-watch cheer clap climb-down
