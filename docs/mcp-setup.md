@@ -50,13 +50,13 @@ command or modify your settings.
 Start with the read-only tools:
 
 ```powershell
-copilot mcp add stickman --tools 'stickman_discover,stickman_describe,stickman_schema,stickman_validate,stickman_compile,stickman_preview,stickman_story,stickman_list_film_assets,stickman_check_join,stickman_compose_film' -- node 'C:\Projects\stickman-mcp\dist\mcp.js' --root 'C:\Projects\MyPresentation\stickman-output'
+copilot mcp add stickman --tools 'stickman_discover,stickman_describe,stickman_schema,stickman_validate,stickman_compile,stickman_choreograph,stickman_storyboard,stickman_preview,stickman_story,stickman_list_film_assets,stickman_check_join,stickman_compose_film' -- node 'C:\Projects\stickman-mcp\dist\mcp.js' --root 'C:\Projects\MyPresentation\stickman-output'
 copilot mcp get stickman
 ```
 
 The interactive alternative is `/mcp add`, selecting **STDIO**, the same command
 and arguments, and the tool names above. Use `/mcp show stickman` to inspect the
-server and its tools. Enable `stickman_export`, `stickman_render_film`, `stickman_author_motion`, or `stickman_preview_motion` only when you intend to write
+server, its 16 tools, 9 `stickman://*` resources, and 2 prompts (`choreograph-slide`, `two-actor-dialogue`). Enable `stickman_export`, `stickman_render_film`, `stickman_author_motion`, or `stickman_preview_motion` only when you intend to write
 artifacts in the approved root; enabling a tool is not authorization to overwrite
 or write outside that root.
 
@@ -106,7 +106,7 @@ codex mcp add stickman -- node 'C:\Projects\stickman-mcp\dist\mcp.js' --root 'C:
 
 Use `claude mcp list` or `codex mcp list` to inspect configuration, then verify
 the running server's tools in the client. Review client trust and tool-permission
-settings; these commands do not limit tool availability to the seven non-writing
+settings; these commands do not limit tool availability to the twelve read-only
 tools as the Copilot example does. Do not authorize export until its destination
 is reviewed. Organization policy can block local servers; do not bypass it.
 
@@ -116,13 +116,31 @@ These command shapes are verified against the official
 Client versions and policies still require a live compatibility check.
 No invented `--type`/`--command` Codex flags or `/mcp/metadata` endpoint are used.
 
-## Tool contracts and errors
+## Tool, resource, and prompt contracts
 
-All fourteen tools enforce their advertised JSON input schemas at runtime. Missing
+All sixteen tools enforce their advertised JSON input schemas at runtime. Missing
 required fields, unknown fields (including attempted root overrides), wrong
 types, and invalid enums are rejected without coercion. For example, preview
-`timeMs` must be a number, not `"500"` or `null`. Animation validation remains the
-canonical strict `stickman.animation/v1` validation.
+`timeMs` must be a number, not `"500"` or `null`. Animation validation supports
+both strict `stickman.animation/v1` (single-actor explicit timeline) and
+`stickman.animation/v2` (multi-actor choreography, semantic stage anchors,
+`tie`/`hat`/`glasses`/`badge` accessories, `emitCue`/`afterCue` synchronization,
+and 53 geometric vector props/add-ons); call `stickman_schema` with `version:
+"v1"` or `"v2"`.
+
+`stickman_choreograph` converts declarative single- or multi-actor beat lists
+into canonical `v2` specs and compiled programs with zero manual timestamp math.
+`stickman_storyboard` renders a compact multi-panel contact sheet SVG, returns
+spatial/bounds/seam lint (`outOfBoundsCount`, `actorOverlapWarnings`,
+`maxSeamStepPx`), and attaches a PNG `ImageContent` block when `@resvg/resvg-js`
+is installed.
+
+The server also advertises **9 read-only MCP resources** (`stickman://catalog`,
+`stickman://schema/v1`, `stickman://schema/v2`, `stickman://anchors`,
+`stickman://props`, `stickman://templates/presentation-pitch`,
+`stickman://templates/two-actor-dialogue`, `stickman://templates/idea-reveal`,
+and `stickman://templates/sports-action`) and **2 MCP prompts**
+(`choreograph-slide` and `two-actor-dialogue`).
 
 Successful results preserve the existing pretty-printed JSON text payload.
 They additionally provide `structuredContent: { "result": <payload> }` and an
@@ -169,9 +187,9 @@ After reviewing and starting the server in your client:
 clients launch, rather than a development TypeScript loader whose function-name
 helpers can change serialized browser code. The automated suite uses a real SDK
 client and child-process stdio transport. It
-checks all eleven tools, output-schema validation, malformed arguments, unknown
+checks all sixteen tools, nine resources, and two prompts, output-schema validation, malformed arguments, unknown
 tools, engine/render parity, export boundaries, startup stderr, and clean client
-closure, plus film recipe validation, actor continuity and confined preview
+closure, plus `v2` choreography, storyboard lint, film recipe validation, actor continuity, and confined preview
 rendering. These tests do not claim that a particular installed Copilot/VS Code
 version, its enterprise policies, or its artifact viewer has been certified;
 the client smoke check above is still required in that environment.
@@ -249,6 +267,7 @@ score or a new room-scene MCP/video-authoring contract. See the
 
 ## Deliberate remaining limits
 
-There are no HTTP/OAuth transports, exposed resources/prompts, or SDK-major
-migration in this milestone. GIF/MP4 still need the optional rasterizer and external encoder.
-Client roots do not override the launch-time output root.
+There are no HTTP/OAuth transports or SDK-major migration in this milestone.
+GIF/MP4 export and `stickman_storyboard` PNG rasterization still rely on
+optional `@resvg/resvg-js` and FFmpeg (SVG, `storyboard-svg`, and HTML need no
+external binaries). Client roots do not override the launch-time `--root`.

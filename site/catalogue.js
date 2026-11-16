@@ -137,7 +137,7 @@ function updateCommand() {
   const script = checkout.replace(/[\\/]+$/, "") + "\\dist\\mcp.js";
   const executable = `node ${quotePowerShell(script)} --root ${quotePowerShell(root)}`;
   $("connectCommand").textContent = ({
-    copilot: `copilot mcp add stickman --tools 'stickman_discover,stickman_describe,stickman_schema,stickman_validate,stickman_compile,stickman_preview,stickman_story' -- ${executable}`,
+    copilot: `copilot mcp add stickman --tools 'stickman_discover,stickman_describe,stickman_schema,stickman_validate,stickman_compile,stickman_choreograph,stickman_storyboard,stickman_preview,stickman_story' -- ${executable}`,
     claude: `claude mcp add --transport stdio stickman -- ${executable}`,
     codex: `codex mcp add stickman -- ${executable}`
   })[$("agent").value];

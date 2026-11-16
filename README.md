@@ -6,14 +6,21 @@ An original, deterministic 2D vector stick-figure animation engine for presentat
 
 - **Repository:** [`vallahrich/stickman-mcp`](https://github.com/vallahrich/stickman-mcp) (default branch: `vallahrich-stickman-mcp-engine`)
 - **Live visualization & motion gallery:** [`https://vallahrich.github.io/stickman-mcp/`](https://vallahrich.github.io/stickman-mcp/)
-- **Releases (`v0.1.0`):** [`https://github.com/vallahrich/stickman-mcp/releases/tag/v0.1.0`](https://github.com/vallahrich/stickman-mcp/releases/tag/v0.1.0)
+- **Releases (`v0.2.0`):** [`https://github.com/vallahrich/stickman-mcp/releases/tag/v0.2.0`](https://github.com/vallahrich/stickman-mcp/releases/tag/v0.2.0)
 
-### Option 1: Install from the `v0.1.0` GitHub Release
+### What's in `v0.2.0`
 
-Download `vallahrich-stickman-mcp-0.1.0.tgz` (and optionally `stickman-site-0.1.0.zip` for the pre-rendered offline showcase gallery) from the [v0.1.0 release](https://github.com/vallahrich/stickman-mcp/releases/tag/v0.1.0):
+- **106 runtime actions & 53 geometric runtime props/add-ons:** 104 assembled clips (98 user-approved key-pose motions + 6 mocap baselines) plus static/hold/turn actions, paired with 53 geometric vector props/add-ons featuring appear, socket attachment, ballistic flight, and exit lifecycles.
+- **`stickman.animation/v2` & `stickman_choreograph`:** Multi-actor scenes (`2+` stickmen with `tie`, `hat`, `glasses`, and `badge` accessories), cross-actor `emitCue`/`afterCue` synchronization, semantic stage anchors, C1 Hermite transition blending, bilateral `push`, and zero-math auto-sequencing.
+- **`stickman_storyboard`:** Compact multi-panel SVG contact sheet, optional PNG `ImageContent` preview, and spatial/bounds/seam lint (`outOfBoundsCount`, `actorOverlapWarnings`, `maxSeamStepPx`).
+- **Full local MCP & browser surface:** 16 MCP tools, 9 MCP resources (`stickman://*`), 2 MCP prompts (`choreograph-slide`, `two-actor-dialogue`), and the `<stickman-player>` custom element (`@vallahrich/stickman-mcp/browser`).
+
+### Option 1: Install from the `v0.2.0` GitHub Release
+
+Download `vallahrich-stickman-mcp-0.2.0.tgz` (and optionally `stickman-site-0.2.0.zip` for the pre-rendered offline showcase gallery) from the [v0.2.0 release](https://github.com/vallahrich/stickman-mcp/releases/tag/v0.2.0):
 
 ```powershell
-npm install ./vallahrich-stickman-mcp-0.1.0.tgz
+npm install ./vallahrich-stickman-mcp-0.2.0.tgz
 npx stickman discover
 npx stickman-mcp --root .\stickman-output
 ```
@@ -34,8 +41,10 @@ npm test
 Run the CLI from a built checkout:
 
 ```powershell
-node dist/cli.js discover
-node dist/cli.js validate --input examples/wave.json
+node dist/cli.js discover --category presentation
+node dist/cli.js validate --input examples/v2-presentation-story.json
+node dist/cli.js choreograph --input examples/v2-two-actors-collab.json
+node dist/cli.js storyboard --input examples/v2-presentation-story.json --lint-only
 node dist/cli.js preview --input examples/wave.json --format html
 node dist/cli.js export --input examples/wave.json --root .\output --output wave.svg --format svg
 ```
@@ -91,7 +100,7 @@ npm run site:build
 npm run site:serve
 ```
 
-Open `http://127.0.0.1:4173/`. `npm run site:showcase` builds the self-contained native workload comparison slide and renders both silent short films into `dist/site/showcase/` (or extract `stickman-site-0.1.0.zip` from the [v0.1.0 release](https://github.com/vallahrich/stickman-mcp/releases/tag/v0.1.0) to serve the pre-rendered site immediately). The default, release-style gallery has **no ratings
+Open `http://127.0.0.1:4173/`. `npm run site:showcase` builds the self-contained native workload comparison slide and renders both silent short films into `dist/site/showcase/` (or extract `stickman-site-0.2.0.zip` from the [v0.2.0 release](https://github.com/vallahrich/stickman-mcp/releases/tag/v0.2.0) to serve the pre-rendered site immediately). The default, release-style gallery has **no ratings
 or review notes**, including its JSON, downloaded specs and embedded previews.
 It currently contains 97 motion entries; the historically approved `sneak`
 is excluded pending mechanical requalification. Ratings remain in the
@@ -120,9 +129,9 @@ Start with a small visual pilot unless the user directs full autonomous
 conversion. This is not automatic redesign
 or an additional MCP tool; private source decks and their outputs stay outside Git.
 
-## Contract and catalog
+## Contracts, choreography, and catalog
 
-Documents use the strict, versioned `stickman.animation/v1` JSON Schema, available from `src/contract-schema.ts` or `stickman schema`. Unknown fields and unsupported actions produce path-specific diagnostics with closest valid motion IDs. See [the wave](examples/wave.json), [walk-and-wave sequence](examples/walk-and-wave.json), and [bound prop push](examples/push-crate.json) examples.
+Documents use the strict, versioned `stickman.animation/v1` (single-actor explicit timeline) or `stickman.animation/v2` (multi-actor choreography, stage anchors, accessories, and add-on lifecycles) JSON Schemas, available from `src/contract-schema.ts`, `stickman schema --version v1|v2`, or MCP resources `stickman://schema/v1` and `stickman://schema/v2`. Unknown fields and unsupported actions produce path-specific diagnostics with closest valid motion IDs. See [the wave](examples/wave.json), [walk-and-wave sequence](examples/walk-and-wave.json), [bound prop push](examples/push-crate.json), [v2 presentation story](examples/v2-presentation-story.json), [v2 two-actor collaboration](examples/v2-two-actors-collab.json), and [v2 sports add-ons](examples/v2-sports-addons.json).
 
 | Action ID | Meaning | Binding |
 |---|---|---|
@@ -131,28 +140,35 @@ Documents use the strict, versioned `stickman.animation/v1` JSON Schema, availab
 | `wave@1.0.0` | Arm raise, oscillation, and settle | None |
 | `point@1.0.0` | Directional extension toward a named point | Named canvas target |
 | `jump@1.0.0` | Anticipation arc and landing | None |
-| `push@1.0.0` | Actor and visible prop translate rightward together in two-hand handle contact | Bound prop ID and local handle |
+| `push@1.0.0` | Actor and visible prop translate left or right together in two-hand handle contact | Bound prop ID and local handle (v1) or crate add-on (v2) |
 
-The action enum and `stickman_discover` catalog are now derived from the runtime
-motion library. In addition to the six legacy IDs above, the canonical
-`stickman.animation/v1` compiler exposes 11 runtime action IDs (`walk`, `run`,
-`wave`, `point`, `jump`, `push`, `idle`, `stop`, `turn-around`, `hold-pose`,
-and `static-pose`). Separately, the 100-entry motion ledger records 98
-historical approvals and ships 97 mechanically qualified key-pose motions for
-the gallery and continuous film composer (`sneak` is excluded from release
-pending loop-wrap requalification, `roll` is in rework, and `dance` remains a
-candidate). Clip metadata declares whether an action is a
-travel loop, in-place loop, one-shot, or hold; travel clips require a named
-target and are root-motion warped to hit it exactly, aim clips use their target
-for hand/head IK, and one-shots may specify `speed` from `0.5` to `2`.
+The action enum and `stickman_discover` catalog are derived from the self-contained
+runtime motion library (`106` runtime action IDs across `104` assembled clips:
+`98` user-approved key-pose motions + `6` mocap baselines, plus `turn-around`
+and `hold-pose`). Filtering supports `category`, `tag`, `prop`, `kind`,
+`travel`, and `search`. Separately, the 100-entry motion ledger ships 97
+mechanically qualified key-pose motions in the rating-free showcase gallery and
+continuous film composer (`sneak` is excluded from the gallery pending loop-wrap
+requalification, `roll` is in rework, and `dance` remains a candidate). Clip
+metadata declares whether an action is a travel loop, in-place loop, one-shot,
+or hold; travel clips warp root motion to hit targets cleanly, aim clips use
+their target for hand/head IK, and transitions use C1 Hermite blending.
 
-Actions are ordered and non-overlapping and use one deterministic playhead. Walk, run, and point infer left/right facing from their existing target coordinates; no facing field is required. The quality rebuild uses fixed-length skeletal poses and explicit world-space foot contacts, not a facing scale that flattens the rig during turns.
+In `stickman.animation/v2` and `stickman_choreograph`, authors can stage `1+` or
+`2+` actors with `tie`, `hat`, `glasses`, or `badge` accessories, place actors on
+named semantic anchors (`offstage-left`, `left`, `center-left`, `center`,
+`center-right`, `right`, `board`, `desk`, `door`, `offstage-right`, etc.), sync
+beats across actors via `emitCue`/`emitCueAt` and `afterCue` without manual
+timestamp math, and attach or auto-map 53 geometric vector add-ons (`bulb`,
+`card`, `board`, `laptop`, `desk`, `chair`, `door`, `banner`, `hurdle`,
+`basketball`, `hoop`, `football`, `goal`, `server-rack`, etc.) with appear,
+socket, ballistic flight, and exit lifecycles.
 
-Push remains rightward. Validation resolves reach from the actual preceding actor endpoint and rejects infeasible timing, grips, canvas fit, or body/prop overlap. Approach, supported drive and release are derived from feasible poses rather than guaranteed fixed 15/70/15 percentages. Reduced and static modes preserve the meaningful final state. Sampling the same program and time produces the same geometry. Locomotion uses one flat world floor: travel target Y must match that floor, and pushed crates must rest on it.
+Push supports both rightward and leftward movement. Validation resolves reach from the actual preceding actor endpoint and rejects infeasible timing, grips, canvas fit, or body/prop overlap. Reduced and static modes preserve a meaningful onstage summary state (keeping actors visible onstage even when a normal timeline ends with `walk-off`). Sampling the same program and time produces identical geometry.
 
 ## Library, CLI, MCP
 
-The public library entry exports contract types, `validateAnimation`, `compileAnimation`, `sampleAnimation`, `PlaybackSession`, preview renderers, catalog, and safe export helpers. The CLI exposes `discover`, `describe`, `schema`, `validate`, `compile`, `preview`, and `export`.
+The public library entry exports `v1` and `v2` contract types and JSON schemas, `validateAnimation`, `compileAnimation`, `choreographAnimation`, `resolveStageAnchors`, `sampleAnimation`, `PlaybackSession`, `renderStoryboardSvg`, `analyzeStoryboard`, `rasterizeStoryboardPng`, preview renderers, `queryActionCatalog`, and safe export helpers. Subpath exports provide `/browser` (including `mountBrowserAnimation` and `registerStickmanPlayerElement` for `<stickman-player>`), `/film`, `/motion-authoring`, `/room`, and `/keyboard`. The CLI exposes `discover`, `describe`, `schema`, `validate`, `compile`, `choreograph`, `storyboard`, `preview`, and `export`.
 
 Start the stdio server with an output root selected at launch:
 
@@ -160,9 +176,13 @@ Start the stdio server with an output root selected at launch:
 node dist/mcp.js --root C:\Projects\MyPresentation\stickman-output
 ```
 
-The MCP tools are `stickman_discover`, `stickman_describe`, `stickman_schema`, `stickman_validate`, `stickman_compile`, `stickman_preview`, `stickman_export`, `stickman_story`, `stickman_list_film_assets`,
-`stickman_check_join`, `stickman_compose_film`, `stickman_render_film`,
-`stickman_author_motion`, and `stickman_preview_motion`. Their advertised input schemas are enforced without type coercion. Results retain the existing JSON text and add schema-described structured output; unknown tools are protocol errors, while argument and execution failures are actionable tool errors. The server does not edit client configuration or accept an output-root override from a tool request.
+The server exposes **16 MCP tools**, **9 MCP resources (`stickman://*`)**, and **2 MCP prompts**:
+
+- **16 MCP tools:** `stickman_discover`, `stickman_describe`, `stickman_schema`, `stickman_validate`, `stickman_compile`, `stickman_choreograph`, `stickman_storyboard`, `stickman_preview`, `stickman_export`, `stickman_story`, `stickman_list_film_assets`, `stickman_check_join`, `stickman_compose_film`, `stickman_render_film`, `stickman_author_motion`, and `stickman_preview_motion`.
+- **9 MCP resources:** `stickman://catalog`, `stickman://schema/v1`, `stickman://schema/v2`, `stickman://anchors`, `stickman://props`, `stickman://templates/presentation-pitch`, `stickman://templates/two-actor-dialogue`, `stickman://templates/idea-reveal`, and `stickman://templates/sports-action`.
+- **2 MCP prompts:** `choreograph-slide` and `two-actor-dialogue`.
+
+Tool input schemas are enforced without type coercion. Results retain pretty-printed JSON text, add schema-described `structuredContent`, and include PNG `ImageContent` from `stickman_storyboard` when `@resvg/resvg-js` is installed; unknown tools are protocol errors, while argument and execution failures are actionable tool errors. The server does not edit client configuration or accept an output-root override from a tool request.
 
 Call `stickman_story` with `{}` to discover the combined stories, or
 `{"id":"cloud-journey"}` to get an executable `animation` plus host `cues`.
@@ -192,9 +212,9 @@ of seamless game control or completed room-scene MCP/video authoring.
 
 ## Export and limitations
 
-- SVG frame/animation and self-contained HTML preview need no renderer service or external assets.
-- GIF and MP4 render deterministic SVG frames with optional `@resvg/resvg-js`, then encode with FFmpeg. If either is unavailable, export fails with an actionable error. SVG/HTML remain available.
-- The first release has six actions, one geometric actor, and one rightward push interaction with a rectangular prop. It does not claim arbitrary motion understanding, general physics, imported assets, speech, production qualification, or perceptual naturalness. Inspect exported visuals in the intended presentation and validate accessibility/brand requirements separately.
+- SVG frame/animation, multi-panel `storyboard-svg`, and self-contained HTML preview need no renderer service or external assets.
+- GIF, MP4, and `stickman_storyboard` PNG `ImageContent` rasterize deterministic SVG frames with optional `@resvg/resvg-js` (and encode video with FFmpeg). If optional packages are unavailable, video export fails with an actionable error while SVG, `storyboard-svg`, and HTML remain available.
+- `v0.2.0` ships 106 deterministic runtime actions, 53 geometric vector props/add-ons, multi-actor `v2` cue choreography, bilateral prop push, and `<stickman-player>`. It does not claim arbitrary motion understanding, general physics, imported 3D/bitmap assets, speech, production qualification, or universal contact-safe novel combinations. Inspect exported visuals (and `stickman_storyboard` contact sheets) in the intended presentation and validate accessibility/brand requirements separately.
 - `PlaybackSession.advance(ms)` is caller-driven and has a single clock; the library starts no hidden ticker or background process.
 
 ## Motion authoring and feedback

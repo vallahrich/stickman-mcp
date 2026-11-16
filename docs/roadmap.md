@@ -1,20 +1,36 @@
 # Stickman MCP roadmap
 
-The current `0.1.0` MVP is the baseline: one original geometric actor, six
-versioned actions, a deterministic shared playhead, SVG/self-contained HTML,
-local CLI and stdio MCP adapters, strict validation, and an explicitly bound
-rightward two-hand prop push. The roadmap is intent, not a promise or a claim
-of visual qualification.
+From the `0.1.0` MVP baseline (one geometric actor, six versioned actions, shared
+playhead, SVG/HTML export, and rightward prop push), `0.2.0` expands the engine
+and local MCP surface with:
 
-## Repository synchronization
+- **106 runtime actions** (104 self-contained assembled clips: 98 user-approved
+  key-pose motions + 6 mocap baselines, plus static/hold/turn actions) and **53
+  geometric runtime props/add-ons** with appear, socket attachment, ballistic
+  flight, and exit lifecycles.
+- **`stickman.animation/v2` & `stickman_choreograph`:** multi-actor scenes (`2+`
+  stickmen with `tie`/`hat`/`glasses`/`badge` accessories), cross-actor
+  `emitCue`/`afterCue` synchronization, semantic stage anchors, C1 Hermite
+  transition blending, bilateral `push`, and zero-math auto-sequencing.
+- **`stickman_storyboard`:** multi-panel SVG + PNG `ImageContent` contact sheet
+  and spatial/bounds/seam lint.
+- **16 MCP tools, 9 MCP resources (`stickman://*`), 2 MCP prompts**, and the
+  `<stickman-player>` custom element (`@vallahrich/stickman-mcp/browser`).
 
-Development is canonical in the private
+The roadmap below records completed phases and remaining research/qualification
+intent; it is not a promise of universal motion generation or blanket visual
+certification.
+
+## Canonical repository
+
+Development is canonical in
 [`vallahrich/stickman-mcp`](https://github.com/vallahrich/stickman-mcp)
-repository. The former corporate copy `t-vwallerich_microsoft/stickman-mcp` is
-retired: no mirroring in either direction.
+(default branch: `vallahrich-stickman-mcp-engine`), with no external repository
+mirroring.
+
 ## Continuous film composition phases
 
-1. **Phase 1 — Composer in the MCP: done.** Strict JSON recipes, approved film
+1. **Phase 1 - Composer in the MCP: done.** Strict JSON recipes, approved film
    asset discovery, shared showcase/MCP continuous composition, actor and lead
    continuity reports, confined MP4/poster/VTT/QA export and fast previews.
    See [film recipes](film-recipes.md). Mechanical gates do not constitute new
@@ -28,10 +44,8 @@ retired: no mirroring in either direction.
    reusable poses; MCP draft authoring, joint overrides, film-scale mechanical
    checks, confined preview strips, and an unchanged human approval gate. See
    [motion authoring](motion-authoring.md).
-4. **Phase 4 - Groups & contact: remaining.** Formation/crowd/follow, hand
-   contact and controlled variation without breaking per-actor continuity.
-5. **Phase 5 - Speed & QA loop: remaining.** Faster previews, sampled visual
-   checks and an iterative report/fix/review cycle for complete films.
+4. **Phase 4 - Multi-actor v2 choreography, props & storyboard lint: done (`0.2.0`); arbitrary crowd/hand-contact physics: remaining.** Named stage anchors, `2+` cue-synced actors, accessories, 53 runtime add-ons, and storyboard spatial/overlap lint shipped in `0.2.0`; dense crowd formations and arbitrary actor-to-actor hand-contact constraints remain separate work.
+5. **Phase 5 - Storyboard QA & progress/cancellation: done (`0.2.0`); full-film automated visual repair loop: remaining.** `stickman_storyboard` contact-sheet lint and MCP export/film progress & cancellation shipped in `0.2.0`; automated multi-scene film visual critique/fix loops remain future work.
 
 ## Next stages
 

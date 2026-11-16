@@ -17,10 +17,21 @@ compiler and renderer. It does not execute authored code or call a video AI serv
 
 ## Normal workflow
 
-Discover available runtime motions, describe the chosen action, retrieve the
-schema, validate an animation, compile it, then preview SVG or self-contained HTML.
+Read `stickman://anchors`, `stickman://props`, or a `stickman://templates/*`
+starter resource, discover filtered runtime motions (`106` actions, `53`
+geometric vector props/add-ons), and either:
+
+- **Choreograph `v2` scenes:** call `stickman_choreograph` with semantic stage
+  anchors, `1+`/`2+` actors (`tie`/`hat`/`glasses`/`badge` accessories), and
+  `emitCue`/`afterCue` sync, then inspect `stickman_storyboard` (SVG + optional
+  PNG `ImageContent` + bounds/overlap/seam lint) before previewing or exporting.
+- **Compile explicit `v1`/`v2` documents:** retrieve the schema (`stickman_schema`
+  with `version: "v1"` or `"v2"`), validate, compile, then preview SVG,
+  `storyboard-svg`, or self-contained HTML.
+
 Export writes under the root selected at launch and requires an explicitly
-reviewed destination. Preview/discovery do not write output files.
+reviewed destination. Preview, storyboard critique, and discovery do not write
+output files.
 
 For a complete scene, call `stickman_story` with `{}` to list recipes, then
 with `{"id":"cloud-journey"}` (or `incident-resolution`, `deployment-rollout`).

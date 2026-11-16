@@ -31,7 +31,7 @@ if (candidate) {
   html = html.replace('<meta name="robots" content="noindex,nofollow">', '<meta name="robots" content="index,follow">')
     .replace('<span class="badge">Private preview</span>', '<span class="badge">Release candidate</span>')
     .replace("Build the private checkout first. Review the setup command before adding the server to your agent.", "Install the matching reviewed tarball. Point your agent at the installed package directory.")
-    .replace('<h3>1. Build</h3><pre>npm ci\nnpm run build</pre>', '<h3>1. Install</h3><pre>npm install ./vallahrich-stickman-mcp-0.1.0-rc.1.tgz\nnpx stickman discover</pre>')
+    .replace('<h3>1. Build</h3><pre>npm ci\nnpm run build</pre>', `<h3>1. Install</h3><pre>npm install ./vallahrich-stickman-mcp-${version}.tgz\nnpx stickman discover</pre>`)
     .replace("Checkout path", "Installed package path")
     .replace("C:\\Projects\\stickman-mcp", "C:\\Projects\\demo\\node_modules\\@vallahrich\\stickman-mcp")
     .replaceAll("0.1.0-rc.1", version);
@@ -52,9 +52,13 @@ if (candidate) {
 }
 await fs.writeFile(path.join(output, "capabilities.json"), JSON.stringify({
   name: "Stickman MCP", description: "Local deterministic stick-figure SVG/HTML animation for IT and digital-services presentations, websites and videos",
-  publication: candidate ? "local-release-candidate-not-published" : "private", transport: "stdio", runtimeMotionIds: catalogue.runtimeMotionIds,
-  tools: ["discover", "describe", "schema", "validate", "compile", "preview", "export", "story",
+  publication: candidate ? "local-release-candidate-not-published" : "private", transport: "stdio",
+  contracts: ["stickman.animation/v1", "stickman.animation/v2"], runtimeMotionIds: catalogue.runtimeMotionIds,
+  tools: ["discover", "describe", "schema", "validate", "compile", "choreograph", "storyboard", "preview", "export", "story",
     "compose_film", "render_film", "list_film_assets", "check_join", "author_motion", "preview_motion"].map(name => `stickman_${name}`),
+  resources: ["stickman://catalog", "stickman://schema/v1", "stickman://schema/v2", "stickman://anchors", "stickman://props",
+    "stickman://templates/presentation-pitch", "stickman://templates/two-actor-dialogue", "stickman://templates/idea-reveal", "stickman://templates/sports-action"],
+  prompts: ["choreograph-slide", "two-actor-dialogue"],
   catalogue: "catalogue.json", stories: "stories.json", setup: "connection-guide.md", examples: ["cloud architecture explanation", "IT service workflow", "cybersecurity briefing"],
   limitations: ["Catalogue previews are not runtime integration", "Arbitrary contact-safe choreography and cross-slide continuity are not qualified", "No guaranteed automatic client discovery"]
 }, null, 2) + "\n");

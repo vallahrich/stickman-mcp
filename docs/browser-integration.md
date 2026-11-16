@@ -1,9 +1,13 @@
 # Website/deck integration and keyboard diagnostics
 
-The browser adapter mounts a small original stickman as a **transparent SVG
-overlay** in an explicitly approved host. It consumes the same compiled v1
-program and canonical sampler as MCP, SVG/HTML preview and video export.
-It is not a second animation engine or a browser-accessible stdio transport.
+The browser adapter mounts original stickman scenes as a **transparent SVG
+overlay** (`mountBrowserAnimation`) or a **standalone `<stickman-player>` custom
+element** (`registerStickmanPlayerElement`) in an explicitly approved host. Both
+consume the same compiled `stickman.animation/v1` and multi-actor
+`stickman.animation/v2` programs (including accessories, cue markers, and 53
+geometric runtime props/add-ons) and canonical sampler as MCP, SVG/HTML preview
+and video export. It is not a second animation engine or a browser-accessible
+stdio transport.
 
 The intended request is: "Run from here to there, jump at the arrival point,
 then point at that card." The client agent resolves that intent to the supported
@@ -41,7 +45,8 @@ integration: its export helpers also use Node filesystem/encoder APIs.
 ```typescript
 import {
   createBrowserScene, measureHostViewport, mapElementAnchor,
-  viewportToScene, projectTravelAnchor, mountBrowserAnimation
+  viewportToScene, projectTravelAnchor, mountBrowserAnimation,
+  registerStickmanPlayerElement
 } from "@vallahrich/stickman-mcp/browser";
 
 const projection = createBrowserScene(measureHostViewport(host), 64);
@@ -52,7 +57,7 @@ const arrival = projectTravelAnchor(
   projection.canvas
 );
 
-// Author validated v1 data in this virtual scene, then obtain a compiled
+// Author validated v1 or v2 data in this virtual scene, then obtain a compiled
 // program from the local MCP host/bridge. No authored JavaScript is accepted.
 const player = mountBrowserAnimation(host, compiledProgram, {
   approved: true,
@@ -64,6 +69,20 @@ deck.onTime(timeMs => player.seek(timeMs));
 deck.onPause(() => player.pause());
 deck.onDispose(() => player.dispose());
 ```
+
+For standalone embeds without host-anchor coordinate projection, register the
+`<stickman-player>` custom element once in browser code:
+
+```typescript
+registerStickmanPlayerElement(); // defines <stickman-player>
+const el = document.querySelector("stickman-player")!;
+el.setProgram(compiledV2Program); // accepts compiled program, v1/v2 spec, or ChoreographInput
+el.play(); // also supports pause(), seek(ms), setMode("normal"|"reduced"|"static"), dispose()
+```
+
+`<stickman-player>` observes `program`, `mode`, and `autoplay` attributes,
+honors `prefers-reduced-motion: reduce` unless explicitly overridden, and emits
+`stickman:marker` `CustomEvent`s as clip/choreography markers fire.
 
 The consumer owns `host`, `groundY`, `compiledProgram`, the deck event API, and
 the notification/remapping callback. These placeholders are not automatic

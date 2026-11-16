@@ -9,9 +9,9 @@ test("rating-free release assets, truthful runtime scope and private indexing", 
   expect(catalogue).not.toHaveProperty("pending");
   expect(catalogue.motionCount).toBe(97);
   expect(catalogue.motions).toHaveLength(97);
-  expect(catalogue.runtimeMotionIds).toHaveLength(11);
+  expect(catalogue.runtimeMotionIds).toHaveLength(106);
   expect(catalogue.motions.some(m => ["dance", "roll", "sneak"].includes(m.id))).toBe(false);
-  expect(catalogue.motions.find(m => m.id === "rack-server").runtimeIdAvailable).toBe(false);
+  expect(catalogue.motions.find(m => m.id === "rack-server").runtimeIdAvailable).toBe(true);
   for (const motion of catalogue.motions.flatMap(m => [m, ...m.variants])) {
     expect(motion.frames).toBeGreaterThan(0);
     for (const asset of [motion.poster, motion.preview, motion.spec]) expect((await request.get("/" + asset)).status(), asset).toBe(200);
