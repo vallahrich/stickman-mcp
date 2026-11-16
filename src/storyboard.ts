@@ -11,11 +11,13 @@ import {
   type SampledActorFrame,
   type SampledFrame
 } from "./contract.js";
-import { ENTRANCE_EXIT_ACTIONS } from "./choreograph.js";
+import { ENTRANCE_EXIT_ACTIONS, resolveStageAnchors } from "./choreograph.js";
 import { sampleAnimation } from "./compiler.js";
 import { getMotionMeta } from "./motion-library.js";
 import { escapeXml } from "./props.js";
 import { actorToSampledFrame, frameGeometry, renderSceneInnerSvg } from "./render.js";
+
+export type StoryboardTheme = "default" | "blueprint";
 
 export interface StoryboardOptions {
   maxPanels?: number;
@@ -24,6 +26,7 @@ export interface StoryboardOptions {
   timestampsMs?: readonly number[];
   mode?: PlaybackMode;
   title?: string;
+  theme?: StoryboardTheme;
 }
 
 export interface OutOfBoundsFrame {
@@ -238,7 +241,223 @@ function formatPanelLabel(
   return combined.length > 46 ? `${combined.slice(0, 45)}…` : combined;
 }
 
+function toBlueprintMonochromeFrame(frame: SampledFrame): SampledFrame {
+  return {
+    ...frame,
+    ...(frame.actors
+      ? {
+          actors: frame.actors.map((actor) => ({
+            ...actor,
+            color: "#0f172a",
+            accentColor: "#1e3a5f"
+          }))
+        }
+      : {}),
+    ...(frame.addons
+      ? {
+          addons: frame.addons.map((addon) => ({
+            ...addon,
+            color: "#1e3a5f"
+          }))
+        }
+      : {})
+  };
+}
+
+function normalizeBlueprintInnerColors(markup: string): string {
+  const preserve = new Set([
+    "#fff",
+    "#ffffff",
+    "#f8fafc",
+    "#f1f5f9",
+    "#e2e8f0",
+    "#cbd5e1",
+    "#94a3b8",
+    "#334155",
+    "#1e3a5f",
+    "#0f172a"
+  ]);
+  return markup
+    .replace(/\bfill="(#[0-9a-fA-F]{3,6})"/g, (full, hex: string) =>
+      preserve.has(hex.toLowerCase()) ? full : 'fill="#e2e8f0"'
+    )
+    .replace(/\bstroke="(#[0-9a-fA-F]{3,6})"/g, (full, hex: string) =>
+      preserve.has(hex.toLowerCase()) ? full : 'stroke="#1e3a5f"'
+    );
+}
+
+function registrationMarkSvg(cx: number, cy: number, arm = 4): string {
+  return (
+    `<path data-part="registration-mark" d="M${num(cx - arm, 1)} ${num(cy, 1)}H${num(cx + arm, 1)}M${num(cx, 1)} ${num(cy - arm, 1)}V${num(cy + arm, 1)}" stroke="#1e3a5f" stroke-width=".9"/>`
+  );
+}
+
+function renderBlueprintStoryboardSvg(
+  program: CompiledAnimation,
+  timestamps: readonly number[],
+  options: {
+    cols: number;
+    rows: number;
+    panelW: number;
+    sceneH: number;
+    footerH: number;
+    panelH: number;
+    pad: number;
+    scale: number;
+    mode: PlaybackMode;
+    markerWindowMs: number;
+    title?: string;
+  }
+): string {
+  const { canvas, durationMs } = program.spec;
+  const { cols, rows, panelW, sceneH, panelH, pad, scale, mode, markerWindowMs } = options;
+  const panelCount = Math.max(1, timestamps.length);
+  const headerH = 30;
+  const sheetFooterH = 24;
+  const totalW = cols * panelW + (cols + 1) * pad;
+  const totalH = headerH + rows * panelH + (rows + 1) * pad + sheetFooterH;
+  const titleText = options.title ? options.title : "ORTHOGRAPHIC CAD STORYBOARD";
+  const scaleRatio = num(1 / scale, 2);
+  const specText = `SCALE 1:${scaleRatio} | ${canvas.width}×${canvas.height} @ ${canvas.fps}FPS`;
+
+  const regMarks = [
+    registrationMarkSvg(6, 6),
+    registrationMarkSvg(totalW - 6, 6),
+    registrationMarkSvg(6, totalH - 6),
+    registrationMarkSvg(totalW - 6, totalH - 6)
+  ].join("");
+
+  const headerMarkup =
+    `<g data-part="blueprint-header">` +
+    `<text class="bp-t" x="${pad}" y="19">${escapeXml(titleText)}</text>` +
+    `<text class="bp-m" x="${totalW - pad}" y="19" text-anchor="end">${escapeXml(specText)}</text>` +
+    `<line x1="${pad}" y1="${headerH}" x2="${totalW - pad}" y2="${headerH}" stroke="#1e3a5f" stroke-width=".9"/>` +
+    `</g>`;
+
+  const panelsMarkup = timestamps
+    .map((t, idx) => {
+      const col = idx % cols;
+      const row = Math.floor(idx / cols);
+      const px = pad + col * (panelW + pad);
+      const py = headerH + pad + row * (panelH + pad);
+
+      const frame = sampleAnimation(program, t, mode);
+      const monoFrame = toBlueprintMonochromeFrame(frame);
+      const rawInner = renderSceneInnerSvg(monoFrame, {
+        defaultColor: "#0f172a",
+        themeAccentColor: "#1e3a5f",
+        decimals: 0,
+        compact: true
+      });
+      const inner = normalizeBlueprintInnerColors(rawInner);
+
+      const anchors = resolveStageAnchors(canvas, frame.groundY);
+      const gyPanel = frame.groundY * scale;
+      const gyStr = num(gyPanel, 1);
+
+      const anchorTicks = (
+        [
+          ["L", anchors.left?.x ?? Math.round(canvas.width * 0.2)],
+          ["C", anchors.center?.x ?? Math.round(canvas.width * 0.5)],
+          ["R", anchors.right?.x ?? Math.round(canvas.width * 0.8)]
+        ] as const
+      )
+        .map(([code, wx]) => {
+          const ax = num(wx * scale, 1);
+          const lblY = num(Math.min(sceneH - 2, gyPanel + 9.5), 1);
+          return (
+            `<line x1="${ax}" y1="${num(gyPanel - 2.5, 1)}" x2="${ax}" y2="${num(gyPanel + 2.5, 1)}" stroke="#1e3a5f" stroke-width=".8"/>` +
+            `<text class="bp-a" x="${ax}" y="${lblY}">${code}</text>`
+          );
+        })
+        .join("");
+
+      const primaryActor =
+        frame.actors && frame.actors.length > 0
+          ? (frame.actors.find((a) => a.x >= 0 && a.x <= canvas.width) ?? frame.actors[0]!)
+          : undefined;
+      const actorScale = primaryActor?.scale ?? 1;
+      const rootWorldX = frame.x;
+      const clampedRootX = clamp(
+        (primaryActor ? primaryActor.x : rootWorldX) * scale,
+        14,
+        panelW - 28
+      );
+      const leaderX = clamp(clampedRootX - 18, 6, panelW - 34);
+      const leaderTopY = clamp((frame.groundY - 144 * actorScale) * scale, 22, Math.max(24, gyPanel - 12));
+
+      const dimensionLeaders =
+        `<g data-part="dimension-leader">` +
+        `<line x1="${num(leaderX, 1)}" y1="${num(leaderTopY, 1)}" x2="${num(leaderX, 1)}" y2="${gyStr}" stroke="#1e3a5f" stroke-width=".75"/>` +
+        `<line x1="${num(leaderX - 2.5, 1)}" y1="${num(leaderTopY, 1)}" x2="${num(leaderX + 2.5, 1)}" y2="${num(leaderTopY, 1)}" stroke="#1e3a5f" stroke-width=".75"/>` +
+        `<line x1="${num(leaderX - 2.5, 1)}" y1="${gyStr}" x2="${num(leaderX + 2.5, 1)}" y2="${gyStr}" stroke="#1e3a5f" stroke-width=".75"/>` +
+        `<text class="bp-d" x="${num(leaderX + 3, 1)}" y="${num((leaderTopY + gyPanel) / 2, 1)}">144u</text>` +
+        `<line x1="${num(clampedRootX, 1)}" y1="${num(gyPanel - 4, 1)}" x2="${num(clampedRootX, 1)}" y2="${num(gyPanel + 4, 1)}" stroke="#0f172a" stroke-width=".9"/>` +
+        `<text class="bp-d" x="${num(clampedRootX + 3, 1)}" y="${num(Math.max(26, gyPanel - 4), 1)}">x=${Math.round(rootWorldX)}</text>` +
+        `</g>`;
+
+      const badgeText = `T+${(frame.timeMs / 1000).toFixed(2)}s`;
+      const badgeW = Math.max(44, Math.round(badgeText.length * 6.2 + 10));
+      const labelText = formatPanelLabel(frame, program.events, markerWindowMs);
+
+      return (
+        `<g data-panel="${idx}" data-time-ms="${num(frame.timeMs, 0)}" transform="translate(${px} ${py})">` +
+        `<rect width="${panelW}" height="${panelH}" fill="#f8fafc" stroke="#1e3a5f" stroke-width="1"/>` +
+        `<g clip-path="url(#sm-sb-clip)">` +
+        `<rect width="${panelW}" height="${sceneH}" fill="#f8fafc"/>` +
+        `<rect width="${panelW}" height="${sceneH}" fill="url(#sm-bp-grid)"/>` +
+        `<line data-part="ground-datum" x1="0" y1="${gyStr}" x2="${panelW}" y2="${gyStr}" stroke="#1e3a5f" stroke-width=".9" stroke-dasharray="3 3"/>` +
+        `<text class="bp-d" data-part="datum-label" x="${panelW - 4}" y="${num(Math.max(12, gyPanel - 3), 1)}" text-anchor="end">Y=${Math.round(frame.groundY)}</text>` +
+        `<g data-part="anchor-ticks">${anchorTicks}</g>` +
+        `<g class="sb-s" transform="scale(${num(scale, 3)})">${inner}</g>` +
+        `${dimensionLeaders}` +
+        `<rect x="5" y="5" width="${badgeW}" height="15" rx="2" fill="#0f172a" stroke="#1e3a5f" stroke-width=".6"/>` +
+        `<text class="sb-b" data-part="timestamp-badge" x="${num(5 + badgeW / 2, 1)}" y="12.8">${escapeXml(badgeText)}</text>` +
+        `</g>` +
+        `<line x1="0" y1="${sceneH}" x2="${panelW}" y2="${sceneH}" stroke="#1e3a5f" stroke-width=".8"/>` +
+        `<text class="bp-l" data-part="panel-label" x="6" y="${sceneH + 14.5}">${escapeXml(labelText)}</text>` +
+        `</g>`
+      );
+    })
+    .join("");
+
+  const footerTopY = totalH - sheetFooterH;
+  const footerSummary = `CONTRACT ${program.contractVersion} | PANELS ${panelCount} | DUR ${(durationMs / 1000).toFixed(2)}s`;
+  const footerRight = `DATUM ORTHOGRAPHIC | REF 144u | ${mode.toUpperCase()}`;
+  const footerMarkup =
+    `<g data-part="blueprint-footer">` +
+    `<line x1="${pad}" y1="${footerTopY}" x2="${totalW - pad}" y2="${footerTopY}" stroke="#1e3a5f" stroke-width=".9"/>` +
+    `<text class="bp-m" x="${pad}" y="${footerTopY + 15}">${escapeXml(footerSummary)}</text>` +
+    `<text class="bp-m" x="${totalW - pad}" y="${footerTopY + 15}" text-anchor="end">${escapeXml(footerRight)}</text>` +
+    `</g>`;
+
+  const style =
+    `.sb-s{stroke-linecap:round;stroke-linejoin:round}` +
+    `.sb-b{font:700 9px Consolas,"Courier New",monospace;fill:#f8fafc;text-anchor:middle;dominant-baseline:middle}` +
+    `.bp-t{font:700 11px Consolas,"Courier New",monospace;fill:#0f172a;letter-spacing:.06em}` +
+    `.bp-m{font:9px Consolas,"Courier New",monospace;fill:#1e3a5f}` +
+    `.bp-l{font:9px Consolas,"Courier New",monospace;fill:#0f172a}` +
+    `.bp-d{font:7.8px Consolas,"Courier New",monospace;fill:#1e3a5f}` +
+    `.bp-a{font:700 7.5px Consolas,"Courier New",monospace;fill:#1e3a5f;text-anchor:middle}`;
+
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" data-theme="blueprint" role="img" aria-label="Stickman blueprint storyboard (${panelCount} panels)" viewBox="0 0 ${totalW} ${totalH}" width="${totalW}" height="${totalH}">` +
+    `<defs>` +
+    `<clipPath id="sm-sb-clip"><rect width="${panelW}" height="${sceneH}"/></clipPath>` +
+    `<pattern id="sm-bp-grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="#e2e8f0" stroke-width=".6"/></pattern>` +
+    `<style>${style}</style>` +
+    `</defs>` +
+    `<rect width="100%" height="100%" fill="#f8fafc"/>` +
+    `<rect x="1.5" y="1.5" width="${num(totalW - 3, 1)}" height="${num(totalH - 3, 1)}" fill="none" stroke="#1e3a5f" stroke-width="1"/>` +
+    `${regMarks}${headerMarkup}${panelsMarkup}${footerMarkup}</svg>`
+  );
+}
+
 export function renderStoryboardSvg(program: CompiledAnimation, options: StoryboardOptions = {}): string {
+  const theme: StoryboardTheme = options.theme ?? "default";
+  if (theme !== "default" && theme !== "blueprint") {
+    throw new TypeError('Storyboard theme must be "default" or "blueprint".');
+  }
   const { canvas } = program.spec;
   const maxPanels = options.maxPanels ?? 8;
   const columns = Math.max(1, Math.floor(options.columns ?? 4));
@@ -254,13 +473,10 @@ export function renderStoryboardSvg(program: CompiledAnimation, options: Storybo
   const footerH = 22;
   const panelH = sceneH + footerH;
   const pad = 10;
-  const headerH = options.title ? 26 : 0;
 
   const panelCount = Math.max(1, timestamps.length);
   const cols = Math.min(columns, panelCount);
   const rows = Math.ceil(panelCount / cols);
-  const totalW = cols * panelW + (cols + 1) * pad;
-  const totalH = headerH + rows * panelH + (rows + 1) * pad;
   const scale = panelW / canvas.width;
 
   const v2Spec = program.contractVersion === CONTRACT_VERSION_V2 ? (program.spec as AnimationSpecV2) : undefined;
@@ -268,6 +484,26 @@ export function renderStoryboardSvg(program: CompiledAnimation, options: Storybo
   const themeAccentColor = v2Spec?.theme?.accentColor;
   const stageBg = v2Spec?.theme?.background ?? "#ffffff";
   const markerWindowMs = Math.max(25, Math.round(500 / canvas.fps));
+
+  if (theme === "blueprint") {
+    return renderBlueprintStoryboardSvg(program, timestamps, {
+      cols,
+      rows,
+      panelW,
+      sceneH,
+      footerH,
+      panelH,
+      pad,
+      scale,
+      mode,
+      markerWindowMs,
+      ...(options.title !== undefined ? { title: options.title } : {})
+    });
+  }
+
+  const headerH = options.title ? 26 : 0;
+  const totalW = cols * panelW + (cols + 1) * pad;
+  const totalH = headerH + rows * panelH + (rows + 1) * pad;
 
   const titleMarkup = options.title
     ? `<text class="sb-t" x="${pad}" y="20">${escapeXml(options.title)}</text>`

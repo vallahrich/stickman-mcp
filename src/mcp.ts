@@ -620,7 +620,7 @@ const toolDefinitions: DefinedTool[] = [
   ),
   defineTool(
     "stickman_storyboard",
-    "Render a multi-panel storyboard contact sheet and run automated stage/seam/overlap self-review lint (plus PNG image when available).",
+    "Render a multi-panel storyboard contact sheet (default or orthographic CAD blueprint theme) and run automated stage/seam/overlap self-review lint (plus PNG image when available).",
     {
       type: "object",
       additionalProperties: false,
@@ -630,6 +630,7 @@ const toolDefinitions: DefinedTool[] = [
         columns: { type: "integer", minimum: 1, maximum: 8 },
         maxPanels: { type: "integer", minimum: 2, maximum: 16 },
         mode: { type: "string", enum: ["normal", "reduced", "static"] },
+        theme: { type: "string", enum: ["default", "blueprint"] },
         includePng: { type: "boolean" }
       }
     },
@@ -1364,12 +1365,17 @@ export function createMcpServer(outputRoot: string): Server {
           const maxPanels = typeof args.maxPanels === "number" ? args.maxPanels : undefined;
           const mode = args.mode === undefined ? "normal" : args.mode;
           if (!isPlaybackMode(mode)) throw new Error("Mode must be normal, reduced, or static.");
+          const theme = args.theme === undefined ? "default" : args.theme;
+          if (theme !== "default" && theme !== "blueprint") {
+            throw new Error('Storyboard theme must be "default" or "blueprint".');
+          }
           const includePng = args.includePng !== false;
 
           const svg = renderStoryboardSvg(compiled.program, {
             ...(columns !== undefined ? { columns } : {}),
             ...(maxPanels !== undefined ? { maxPanels } : {}),
-            mode
+            mode,
+            theme
           });
           const analysis = analyzeStoryboard(compiled.program);
 

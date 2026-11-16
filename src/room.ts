@@ -1,4 +1,6 @@
-import type { Point2D } from "./contract.js";
+import type { Point2D, SampledFrame } from "./contract.js";
+import { escapeXml } from "./props.js";
+import { renderSceneInnerSvg } from "./render.js";
 
 export interface WorldPoint { x: number; z: number }
 export interface RoomBox {
@@ -184,4 +186,251 @@ export function mountRoomStage(svg: SVGSVGElement, room: IsometricRoom): RoomSta
     },
     dispose() { if (!disposed) { disposed = true; stage.remove(); } }
   };
+}
+
+export type RoomBlueprintActorState =
+  | {
+      readonly x: number;
+      readonly z: number;
+      readonly height?: number;
+      readonly radius?: number;
+      readonly label?: string;
+      readonly frame?: SampledFrame;
+    }
+  | {
+      readonly position: WorldPoint;
+      readonly height?: number;
+      readonly radius?: number;
+      readonly label?: string;
+      readonly frame?: SampledFrame;
+    }
+  | {
+      readonly worldRoot: WorldPoint;
+      readonly worldHeight?: number;
+      readonly radius?: number;
+      readonly label?: string;
+      readonly status?: string;
+      readonly frame?: SampledFrame;
+    };
+
+export interface RoomBlueprintOptions {
+  gridStep?: number;
+  wallHeight?: number;
+  title?: string;
+}
+
+function fmtNum(value: number, decimals = 1): string {
+  const factor = 10 ** decimals;
+  const rounded = Math.round(value * factor) / factor;
+  return (Math.abs(rounded) < 1e-6 ? 0 : rounded).toString();
+}
+
+function ptsAttr(points: readonly Point2D[]): string {
+  return points.map((pt) => `${fmtNum(pt.x, 1)},${fmtNum(pt.y, 1)}`).join(" ");
+}
+
+function resolveBlueprintActorState(state: RoomBlueprintActorState | undefined): {
+  position: WorldPoint;
+  height: number;
+  radius: number;
+  label: string;
+  frame?: SampledFrame;
+} | null {
+  if (!state) return null;
+  let position: WorldPoint;
+  let height = 0;
+  if ("worldRoot" in state) {
+    position = state.worldRoot;
+    height = state.worldHeight ?? 0;
+  } else if ("position" in state) {
+    position = state.position;
+    height = state.height ?? 0;
+  } else {
+    position = { x: state.x, z: state.z };
+    height = state.height ?? 0;
+  }
+  validPoint(position);
+  finite(height, "actor height");
+  if (height < 0) throw new RangeError("Actor height must not be below the room floor.");
+  const radius = state.radius ?? 14;
+  finite(radius, "actor radius");
+  if (radius < 0) throw new RangeError("Actor radius must be non-negative.");
+  const statusPart = "status" in state && state.status ? ` [${state.status}]` : "";
+  const label = state.label ?? `actor${statusPart}`;
+  return {
+    position,
+    height,
+    radius,
+    label,
+    ...(state.frame !== undefined ? { frame: state.frame } : {})
+  };
+}
+
+/**
+ * Pure deterministic scriptless 2.5D isometric dimensional-drawing SVG diagnostic.
+ * Renders isometric floor grid, obstacle footprints with W×D×H dimension callouts,
+ * dashed vertical projection lines to the ground plane, and projected actor marker.
+ */
+export function renderRoomBlueprintSvg(
+  room: IsometricRoom,
+  state?: RoomBlueprintActorState,
+  options: RoomBlueprintOptions = {}
+): string {
+  const { width, depth, canvas } = room;
+  const step = options.gridStep ?? Math.max(25, Math.round(Math.max(width, depth) / 10));
+  positive(step, "gridStep");
+  const wallHeight = options.wallHeight ?? 100;
+  finite(wallHeight, "wallHeight");
+  if (wallHeight < 0) throw new RangeError("wallHeight must be non-negative.");
+
+  const actor = resolveBlueprintActorState(state);
+  const p = room.project;
+
+  const gridLines: string[] = [];
+  for (let x = step; x < width; x += step) {
+    const a = p({ x, z: 0 });
+    const b = p({ x, z: depth });
+    gridLines.push(
+      `<line x1="${fmtNum(a.x, 1)}" y1="${fmtNum(a.y, 1)}" x2="${fmtNum(b.x, 1)}" y2="${fmtNum(b.y, 1)}" stroke="#cbd5e1" stroke-width=".8"/>`
+    );
+  }
+  for (let z = step; z < depth; z += step) {
+    const a = p({ x: 0, z });
+    const b = p({ x: width, z });
+    gridLines.push(
+      `<line x1="${fmtNum(a.x, 1)}" y1="${fmtNum(a.y, 1)}" x2="${fmtNum(b.x, 1)}" y2="${fmtNum(b.y, 1)}" stroke="#cbd5e1" stroke-width=".8"/>`
+    );
+  }
+
+  const originPt = p({ x: 0, z: 0 });
+  const xEndPt = p({ x: width, z: 0 });
+  const zEndPt = p({ x: 0, z: depth });
+  const farCornerPt = p({ x: width, z: depth });
+
+  const backWalls =
+    wallHeight > 0 && p({ x: 0, z: 0 }, wallHeight).y >= 24
+      ? `<g data-part="reference-walls" fill="none" stroke="#94a3b8" stroke-width=".9" stroke-dasharray="4 3">` +
+        `<polygon points="${ptsAttr([p({ x: 0, z: depth }), originPt, p({ x: 0, z: 0 }, wallHeight), p({ x: 0, z: depth }, wallHeight)])}"/>` +
+        `<polygon points="${ptsAttr([originPt, xEndPt, p({ x: width, z: 0 }, wallHeight), p({ x: 0, z: 0 }, wallHeight)])}"/>` +
+        `</g>`
+      : "";
+
+  const floorMarkup =
+    `<g data-part="floor-grid">` +
+    `<polygon points="${ptsAttr([originPt, xEndPt, farCornerPt, zEndPt])}" fill="#f1f5f9" stroke="#1e3a5f" stroke-width="1.4"/>` +
+    `${gridLines.join("")}` +
+    `<polygon points="${ptsAttr([originPt, xEndPt, farCornerPt, zEndPt])}" fill="none" stroke="#1e3a5f" stroke-width="1.4"/>` +
+    `<text class="rb-d" x="${fmtNum(originPt.x, 1)}" y="${fmtNum(originPt.y - 6, 1)}" text-anchor="middle">(0,0)</text>` +
+    `<text class="rb-d" x="${fmtNum(xEndPt.x + 6, 1)}" y="${fmtNum(xEndPt.y + 4, 1)}">X=${fmtNum(width, 0)}</text>` +
+    `<text class="rb-d" x="${fmtNum(zEndPt.x - 6, 1)}" y="${fmtNum(zEndPt.y + 4, 1)}" text-anchor="end">Z=${fmtNum(depth, 0)}</text>` +
+    `</g>`;
+
+  const sortedObjects = [...room.objects].sort(
+    (a, b) => room.depthAt({ x: a.x + a.width, z: a.z + a.depth }) - room.depthAt({ x: b.x + b.width, z: b.z + b.depth })
+  );
+
+  const renderObstacle = (box: RoomBox): string => {
+    const a = { x: box.x, z: box.z };
+    const b = { x: box.x + box.width, z: box.z };
+    const c = { x: box.x + box.width, z: box.z + box.depth };
+    const d = { x: box.x, z: box.z + box.depth };
+    const a0 = p(a, 0), b0 = p(b, 0), c0 = p(c, 0), d0 = p(d, 0);
+    const aH = p(a, box.height), bH = p(b, box.height), cH = p(c, box.height), dH = p(d, box.height);
+    const topCenter = p({ x: box.x + box.width / 2, z: box.z + box.depth / 2 }, box.height);
+    const dimText = `${box.id}: ${fmtNum(box.width, 0)}×${fmtNum(box.depth, 0)}×${fmtNum(box.height, 0)}`;
+
+    const projections = [
+      [aH, a0],
+      [bH, b0],
+      [cH, c0],
+      [dH, d0]
+    ]
+      .map(
+        ([top, ground]) =>
+          `<line data-part="projection-line" x1="${fmtNum(top!.x, 1)}" y1="${fmtNum(top!.y, 1)}" x2="${fmtNum(ground!.x, 1)}" y2="${fmtNum(ground!.y, 1)}" stroke="#1e3a5f" stroke-width=".9" stroke-dasharray="4 3"/>`
+      )
+      .join("");
+
+    return (
+      `<g data-room-object="${escapeXml(box.id)}">` +
+      `<polygon data-part="obstacle-footprint" points="${ptsAttr([a0, b0, c0, d0])}" fill="#e2e8f0" fill-opacity=".65" stroke="#1e3a5f" stroke-width="1" stroke-dasharray="3 3"/>` +
+      `<polygon points="${ptsAttr([b0, c0, cH, bH])}" fill="#e2e8f0" fill-opacity=".75" stroke="#0f172a" stroke-width="1.1"/>` +
+      `<polygon points="${ptsAttr([c0, d0, dH, cH])}" fill="#f8fafc" fill-opacity=".85" stroke="#0f172a" stroke-width="1.1"/>` +
+      `<polygon points="${ptsAttr([aH, bH, cH, dH])}" fill="#dbeafe" fill-opacity=".55" stroke="#0f172a" stroke-width="1.2"/>` +
+      `${projections}` +
+      `<g data-part="dimension-callout">` +
+      `<line x1="${fmtNum(topCenter.x, 1)}" y1="${fmtNum(topCenter.y, 1)}" x2="${fmtNum(topCenter.x, 1)}" y2="${fmtNum(topCenter.y - 12, 1)}" stroke="#1e3a5f" stroke-width=".85"/>` +
+      `<text class="rb-c" x="${fmtNum(topCenter.x, 1)}" y="${fmtNum(topCenter.y - 15, 1)}" text-anchor="middle">${escapeXml(dimText)}</text>` +
+      `</g>` +
+      `</g>`
+    );
+  };
+
+  let actorMarkup = "";
+  if (actor) {
+    const floorPt = p(actor.position, 0);
+    const elevPt = p(actor.position, actor.height);
+    const datumTopPt = p(actor.position, Math.max(actor.height, 48));
+    const radRef = Math.max(8, actor.radius);
+    const rxPt = p({ x: Math.min(width, actor.position.x + radRef), z: actor.position.z }, 0);
+    const rx = Math.max(6, Math.abs(rxPt.x - floorPt.x));
+    const ry = Math.max(3.5, Math.abs(rxPt.y - floorPt.y));
+    const occupiable = room.canOccupy(actor.position, actor.radius);
+    const coordLabel = `${actor.label} (${Math.round(actor.position.x)},${Math.round(actor.position.z)},h=${Math.round(actor.height)})`;
+    const figureSvg = actor.frame
+      ? renderSceneInnerSvg(actor.frame, { defaultColor: "#0f172a", themeAccentColor: "#1e3a5f", decimals: 1 })
+      : "";
+
+    actorMarkup =
+      `<g data-part="actor-marker" data-occupiable="${occupiable ? "true" : "false"}">` +
+      `<ellipse data-part="actor-ground-projection" cx="${fmtNum(floorPt.x, 1)}" cy="${fmtNum(floorPt.y, 1)}" rx="${fmtNum(rx, 1)}" ry="${fmtNum(ry, 1)}" fill="#dbeafe" fill-opacity=".5" stroke="#1e3a5f" stroke-width="1" stroke-dasharray="3 2"/>` +
+      `<line data-part="actor-projection-line" x1="${fmtNum(datumTopPt.x, 1)}" y1="${fmtNum(datumTopPt.y, 1)}" x2="${fmtNum(floorPt.x, 1)}" y2="${fmtNum(floorPt.y, 1)}" stroke="#1e3a5f" stroke-width="1" stroke-dasharray="4 3"/>` +
+      `<path d="M${fmtNum(floorPt.x - 5, 1)} ${fmtNum(floorPt.y, 1)}H${fmtNum(floorPt.x + 5, 1)}M${fmtNum(floorPt.x, 1)} ${fmtNum(floorPt.y - 3, 1)}V${fmtNum(floorPt.y + 3, 1)}" stroke="#0f172a" stroke-width="1"/>` +
+      `${figureSvg}` +
+      `<circle cx="${fmtNum(elevPt.x, 1)}" cy="${fmtNum(elevPt.y, 1)}" r="4.5" fill="#0f172a" stroke="#f8fafc" stroke-width="1.2"/>` +
+      `<text class="rb-c" x="${fmtNum(elevPt.x + 8, 1)}" y="${fmtNum(elevPt.y - 6, 1)}">${escapeXml(coordLabel)}</text>` +
+      `</g>`;
+  }
+
+  const orderedLayers: string[] = [];
+  let actorInserted = actor === null;
+  const actorDepth = actor ? room.depthAt(actor.position) : Infinity;
+  for (const box of sortedObjects) {
+    const boxDepth = room.depthAt({ x: box.x + box.width, z: box.z + box.depth });
+    if (!actorInserted && actorDepth <= boxDepth) {
+      orderedLayers.push(actorMarkup);
+      actorInserted = true;
+    }
+    orderedLayers.push(renderObstacle(box));
+  }
+  if (!actorInserted) {
+    orderedLayers.push(actorMarkup);
+  }
+
+  const titleText = options.title ?? "ISOMETRIC 2.5D ROOM BLUEPRINT";
+  const metaRight = `FLOOR ${fmtNum(width, 0)}×${fmtNum(depth, 0)} | OBSTACLES ${room.objects.length} | CANVAS ${canvas.width}×${canvas.height}`;
+  const regMark = (cx: number, cy: number): string =>
+    `<path data-part="registration-mark" d="M${cx - 5} ${cy}H${cx + 5}M${cx} ${cy - 5}V${cy + 5}" stroke="#1e3a5f" stroke-width="1"/>`;
+
+  const titleBlock =
+    `<g data-part="blueprint-title-block">` +
+    `<rect x="12" y="12" width="${canvas.width - 24}" height="28" fill="#f8fafc" fill-opacity=".92" stroke="#1e3a5f" stroke-width="1"/>` +
+    `<text class="rb-t" x="22" y="30">${escapeXml(titleText)}</text>` +
+    `<text class="rb-m" x="${canvas.width - 22}" y="30" text-anchor="end">${escapeXml(metaRight)}</text>` +
+    `</g>`;
+
+  const style =
+    `.rb-t{font:700 12px Consolas,"Courier New",monospace;fill:#0f172a;letter-spacing:.06em}` +
+    `.rb-m{font:10.5px Consolas,"Courier New",monospace;fill:#1e3a5f}` +
+    `.rb-c{font:700 10.5px Consolas,"Courier New",monospace;fill:#0f172a}` +
+    `.rb-d{font:10px Consolas,"Courier New",monospace;fill:#1e3a5f}`;
+
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" data-theme="blueprint" role="img" aria-label="Isometric room blueprint (${fmtNum(width, 0)} by ${fmtNum(depth, 0)})" viewBox="0 0 ${canvas.width} ${canvas.height}" width="${canvas.width}" height="${canvas.height}">` +
+    `<defs><style>${style}</style></defs>` +
+    `<rect width="100%" height="100%" fill="#f8fafc"/>` +
+    `<rect x="2" y="2" width="${canvas.width - 4}" height="${canvas.height - 4}" fill="none" stroke="#1e3a5f" stroke-width="1"/>` +
+    `${regMark(8, 8)}${regMark(canvas.width - 8, 8)}${regMark(8, canvas.height - 8)}${regMark(canvas.width - 8, canvas.height - 8)}` +
+    `${backWalls}${floorMarkup}${orderedLayers.join("")}${titleBlock}</svg>`
+  );
 }

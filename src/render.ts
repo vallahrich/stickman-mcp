@@ -626,6 +626,7 @@ const HTML_SHELL_STYLE = `
   --cp-text: #242424;
   --cp-text-muted: #5c5c5c;
   --cp-text-soft: #6f6f6f;
+  --cp-actor-ink: #202124;
   --cp-accent: #b11f4b;
   --cp-accent-hover: #9a1a41;
   --cp-accent-soft: rgba(177, 31, 75, 0.08);
@@ -634,6 +635,10 @@ const HTML_SHELL_STYLE = `
   --cp-danger: #dc2626;
   --cp-warning: #f59e0b;
   --cp-link: #0078d4;
+  --cp-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --cp-dur-fast: 140ms;
+  --cp-dur-enter: 180ms;
+  --cp-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
   --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
   --cp-overlay: rgba(255, 255, 255, 0.8);
   --cp-panel: rgba(255, 255, 255, 0.86);
@@ -652,6 +657,7 @@ html[data-theme="dark"] {
   --cp-text: #dedede;
   --cp-text-muted: #919191;
   --cp-text-soft: #b0b0b0;
+  --cp-actor-ink: #dedede;
   --cp-accent: #fd8ea1;
   --cp-accent-hover: #fb7b91;
   --cp-accent-soft: rgba(253, 142, 161, 0.14);
@@ -660,6 +666,10 @@ html[data-theme="dark"] {
   --cp-danger: #f87171;
   --cp-warning: #fbbf24;
   --cp-link: #4da6ff;
+  --cp-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --cp-dur-fast: 140ms;
+  --cp-dur-enter: 180ms;
+  --cp-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.24), 0 8px 24px rgba(0, 0, 0, 0.32);
   --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
   --cp-overlay: rgba(41, 41, 41, 0.88);
   --cp-panel: rgba(41, 41, 41, 0.72);
@@ -668,9 +678,12 @@ html[data-theme="dark"] {
   --cp-highlight: rgba(253, 142, 161, 0.12);
 }
 body{margin:0;background:var(--cp-bg);color:var(--cp-text);font:16px "Segoe UI",Aptos,Calibri,-apple-system,BlinkMacSystemFont,sans-serif}
-main{max-width:1000px;margin:2rem auto;padding:1rem}svg{display:block;width:100%;height:auto;border:1px solid var(--cp-border);border-radius:0.625rem}
-nav{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;padding:.8rem 0}input{min-width:12rem;accent-color:var(--cp-accent)}
-button,select{font:inherit;background:var(--cp-surface);color:var(--cp-text);border:1px solid var(--cp-border);border-radius:0.625rem;padding:.35rem .6rem}
+main{max-width:1000px;margin:2rem auto;padding:1rem}svg{display:block;width:100%;height:auto;background:var(--cp-surface);border:1px solid var(--cp-border);border-radius:0.625rem;box-shadow:var(--cp-card-shadow)}
+nav{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;padding:.8rem 0}input[type="range"]{min-width:12rem;accent-color:var(--cp-accent)}
+button,select{font:inherit;background:var(--cp-surface);color:var(--cp-text);border:1px solid var(--cp-border);border-radius:0.625rem;padding:.35rem .6rem;transition:border-color var(--cp-dur-fast) var(--cp-ease-out),background-color var(--cp-dur-fast) var(--cp-ease-out),transform var(--cp-dur-fast) var(--cp-ease-out),opacity var(--cp-dur-fast) var(--cp-ease-out)}
+button{cursor:pointer}button:hover,select:hover{border-color:var(--cp-accent)}button:active{transform:scale(0.98)}:focus-visible{outline:3px solid var(--cp-accent);outline-offset:4px}
+.cp-timecode,output,[data-timecode],[data-frame-counter]{font-variant-numeric:tabular-nums;font-family:Consolas,"Courier New",Courier,monospace;font-size:.875rem;color:var(--cp-text-muted);min-width:11ch;text-align:right}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 `;
 
 function collectBakedTimestamps(program: CompiledAnimation): number[] {
@@ -727,7 +740,7 @@ function renderHtmlV2(program: CompiledAnimation): string {
   };
 
   const svg = renderSvgFrame(program, 0, "normal");
-  const controls = `<label>Motion mode <select id="mode"><option value="normal">Normal</option><option value="reduced">Reduced</option><option value="static">Static</option></select></label><label>Playhead <input id="seek" type="range" min="0" max="${durationMs}" step="1" value="0"></label><button id="toggle" type="button">Pause</button>`;
+  const controls = `<label>Motion mode <select id="mode"><option value="normal">Normal</option><option value="reduced">Reduced</option><option value="static">Static</option></select></label><label>Playhead <input id="seek" type="range" min="0" max="${durationMs}" step="1" value="0"></label><output id="timecode" class="cp-timecode" data-timecode="true" for="seek">0.00s / ${(durationMs / 1000).toFixed(2)}s</output><button id="toggle" type="button">Pause</button>`;
 
   const timestamps = collectBakedTimestamps(program);
   const bakedFrames: BakedHtmlFrame[] = timestamps.map((t) => {
@@ -749,7 +762,7 @@ function renderHtmlV2(program: CompiledAnimation): string {
   };
 
   const script = `(()=>{"use strict";const program=${scriptJson(program)};const frames=${scriptJson(bakedFrames)};const reducedFrame=${scriptJson(bakedReduced)};const lookup=(timeMs,mode)=>{if(mode!=="normal")return reducedFrame;const clamped=Math.max(0,Math.min(program.spec.durationMs,timeMs));let lo=0,hi=frames.length-1;while(lo<hi){const mid=(lo+hi+1)>>1;if(frames[mid].timeMs<=clamped+1e-6)lo=mid;else hi=mid-1;}return frames[lo];};const svg=document.querySelector("#stage svg");const sceneEl=document.getElementById("scene")||(document.querySelector?document.querySelector("#scene"):null);const groundEl=document.getElementById("ground")||(document.querySelector?document.querySelector("#ground"):null);
-const modeSelect=document.querySelector("#mode"),seek=document.querySelector("#seek"),toggle=document.querySelector("#toggle");
+const modeSelect=document.querySelector("#mode"),seek=document.querySelector("#seek"),toggle=document.querySelector("#toggle"),timecode=document.getElementById?document.getElementById("timecode"):null;
 const duration=program.spec.durationMs;
 let mode=matchMedia("(prefers-reduced-motion: reduce)").matches?"reduced":"normal";
 modeSelect.value=mode;let time=0;let playing=mode==="normal";let previous=0;let requestId=null;
@@ -761,7 +774,9 @@ const frame=lookup(mode==="normal"?time:sampleTime,mode);
 if(sceneEl){sceneEl.innerHTML=frame.markup;if(sceneEl.setAttribute){sceneEl.setAttribute("data-time-ms",String(frame.timeMs));sceneEl.setAttribute("data-action",frame.action);}}
 if(groundEl)groundEl.setAttribute("d","M0 "+frame.groundY+"H"+program.spec.canvas.width);
 if(svg)svg.setAttribute("aria-label","Stick figure "+frame.action+" at "+frame.timeMs+" milliseconds");
-seek.value=String(Math.round(mode==="normal"?frame.timeMs:duration));
+const shownMs=mode==="normal"?frame.timeMs:duration;
+seek.value=String(Math.round(shownMs));
+if(timecode)timecode.textContent=(shownMs/1000).toFixed(2)+"s / "+(duration/1000).toFixed(2)+"s";
 }
 function stop(){playing=false;previous=0;if(requestId!==null){cancelAnimationFrame(requestId);requestId=null;}toggle.textContent="Play";}
 function schedule(){if(playing&&requestId===null)requestId=requestAnimationFrame(tick);}
@@ -785,9 +800,9 @@ export function renderHtml(program: CompiledAnimation): string {
   }
   const { canvas } = program.spec;
   const svg = v1FrameMarkup(sampleAnimation(program, 0), program.spec.actor?.color ?? "#202124", canvas.width, canvas.height);
-  const controls = `<label>Motion mode <select id="mode"><option value="normal">Normal</option><option value="reduced">Reduced</option><option value="static">Static</option></select></label><label>Playhead <input id="seek" type="range" min="0" max="${program.spec.durationMs}" step="1" value="0"></label><button id="toggle" type="button">Pause</button>`;
+  const controls = `<label>Motion mode <select id="mode"><option value="normal">Normal</option><option value="reduced">Reduced</option><option value="static">Static</option></select></label><label>Playhead <input id="seek" type="range" min="0" max="${program.spec.durationMs}" step="1" value="0"></label><output id="timecode" class="cp-timecode" data-timecode="true" for="seek">0.00s / ${(program.spec.durationMs / 1000).toFixed(2)}s</output><button id="toggle" type="button">Pause</button>`;
   const script = `(()=>{"use strict";const program=${scriptJson(program)};const geometry=${frameGeometry.toString()};const sample=(program,timeMs,mode)=>{const RUNTIME_MOTION_LIBRARY=${scriptJson(RUNTIME_MOTION_LIBRARY)};globalThis.__stickmanMotionLibrary=RUNTIME_MOTION_LIBRARY;const sampleClipMotion=${sampleClipMotion.toString()};return (${sampleAnimation.toString()})(program,timeMs,mode);};const svg=document.querySelector("#stage svg");
-const modeSelect=document.querySelector("#mode"),seek=document.querySelector("#seek"),toggle=document.querySelector("#toggle");
+const modeSelect=document.querySelector("#mode"),seek=document.querySelector("#seek"),toggle=document.querySelector("#toggle"),timecode=document.getElementById?document.getElementById("timecode"):null;
 const duration=program.spec.durationMs;
 let mode=matchMedia("(prefers-reduced-motion: reduce)").matches?"reduced":"normal";
 modeSelect.value=mode;let time=0;let playing=mode==="normal";let previous=0;let requestId=null;
@@ -808,6 +823,7 @@ document.getElementById("ground").setAttribute("d","M0 "+frame.groundY+"H"+progr
 svg.setAttribute("aria-label","Stick figure "+frame.action+" at "+frame.timeMs+" milliseconds");
 const prop=document.querySelector("#prop");if(frame.prop&&prop){prop.querySelector("rect").setAttribute("x",frame.prop.x);document.getElementById("handle").setAttribute("d",shape.handlePath);}
 seek.value=String(frame.timeMs);
+if(timecode)timecode.textContent=(frame.timeMs/1000).toFixed(2)+"s / "+(duration/1000).toFixed(2)+"s";
 }
 function stop(){playing=false;previous=0;if(requestId!==null){cancelAnimationFrame(requestId);requestId=null;}toggle.textContent="Play";}
 function schedule(){if(playing&&requestId===null)requestId=requestAnimationFrame(tick);}

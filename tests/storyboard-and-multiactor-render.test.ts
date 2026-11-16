@@ -458,4 +458,50 @@ describe("R5 storyboard contact sheet, spatial lint & optional PNG rasterizer", 
       expect(actual).toEqual({ rasterizerAvailable: false });
     }
   });
+
+  it("renders orthographic CAD blueprint contact sheets (theme: 'blueprint') with grid, registration marks, datum, anchor ticks, dimension leaders & title block", async () => {
+    const program = buildTwoActorRichStory();
+    const blueprintSvg = renderStoryboardSvg(program, {
+      maxPanels: 6,
+      columns: 3,
+      theme: "blueprint",
+      title: "Two-Actor CAD Spec"
+    });
+    assertValidScriptlessSvg(blueprintSvg, "storyboard-blueprint");
+
+    expect(blueprintSvg).toContain('data-theme="blueprint"');
+    expect(blueprintSvg).toContain('id="sm-bp-grid"');
+    expect(blueprintSvg).toContain('data-part="registration-mark"');
+    expect(blueprintSvg).toContain('data-part="blueprint-header"');
+    expect(blueprintSvg).toContain('data-part="blueprint-footer"');
+    expect(blueprintSvg).toContain("Two-Actor CAD Spec");
+    expect(blueprintSvg).toContain("800×450 @ 30FPS");
+    expect(blueprintSvg).toContain("SCALE 1:");
+    expect(blueprintSvg).toContain('stroke-dasharray="3 3"');
+    expect(blueprintSvg).toContain('data-part="ground-datum"');
+    expect(blueprintSvg).toContain("Y=369");
+    expect(blueprintSvg).toContain('data-part="anchor-ticks"');
+    expect(blueprintSvg).toContain(">L<");
+    expect(blueprintSvg).toContain(">C<");
+    expect(blueprintSvg).toContain(">R<");
+    expect(blueprintSvg).toContain('data-part="dimension-leader"');
+    expect(blueprintSvg).toContain("144u");
+    expect(blueprintSvg).toMatch(/x=-?\d+/);
+    expect(blueprintSvg).toContain("T+0.00s");
+    // Monochrome technical-line ink: presenter's #e11d48 tie and #2563eb glasses are normalized to blueprint slate
+    expect(blueprintSvg).not.toContain("#e11d48");
+    expect(blueprintSvg).not.toContain("#2563eb");
+    expect(blueprintSvg).toContain("#0f172a");
+    expect(blueprintSvg).toContain("#1e3a5f");
+
+    expect(renderArtifact(program, "storyboard-svg", { maxPanels: 6, columns: 3, theme: "blueprint", title: undefined })).toContain(
+      'data-theme="blueprint"'
+    );
+    const rasterized = await rasterizeStoryboardPng(blueprintSvg);
+    if (rasterized.rasterizerAvailable) {
+      expect(Buffer.from(rasterized.pngBase64!, "base64").subarray(0, 4)).toEqual(
+        Buffer.from([0x89, 0x50, 0x4e, 0x47])
+      );
+    }
+  });
 });

@@ -38,6 +38,7 @@ pull-banner push-walk rack-server reveal roll seated-idle surprised swipe-next t
 walk-stop write-board write-notes`.split(/\s+/));
 export const licenseFiles = Object.freeze(["LICENSE", "NOTICE", "docs/rights.md"]);
 export const supportFiles = Object.freeze([
+  "DESIGN.md", "scripts/design/lint.mjs",
   "motions/poses/poses.json", "motions/review-props.json", "motions/props-catalog.json", "motions/join-matrix.json",
   "docs/motion-catalog-plan.md", "examples/wave.json", "examples/v2-presentation-story.json",
   "examples/v2-two-actors-collab.json", "examples/v2-sports-addons.json",

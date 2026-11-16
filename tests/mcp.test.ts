@@ -199,6 +199,7 @@ describe("stdio MCP protocol", () => {
       { name: "stickman_preview", arguments: { animation: scene, mode: null } },
       { name: "stickman_preview", arguments: { animation: scene, format: "gif" } },
       { name: "stickman_preview", arguments: { animation: scene, format: null } },
+      { name: "stickman_storyboard", arguments: { animation: scene, theme: "neon" } },
       { name: "stickman_export", arguments: { animation: scene, format: "svg" } },
       { name: "stickman_export", arguments: { animation: scene, path: 42, format: "svg" } },
       { name: "stickman_export", arguments: { animation: scene, path: "bad.svg", format: "invalid" } },
@@ -325,6 +326,15 @@ describe("stdio MCP protocol", () => {
         Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
       );
     }
+
+    const bpCall = await client.callTool({
+      name: "stickman_storyboard",
+      arguments: { animation: choreoPayload.spec, columns: 3, maxPanels: 6, theme: "blueprint", includePng: false }
+    });
+    expect(bpCall.isError).not.toBe(true);
+    const bpData = (bpCall.structuredContent as { result: { svg: string } }).result;
+    expect(bpData.svg).toContain('data-theme="blueprint"');
+    expect(bpData.svg).toContain("T+0.00s");
 
     // Resources (9 total)
     const { resources } = await client.listResources();

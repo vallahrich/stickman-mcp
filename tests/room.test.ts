@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createIsometricRoom } from "../src/room.js";
+import { createIsometricRoom, renderRoomBlueprintSvg } from "../src/room.js";
 
 const options = {
   width: 1000, depth: 600, canvas: { width: 2304, height: 1296 }, padding: 100,
@@ -51,5 +51,43 @@ describe("original 2.5D room projection", () => {
     const room = createIsometricRoom(options);
     expect(() => room.project({ x: NaN, z: 0 })).toThrow(/finite/);
     expect(() => room.contains({ x: 1, z: 1 }, -1)).toThrow();
+  });
+
+  it("renders a deterministic scriptless 2.5D dimensional blueprint SVG with floor grid, W×D×H obstacle callouts, ground projections & actor marker", () => {
+    const room = createIsometricRoom(options);
+    const svg = renderRoomBlueprintSvg(
+      room,
+      { position: { x: 240, z: 220 }, height: 36, radius: 14, label: "lead" },
+      { gridStep: 100, title: "Stage Isometric Spec" }
+    );
+
+    expect(svg).toContain('data-theme="blueprint"');
+    expect(svg).not.toMatch(/<script\b/i);
+    expect(svg).not.toMatch(/\b(NaN|Infinity|undefined)\b/);
+    expect(svg).toContain('data-part="floor-grid"');
+    expect(svg).toContain('data-room-object="table"');
+    expect(svg).toContain('data-part="obstacle-footprint"');
+    expect(svg).toContain('data-part="projection-line"');
+    expect(svg).toContain('data-part="dimension-callout"');
+    expect(svg).toContain("table: 180×100×90");
+    expect(svg).toContain('data-part="actor-marker"');
+    expect(svg).toContain('data-occupiable="true"');
+    expect(svg).toContain('data-part="actor-projection-line"');
+    expect(svg).toContain("lead (240,220,h=36)");
+    expect(svg).toContain("Stage Isometric Spec");
+    expect(svg).toContain("FLOOR 1000×600");
+
+    // Deterministic across calls and marks collision when actor overlaps obstacle
+    expect(
+      renderRoomBlueprintSvg(
+        room,
+        { position: { x: 240, z: 220 }, height: 36, radius: 14, label: "lead" },
+        { gridStep: 100, title: "Stage Isometric Spec" }
+      )
+    ).toBe(svg);
+
+    const collidingSvg = renderRoomBlueprintSvg(room, { worldRoot: { x: 450, z: 270 }, worldHeight: 0 });
+    expect(collidingSvg).toContain('data-occupiable="false"');
+    expect(() => renderRoomBlueprintSvg(room, { x: 200, z: 200, height: -5 })).toThrow(/below the room floor/);
   });
 });

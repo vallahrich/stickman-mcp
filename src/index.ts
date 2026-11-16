@@ -44,4 +44,28 @@ export * from "./props.js";
 export * from "./render.js";
 export * from "./stories.js";
 export * from "./storyboard.js";
-export { registerStickmanPlayerElement, type StickmanPlayerElement } from "./browser.js";
+export {
+  createIsometricRoom,
+  mountRoomStage,
+  renderRoomBlueprintSvg,
+  type IsometricRoom,
+  type RoomBlueprintActorState,
+  type RoomBlueprintOptions,
+  type RoomBox,
+  type RoomOptions,
+  type RoomStage,
+  type WorldPoint
+} from "./room.js";
+export {
+  STICKMAN_PLAYER_STYLE,
+  bindScrollTimeline,
+  registerStickmanPlayerElement,
+  type ScrollTimelineBinding,
+  type ScrollTimelineContainerLike,
+  type ScrollTimelineElementLike,
+  type ScrollTimelineEventTargetLike,
+  type ScrollTimelineMediaQueryListLike,
+  type ScrollTimelineOptions,
+  type ScrollTimelineTarget,
+  type StickmanPlayerElement
+} from "./browser.js";

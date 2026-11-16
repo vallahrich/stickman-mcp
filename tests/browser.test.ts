@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  createBrowserPlayer, createBrowserScene, createSceneProjection, createSvgPainter, mapElementAnchor,
+  STICKMAN_PLAYER_STYLE, bindScrollTimeline, createBrowserPlayer, createBrowserScene, createSceneProjection, createSvgPainter, mapElementAnchor,
   measureHostViewport, projectTravelAnchor, registerStickmanPlayerElement, sceneToViewport,
   svgViewportToScene, viewportToScene,
   type BrowserClock, type BrowserPlayerOptions, type BrowserPlayerPort, type CssRect,
@@ -686,6 +686,8 @@ describe("v2 multi-actor & add-on browser overlay and <stickman-player> custom e
       el.connectedCallback();
       el.setProgram(v2Program);
       expect(el.durationMs).toBe(v2Program.spec.durationMs);
+      expect(el.findAll((n) => n.getAttribute("data-stickman-style") === "true")).toHaveLength(1);
+      expect(el.findAll((n) => n.getAttribute("data-stickman-style") === "true")[0]!.textContent).toBe(STICKMAN_PLAYER_STYLE);
       expect(el.findAll((n) => n.getAttribute("data-stickman-svg") === "true")).toHaveLength(1);
       expect(el.findAll((n) => n.getAttribute("data-actor") === "speaker")).toHaveLength(1);
       expect(el.findAll((n) => n.getAttribute("data-actor") === "listener")).toHaveLength(1);
@@ -752,5 +754,110 @@ describe("v2 multi-actor & add-on browser overlay and <stickman-player> custom e
         else g[key] = val;
       }
     }
+  });
+
+  it("bindScrollTimeline maps clamped scroll progress onto playhead timeMs, attaches passive listeners, respects reduced motion without scroll-jacking, and cleans up on dispose", () => {
+    const events = new Map<string, Set<() => void>>();
+    const listenerOptions: Array<{ type: string; options: unknown }> = [];
+    const scroller = {
+      scrollTop: 0,
+      scrollHeight: 2500,
+      clientHeight: 500,
+      addEventListener(type: string, fn: () => void, options?: unknown) {
+        listenerOptions.push({ type, options });
+        let set = events.get(type);
+        if (!set) {
+          set = new Set();
+          events.set(type, set);
+        }
+        set.add(fn);
+      },
+      removeEventListener(type: string, fn: () => void) {
+        events.get(type)?.delete(fn);
+      }
+    };
+
+    const sought: number[] = [];
+    const binding = bindScrollTimeline(
+      { seek: (t) => sought.push(t) },
+      { durationMs: 4000, container: scroller, startOffsetPx: 200, endOffsetPx: 200 }
+    );
+
+    // Passive listener verification + initial clamped sync at scrollTop=0 (< startOffsetPx=200)
+    expect(listenerOptions.every((entry) => (entry.options as { passive?: boolean })?.passive === true)).toBe(true);
+    expect(sought.at(-1)).toBe(0);
+
+    // Midpoint across [200 .. 1800] (span = 1600): scrollTop = 1000 -> progress 0.5 -> 2000ms
+    scroller.scrollTop = 1000;
+    for (const fn of events.get("scroll") ?? []) fn();
+    expect(sought.at(-1)).toBe(2000);
+
+    // Overscroll past end clamps cleanly to durationMs
+    scroller.scrollTop = 2400;
+    expect(binding.update()).toBe(4000);
+    expect(sought.at(-1)).toBe(4000);
+
+    // Cleanup removes all listeners and freezes updates
+    binding.dispose();
+    expect(events.get("scroll")?.size ?? 0).toBe(0);
+    expect(events.get("resize")?.size ?? 0).toBe(0);
+    const countAfterDispose = sought.length;
+    scroller.scrollTop = 600;
+    expect(binding.update()).toBe(4000);
+    expect(sought).toHaveLength(countAfterDispose);
+
+    // Sticky scrollElement runway + prefers-reduced-motion guard
+    let rectTop = 0;
+    let reducedActive = true;
+    const mediaChanges = new Set<(ev: { matches: boolean }) => void>();
+    const setTimes: number[] = [];
+    const stickyBinding = bindScrollTimeline(
+      { setTimeMs: (t) => setTimes.push(t) },
+      {
+        durationMs: 3000,
+        container: { innerHeight: 600 },
+        scrollElement: { getBoundingClientRect: () => ({ top: rectTop, height: 2600 }) },
+        reducedTimeMs: 2400,
+        matchMedia: () => ({
+          get matches() {
+            return reducedActive;
+          },
+          addEventListener(_t, cb) {
+            mediaChanges.add(cb);
+          },
+          removeEventListener(_t, cb) {
+            mediaChanges.delete(cb);
+          }
+        })
+      }
+    );
+
+    // Reduced-motion active: deterministically pins to reducedTimeMs (2400ms) regardless of scroll
+    expect(setTimes.at(-1)).toBe(2400);
+    rectTop = -500;
+    expect(stickyBinding.update()).toBe(2400);
+
+    // User disables reduced motion dynamically -> resumes scroll-driven timeline (500 / 2000 = 0.25 -> 750ms)
+    reducedActive = false;
+    for (const cb of mediaChanges) cb({ matches: false });
+    expect(setTimes.at(-1)).toBe(750);
+    stickyBinding.dispose();
+    expect(mediaChanges.size).toBe(0);
+
+    // Callback target + respectReducedMotion: false override
+    let callbackTime = -1;
+    const cbBinding = bindScrollTimeline(
+      (t) => {
+        callbackTime = t;
+      },
+      {
+        durationMs: 1000,
+        container: { scrollTop: 300, scrollHeight: 1100, clientHeight: 500 },
+        respectReducedMotion: false,
+        matchMedia: () => ({ matches: true })
+      }
+    );
+    expect(callbackTime).toBe(500);
+    cbBinding.dispose();
   });
 });

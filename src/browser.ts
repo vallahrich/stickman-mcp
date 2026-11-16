@@ -676,6 +676,37 @@ export function mountBrowserAnimation(host: HTMLElement, input: unknown, options
   };
 }
 
+export const STICKMAN_PLAYER_STYLE = `
+:host, stickman-player {
+  display: block;
+  --cp-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --cp-dur-fast: 140ms;
+  --cp-dur-enter: 180ms;
+  --cp-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+:host([data-theme="dark"]), stickman-player[data-theme="dark"], html[data-theme="dark"] stickman-player {
+  --cp-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.24), 0 8px 24px rgba(0, 0, 0, 0.32);
+}
+svg[data-stickman-svg="true"] {
+  display: block;
+  width: 100%;
+  height: auto;
+  box-shadow: var(--cp-card-shadow);
+}
+button, select, [data-stickman-control] {
+  transition: border-color var(--cp-dur-fast) var(--cp-ease-out), background-color var(--cp-dur-fast) var(--cp-ease-out), transform var(--cp-dur-fast) var(--cp-ease-out), opacity var(--cp-dur-fast) var(--cp-ease-out);
+}
+.cp-timecode, output, [data-timecode], [data-frame-counter], [data-status-numeric] {
+  font-variant-numeric: tabular-nums;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+`;
+
 export interface StickmanPlayerElement extends HTMLElement {
   readonly durationMs: number;
   readonly currentTimeMs: number;
@@ -760,6 +791,7 @@ export function registerStickmanPlayerElement(tagName = "stickman-player"): bool
     }
 
     #program: CompiledAnimation | null = null;
+    #styleEl: Element | null = null;
     #svg: SVGSVGElement | null = null;
     #bgRect: SVGRectElement | null = null;
     #groundPath: SVGPathElement | null = null;
@@ -852,6 +884,11 @@ export function registerStickmanPlayerElement(tagName = "stickman-player"): bool
     #mountProgramDom(program: CompiledAnimation): void {
       this.#painter?.dispose();
       this.#painter = null;
+      if (this.#styleEl) {
+        if (typeof this.#styleEl.remove === "function") this.#styleEl.remove();
+        else if (this.#styleEl.parentNode) this.#styleEl.parentNode.removeChild(this.#styleEl);
+        this.#styleEl = null;
+      }
       if (this.#svg) {
         if (typeof this.#svg.remove === "function") this.#svg.remove();
         else if (this.#svg.parentNode) this.#svg.parentNode.removeChild(this.#svg);
@@ -860,6 +897,16 @@ export function registerStickmanPlayerElement(tagName = "stickman-player"): bool
 
       const doc = this.ownerDocument ?? globalThis.document;
       if (!doc) return;
+
+      const styleEl =
+        typeof (doc as { createElement?: unknown }).createElement === "function"
+          ? doc.createElement("style")
+          : doc.createElementNS("http://www.w3.org/1999/xhtml", "style");
+      styleEl.setAttribute("data-stickman-style", "true");
+      styleEl.textContent =
+        tagName === "stickman-player"
+          ? STICKMAN_PLAYER_STYLE
+          : STICKMAN_PLAYER_STYLE.replaceAll("stickman-player", tagName);
 
       const { width, height } = program.spec.canvas;
       const v2 = program.contractVersion === CONTRACT_VERSION_V2 ? (program.spec as AnimationSpecV2) : undefined;
@@ -877,6 +924,7 @@ export function registerStickmanPlayerElement(tagName = "stickman-player"): bool
         svg.style.display = "block";
         svg.style.width = "100%";
         svg.style.height = "auto";
+        svg.style.boxShadow = "var(--cp-card-shadow)";
       }
 
       const bgRect = doc.createElementNS(svgNamespace, "rect");
@@ -891,7 +939,9 @@ export function registerStickmanPlayerElement(tagName = "stickman-player"): bool
       ground.setAttribute("stroke-width", "1");
       svg.appendChild(ground);
 
+      this.appendChild(styleEl);
       this.appendChild(svg);
+      this.#styleEl = styleEl;
       this.#svg = svg;
       this.#bgRect = bgRect;
       this.#groundPath = ground;
@@ -1113,6 +1163,11 @@ export function registerStickmanPlayerElement(tagName = "stickman-player"): bool
       this.#detachMedia = null;
       this.#painter?.dispose();
       this.#painter = null;
+      if (this.#styleEl) {
+        if (typeof this.#styleEl.remove === "function") this.#styleEl.remove();
+        else if (this.#styleEl.parentNode) this.#styleEl.parentNode.removeChild(this.#styleEl);
+        this.#styleEl = null;
+      }
       if (this.#svg) {
         if (typeof this.#svg.remove === "function") this.#svg.remove();
         else if (this.#svg.parentNode) this.#svg.parentNode.removeChild(this.#svg);
@@ -1125,4 +1180,275 @@ export function registerStickmanPlayerElement(tagName = "stickman-player"): bool
 
   g.customElements.define(tagName, StickmanPlayerCustomElement);
   return true;
+}
+
+export interface ScrollTimelineMediaQueryListLike {
+  readonly matches: boolean;
+  addEventListener?: (type: "change", listener: (event: { matches: boolean }) => void) => void;
+  removeEventListener?: (type: "change", listener: (event: { matches: boolean }) => void) => void;
+}
+
+export interface ScrollTimelineEventTargetLike {
+  addEventListener?: (
+    type: string,
+    listener: () => void,
+    options?: AddEventListenerOptions | boolean
+  ) => void;
+  removeEventListener?: (
+    type: string,
+    listener: () => void,
+    options?: EventListenerOptions | boolean
+  ) => void;
+}
+
+export interface ScrollTimelineContainerLike extends ScrollTimelineEventTargetLike {
+  scrollTop?: number;
+  scrollHeight?: number;
+  clientHeight?: number;
+  scrollY?: number;
+  pageYOffset?: number;
+  innerHeight?: number;
+  document?: {
+    documentElement?: {
+      scrollTop?: number;
+      scrollHeight?: number;
+      clientHeight?: number;
+    };
+  };
+  getBoundingClientRect?: () => { top: number; height: number };
+  matchMedia?: (query: string) => ScrollTimelineMediaQueryListLike;
+}
+
+export interface ScrollTimelineElementLike extends ScrollTimelineEventTargetLike {
+  getBoundingClientRect?: () => { top: number; height: number };
+  scrollTop?: number;
+  scrollHeight?: number;
+  clientHeight?: number;
+}
+
+export type ScrollTimelineTarget =
+  | { seek?: (timeMs: number) => void; setTimeMs?: (timeMs: number) => void }
+  | ((timeMs: number) => void);
+
+export interface ScrollTimelineOptions {
+  durationMs: number;
+  container?: ScrollTimelineContainerLike;
+  scrollElement?: ScrollTimelineElementLike;
+  startOffsetPx?: number;
+  endOffsetPx?: number;
+  respectReducedMotion?: boolean;
+  reducedTimeMs?: number;
+  matchMedia?: (query: string) => ScrollTimelineMediaQueryListLike;
+}
+
+export interface ScrollTimelineBinding {
+  update: () => number;
+  dispose: () => void;
+}
+
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, value));
+}
+
+function resolveScrollTargetSetter(target: ScrollTimelineTarget): (timeMs: number) => void {
+  if (typeof target === "function") {
+    return target;
+  }
+  if (typeof target === "object" && target !== null) {
+    if (typeof target.seek === "function") {
+      return (timeMs: number) => {
+        target.seek!(timeMs);
+      };
+    }
+    if (typeof target.setTimeMs === "function") {
+      return (timeMs: number) => {
+        target.setTimeMs!(timeMs);
+      };
+    }
+  }
+  throw new TypeError(
+    "Scroll timeline target must be a callback or an object with seek(timeMs) or setTimeMs(timeMs)."
+  );
+}
+
+/**
+ * Passive scroll-driven playhead binder. Maps clamped 0..1 scroll progress onto
+ * [0, durationMs] without scroll-jacking, and deterministically pins to
+ * reducedTimeMs ?? durationMs when prefers-reduced-motion: reduce is active.
+ */
+export function bindScrollTimeline(
+  target: ScrollTimelineTarget,
+  options: ScrollTimelineOptions
+): ScrollTimelineBinding {
+  const applyTime = resolveScrollTargetSetter(target);
+  if (typeof options !== "object" || options === null) {
+    throw new TypeError("ScrollTimelineOptions is required.");
+  }
+  finite(options.durationMs, "durationMs");
+  if (options.durationMs < 0) {
+    throw new RangeError("durationMs must be non-negative.");
+  }
+  const durationMs = options.durationMs;
+  const startOffsetPx = options.startOffsetPx ?? 0;
+  const endOffsetPx = options.endOffsetPx ?? 0;
+  finite(startOffsetPx, "startOffsetPx");
+  finite(endOffsetPx, "endOffsetPx");
+  if (options.reducedTimeMs !== undefined) {
+    finite(options.reducedTimeMs, "reducedTimeMs");
+  }
+
+  const respectReducedMotion = options.respectReducedMotion !== false;
+  const defaultWin =
+    typeof globalThis.window === "object" && globalThis.window !== null
+      ? (globalThis.window as unknown as ScrollTimelineContainerLike)
+      : undefined;
+  const container = options.container ?? defaultWin;
+  const scrollElement = options.scrollElement;
+
+  const matchMediaFn =
+    options.matchMedia ??
+    (typeof container?.matchMedia === "function"
+      ? container.matchMedia.bind(container)
+      : typeof globalThis.matchMedia === "function"
+        ? globalThis.matchMedia.bind(globalThis)
+        : undefined);
+  const mql = matchMediaFn ? matchMediaFn("(prefers-reduced-motion: reduce)") : undefined;
+
+  let disposed = false;
+  let lastTimeMs = 0;
+  const cleanups: Array<() => void> = [];
+
+  const computeProgress = (): number => {
+    if (scrollElement && typeof scrollElement.getBoundingClientRect === "function") {
+      const rect = scrollElement.getBoundingClientRect();
+      finite(rect.top, "scrollElement rect.top");
+      finite(rect.height, "scrollElement rect.height");
+      let viewportHeight = 0;
+      let viewportTop = 0;
+      if (container) {
+        if (typeof container.innerHeight === "number") {
+          viewportHeight = container.innerHeight;
+        } else if (typeof container.clientHeight === "number") {
+          viewportHeight = container.clientHeight;
+          if (typeof container.getBoundingClientRect === "function") {
+            viewportTop = container.getBoundingClientRect().top;
+          }
+        } else if (typeof container.document?.documentElement?.clientHeight === "number") {
+          viewportHeight = container.document.documentElement.clientHeight;
+        }
+      }
+      finite(viewportHeight, "viewportHeight");
+      finite(viewportTop, "viewportTop");
+      const relTop = rect.top - viewportTop;
+      if (viewportHeight > 0 && rect.height > viewportHeight) {
+        const span = rect.height - viewportHeight - startOffsetPx - endOffsetPx;
+        const scrolled = -relTop - startOffsetPx;
+        return span <= 0 ? (scrolled >= 0 ? 1 : 0) : clamp01(scrolled / span);
+      }
+      const span = viewportHeight + rect.height - startOffsetPx - endOffsetPx;
+      const scrolled = viewportHeight - startOffsetPx - relTop;
+      return span <= 0 ? (scrolled >= 0 ? 1 : 0) : clamp01(scrolled / span);
+    }
+
+    const scroller = container ?? scrollElement;
+    if (!scroller) return 0;
+
+    const scrollPos =
+      typeof scroller.scrollTop === "number"
+        ? scroller.scrollTop
+        : typeof (scroller as ScrollTimelineContainerLike).scrollY === "number"
+          ? (scroller as ScrollTimelineContainerLike).scrollY!
+          : typeof (scroller as ScrollTimelineContainerLike).pageYOffset === "number"
+            ? (scroller as ScrollTimelineContainerLike).pageYOffset!
+            : ((scroller as ScrollTimelineContainerLike).document?.documentElement?.scrollTop ?? 0);
+
+    const scrollHeight =
+      typeof scroller.scrollHeight === "number"
+        ? scroller.scrollHeight
+        : ((scroller as ScrollTimelineContainerLike).document?.documentElement?.scrollHeight ?? 0);
+
+    const viewportHeight =
+      typeof scroller.clientHeight === "number"
+        ? scroller.clientHeight
+        : typeof (scroller as ScrollTimelineContainerLike).innerHeight === "number"
+          ? (scroller as ScrollTimelineContainerLike).innerHeight!
+          : ((scroller as ScrollTimelineContainerLike).document?.documentElement?.clientHeight ?? 0);
+
+    finite(scrollPos, "scrollOffset");
+    finite(scrollHeight, "scrollHeight");
+    finite(viewportHeight, "viewportHeight");
+
+    const maxScroll = Math.max(0, scrollHeight - viewportHeight);
+    const start = startOffsetPx;
+    const end = maxScroll - endOffsetPx;
+    const span = end - start;
+    if (span <= 0) {
+      return maxScroll > 0 && scrollPos >= start ? 1 : 0;
+    }
+    return clamp01((scrollPos - start) / span);
+  };
+
+  const update = (): number => {
+    if (disposed) return lastTimeMs;
+    if (respectReducedMotion && mql?.matches) {
+      const pinned = Math.max(0, Math.min(durationMs, options.reducedTimeMs ?? durationMs));
+      lastTimeMs = pinned;
+      applyTime(pinned);
+      return pinned;
+    }
+    const progress = computeProgress();
+    const nextTimeMs = Math.max(0, Math.min(durationMs, progress * durationMs));
+    lastTimeMs = nextTimeMs;
+    applyTime(nextTimeMs);
+    return nextTimeMs;
+  };
+
+  const attachPassive = (
+    eventTarget: ScrollTimelineEventTargetLike | undefined,
+    eventType: "scroll" | "resize",
+    listener: () => void
+  ): void => {
+    if (!eventTarget || typeof eventTarget.addEventListener !== "function") return;
+    eventTarget.addEventListener(eventType, listener, { passive: true });
+    cleanups.push(() => {
+      eventTarget.removeEventListener?.(eventType, listener);
+    });
+  };
+
+  const onViewportEvent = (): void => {
+    update();
+  };
+
+  const primaryTarget = container ?? scrollElement;
+  attachPassive(primaryTarget, "scroll", onViewportEvent);
+  attachPassive(primaryTarget, "resize", onViewportEvent);
+  if (defaultWin && defaultWin !== primaryTarget) {
+    attachPassive(defaultWin, "resize", onViewportEvent);
+    if (scrollElement) {
+      attachPassive(defaultWin, "scroll", onViewportEvent);
+    }
+  }
+
+  if (mql && typeof mql.addEventListener === "function") {
+    const onMediaChange = (): void => {
+      update();
+    };
+    mql.addEventListener("change", onMediaChange);
+    cleanups.push(() => {
+      mql.removeEventListener?.("change", onMediaChange);
+    });
+  }
+
+  update();
+
+  return {
+    update,
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      for (const cleanup of cleanups.splice(0)) {
+        cleanup();
+      }
+    }
+  };
 }

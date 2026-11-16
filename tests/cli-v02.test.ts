@@ -175,6 +175,19 @@ describe("CLI v0.2 commands and flags", () => {
     expect(sbSvg.stdout).toContain("<svg");
     expect(sbSvg.stdout).toContain("Stickman storyboard");
 
+    const sbBlueprintFlag = invokeCli(["storyboard", "--input", shorthandPath, "--blueprint", "--max-panels", "4"]);
+    expect(sbBlueprintFlag.status).toBe(0);
+    expect(sbBlueprintFlag.stdout).toContain('data-theme="blueprint"');
+    expect(sbBlueprintFlag.stdout).toContain("T+0.00s");
+
+    const sbBlueprintTheme = invokeCli(["storyboard", "--input", shorthandPath, "--theme", "blueprint", "--max-panels", "4"]);
+    expect(sbBlueprintTheme.status).toBe(0);
+    expect(sbBlueprintTheme.stdout).toBe(sbBlueprintFlag.stdout);
+
+    const sbBadTheme = invokeCli(["storyboard", "--input", shorthandPath, "--theme", "neon"]);
+    expect(sbBadTheme.status).toBe(1);
+    expect(sbBadTheme.stderr).toContain('"default" or "blueprint"');
+
     const sbLint = invokeCli(["storyboard", "--lint-only", "--input", shorthandPath]);
     expect(sbLint.status).toBe(0);
     const lintData = JSON.parse(sbLint.stdout) as { outOfBoundsCount: number; actorIds: string[] };

@@ -76,7 +76,7 @@ video[hidden] { display: none; }
 .video-wrap:fullscreen > img, .video-wrap:fullscreen > video, .video-wrap:fullscreen > svg { grid-area: 1 / 1; min-height: 0; }
 .video-wrap:fullscreen .demo-fullscreen-controls { display: flex; gap: 12px; padding: 12px; grid-area: 2 / 1; background: var(--cp-surface); }
 .controls { margin-top: 12px; }
-#beat-status { color: var(--cp-text-muted); margin-right: auto; min-width: 200px; font-size: 14px; }
+#beat-status { color: var(--cp-text-muted); margin-right: auto; min-width: 200px; font-size: 14px; font-variant-numeric: tabular-nums; }
 .help { margin: 12px 0 0; color: var(--cp-text-muted); font-size: 13px; }
 #error { padding: 12px 16px; border: 1px solid var(--cp-danger); color: var(--cp-danger); border-radius: .625rem; margin-top: 12px; white-space: pre-wrap; }
 dialog { max-width: min(1200px, 94vw); max-height: 92vh; border: 1px solid var(--cp-border); border-radius: 16px; background: var(--cp-surface); color: var(--cp-text); padding: 24px; }
@@ -101,5 +101,5 @@ dialog::backdrop { background: var(--cp-overlay); }
   button, select { padding: 8px; font-size: 14px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  * { scroll-behavior: auto !important; }
+  * { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
 }

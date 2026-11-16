@@ -6,7 +6,7 @@ import { isAbsolute, relative, resolve, sep } from "node:path";
 import { randomUUID } from "node:crypto";
 import type { CompiledAnimation, PlaybackMode } from "./contract.js";
 import { renderAnimatedSvg, renderHtml, renderSvgFrame } from "./render.js";
-import { renderStoryboardSvg } from "./storyboard.js";
+import { renderStoryboardSvg, type StoryboardTheme } from "./storyboard.js";
 
 export type ExportFormat = "svg-frame" | "svg" | "html" | "gif" | "mp4" | "storyboard-svg";
 
@@ -30,6 +30,7 @@ export interface ExportOptions {
   mode?: PlaybackMode;
   maxPanels?: number;
   columns?: number;
+  theme?: StoryboardTheme;
   signal?: AbortSignal;
   onProgress?: (progress: ExportProgress) => void | Promise<void>;
   loadResvg?: () => Promise<{ Resvg: VideoRasterizer }>;
@@ -71,13 +72,14 @@ export function planAnimationExport(program: CompiledAnimation, format: ExportFo
 export function renderArtifact(
   program: CompiledAnimation,
   format: "svg-frame" | "svg" | "html" | "storyboard-svg",
-  options: { timeMs?: number; mode?: PlaybackMode; maxPanels?: number; columns?: number } = {}
+  options: { timeMs?: number; mode?: PlaybackMode; maxPanels?: number; columns?: number; theme?: StoryboardTheme } = {}
 ): string {
   if (format === "storyboard-svg") {
     return renderStoryboardSvg(program, {
       ...(options.maxPanels !== undefined ? { maxPanels: options.maxPanels } : {}),
       ...(options.columns !== undefined ? { columns: options.columns } : {}),
-      ...(options.mode !== undefined ? { mode: options.mode } : {})
+      ...(options.mode !== undefined ? { mode: options.mode } : {}),
+      ...(options.theme !== undefined ? { theme: options.theme } : {})
     });
   }
   if (format === "svg-frame") {

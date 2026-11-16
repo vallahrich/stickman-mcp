@@ -24,10 +24,11 @@ import {
   type CompiledAnimation,
   type ExportFormat,
   type PlaybackMode,
+  type StoryboardTheme,
   type ValidationResult
 } from "./index.js";
 
-const BOOLEAN_FLAGS = new Set(["lint-only"]);
+const BOOLEAN_FLAGS = new Set(["lint-only", "blueprint"]);
 type PreviewFormat = "svg-frame" | "svg" | "html" | "storyboard-svg";
 const PREVIEW_FORMATS: readonly PreviewFormat[] = ["svg-frame", "svg", "html", "storyboard-svg"];
 const EXPORT_FORMATS: readonly ExportFormat[] = ["svg-frame", "svg", "html", "storyboard-svg", "gif", "mp4"];
@@ -72,6 +73,18 @@ function parseIntOption(values: Map<string, string>, key: string, min: number, m
     throw new Error(`--${key} must be an integer from ${min} to ${max}.`);
   }
   return raw;
+}
+
+function parseStoryboardTheme(values: Map<string, string>, flags: Set<string>): StoryboardTheme | undefined {
+  const rawTheme = values.get("theme");
+  if (rawTheme !== undefined && rawTheme !== "default" && rawTheme !== "blueprint") {
+    throw new Error('Storyboard --theme must be "default" or "blueprint".');
+  }
+  if (flags.has("blueprint") && rawTheme === "default") {
+    throw new Error("Cannot combine --blueprint with --theme default.");
+  }
+  if (flags.has("blueprint")) return "blueprint";
+  return rawTheme as StoryboardTheme | undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -127,7 +140,7 @@ Commands:
   validate --input scene.json      Validate v1, v2, or choreography scene
   compile --input scene.json       Compile a canonical program as JSON
   choreograph --input scene.json   Auto-choreograph a v2 scene to JSON
-  storyboard --input scene.json [--columns N] [--max-panels N] [--mode normal|reduced|static] [--lint-only]
+  storyboard --input scene.json [--columns N] [--max-panels N] [--mode normal|reduced|static] [--theme default|blueprint] [--blueprint] [--lint-only]
   preview --input scene.json [--time MS] [--mode normal|reduced|static] [--format svg-frame|svg|html|storyboard-svg]
   export --input scene.json --root DIR --output FILE --format svg-frame|svg|html|storyboard-svg|gif|mp4
 
@@ -206,6 +219,7 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<nu
     const maxPanels = parseIntOption(values, "max-panels", 2, 16);
     const mode = (values.get("mode") ?? "normal") as PlaybackMode;
     if (!["normal", "reduced", "static"].includes(mode)) throw new Error("Mode must be normal, reduced, or static.");
+    const theme = parseStoryboardTheme(values, flags) ?? "default";
     if (flags.has("lint-only")) {
       console.log(JSON.stringify(analyzeStoryboard(compiled.program), null, 2));
       return 0;
@@ -214,7 +228,8 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<nu
       renderStoryboardSvg(compiled.program, {
         ...(columns !== undefined ? { columns } : {}),
         ...(maxPanels !== undefined ? { maxPanels } : {}),
-        mode
+        mode,
+        theme
       })
     );
     return 0;
@@ -237,12 +252,14 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<nu
     if (timeMs !== undefined && !Number.isFinite(timeMs)) throw new Error("--time must be a finite number of milliseconds.");
     const columns = parseIntOption(values, "columns", 1, 8);
     const maxPanels = parseIntOption(values, "max-panels", 2, 16);
+    const theme = parseStoryboardTheme(values, flags);
     process.stdout.write(
       renderArtifact(result.program, format, {
         ...(timeMs !== undefined ? { timeMs } : {}),
         ...(mode !== undefined ? { mode } : {}),
         ...(columns !== undefined ? { columns } : {}),
-        ...(maxPanels !== undefined ? { maxPanels } : {})
+        ...(maxPanels !== undefined ? { maxPanels } : {}),
+        ...(theme !== undefined ? { theme } : {})
       })
     );
     return 0;
@@ -265,11 +282,13 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<nu
     if (timeMs !== undefined && !Number.isFinite(timeMs)) throw new Error("--time must be a finite number of milliseconds.");
     const columns = parseIntOption(values, "columns", 1, 8);
     const maxPanels = parseIntOption(values, "max-panels", 2, 16);
+    const theme = parseStoryboardTheme(values, flags);
     const outcome = await exportAnimation(result.program, required(values, "root"), required(values, "output"), format, {
       ...(timeMs !== undefined ? { timeMs } : {}),
       ...(mode !== undefined ? { mode } : {}),
       ...(columns !== undefined ? { columns } : {}),
-      ...(maxPanels !== undefined ? { maxPanels } : {})
+      ...(maxPanels !== undefined ? { maxPanels } : {}),
+      ...(theme !== undefined ? { theme } : {})
     });
     console.log(JSON.stringify(outcome, null, 2));
     return 0;
