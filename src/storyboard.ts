@@ -14,7 +14,7 @@ import {
 import { ENTRANCE_EXIT_ACTIONS, resolveStageAnchors } from "./choreograph.js";
 import { sampleAnimation } from "./compiler.js";
 import { getMotionMeta } from "./motion-library.js";
-import { escapeXml } from "./props.js";
+import { escapeXml, renderBlueprintPatternsSvg } from "./props.js";
 import { actorToSampledFrame, frameGeometry, renderSceneInnerSvg } from "./render.js";
 
 export type StoryboardTheme = "default" | "blueprint";
@@ -346,6 +346,7 @@ function renderBlueprintStoryboardSvg(
       const rawInner = renderSceneInnerSvg(monoFrame, {
         defaultColor: "#0f172a",
         themeAccentColor: "#1e3a5f",
+        blueprint: true,
         decimals: 0,
         compact: true
       });
@@ -444,7 +445,7 @@ function renderBlueprintStoryboardSvg(
     `<svg xmlns="http://www.w3.org/2000/svg" data-theme="blueprint" role="img" aria-label="Stickman blueprint storyboard (${panelCount} panels)" viewBox="0 0 ${totalW} ${totalH}" width="${totalW}" height="${totalH}">` +
     `<defs>` +
     `<clipPath id="sm-sb-clip"><rect width="${panelW}" height="${sceneH}"/></clipPath>` +
-    `<pattern id="sm-bp-grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="#e2e8f0" stroke-width=".6"/></pattern>` +
+    `${renderBlueprintPatternsSvg()}` +
     `<style>${style}</style>` +
     `</defs>` +
     `<rect width="100%" height="100%" fill="#f8fafc"/>` +

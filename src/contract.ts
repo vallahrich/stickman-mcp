@@ -4,6 +4,7 @@ export type ContractVersion = typeof CONTRACT_VERSION | typeof CONTRACT_VERSION_
 
 export type ActionName = string;
 export type PlaybackMode = "normal" | "reduced" | "static";
+export type RenderStyle = "default" | "blueprint";
 export type ActorAccessory = "none" | "tie" | "hat" | "glasses" | "badge";
 
 export type StageAnchorName =
@@ -274,6 +275,7 @@ export interface SampledFrame {
 export interface ChoreographTheme {
   accentColor?: string;
   background?: string;
+  style?: RenderStyle;
 }
 
 export type ChoreographTargetInput = string | { x: number; y?: number };

@@ -4,7 +4,13 @@ import { copyFile, lstat, mkdir, open, realpath, rm, stat, unlink, writeFile } f
 import { tmpdir } from "node:os";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { randomUUID } from "node:crypto";
-import type { CompiledAnimation, PlaybackMode } from "./contract.js";
+import {
+  CONTRACT_VERSION_V2,
+  type AnimationSpecV2,
+  type CompiledAnimation,
+  type PlaybackMode,
+  type RenderStyle
+} from "./contract.js";
 import { renderAnimatedSvg, renderHtml, renderSvgFrame } from "./render.js";
 import { renderStoryboardSvg, type StoryboardTheme } from "./storyboard.js";
 
@@ -28,6 +34,7 @@ export interface VideoRasterizer {
 export interface ExportOptions {
   timeMs?: number;
   mode?: PlaybackMode;
+  style?: RenderStyle;
   maxPanels?: number;
   columns?: number;
   theme?: StoryboardTheme;
@@ -72,22 +79,34 @@ export function planAnimationExport(program: CompiledAnimation, format: ExportFo
 export function renderArtifact(
   program: CompiledAnimation,
   format: "svg-frame" | "svg" | "html" | "storyboard-svg",
-  options: { timeMs?: number; mode?: PlaybackMode; maxPanels?: number; columns?: number; theme?: StoryboardTheme } = {}
+  options: {
+    timeMs?: number;
+    mode?: PlaybackMode;
+    style?: RenderStyle;
+    maxPanels?: number;
+    columns?: number;
+    theme?: StoryboardTheme;
+  } = {}
 ): string {
   if (format === "storyboard-svg") {
+    const v2Spec = program.contractVersion === CONTRACT_VERSION_V2 ? (program.spec as AnimationSpecV2) : undefined;
+    const effectiveTheme = options.theme ?? options.style ?? v2Spec?.theme?.style;
     return renderStoryboardSvg(program, {
       ...(options.maxPanels !== undefined ? { maxPanels: options.maxPanels } : {}),
       ...(options.columns !== undefined ? { columns: options.columns } : {}),
       ...(options.mode !== undefined ? { mode: options.mode } : {}),
-      ...(options.theme !== undefined ? { theme: options.theme } : {})
+      ...(effectiveTheme !== undefined ? { theme: effectiveTheme } : {})
     });
   }
+  const styleOptions = options.style !== undefined ? { style: options.style } : undefined;
   if (format === "svg-frame") {
-    return renderSvgFrame(program, options.timeMs ?? 0, options.mode ?? "normal");
+    return renderSvgFrame(program, options.timeMs ?? 0, options.mode ?? "normal", styleOptions);
   }
   return format === "svg"
-    ? (options.timeMs === undefined && options.mode === undefined ? renderAnimatedSvg(program) : renderSvgFrame(program, options.timeMs ?? 0, options.mode ?? "normal"))
-    : renderHtml(program);
+    ? (options.timeMs === undefined && options.mode === undefined
+        ? renderAnimatedSvg(program, styleOptions)
+        : renderSvgFrame(program, options.timeMs ?? 0, options.mode ?? "normal", styleOptions))
+    : renderHtml(program, styleOptions);
 }
 
 function assertContained(root: string, path: string): void {
@@ -210,7 +229,12 @@ async function writeVideo(program: CompiledAnimation, destination: string, forma
     for (let index = 0; index < frameCount; index++) {
       throwIfAborted(options.signal);
       const time = Math.min(program.spec.durationMs, index * 1000 / fps);
-      const svg = renderSvgFrame(program, time);
+      const svg = renderSvgFrame(
+        program,
+        time,
+        "normal",
+        options.style !== undefined ? { style: options.style } : undefined
+      );
       const file = resolve(framesDirectory, `frame${String(index).padStart(6, "0")}.png`);
       // Pure stickman frames contain no text; load system fonts only when a prop renders <text>.
       const png = new rasterize(svg, { font: { loadSystemFonts: svg.includes("<text") } }).render().asPng();

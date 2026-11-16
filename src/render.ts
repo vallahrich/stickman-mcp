@@ -1,16 +1,20 @@
 import {
   CONTRACT_VERSION_V2,
+  type AnimationSpec,
   type AnimationSpecV2,
   type CompiledAnimation,
   type PlaybackMode,
+  type Point2D,
+  type RenderStyle,
   type SampledActorFrame,
   type SampledAddon,
   type SampledFrame
 } from "./contract.js";
+import { resolveStageAnchors } from "./choreograph.js";
 import { sampleAnimation } from "./compiler.js";
 import { sampleClipMotion } from "./motion-clips.js";
 import { RUNTIME_MOTION_LIBRARY } from "./motion-library.js";
-import { renderAddonSvg } from "./props.js";
+import { renderAddonSvg, renderBlueprintDefsSvg } from "./props.js";
 
 function xml(value: string): string {
   return value
@@ -146,12 +150,18 @@ export function frameGeometry(frame: SampledFrame) {
   };
 }
 
+export interface RenderStyleOptions {
+  style?: RenderStyle;
+}
+
 export interface SceneRenderOptions {
   defaultColor?: string;
   themeAccentColor?: string;
   minStrokeWidth?: number;
   decimals?: number;
   compact?: boolean;
+  blueprint?: boolean;
+  hatchPatternId?: string;
 }
 
 function compactPathNumbers(d: string, decimals: number): string {
@@ -332,8 +342,16 @@ export function renderActorFigureSvg(
 ): string {
   const decimals = options.decimals ?? 3;
   const compact = options.compact === true;
+  const isBlueprint = options.blueprint === true;
+  const effectiveActor: SampledActorFrame = isBlueprint
+    ? {
+        ...actor,
+        color: "#0f172a",
+        accentColor: "#1e3a5f"
+      }
+    : actor;
   const n = (value: number): string => number(value, decimals);
-  const sample = actorToSampledFrame(actor, timeMs);
+  const sample = actorToSampledFrame(effectiveActor, timeMs);
   const geometry = frameGeometry(sample);
   const strokeWidth = Math.max(geometry.strokeWidth, options.minStrokeWidth ?? 0);
   const limbById = new Map(geometry.limbs.map((item) => [item.id, item]));
@@ -354,26 +372,32 @@ export function renderActorFigureSvg(
 
   const torsoD = dFmt(
     detailById.get("torso")?.d ??
-      `M${n(actor.segments[0]!.x1)} ${n(actor.segments[0]!.y1)}L${n(actor.segments[0]!.x2)} ${n(actor.segments[0]!.y2)}`
+      `M${n(effectiveActor.segments[0]!.x1)} ${n(effectiveActor.segments[0]!.y1)}L${n(effectiveActor.segments[0]!.x2)} ${n(effectiveActor.segments[0]!.y2)}`
   );
-  const rawAccessorySvg = renderActorAccessorySvg(actor, geometry, options.themeAccentColor, decimals);
+  const rawAccessorySvg = renderActorAccessorySvg(
+    effectiveActor,
+    geometry,
+    isBlueprint ? "#1e3a5f" : options.themeAccentColor,
+    decimals
+  );
   const accessorySvg = compact ? compactAddonSvgNumbers(rawAccessorySvg, decimals, true) : rawAccessorySvg;
   const finger =
-    actor.action === "point" && detailById.get("point-finger")
+    effectiveActor.action === "point" && detailById.get("point-finger")
       ? `<path${segAttr("point-finger")} d="${dFmt(detailById.get("point-finger")!.d)}"/>`
       : "";
   const accessoryAttr =
-    !compact && actor.accessory && actor.accessory !== "none"
-      ? ` data-accessory-type="${xml(actor.accessory)}"`
+    !compact && effectiveActor.accessory && effectiveActor.accessory !== "none"
+      ? ` data-accessory-type="${xml(effectiveActor.accessory)}"`
       : "";
   const joinAttrs = compact ? "" : ` stroke-linecap="round" stroke-linejoin="round"`;
-  const headStrokeAttrs = compact ? "" : ` stroke="${xml(actor.color)}" stroke-width="${n(strokeWidth)}"`;
+  const headFill = isBlueprint ? "#f8fafc" : "#fff";
+  const headStrokeAttrs = compact ? "" : ` stroke="${xml(effectiveActor.color)}" stroke-width="${n(strokeWidth)}"`;
 
   return (
-    `<g data-actor="${xml(actor.id)}" data-action="${xml(actor.action)}"${accessoryAttr} fill="none" stroke="${xml(actor.color)}" stroke-width="${n(strokeWidth)}"${joinAttrs}>` +
+    `<g data-actor="${xml(effectiveActor.id)}" data-action="${xml(effectiveActor.action)}"${accessoryAttr} fill="none" stroke="${xml(effectiveActor.color)}" stroke-width="${n(strokeWidth)}"${joinAttrs}>` +
     `${limb(geometry.segmentOrder[0]!)}${limb(geometry.segmentOrder[1]!)}` +
     `<path${segAttr("torso")} d="${torsoD}"/>` +
-    `<circle${segAttr("head")} cx="${n(geometry.head.x)}" cy="${n(geometry.head.y)}" r="${n(geometry.headRadius)}" fill="#fff"${headStrokeAttrs}/>` +
+    `<circle${segAttr("head")} cx="${n(geometry.head.x)}" cy="${n(geometry.head.y)}" r="${n(geometry.headRadius)}" fill="${headFill}"${headStrokeAttrs}/>` +
     `${accessorySvg}` +
     `${limb(geometry.segmentOrder[3]!)}${limb(geometry.segmentOrder[4]!)}` +
     `${finger}</g>`
@@ -382,8 +406,10 @@ export function renderActorFigureSvg(
 
 export function renderSceneInnerSvg(frame: SampledFrame, options: SceneRenderOptions = {}): string {
   const decimals = options.decimals ?? 3;
+  const isBlueprint = options.blueprint === true;
+  const hatchPatternId = options.hatchPatternId ?? "sm-bp-hatch";
   const n = (value: number): string => number(value, decimals);
-  const defaultColor = options.defaultColor ?? "#202124";
+  const defaultColor = isBlueprint ? "#0f172a" : (options.defaultColor ?? "#202124");
   const hasActors = Boolean(frame.actors && frame.actors.length > 0);
   const actorMap = new Map<string, SampledActorFrame>(
     hasActors ? frame.actors!.map((actor) => [actor.id, actor]) : []
@@ -399,7 +425,8 @@ export function renderSceneInnerSvg(frame: SampledFrame, options: SceneRenderOpt
         const sw = Math.max(baseSw, options.minStrokeWidth ?? 0);
         const svg = renderAddonSvg(addon, {
           strokeWidth: sw,
-          themeColor: owner?.color ?? defaultColor
+          themeColor: isBlueprint ? "#1e3a5f" : (owner?.color ?? defaultColor),
+          ...(isBlueprint ? { blueprint: true, hatchPatternId } : {})
         });
         return decimals < 3 || options.compact === true
           ? compactAddonSvgNumbers(svg, decimals, options.compact === true)
@@ -436,11 +463,15 @@ export function renderSceneInnerSvg(frame: SampledFrame, options: SceneRenderOpt
   if (frame.prop) {
     const geometry = frameGeometry(frame);
     const sw = Math.max(geometry.strokeWidth, options.minStrokeWidth ?? 0);
+    const propFill = isBlueprint ? `url(#${xml(hatchPatternId)})` : "#fff";
+    const propStroke = isBlueprint ? "#1e3a5f" : xml(defaultColor);
+    const handleStroke = isBlueprint ? "#0f172a" : xml(defaultColor);
+    const propStyleAttr = isBlueprint ? ' data-style="blueprint"' : "";
     propMarkup =
-      `<g data-prop="${xml(frame.prop.id)}">` +
-      `<rect x="${n(frame.prop.x)}" y="${n(frame.prop.y)}" width="${n(frame.prop.width)}" height="${n(frame.prop.height)}" rx="3" fill="#fff" stroke="${xml(defaultColor)}" stroke-width="${n(sw)}"/>` +
+      `<g data-prop="${xml(frame.prop.id)}"${propStyleAttr}>` +
+      `<rect x="${n(frame.prop.x)}" y="${n(frame.prop.y)}" width="${n(frame.prop.width)}" height="${n(frame.prop.height)}" rx="3" fill="${propFill}" stroke="${propStroke}" stroke-width="${n(sw)}"/>` +
       (geometry.handlePath
-        ? `<path data-part="handle" d="${compactPathNumbers(geometry.handlePath, decimals)}" fill="none" stroke="${xml(defaultColor)}" stroke-width="${n(1.4 * geometry.scale)}" stroke-linecap="round"/>`
+        ? `<path data-part="handle" d="${compactPathNumbers(geometry.handlePath, decimals)}" fill="none" stroke="${handleStroke}" stroke-width="${n(1.4 * geometry.scale)}" stroke-linecap="round"/>`
         : "") +
       `</g>`;
   }
@@ -501,14 +532,165 @@ function multiSceneFrameMarkup(
 </svg>`;
 }
 
-export function renderSvgFrame(program: CompiledAnimation, timeMs = 0, mode: PlaybackMode = "normal"): string {
+const BLUEPRINT_STAGE_STYLE =
+  `.bp-d{font:10px Consolas,"Courier New",Courier,monospace;fill:#1e3a5f}` +
+  `.bp-a{font:700 10px Consolas,"Courier New",Courier,monospace;fill:#0f172a;text-anchor:middle}` +
+  `.bp-ax{font:8.5px Consolas,"Courier New",Courier,monospace;fill:#334155;text-anchor:middle}`;
+
+function resolveRenderStyle(program: CompiledAnimation, options?: RenderStyleOptions): RenderStyle {
+  if (options?.style !== undefined) {
+    if (options.style !== "default" && options.style !== "blueprint") {
+      throw new TypeError('Render style must be "default" or "blueprint".');
+    }
+    return options.style;
+  }
+  const v2Spec = program.contractVersion === CONTRACT_VERSION_V2 ? (program.spec as AnimationSpecV2) : undefined;
+  return v2Spec?.theme?.style === "blueprint" ? "blueprint" : "default";
+}
+
+function renderBlueprintRegistrationMarkSvg(cx: number, cy: number, arm = 5, decimals = 1): string {
+  const n = (v: number): string => number(v, decimals);
+  return `<path data-part="registration-mark" d="M${n(cx - arm)} ${n(cy)}H${n(cx + arm)}M${n(cx)} ${n(cy - arm)}V${n(cy + arm)}" fill="none" stroke="#1e3a5f" stroke-width="1"/>`;
+}
+
+function renderBlueprintStageBackdropSvg(
+  width: number,
+  height: number,
+  groundY: number,
+  customAnchors?: Record<string, Point2D>,
+  decimals = 2
+): string {
+  const n = (v: number): string => number(v, decimals);
+  const clampVal = (v: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, v));
+  const margin = Math.min(12, Math.max(4, Math.floor(Math.min(width, height) * 0.08)));
+  const regMarks = [
+    renderBlueprintRegistrationMarkSvg(margin, margin, 5, 1),
+    renderBlueprintRegistrationMarkSvg(width - margin, margin, 5, 1),
+    renderBlueprintRegistrationMarkSvg(margin, height - margin, 5, 1),
+    renderBlueprintRegistrationMarkSvg(width - margin, height - margin, 5, 1)
+  ].join("");
+
+  const anchors = resolveStageAnchors({ width, height }, groundY, customAnchors);
+  const anchorEntries = [
+    ["L", anchors.left?.x ?? Math.round(width * 0.18)],
+    ["CL", anchors["center-left"]?.x ?? Math.round(width * 0.35)],
+    ["C", anchors.center?.x ?? Math.round(width * 0.5)],
+    ["CR", anchors["center-right"]?.x ?? Math.round(width * 0.65)],
+    ["R", anchors.right?.x ?? Math.round(width * 0.82)]
+  ] as const;
+
+  const placeBelow = groundY <= height - 26;
+  const codeY = placeBelow ? clampVal(groundY + 14, 12, height - 12) : clampVal(groundY - 16, 12, height - 4);
+  const coordY = placeBelow ? clampVal(groundY + 24, 20, height - 3) : clampVal(groundY - 6, 20, height - 2);
+
+  const anchorTicks = anchorEntries
+    .map(([code, wx]) => {
+      const ax = n(wx);
+      const xInt = Math.round(wx) || 0;
+      return (
+        `<g data-anchor-tick="${code}">` +
+        `<line x1="${ax}" y1="${n(groundY - 4)}" x2="${ax}" y2="${n(groundY + 4)}" stroke="#1e3a5f" stroke-width="1"/>` +
+        `<text class="bp-a" x="${ax}" y="${n(codeY)}">${code}</text>` +
+        `<text class="bp-ax" x="${ax}" y="${n(coordY)}">X=${xInt}</text>` +
+        `</g>`
+      );
+    })
+    .join("");
+
+  const gyInt = Math.round(groundY) || 0;
+  const datumLabelY = n(Math.max(16, groundY - 6));
+
+  return (
+    `<rect width="100%" height="100%" fill="#f8fafc"/>` +
+    `<rect width="100%" height="100%" fill="url(#sm-bp-grid)"/>` +
+    `<rect x="1.5" y="1.5" width="${n(Math.max(1, width - 3))}" height="${n(Math.max(1, height - 3))}" fill="none" stroke="#cbd5e1" stroke-width="1"/>` +
+    `<g data-part="registration-marks">${regMarks}</g>` +
+    `<path id="ground" data-part="ground-datum" d="M0 ${n(groundY)}H${width}" fill="none" stroke="#1e3a5f" stroke-width="1" stroke-dasharray="4 3"/>` +
+    `<text class="bp-d" data-part="datum-label" x="${n(Math.max(8, width - 10))}" y="${datumLabelY}" text-anchor="end">Y=${gyInt}</text>` +
+    `<g data-part="anchor-ticks">${anchorTicks}</g>`
+  );
+}
+
+function renderBlueprintActorDimensionsSvg(frame: SampledFrame, width: number, decimals = 2): string {
+  const n = (v: number): string => number(v, decimals);
+  const clampVal = (v: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, v));
+  const actors: ReadonlyArray<{ id: string; x: number; groundY: number; scale: number }> =
+    frame.actors && frame.actors.length > 0
+      ? frame.actors
+      : [{ id: "actor", x: frame.x, groundY: frame.groundY, scale: 1 }];
+
+  return actors
+    .map((actor) => {
+      const gy = actor.groundY;
+      const actorScale = Number.isFinite(actor.scale) && actor.scale > 0 ? actor.scale : 1;
+      const scaledHeightPx = 144 * actorScale;
+      const leaderTopY = clampVal(gy - scaledHeightPx, 12, Math.max(14, gy - 16));
+      const leaderX = clampVal(actor.x - 28 * actorScale - 10, 8, Math.max(8, width - 64));
+      const rootTickX = clampVal(actor.x, 4, Math.max(4, width - 4));
+      const rootLabelX = clampVal(rootTickX + 4, 8, Math.max(8, width - 56));
+      const xInt = Math.round(actor.x) || 0;
+      const heightCallout =
+        Math.abs(actorScale - 1) < 0.005
+          ? "144u"
+          : `144u (${Math.round(scaledHeightPx) || 0}px)`;
+
+      return (
+        `<g data-part="dimension-leader" data-actor-dimension="${xml(actor.id)}">` +
+        `<line data-part="rig-height-leader" x1="${n(leaderX)}" y1="${n(leaderTopY)}" x2="${n(leaderX)}" y2="${n(gy)}" stroke="#1e3a5f" stroke-width="1" stroke-dasharray="2 2"/>` +
+        `<line x1="${n(leaderX - 4)}" y1="${n(leaderTopY)}" x2="${n(leaderX + 4)}" y2="${n(leaderTopY)}" stroke="#1e3a5f" stroke-width="1"/>` +
+        `<line x1="${n(leaderX - 4)}" y1="${n(gy)}" x2="${n(leaderX + 4)}" y2="${n(gy)}" stroke="#1e3a5f" stroke-width="1"/>` +
+        `<text class="bp-d" data-part="rig-height-label" x="${n(leaderX + 5)}" y="${n((leaderTopY + gy) / 2)}">${heightCallout}</text>` +
+        `<line data-part="actor-root-tick" x1="${n(rootTickX)}" y1="${n(gy - 5)}" x2="${n(rootTickX)}" y2="${n(gy + 5)}" stroke="#0f172a" stroke-width="1.1"/>` +
+        `<text class="bp-d" data-part="actor-root-label" x="${n(rootLabelX)}" y="${n(Math.max(16, gy - 6))}">x=${xInt}</text>` +
+        `</g>`
+      );
+    })
+    .join("");
+}
+
+function renderBlueprintFrameSceneSvg(frame: SampledFrame, width: number, decimals = 3): string {
+  const inner = renderSceneInnerSvg(frame, {
+    defaultColor: "#0f172a",
+    themeAccentColor: "#1e3a5f",
+    blueprint: true,
+    decimals
+  });
+  const dimensions = renderBlueprintActorDimensionsSvg(frame, width, decimals);
+  return `${inner}${dimensions}`;
+}
+
+function blueprintFrameMarkup(
+  frame: SampledFrame,
+  width: number,
+  height: number,
+  customAnchors?: Record<string, Point2D>
+): string {
+  const backdrop = renderBlueprintStageBackdropSvg(width, height, frame.groundY, customAnchors, 3);
+  const sceneInner = renderBlueprintFrameSceneSvg(frame, width, 3);
+  return `<svg xmlns="http://www.w3.org/2000/svg" data-style="blueprint" role="img" aria-label="Stick figure ${xml(frame.action)} at ${number(frame.timeMs)} milliseconds" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">
+${renderBlueprintDefsSvg()}<style>${BLUEPRINT_STAGE_STYLE}</style>
+${backdrop}
+<g id="scene">${sceneInner}</g>
+</svg>`;
+}
+
+export function renderSvgFrame(
+  program: CompiledAnimation,
+  timeMs = 0,
+  mode: PlaybackMode = "normal",
+  options?: RenderStyleOptions
+): string {
+  const style = resolveRenderStyle(program, options);
   const frame = sampleAnimation(program, timeMs, mode);
   const { width, height } = program.spec.canvas;
+  const v2Spec = program.contractVersion === CONTRACT_VERSION_V2 ? (program.spec as AnimationSpecV2) : undefined;
+  if (style === "blueprint") {
+    return blueprintFrameMarkup(frame, width, height, v2Spec?.anchors);
+  }
   const defaultColor = program.spec.actor?.color ?? "#202124";
   if (!isMultiSceneFrame(frame, program)) {
     return v1FrameMarkup(frame, defaultColor, width, height);
   }
-  const v2Spec = program.contractVersion === CONTRACT_VERSION_V2 ? (program.spec as AnimationSpecV2) : undefined;
   return multiSceneFrameMarkup(frame, width, height, {
     defaultColor,
     ...(v2Spec?.theme?.accentColor !== undefined ? { themeAccentColor: v2Spec.theme.accentColor } : {}),
@@ -518,6 +700,49 @@ export function renderSvgFrame(program: CompiledAnimation, timeMs = 0, mode: Pla
 
 function animateAttribute(attribute: string, values: number[], durationSeconds: number, keyTimes: string): string {
   return `<animate attributeName="${attribute}" dur="${number(durationSeconds)}s" values="${values.map((v) => number(v)).join(";")}" keyTimes="${keyTimes}" fill="freeze" calcMode="discrete"/>`;
+}
+
+function renderBlueprintAnimatedSvg(
+  program: CompiledAnimation,
+  samples: readonly SampledFrame[]
+): string {
+  const { durationMs, canvas } = program.spec;
+  const v2Spec = program.contractVersion === CONTRACT_VERSION_V2 ? (program.spec as AnimationSpecV2) : undefined;
+  const seconds = Math.max(0.1, durationMs / 1000);
+  const intervals = Math.max(1, samples.length - 1);
+  const slicePercent = number(100 / intervals, 4);
+  const durStr = `${number(seconds, 4)}s`;
+  const firstGroundY = samples[0]?.groundY ?? canvas.height * 0.82;
+  const backdrop = renderBlueprintStageBackdropSvg(canvas.width, canvas.height, firstGroundY, v2Spec?.anchors, 2);
+
+  const frameGroups = samples
+    .map((sample, idx) => {
+      const inner = renderBlueprintFrameSceneSvg(sample, canvas.width, 2);
+      if (idx === samples.length - 1) {
+        return `<g class="sm-f sm-last" data-frame="${idx}" data-time-ms="${number(sample.timeMs, 1)}">${inner}</g>`;
+      }
+      const delaySec = (seconds * idx) / intervals;
+      return `<g class="sm-f" data-frame="${idx}" data-time-ms="${number(sample.timeMs, 1)}" style="animation-delay:${number(delaySec, 4)}s">${inner}</g>`;
+    })
+    .join("");
+
+  const reducedSample = sampleAnimation(program, durationMs, "reduced");
+  const reducedInner = renderBlueprintFrameSceneSvg(reducedSample, canvas.width, 2);
+
+  const style =
+    `${BLUEPRINT_STAGE_STYLE}` +
+    `.sm-f{visibility:hidden;animation:sm-slice ${durStr} steps(1,end) 0s 1 normal forwards}` +
+    `.sm-f.sm-last{animation-name:sm-final}` +
+    `.sm-reduced{display:none}` +
+    `@keyframes sm-slice{0%{visibility:visible}${slicePercent}%{visibility:hidden}100%{visibility:hidden}}` +
+    `@keyframes sm-final{0%{visibility:hidden}100%{visibility:visible}}` +
+    `@media (prefers-reduced-motion:reduce){.sm-f{animation:none!important;visibility:hidden!important}.sm-reduced{display:inline}}`;
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" data-style="blueprint" viewBox="0 0 ${canvas.width} ${canvas.height}" width="${canvas.width}" height="${canvas.height}" role="img" aria-label="Deterministic stick figure animation">
+${renderBlueprintDefsSvg()}<style>${style}</style>
+${backdrop}
+${frameGroups}<g class="sm-reduced">${reducedInner}</g></svg>`;
 }
 
 function renderMultiSceneAnimatedSvg(
@@ -570,12 +795,16 @@ function renderMultiSceneAnimatedSvg(
 ${frameGroups}<g class="sm-reduced">${reducedInner}</g></svg>`;
 }
 
-export function renderAnimatedSvg(program: CompiledAnimation): string {
+export function renderAnimatedSvg(program: CompiledAnimation, options?: RenderStyleOptions): string {
+  const style = resolveRenderStyle(program, options);
   const { durationMs, canvas } = program.spec;
   // A cached vector frame must retain its solved bone lengths and contacts;
   // interpolating separate endpoints between poses breaks those constraints.
   const frames = Math.max(2, Math.ceil(durationMs * canvas.fps / 1000) + 1);
   const samples = Array.from({ length: frames }, (_, index) => sampleAnimation(program, durationMs * index / (frames - 1)));
+  if (style === "blueprint") {
+    return renderBlueprintAnimatedSvg(program, samples);
+  }
   if (samples.some((sample) => isMultiSceneFrame(sample, program))) {
     return renderMultiSceneAnimatedSvg(program, samples);
   }
@@ -706,6 +935,12 @@ function collectBakedTimestamps(program: CompiledAnimation): number[] {
         raw.add(Math.max(0, Math.min(durationMs, act.startMs + act.durationMs)));
       }
     }
+  } else {
+    const v1 = program.spec as AnimationSpec;
+    for (const act of v1.actions) {
+      raw.add(Math.max(0, Math.min(durationMs, act.startMs)));
+      raw.add(Math.max(0, Math.min(durationMs, act.startMs + act.durationMs)));
+    }
   }
   const sorted = [...raw].sort((a, b) => a - b);
   const deduped: number[] = [];
@@ -728,18 +963,22 @@ interface BakedHtmlFrame {
   markup: string;
 }
 
-function renderHtmlV2(program: CompiledAnimation): string {
-  const v2Spec = program.spec as AnimationSpecV2;
-  const { canvas, durationMs } = v2Spec;
-  const defaultColor = v2Spec.actor?.color ?? "#202124";
-  const themeAccentColor = v2Spec.theme?.accentColor;
+function renderBakedHtml(program: CompiledAnimation, style: RenderStyle): string {
+  const { canvas, durationMs } = program.spec;
+  const v2Spec = program.contractVersion === CONTRACT_VERSION_V2 ? (program.spec as AnimationSpecV2) : undefined;
+  const defaultColor = program.spec.actor?.color ?? "#202124";
+  const themeAccentColor = v2Spec?.theme?.accentColor;
   const renderOpts: SceneRenderOptions = {
     defaultColor,
     ...(themeAccentColor !== undefined ? { themeAccentColor } : {}),
     decimals: 2
   };
+  const renderFrameMarkup = (frame: SampledFrame): string =>
+    style === "blueprint"
+      ? renderBlueprintFrameSceneSvg(frame, canvas.width, 2)
+      : renderSceneInnerSvg(frame, renderOpts);
 
-  const svg = renderSvgFrame(program, 0, "normal");
+  const svg = renderSvgFrame(program, 0, "normal", { style });
   const controls = `<label>Motion mode <select id="mode"><option value="normal">Normal</option><option value="reduced">Reduced</option><option value="static">Static</option></select></label><label>Playhead <input id="seek" type="range" min="0" max="${durationMs}" step="1" value="0"></label><output id="timecode" class="cp-timecode" data-timecode="true" for="seek">0.00s / ${(durationMs / 1000).toFixed(2)}s</output><button id="toggle" type="button">Pause</button>`;
 
   const timestamps = collectBakedTimestamps(program);
@@ -749,7 +988,7 @@ function renderHtmlV2(program: CompiledAnimation): string {
       timeMs: Number(frame.timeMs.toFixed(3)),
       action: frame.action,
       groundY: Number(frame.groundY.toFixed(3)),
-      markup: renderSceneInnerSvg(frame, renderOpts)
+      markup: renderFrameMarkup(frame)
     };
   });
 
@@ -758,7 +997,7 @@ function renderHtmlV2(program: CompiledAnimation): string {
     timeMs: Number(reducedSample.timeMs.toFixed(3)),
     action: reducedSample.action,
     groundY: Number(reducedSample.groundY.toFixed(3)),
-    markup: renderSceneInnerSvg(reducedSample, renderOpts)
+    markup: renderFrameMarkup(reducedSample)
   };
 
   const script = `(()=>{"use strict";const program=${scriptJson(program)};const frames=${scriptJson(bakedFrames)};const reducedFrame=${scriptJson(bakedReduced)};const lookup=(timeMs,mode)=>{if(mode!=="normal")return reducedFrame;const clamped=Math.max(0,Math.min(program.spec.durationMs,timeMs));let lo=0,hi=frames.length-1;while(lo<hi){const mid=(lo+hi+1)>>1;if(frames[mid].timeMs<=clamped+1e-6)lo=mid;else hi=mid-1;}return frames[lo];};const svg=document.querySelector("#stage svg");const sceneEl=document.getElementById("scene")||(document.querySelector?document.querySelector("#scene"):null);const groundEl=document.getElementById("ground")||(document.querySelector?document.querySelector("#ground"):null);
@@ -794,9 +1033,10 @@ draw();schedule();})();`;
 <main><nav>${controls}</nav><div id="stage">${svg}</div></main><script id="stickman-player">${script}</script></html>`;
 }
 
-export function renderHtml(program: CompiledAnimation): string {
-  if (program.contractVersion === CONTRACT_VERSION_V2) {
-    return renderHtmlV2(program);
+export function renderHtml(program: CompiledAnimation, options?: RenderStyleOptions): string {
+  const style = resolveRenderStyle(program, options);
+  if (style === "blueprint" || program.contractVersion === CONTRACT_VERSION_V2) {
+    return renderBakedHtml(program, style);
   }
   const { canvas } = program.spec;
   const svg = v1FrameMarkup(sampleAnimation(program, 0), program.spec.actor?.color ?? "#202124", canvas.width, canvas.height);

@@ -2606,6 +2606,31 @@ export function sampleActionAddons(params: SampleActionAddonsParams): SampledAdd
 export interface RenderAddonSvgOptions {
   strokeWidth?: number;
   themeColor?: string;
+  blueprint?: boolean;
+  hatchPatternId?: string;
+}
+
+export interface BlueprintDefsOptions {
+  gridPatternId?: string;
+  hatchPatternId?: string;
+}
+
+export function renderBlueprintPatternsSvg(options: BlueprintDefsOptions = {}): string {
+  const gridId = escapeXml(options.gridPatternId ?? "sm-bp-grid");
+  const hatchId = escapeXml(options.hatchPatternId ?? "sm-bp-hatch");
+  return (
+    `<pattern id="${gridId}" width="24" height="24" patternUnits="userSpaceOnUse">` +
+    `<path d="M24 0H0V24" fill="none" stroke="#e2e8f0" stroke-width="0.75"/>` +
+    `</pattern>` +
+    `<pattern id="${hatchId}" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">` +
+    `<rect width="6" height="6" fill="#f8fafc"/>` +
+    `<line x1="0" y1="0" x2="0" y2="6" stroke="#94a3b8" stroke-width="1"/>` +
+    `</pattern>`
+  );
+}
+
+export function renderBlueprintDefsSvg(options: BlueprintDefsOptions = {}): string {
+  return `<defs>${renderBlueprintPatternsSvg(options)}</defs>`;
 }
 
 function partialPolylinePath(points: readonly Point2D[], amount: number): string {
@@ -3333,22 +3358,62 @@ function renderAddonGeometrySvg(addon: SampledAddon, strokeWidth: number, stroke
   }
 }
 
+function toBlueprintAddonGeometrySvg(markup: string, hatchPatternId: string): string {
+  const hatchFill = `url(#${escapeXml(hatchPatternId)})`;
+  return markup.replace(/<([a-zA-Z][a-zA-Z0-9:-]*)\b([^>]*)>/g, (_full, rawTag: string, attrs: string) => {
+    const tag = rawTag.toLowerCase();
+    if (tag === "text") {
+      const updatedTextAttrs = attrs
+        .replace(/\bfill="([^"]*)"/g, (_m, val: string) =>
+          val === "none" ? 'fill="none"' : 'fill="#0f172a"'
+        )
+        .replace(/\bstroke="([^"]*)"/g, (_m, val: string) =>
+          val === "none" ? 'stroke="none"' : 'stroke="#0f172a"'
+        );
+      return `<${rawTag}${updatedTextAttrs}>`;
+    }
+    const updatedAttrs = attrs
+      .replace(/\bfill="([^"]*)"/g, (_m, val: string) =>
+        val === "none" ? 'fill="none"' : `fill="${hatchFill}"`
+      )
+      .replace(/\bstroke="([^"]*)"/g, (_m, val: string) => {
+        if (val === "none") return 'stroke="none"';
+        const lower = val.toLowerCase();
+        if (lower === "#0f172a" || lower === "#1e3a5f") return `stroke="${val}"`;
+        return 'stroke="#1e3a5f"';
+      });
+    return `<${rawTag}${updatedAttrs}>`;
+  });
+}
+
 export function renderAddonSvg(addon: SampledAddon, options: RenderAddonSvgOptions = {}): string {
   if (addon.opacity <= 0.001 || addon.scale <= 0.001 || addon.width <= 0 || addon.height <= 0) {
     return "";
   }
+  const isBlueprint = options.blueprint === true;
+  const hatchPatternId = options.hatchPatternId ?? "sm-bp-hatch";
   const strokeWidth = options.strokeWidth ?? 2.5;
-  const strokeColor = options.themeColor ?? "#202124";
+  const strokeColor = isBlueprint
+    ? (options.themeColor === "#0f172a" ? "#0f172a" : "#1e3a5f")
+    : (options.themeColor ?? "#202124");
   const n = formatSvgNumber;
 
-  const inner = renderAddonGeometrySvg(addon, strokeWidth, strokeColor);
-  if (!inner) return "";
+  const effectiveAddon =
+    isBlueprint && addon.type === "board"
+      ? { ...addon, secondaryColor: "#0f172a" }
+      : addon;
+  const rawInner = renderAddonGeometrySvg(effectiveAddon, strokeWidth, strokeColor);
+  if (!rawInner) return "";
+  const inner = isBlueprint ? toBlueprintAddonGeometrySvg(rawInner, hatchPatternId) : rawInner;
 
   const attrs: string[] = [
     `data-addon="${escapeXml(addon.type)}"`,
     `data-addon-id="${escapeXml(addon.id)}"`,
     `data-layer="${addon.layer}"`
   ];
+  if (isBlueprint) {
+    attrs.push(`data-style="blueprint"`);
+  }
   if (addon.actorId !== undefined) {
     attrs.push(`data-actor-id="${escapeXml(addon.actorId)}"`);
   }

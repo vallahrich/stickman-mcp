@@ -242,5 +242,74 @@ describe("CLI v0.2 commands and flags", () => {
       path: "still.svg"
     });
     expect(await readFile(resolve(outRoot, "still.svg"), "utf8")).toBe(previewFrame.stdout);
+
+    // 5. preview & export with --blueprint and --style default|blueprint
+    const previewBpFlag = invokeCli([
+      "preview",
+      "--input",
+      shorthandPath,
+      "--format",
+      "svg",
+      "--blueprint"
+    ]);
+    expect(previewBpFlag.status).toBe(0);
+    expect(previewBpFlag.stdout).toContain('data-style="blueprint"');
+    expect(previewBpFlag.stdout).toContain('id="sm-bp-hatch"');
+    expect(previewBpFlag.stdout).toContain('fill="url(#sm-bp-hatch)"');
+    expect(previewBpFlag.stdout).toContain('stroke-dasharray="4 3"');
+    expect(previewBpFlag.stdout).toContain("144u");
+
+    const previewBpStyle = invokeCli([
+      "preview",
+      "--input",
+      shorthandPath,
+      "--format",
+      "svg",
+      "--style",
+      "blueprint"
+    ]);
+    expect(previewBpStyle.status).toBe(0);
+    expect(previewBpStyle.stdout).toBe(previewBpFlag.stdout);
+
+    const previewBpHtml = invokeCli([
+      "preview",
+      "--input",
+      shorthandPath,
+      "--format",
+      "html",
+      "--blueprint"
+    ]);
+    expect(previewBpHtml.status).toBe(0);
+    expect(previewBpHtml.stdout).toContain('id="stickman-player"');
+    expect(previewBpHtml.stdout).toContain('id="sm-bp-hatch"');
+    expect(previewBpHtml.stdout).toContain("url(#sm-bp-hatch)");
+
+    const exportBpFrame = invokeCli([
+      "export",
+      "--input",
+      shorthandPath,
+      "--root",
+      outRoot,
+      "--output",
+      "blueprint-still.svg",
+      "--format",
+      "svg-frame",
+      "--time",
+      "3500",
+      "--blueprint"
+    ]);
+    expect(exportBpFrame.status).toBe(0);
+    const exportedBpSvg = await readFile(resolve(outRoot, "blueprint-still.svg"), "utf8");
+    expect(exportedBpSvg).toContain('data-style="blueprint"');
+    expect(exportedBpSvg).toContain('id="sm-bp-hatch"');
+    expect(exportedBpSvg).toContain("144u");
+
+    const badStyle = invokeCli(["preview", "--input", shorthandPath, "--style", "neon"]);
+    expect(badStyle.status).toBe(1);
+    expect(badStyle.stderr).toContain('"default" or "blueprint"');
+
+    const conflictingStyle = invokeCli(["preview", "--input", shorthandPath, "--blueprint", "--style", "default"]);
+    expect(conflictingStyle.status).toBe(1);
+    expect(conflictingStyle.stderr).toContain("Cannot combine --blueprint with --style default");
   });
 });

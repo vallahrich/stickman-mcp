@@ -6,17 +6,21 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   analyzeStoryboard,
   choreographAnimation,
+  compileAnimation,
   exportAnimation,
   rasterizeStoryboardPng,
+  renderAddonSvg,
   renderAnimatedSvg,
   renderArtifact,
+  renderBlueprintDefsSvg,
   renderHtml,
   renderHtmlPreview,
   renderStoryboardSvg,
   renderSvgFrame,
   sampleAnimation,
   selectStoryboardTimestamps,
-  type CompiledAnimation
+  type CompiledAnimation,
+  type SampledAddon
 } from "../src/index.js";
 
 const localScratchDirs: string[] = [];
@@ -471,6 +475,9 @@ describe("R5 storyboard contact sheet, spatial lint & optional PNG rasterizer", 
 
     expect(blueprintSvg).toContain('data-theme="blueprint"');
     expect(blueprintSvg).toContain('id="sm-bp-grid"');
+    expect(blueprintSvg).toContain('id="sm-bp-hatch"');
+    expect(blueprintSvg).toContain('fill="url(#sm-bp-hatch)"');
+    expect(blueprintSvg).toContain('data-style="blueprint"');
     expect(blueprintSvg).toContain('data-part="registration-mark"');
     expect(blueprintSvg).toContain('data-part="blueprint-header"');
     expect(blueprintSvg).toContain('data-part="blueprint-footer"');
@@ -503,5 +510,173 @@ describe("R5 storyboard contact sheet, spatial lint & optional PNG rasterizer", 
         Buffer.from([0x89, 0x50, 0x4e, 0x47])
       );
     }
+  });
+});
+
+describe("P1 full-stage CAD blueprint render mode & diagonal hatched prop geometry", () => {
+  it("exports deterministic renderBlueprintDefsSvg and hatches solid prop bodies while preserving wire fill='none'", () => {
+    const defs = renderBlueprintDefsSvg();
+    expect(defs).toContain('<pattern id="sm-bp-grid" width="24" height="24" patternUnits="userSpaceOnUse">');
+    expect(defs).toContain(
+      '<pattern id="sm-bp-hatch" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill="#f8fafc"/><line x1="0" y1="0" x2="0" y2="6" stroke="#94a3b8" stroke-width="1"/></pattern>'
+    );
+
+    const customDefs = renderBlueprintDefsSvg({ gridPatternId: "g-1", hatchPatternId: "h-1" });
+    expect(customDefs).toContain('id="g-1"');
+    expect(customDefs).toContain('id="h-1"');
+
+    const cardAddon: SampledAddon = {
+      id: "kpi-card",
+      type: "card",
+      layer: "front",
+      x: 100,
+      y: 120,
+      width: 34,
+      height: 22,
+      rotation: 0,
+      scale: 1,
+      opacity: 1,
+      color: "#b11f4b",
+      text: "Q4"
+    };
+    const bpCard = renderAddonSvg(cardAddon, { blueprint: true });
+    expect(bpCard).toContain('data-style="blueprint"');
+    expect(bpCard).toContain('fill="url(#sm-bp-hatch)"');
+    expect(bpCard).toContain('stroke="#1e3a5f"');
+    expect(bpCard).not.toContain("#b11f4b");
+    expect(bpCard).toContain('fill="#0f172a" stroke="none">Q4</text>');
+
+    const wireChair: SampledAddon = {
+      id: "chair",
+      type: "chair",
+      layer: "back",
+      x: 200,
+      y: 269,
+      width: 60,
+      height: 100,
+      rotation: 0,
+      scale: 1,
+      opacity: 1,
+      color: "#ff0055"
+    };
+    const bpChair = renderAddonSvg(wireChair, { blueprint: true });
+    expect(bpChair).toContain('data-style="blueprint"');
+    expect(bpChair).toContain('fill="none"');
+    expect(bpChair).not.toContain("url(#sm-bp-hatch)");
+    expect(bpChair).not.toContain("#ff0055");
+  });
+
+  it("renders full-stage CAD blueprint mode across renderSvgFrame, renderAnimatedSvg, renderHtml & renderArtifact (via option and v2 theme.style, for both v2 and v1)", () => {
+    const program = buildTwoActorRichStory();
+    const v2 = program.spec;
+    if (v2.version !== "stickman.animation/v2") throw new Error("Expected v2 spec");
+    const shotAct = v2.actors.find((a) => a.id === "teammate")!.actions[0]!;
+    const shotMidMs = shotAct.startMs + shotAct.durationMs * 0.56;
+
+    const frameBp = renderSvgFrame(program, shotMidMs, "normal", { style: "blueprint" });
+    assertValidScriptlessSvg(frameBp, "v2-frame-blueprint");
+    expect(frameBp).toContain('data-style="blueprint"');
+    expect(frameBp).toContain('id="sm-bp-grid"');
+    expect(frameBp).toContain('id="sm-bp-hatch"');
+    expect(frameBp).toContain('fill="#f8fafc"');
+    expect(frameBp).toContain('fill="url(#sm-bp-grid)"');
+    expect(frameBp).toContain('fill="url(#sm-bp-hatch)"');
+    expect(frameBp).toContain('data-part="registration-mark"');
+    expect(frameBp).toContain('stroke-dasharray="4 3"');
+    expect(frameBp).toContain("Y=369");
+    expect(frameBp).toContain(">L<");
+    expect(frameBp).toContain(">CL<");
+    expect(frameBp).toContain(">C<");
+    expect(frameBp).toContain(">CR<");
+    expect(frameBp).toContain(">R<");
+    expect(frameBp).toContain("X=400");
+    expect(frameBp).toContain('stroke-dasharray="2 2"');
+    expect(frameBp).toContain("144u");
+    expect(frameBp).toContain("144u (135px)"); // teammate scale 0.94 => round(144 * 0.94) = 135px
+    expect(frameBp).toMatch(/x=-?\d+/);
+    // Monochrome technical ink (#0f172a actor + #1e3a5f accessories/props, no rainbow accents)
+    expect(frameBp).not.toContain("#e11d48");
+    expect(frameBp).not.toContain("#2563eb");
+    expect(frameBp).not.toContain("#f28c28");
+
+    const animBp = renderAnimatedSvg(program, { style: "blueprint" });
+    assertValidScriptlessSvg(animBp, "v2-animated-blueprint");
+    expect(animBp).toContain('data-style="blueprint"');
+    expect(animBp).toContain('id="sm-bp-hatch"');
+    expect(animBp).toContain('fill="url(#sm-bp-hatch)"');
+    expect(animBp).toContain('stroke-dasharray="4 3"');
+    expect(animBp).toContain('stroke-dasharray="2 2"');
+    expect(animBp).toContain(">L<");
+    expect(animBp).toContain(">C<");
+    expect(animBp).toContain(">R<");
+    expect(animBp).toContain("144u");
+
+    const htmlBp = renderHtml(program, { style: "blueprint" });
+    expect(htmlBp).toContain('id="sm-bp-hatch"');
+    expect(htmlBp).toContain("url(#sm-bp-hatch)");
+    expect(htmlBp).toContain('stroke-dasharray="4 3"');
+    expect(htmlBp).toContain('stroke-dasharray="2 2"');
+    expect(htmlBp).toContain(">L<");
+    expect(htmlBp).toContain(">C<");
+    expect(htmlBp).toContain(">R<");
+    expect(htmlBp).toContain("144u");
+    expect(renderArtifact(program, "svg-frame", { timeMs: shotMidMs, style: "blueprint" })).toBe(frameBp);
+    expect(renderArtifact(program, "svg", { style: "blueprint" })).toBe(animBp);
+    expect(renderArtifact(program, "html", { style: "blueprint" })).toBe(htmlBp);
+
+    // Automatic activation via v2 spec theme: { style: "blueprint" }
+    const themedChoreo = choreographAnimation({
+      theme: { style: "blueprint", accentColor: "#e11d48" },
+      actor: { id: "lead", x: "center", accessory: "tie" },
+      actions: [
+        { action: "write-board" },
+        { action: "present-card", addon: { type: "card", text: "CAD" } }
+      ]
+    });
+    expect(themedChoreo.valid).toBe(true);
+    expect(themedChoreo.spec?.theme?.style).toBe("blueprint");
+    const themedCardAct = themedChoreo.spec!.actors[0]!.actions[1]!;
+    const themedMidMs = themedCardAct.startMs + themedCardAct.durationMs * 0.55;
+    const autoBpFrame = renderSvgFrame(themedChoreo.program!, themedMidMs);
+    assertValidScriptlessSvg(autoBpFrame, "v2-theme-auto-blueprint");
+    expect(autoBpFrame).toContain('id="sm-bp-hatch"');
+    expect(autoBpFrame).toContain('fill="url(#sm-bp-hatch)"');
+    expect(autoBpFrame).toContain('stroke-dasharray="4 3"');
+    expect(autoBpFrame).toContain(">L<");
+    expect(autoBpFrame).toContain(">C<");
+    expect(autoBpFrame).toContain(">R<");
+    expect(autoBpFrame).toContain("144u");
+    expect(autoBpFrame).not.toContain("#e11d48");
+    expect(renderAnimatedSvg(themedChoreo.program!)).toContain('fill="url(#sm-bp-hatch)"');
+    expect(renderHtml(themedChoreo.program!)).toContain('fill="url(#sm-bp-hatch)"');
+    // Explicit { style: "default" } overrides theme.style
+    expect(renderSvgFrame(themedChoreo.program!, themedMidMs, "normal", { style: "default" })).not.toContain('id="sm-bp-hatch"');
+
+    // v1 program with rectangular pushed prop in blueprint mode
+    const v1Compiled = compileAnimation({
+      version: "stickman.animation/v1",
+      canvas: { width: 640, height: 360, fps: 24 },
+      durationMs: 3600,
+      actor: { x: 40, groundY: 210, color: "#b11f4b" },
+      targets: { arrival: { x: 105, y: 210 } },
+      prop: { id: "crate", x: 150, y: 160, width: 50, height: 50, toX: 250, handle: { x: 5, y: 8 } },
+      actions: [
+        { action: "walk", startMs: 0, durationMs: 1000, target: "arrival" },
+        { action: "push", startMs: 1000, durationMs: 2600, target: "crate" }
+      ]
+    });
+    expect(v1Compiled.valid).toBe(true);
+    const v1BpFrame = renderSvgFrame(v1Compiled.program!, 1500, "normal", { style: "blueprint" });
+    assertValidScriptlessSvg(v1BpFrame, "v1-frame-blueprint");
+    expect(v1BpFrame).toContain('id="sm-bp-hatch"');
+    expect(v1BpFrame).toContain('data-prop="crate" data-style="blueprint"');
+    expect(v1BpFrame).toContain('fill="url(#sm-bp-hatch)"');
+    expect(v1BpFrame).toContain("Y=210");
+    expect(v1BpFrame).toContain("144u");
+    expect(v1BpFrame).not.toContain("#b11f4b");
+    const v1BpAnim = renderAnimatedSvg(v1Compiled.program!, { style: "blueprint" });
+    assertValidScriptlessSvg(v1BpAnim, "v1-anim-blueprint");
+    expect(v1BpAnim).toContain('fill="url(#sm-bp-hatch)"');
+    expect(renderHtml(v1Compiled.program!, { style: "blueprint" })).toContain('fill="url(#sm-bp-hatch)"');
   });
 });

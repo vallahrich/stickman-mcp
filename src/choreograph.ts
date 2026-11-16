@@ -896,7 +896,7 @@ export function choreographAnimation(input: unknown): ChoreographResult {
     if (!isRecord(input.theme)) {
       diagnostics.push({ path: "$.theme", code: "invalid_type", message: "theme must be an object." });
     } else {
-      hasOnlyKeys(input.theme, ["accentColor", "background"], "$.theme", diagnostics);
+      hasOnlyKeys(input.theme, ["accentColor", "background", "style"], "$.theme", diagnostics);
       for (const field of ["accentColor", "background"] as const) {
         const val = input.theme[field];
         if (val !== undefined && (typeof val !== "string" || !HEX_COLOR.test(val))) {
@@ -907,9 +907,17 @@ export function choreographAnimation(input: unknown): ChoreographResult {
           });
         }
       }
+      if (input.theme.style !== undefined && input.theme.style !== "default" && input.theme.style !== "blueprint") {
+        diagnostics.push({
+          path: "$.theme.style",
+          code: "invalid_enum",
+          message: 'theme.style must be "default" or "blueprint".'
+        });
+      }
       theme = {
         ...(typeof input.theme.accentColor === "string" ? { accentColor: input.theme.accentColor } : {}),
-        ...(typeof input.theme.background === "string" ? { background: input.theme.background } : {})
+        ...(typeof input.theme.background === "string" ? { background: input.theme.background } : {}),
+        ...(input.theme.style === "default" || input.theme.style === "blueprint" ? { style: input.theme.style } : {})
       };
     }
   }

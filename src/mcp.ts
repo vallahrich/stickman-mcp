@@ -56,7 +56,8 @@ import {
   type CompileResult,
   type CompiledAnimation,
   type ExportFormat,
-  type PlaybackMode
+  type PlaybackMode,
+  type RenderStyle
 } from "./index.js";
 import { getStory, storyCatalog } from "./stories.js";
 import { filmRecipeSchema } from "./film-schema.js";
@@ -646,7 +647,8 @@ const toolDefinitions: DefinedTool[] = [
         ...animationInput.properties,
         format: { type: "string", enum: [...PREVIEW_FORMATS] },
         timeMs: { type: "number" },
-        mode: { type: "string", enum: ["normal", "reduced", "static"] }
+        mode: { type: "string", enum: ["normal", "reduced", "static"] },
+        style: { type: "string", enum: ["default", "blueprint"] }
       }
     },
     {
@@ -671,7 +673,8 @@ const toolDefinitions: DefinedTool[] = [
         path: { type: "string", minLength: 1 },
         format: { type: "string", enum: [...EXPORT_FORMATS] },
         timeMs: { type: "number" },
-        mode: { type: "string", enum: ["normal", "reduced", "static"] }
+        mode: { type: "string", enum: ["normal", "reduced", "static"] },
+        style: { type: "string", enum: ["default", "blueprint"] }
       }
     },
     {
@@ -829,6 +832,10 @@ function stringArgument(args: Record<string, unknown>, key: string): string {
 
 function isPlaybackMode(value: unknown): value is PlaybackMode {
   return value === "normal" || value === "reduced" || value === "static";
+}
+
+function isRenderStyle(value: unknown): value is RenderStyle {
+  return value === "default" || value === "blueprint";
 }
 
 function isPreviewFormat(value: unknown): value is PreviewFormat {
@@ -1421,13 +1428,16 @@ export function createMcpServer(outputRoot: string): Server {
           }
           const mode = args.mode;
           if (mode !== undefined && !isPlaybackMode(mode)) throw new Error("Mode must be normal, reduced, or static.");
+          const style = args.style;
+          if (style !== undefined && !isRenderStyle(style)) throw new Error('Style must be "default" or "blueprint".');
           const timeMs = args.timeMs;
           if (timeMs !== undefined && (typeof timeMs !== "number" || !Number.isFinite(timeMs))) {
             throw new Error("timeMs must be finite.");
           }
           const content = renderArtifact(compiled.program, format, {
             ...(timeMs !== undefined ? { timeMs } : {}),
-            ...(mode !== undefined ? { mode } : {})
+            ...(mode !== undefined ? { mode } : {}),
+            ...(style !== undefined ? { style } : {})
           });
           return finalizeResponse(name, result({ format, content }));
         }
@@ -1442,6 +1452,8 @@ export function createMcpServer(outputRoot: string): Server {
           }
           const mode = args.mode;
           if (mode !== undefined && !isPlaybackMode(mode)) throw new Error("Mode must be normal, reduced, or static.");
+          const style = args.style;
+          if (style !== undefined && !isRenderStyle(style)) throw new Error('Style must be "default" or "blueprint".');
           const timeMs = args.timeMs;
           if (timeMs !== undefined && (typeof timeMs !== "number" || !Number.isFinite(timeMs))) {
             throw new Error("timeMs must be finite.");
@@ -1452,6 +1464,7 @@ export function createMcpServer(outputRoot: string): Server {
               await exportAnimation(compiled.program, outputRoot, stringArgument(args, "path"), format, {
                 ...(timeMs !== undefined ? { timeMs } : {}),
                 ...(mode !== undefined ? { mode } : {}),
+                ...(style !== undefined ? { style } : {}),
                 signal: extra.signal,
                 ...(extra._meta?.progressToken === undefined
                   ? {}

@@ -24,6 +24,7 @@ import {
   type CompiledAnimation,
   type ExportFormat,
   type PlaybackMode,
+  type RenderStyle,
   type StoryboardTheme,
   type ValidationResult
 } from "./index.js";
@@ -87,6 +88,22 @@ function parseStoryboardTheme(values: Map<string, string>, flags: Set<string>): 
   return rawTheme as StoryboardTheme | undefined;
 }
 
+function parseRenderStyle(values: Map<string, string>, flags: Set<string>): RenderStyle | undefined {
+  const rawStyle = values.get("style");
+  if (rawStyle !== undefined && rawStyle !== "default" && rawStyle !== "blueprint") {
+    throw new Error('Render --style must be "default" or "blueprint".');
+  }
+  if (flags.has("blueprint") && rawStyle === "default") {
+    throw new Error("Cannot combine --blueprint with --style default.");
+  }
+  const rawTheme = values.get("theme");
+  if (rawStyle !== undefined && rawTheme !== undefined && rawStyle !== rawTheme) {
+    throw new Error(`Cannot combine --style ${rawStyle} with --theme ${rawTheme}.`);
+  }
+  if (flags.has("blueprint")) return "blueprint";
+  return rawStyle as RenderStyle | undefined;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -141,8 +158,8 @@ Commands:
   compile --input scene.json       Compile a canonical program as JSON
   choreograph --input scene.json   Auto-choreograph a v2 scene to JSON
   storyboard --input scene.json [--columns N] [--max-panels N] [--mode normal|reduced|static] [--theme default|blueprint] [--blueprint] [--lint-only]
-  preview --input scene.json [--time MS] [--mode normal|reduced|static] [--format svg-frame|svg|html|storyboard-svg]
-  export --input scene.json --root DIR --output FILE --format svg-frame|svg|html|storyboard-svg|gif|mp4
+  preview --input scene.json [--time MS] [--mode normal|reduced|static] [--style default|blueprint] [--blueprint] [--format svg-frame|svg|html|storyboard-svg]
+  export --input scene.json --root DIR --output FILE --format svg-frame|svg|html|storyboard-svg|gif|mp4 [--style default|blueprint] [--blueprint]
 
 All export paths are relative to --root. Existing files and paths escaping that root are rejected.
 `);
@@ -253,10 +270,12 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<nu
     const columns = parseIntOption(values, "columns", 1, 8);
     const maxPanels = parseIntOption(values, "max-panels", 2, 16);
     const theme = parseStoryboardTheme(values, flags);
+    const style = parseRenderStyle(values, flags);
     process.stdout.write(
       renderArtifact(result.program, format, {
         ...(timeMs !== undefined ? { timeMs } : {}),
         ...(mode !== undefined ? { mode } : {}),
+        ...(style !== undefined ? { style } : {}),
         ...(columns !== undefined ? { columns } : {}),
         ...(maxPanels !== undefined ? { maxPanels } : {}),
         ...(theme !== undefined ? { theme } : {})
@@ -283,9 +302,11 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<nu
     const columns = parseIntOption(values, "columns", 1, 8);
     const maxPanels = parseIntOption(values, "max-panels", 2, 16);
     const theme = parseStoryboardTheme(values, flags);
+    const style = parseRenderStyle(values, flags);
     const outcome = await exportAnimation(result.program, required(values, "root"), required(values, "output"), format, {
       ...(timeMs !== undefined ? { timeMs } : {}),
       ...(mode !== undefined ? { mode } : {}),
+      ...(style !== undefined ? { style } : {}),
       ...(columns !== undefined ? { columns } : {}),
       ...(maxPanels !== undefined ? { maxPanels } : {}),
       ...(theme !== undefined ? { theme } : {})

@@ -111,7 +111,8 @@ export const animationSchemaV2 = {
       additionalProperties: false,
       properties: {
         accentColor: { type: "string", pattern: "^#[0-9a-fA-F]{6}$" },
-        background: { type: "string", pattern: "^#[0-9a-fA-F]{6}$" }
+        background: { type: "string", pattern: "^#[0-9a-fA-F]{6}$" },
+        style: { enum: ["default", "blueprint"] }
       }
     },
     addons: { enum: ["auto", "none"] },

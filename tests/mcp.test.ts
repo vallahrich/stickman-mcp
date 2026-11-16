@@ -199,10 +199,13 @@ describe("stdio MCP protocol", () => {
       { name: "stickman_preview", arguments: { animation: scene, mode: null } },
       { name: "stickman_preview", arguments: { animation: scene, format: "gif" } },
       { name: "stickman_preview", arguments: { animation: scene, format: null } },
+      { name: "stickman_preview", arguments: { animation: scene, style: "neon" } },
+      { name: "stickman_preview", arguments: { animation: scene, style: null } },
       { name: "stickman_storyboard", arguments: { animation: scene, theme: "neon" } },
       { name: "stickman_export", arguments: { animation: scene, format: "svg" } },
       { name: "stickman_export", arguments: { animation: scene, path: 42, format: "svg" } },
       { name: "stickman_export", arguments: { animation: scene, path: "bad.svg", format: "invalid" } },
+      { name: "stickman_export", arguments: { animation: scene, path: "bad.svg", format: "svg", style: "neon" } },
       { name: "stickman_export", arguments: { animation: scene, path: "bad.svg", format: "svg", root } }
     ];
     for (const call of invalidCalls) {
@@ -334,7 +337,35 @@ describe("stdio MCP protocol", () => {
     expect(bpCall.isError).not.toBe(true);
     const bpData = (bpCall.structuredContent as { result: { svg: string } }).result;
     expect(bpData.svg).toContain('data-theme="blueprint"');
+    expect(bpData.svg).toContain('id="sm-bp-hatch"');
     expect(bpData.svg).toContain("T+0.00s");
+
+    // Full-stage blueprint preview & export (v1 prop + v2 hatched addon)
+    const v1BpPreview = await client.callTool({
+      name: "stickman_preview",
+      arguments: { animation: scene, format: "svg-frame", timeMs: 1500, style: "blueprint" }
+    });
+    expect(v1BpPreview.isError).not.toBe(true);
+    const v1BpContent = (v1BpPreview.structuredContent as { result: { format: string; content: string } }).result;
+    expect(v1BpContent.format).toBe("svg-frame");
+    expect(v1BpContent.content).toContain('id="sm-bp-hatch"');
+    expect(v1BpContent.content).toContain('fill="url(#sm-bp-hatch)"');
+    expect(v1BpContent.content).toContain("144u");
+
+    const v2BpScene = {
+      theme: { style: "blueprint" as const },
+      actor: { id: "inventor", x: "center" },
+      actions: [{ action: "idea" }]
+    };
+    const v2BpPreview = await client.callTool({
+      name: "stickman_preview",
+      arguments: { animation: v2BpScene, format: "svg" }
+    });
+    expect(v2BpPreview.isError).not.toBe(true);
+    const v2BpSvg = (v2BpPreview.structuredContent as { result: { content: string } }).result.content;
+    expect(v2BpSvg).toContain('id="sm-bp-hatch"');
+    expect(v2BpSvg).toContain('fill="url(#sm-bp-hatch)"');
+    expect(v2BpSvg).toContain('stroke-dasharray="4 3"');
 
     // Resources (9 total)
     const { resources } = await client.listResources();
