@@ -39,7 +39,7 @@ describe("connected private release preparation", () => {
     ]));
     await expect(audit(root, "../bad")).rejects.toThrow("SemVer");
     await expect(audit(root, "0.1.0-rc.01")).rejects.toThrow("SemVer");
-    expect(report.fixtureOrigins).toHaveLength(13);
+    expect(report.fixtureOrigins).toHaveLength(111);
     expect(() => motionOrigin({ id: "unknown", poseKeys: [{}] }, "unknown.json")).toThrow("Unknown motion provenance");
     expect(() => motionOrigin({ id: "walk", source: { dataset: "CMU", file: "16_15.bvh", subject: "16", trial: "99" } }, "wrong.json")).toThrow("Inconsistent CMU");
   });

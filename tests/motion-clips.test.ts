@@ -1,5 +1,11 @@
+import { spawnSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
+import { mkdir, readFile, rm } from "node:fs/promises";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { MOTION_CLIP_LIBRARY, sampleClipMotion, sampleMotionClip, type MotionClip } from "../src/motion-clips.js";
+import { compileAnimation, sampleAnimation } from "../src/compiler.js";
+import { CONTRACT_VERSION, type AnimationSpec, type SampledFrame } from "../src/contract.js";
+import { MOTION_CLIP_LIBRARY, hermiteDecayWeight, sampleClipMotion, sampleMotionClip, type MotionClip } from "../src/motion-clips.js";
 
 const rad = (degrees: number): number => degrees * Math.PI / 180;
 const wrap = (angle: number): number => ((angle + 180) % 360 + 360) % 360 - 180;
@@ -272,5 +278,209 @@ describe("mocap clip library", () => {
     });
     expect(apex.hipHeight - crouch.hipHeight).toBeGreaterThan(35);
     expect(Math.min(apex.leftFoot.y, apex.rightFoot.y)).toBeLessThan(260);
+  });
+});
+
+function framePoints(frame: SampledFrame): { x: number; y: number }[] {
+  return [frame.head, ...frame.segments.flatMap((s) => [{ x: s.x1, y: s.y1 }, { x: s.x2, y: s.y2 }])];
+}
+
+function maxFrameStep(a: SampledFrame, b: SampledFrame): number {
+  const pa = framePoints(a), pb = framePoints(b);
+  return Math.max(...pa.map((pt, i) => Math.hypot(pt.x - pb[i]!.x, pt.y - pb[i]!.y)));
+}
+
+function expectClipFrameAnatomy(frame: SampledFrame): void {
+  const torso = frame.segments.find((s) => s.id === "torso")!;
+  const scale = Math.hypot(torso.x2 - torso.x1, torso.y2 - torso.y1) / 45;
+  expect(scale).toBeGreaterThan(0.2);
+  for (const seg of frame.segments) {
+    expect(Math.max(seg.y1, seg.y2)).toBeLessThanOrEqual(frame.groundY + 1e-6);
+    if (Math.abs(frame.facing ?? 1) > 0.97) {
+      const expected = (seg.id === "torso" ? 45 : seg.id.includes("arm") ? 28 : 36) * scale;
+      const actual = Math.hypot(seg.x2 - seg.x1, seg.y2 - seg.y1);
+      expect(Math.abs(actual - expected) / expected).toBeLessThanOrEqual(0.04);
+    }
+  }
+}
+
+describe("canvas-independent clip routing and C1 inertialization seam blending", () => {
+  it("routes unlocked catalog travel and gesture clips cleanly across 640x360, 800x450, and 1280x720 canvases", () => {
+    for (const [width, height, groundY] of [[640, 360, 290], [800, 450, 360], [1280, 720, 580]] as const) {
+      for (const action of ["walk-on", "walk-off", "jog", "walk-backwards", "sidestep", "stairs-up", "stairs-down"] as const) {
+        const startX = Math.round(width * 0.22);
+        const endX = Math.round(width * 0.62);
+        const compiled = compileAnimation({
+          version: CONTRACT_VERSION,
+          canvas: { width, height, fps: 30 },
+          durationMs: 2800,
+          actor: { x: startX, groundY },
+          targets: { dest: { x: endX, y: groundY } },
+          actions: [{ action, startMs: 0, durationMs: 2600, target: "dest" }]
+        });
+        expect(compiled.diagnostics, `${action} on ${width}x${height}`).toEqual([]);
+        const program = compiled.program!;
+        expect(sampleAnimation(program, 0).x).toBeCloseTo(startX, 0);
+        expect(sampleAnimation(program, 2600).x).toBeCloseTo(endX, 0);
+        expectClipFrameAnatomy(sampleAnimation(program, 1300));
+      }
+    }
+  });
+
+  it("blends walk-on -> point -> think -> idea -> swipe-next -> cheer -> walk-off seamlessly on 800x450", () => {
+    expect(hermiteDecayWeight(0)).toBe(1);
+    expect(hermiteDecayWeight(0.5)).toBe(0.5);
+    expect(hermiteDecayWeight(1)).toBe(0);
+
+    const spec: AnimationSpec = {
+      version: CONTRACT_VERSION,
+      canvas: { width: 800, height: 450, fps: 30 },
+      durationMs: 11200,
+      actor: { x: 110, groundY: 360 },
+      targets: { stage: { x: 310, y: 360 }, board: { x: 520, y: 180 }, exit: { x: 670, y: 360 } },
+      actions: [
+        { action: "walk-on", startMs: 0, durationMs: 2000, target: "stage" },
+        { action: "point", startMs: 2000, durationMs: 1400, target: "board" },
+        { action: "think", startMs: 3400, durationMs: 1500, target: "board" },
+        { action: "idea", startMs: 4900, durationMs: 1500 },
+        { action: "swipe-next", startMs: 6400, durationMs: 1400 },
+        { action: "cheer", startMs: 7800, durationMs: 1600 },
+        { action: "walk-off", startMs: 9400, durationMs: 1800, target: "exit" }
+      ]
+    };
+    const compiled = compileAnimation(spec);
+    expect(compiled.diagnostics).toEqual([]);
+    const program = compiled.program!;
+
+    for (const tb of [2000, 3400, 4900, 6400, 7800, 9400]) {
+      expect(maxFrameStep(sampleAnimation(program, tb - 1e-4), sampleAnimation(program, tb + 1e-4))).toBeLessThan(0.01);
+      expect(maxFrameStep(sampleAnimation(program, tb - 1), sampleAnimation(program, tb + 1))).toBeLessThanOrEqual(2.5);
+      for (const offset of [0, 25, 70, 115, 140]) {
+        expectClipFrameAnatomy(sampleAnimation(program, tb + offset));
+      }
+    }
+    expect(sampleAnimation(program, 11200).x).toBeCloseTo(670, 0);
+  });
+
+  it("blends sit-down -> type-at-desk -> stand-up and walk -> posture -> walk-off chains without pops or floor penetration on 800x450", () => {
+    const deskSpec: AnimationSpec = {
+      version: CONTRACT_VERSION,
+      canvas: { width: 800, height: 450, fps: 30 },
+      durationMs: 6200,
+      actor: { x: 360, groundY: 360 },
+      actions: [
+        { action: "sit-down", startMs: 200, durationMs: 1800 },
+        { action: "type-at-desk", startMs: 2000, durationMs: 2000 },
+        { action: "stand-up", startMs: 4000, durationMs: 1800 }
+      ]
+    };
+    const deskCompiled = compileAnimation(deskSpec);
+    expect(deskCompiled.diagnostics).toEqual([]);
+    const deskProgram = deskCompiled.program!;
+
+    for (const tb of [200, 2000, 4000]) {
+      expect(maxFrameStep(sampleAnimation(deskProgram, tb - 1), sampleAnimation(deskProgram, tb + 1))).toBeLessThanOrEqual(2.5);
+    }
+    for (let t = 0; t <= 6200; t += 25) expectClipFrameAnatomy(sampleAnimation(deskProgram, t));
+    const seatedHipY = sampleAnimation(deskProgram, 3000).segments[0]!.y1;
+    const standingHipY = sampleAnimation(deskProgram, 5800).segments[0]!.y1;
+    expect(seatedHipY - standingHipY).toBeGreaterThan(15);
+
+    const unblended = compileAnimation({
+      ...deskSpec,
+      actions: [
+        { action: "sit-down", startMs: 200, durationMs: 1800, blendMs: 0 },
+        { action: "stand-up", startMs: 2000, durationMs: 1800, blendMs: 180 }
+      ]
+    });
+    expect(unblended.diagnostics).toEqual([]);
+    expect(maxFrameStep(sampleAnimation(unblended.program!, 199), sampleAnimation(unblended.program!, 200))).toBeGreaterThan(5);
+    expect(maxFrameStep(sampleAnimation(unblended.program!, 1999), sampleAnimation(unblended.program!, 2001))).toBeLessThanOrEqual(2.5);
+  });
+
+  it("interpolates non-monotonic poseKeys travel smoothly without uClip division blowup and keeps import-clips.mjs safe", async () => {
+    const baseIdle = MOTION_CLIP_LIBRARY.clips.idle!;
+    const standPose = {
+      anchor: "both" as const,
+      lean: 2,
+      neck: 0,
+      bob: 0,
+      rLeg: { hip: 5, knee: 12 },
+      lLeg: { hip: -5, knee: 12 },
+      rArm: { shoulder: -8, elbow: 40 },
+      lArm: { shoulder: 8, elbow: 40 }
+    };
+    const outAndBackClip: MotionClip = {
+      ...baseIdle,
+      name: "out-and-back",
+      loop: false,
+      frames: baseIdle.frames.slice(0, 31),
+      meta: {
+        id: "out-and-back",
+        label: "Out and Back",
+        summary: "Walks forward to +80 then returns to +25.",
+        kind: "oneshot",
+        travel: "travel",
+        facingChange: 0,
+        contacts: ["lFoot", "rFoot"],
+        markers: {},
+        aim: null,
+        prop: null,
+        mirrorable: true,
+        tags: [],
+        durationS: 1,
+        quality: { passed: true },
+        source: "test",
+        license: "MIT"
+      },
+      poseKeys: [
+        { frame: 0, pose: { ...standPose, dx: 0, facing: 1 }, ease: "linear" },
+        { frame: 15, pose: { ...standPose, dx: 80, facing: 1 }, ease: "linear" },
+        { frame: 30, pose: { ...standPose, dx: 25, facing: 1 }, ease: "linear" }
+      ]
+    };
+    const lib = { ...MOTION_CLIP_LIBRARY, clips: { ...MOTION_CLIP_LIBRARY.clips, "out-and-back": outAndBackClip } };
+    const xs = [0, 0.25, 0.5, 0.75, 1].map((progress) =>
+      sampleClipMotion(lib, {
+        action: "out-and-back",
+        clipId: "out-and-back",
+        progress,
+        startX: 200,
+        endX: 180,
+        groundY: 300,
+        facing: 1,
+        scale: 1
+      }).rootX
+    );
+    expect(xs[0]).toBeCloseTo(200, 3);
+    expect(xs[4]).toBeCloseTo(180, 3);
+    expect(xs[2]).toBeGreaterThan(240);
+    expect(xs[2]).toBeLessThan(285);
+
+    const motionClipsSource = await readFile(resolve(process.cwd(), "src", "motion-clips.ts"), "utf8");
+    const templateSource = await readFile(resolve(process.cwd(), "scripts", "motion-clips-template.ts"), "utf8");
+    expect(
+      motionClipsSource.replace(
+        /^export const MOTION_CLIP_LIBRARY = \{.*\}(?: as MotionClipLibrary)?;$/m,
+        "export const MOTION_CLIP_LIBRARY = __CLIP_DATA__;"
+      )
+    ).toBe(templateSource);
+
+    const scratchDir = resolve(process.cwd(), `.import-clips-test-${randomUUID()}`);
+    await mkdir(scratchDir, { recursive: true });
+    try {
+      const outPath = resolve(scratchDir, "motion-library.ts");
+      const run = spawnSync(
+        process.execPath,
+        [resolve(process.cwd(), "scripts", "import-clips.mjs"), "--out", outPath],
+        { encoding: "utf8", windowsHide: true, timeout: 15_000 }
+      );
+      expect(run.status).toBe(0);
+      const generated = await readFile(outPath, "utf8");
+      expect(generated).toContain("export const GENERATED_MOTION_LIBRARY");
+      expect(await readFile(resolve(process.cwd(), "src", "motion-clips.ts"), "utf8")).toBe(motionClipsSource);
+    } finally {
+      await rm(scratchDir, { recursive: true, force: true });
+    }
   });
 });

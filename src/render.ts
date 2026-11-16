@@ -1,18 +1,35 @@
-import type { CompiledAnimation, PlaybackMode, SampledFrame } from "./contract.js";
+import {
+  CONTRACT_VERSION_V2,
+  type AnimationSpecV2,
+  type CompiledAnimation,
+  type PlaybackMode,
+  type SampledActorFrame,
+  type SampledAddon,
+  type SampledFrame
+} from "./contract.js";
 import { sampleAnimation } from "./compiler.js";
 import { sampleClipMotion } from "./motion-clips.js";
 import { RUNTIME_MOTION_LIBRARY } from "./motion-library.js";
+import { renderAddonSvg } from "./props.js";
 
 function xml(value: string): string {
-  return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&apos;");
+  return value
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/g, "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;");
 }
 
 function scriptJson(value: unknown): string {
   return JSON.stringify(value).replaceAll("<", "\\u003c").replaceAll(">", "\\u003e").replaceAll("&", "\\u0026").replaceAll("\u2028", "\\u2028").replaceAll("\u2029", "\\u2029");
 }
 
-function number(value: number): string {
-  return Number(value.toFixed(3)).toString();
+function number(value: number, decimals = 3): string {
+  const factor = 10 ** decimals;
+  const rounded = Math.round(value * factor) / factor;
+  return (Math.abs(rounded) < 1e-6 ? 0 : rounded).toString();
 }
 
 export function frameGeometry(frame: SampledFrame) {
@@ -129,7 +146,318 @@ export function frameGeometry(frame: SampledFrame) {
   };
 }
 
-function frameMarkup(frame: SampledFrame, color: string, width: number, height: number): string {
+export interface SceneRenderOptions {
+  defaultColor?: string;
+  themeAccentColor?: string;
+  minStrokeWidth?: number;
+  decimals?: number;
+  compact?: boolean;
+}
+
+function compactPathNumbers(d: string, decimals: number): string {
+  if (decimals >= 3) return d;
+  return d.replace(/-?\d+\.\d+/g, (raw) => number(Number(raw), decimals));
+}
+
+function compactAddonSvgNumbers(svg: string, decimals: number, stripLineJoins = false): string {
+  let out =
+    decimals >= 3
+      ? svg
+      : svg.replace(
+          /\b(d|x|y|cx|cy|r|rx|ry|width|height|stroke-width|font-size|opacity|transform|points)="([^"]+)"/g,
+          (_full, attr: string, val: string) => `${attr}="${compactPathNumbers(val, decimals)}"`
+        );
+  if (stripLineJoins) {
+    out = out
+      .replaceAll(' stroke-linecap="round"', "")
+      .replaceAll(' stroke-linejoin="round"', "");
+  }
+  return out;
+}
+
+export function actorToSampledFrame(actor: SampledActorFrame, timeMs = 0): SampledFrame {
+  return {
+    timeMs,
+    action: actor.action,
+    x: actor.x,
+    groundY: actor.groundY,
+    head: actor.head,
+    segments: actor.segments,
+    prop: null,
+    ...(actor.facing !== undefined ? { facing: actor.facing } : {}),
+    ...(actor.articulated ? { articulated: true } : {})
+  };
+}
+
+export function renderActorAccessorySvg(
+  actor: SampledActorFrame,
+  geometry: ReturnType<typeof frameGeometry>,
+  themeAccentColor?: string,
+  decimals = 3
+): string {
+  const accessory = actor.accessory;
+  if (!accessory || accessory === "none") return "";
+
+  const torso = actor.segments.find((segment) => segment.id === "torso");
+  if (!torso) return "";
+
+  const accent = xml(actor.accentColor ?? themeAccentColor ?? "#2563eb");
+  const stroke = xml(actor.color);
+  const n = (value: number): string => number(value, decimals);
+  const sw = geometry.strokeWidth;
+  const hr = geometry.headRadius;
+  const hx = geometry.head.x;
+  const hy = geometry.head.y;
+
+  const torsoDx = torso.x1 - torso.x2;
+  const torsoDy = torso.y1 - torso.y2;
+  const torsoLen = Math.hypot(torsoDx, torsoDy) || 30 * geometry.scale;
+  const downX = torsoDx / torsoLen;
+  const downY = torsoDy / torsoLen;
+
+  const neckToHeadLen = Math.hypot(hx - torso.x2, hy - torso.y2);
+  const upX = neckToHeadLen > 1e-6 ? (hx - torso.x2) / neckToHeadLen : -downX;
+  const upY = neckToHeadLen > 1e-6 ? (hy - torso.y2) / neckToHeadLen : -downY;
+  const tanX = -upY;
+  const tanY = upX;
+
+  const facingVal =
+    actor.facing !== undefined
+      ? Math.max(-1, Math.min(1, actor.facing))
+      : geometry.nearSide === "left"
+        ? -1
+        : 1;
+  const dirSign = facingVal < 0 ? -1 : 1;
+
+  if (accessory === "tie") {
+    const chestShift = facingVal * hr * 0.14;
+    const perpX = -downY;
+    const perpY = downX;
+    const startX = torso.x2 + downX * (torsoLen * 0.06) + perpX * chestShift;
+    const startY = torso.y2 + downY * (torsoLen * 0.06) + perpY * chestShift;
+    const knotY = torsoLen * 0.08;
+    const midDist = torsoLen * 0.3;
+    const tipDist = torsoLen * 0.44;
+    const wTop = hr * 0.14;
+    const wMid = hr * 0.23;
+
+    const pt = (along: number, across: number): string =>
+      `${n(startX + downX * along + perpX * across)},${n(startY + downY * along + perpY * across)}`;
+
+    const points = [
+      pt(0, -wTop),
+      pt(0, wTop),
+      pt(knotY, wTop * 0.72),
+      pt(midDist, wMid),
+      pt(tipDist, 0),
+      pt(midDist, -wMid),
+      pt(knotY, -wTop * 0.72)
+    ].join(" ");
+    return `<g data-accessory="tie"><polygon points="${points}" fill="${accent}" stroke="${stroke}" stroke-width="${n(Math.max(0.9, sw * 0.32))}" stroke-linejoin="round"/></g>`;
+  }
+
+  if (accessory === "hat") {
+    const hPt = (u: number, t: number): { x: number; y: number } => ({
+      x: hx + upX * u + tanX * t,
+      y: hy + upY * u + tanY * t
+    });
+    const baseLeft = hPt(hr * 0.72, -hr * 0.84);
+    const baseRight = hPt(hr * 0.72, hr * 0.84);
+    const crownLeft = hPt(hr * 1.32, -hr * 0.56);
+    const crownRight = hPt(hr * 1.32, hr * 0.56);
+    const brimBack = hPt(hr * 0.7, -dirSign * hr * 0.92);
+    const brimFront = hPt(hr * 0.66, dirSign * hr * 1.28);
+    const crownPath = `M${n(baseLeft.x)} ${n(baseLeft.y)}L${n(crownLeft.x)} ${n(crownLeft.y)}L${n(crownRight.x)} ${n(crownRight.y)}L${n(baseRight.x)} ${n(baseRight.y)}Z`;
+    const brimPath = `M${n(brimBack.x)} ${n(brimBack.y)}L${n(brimFront.x)} ${n(brimFront.y)}`;
+    return (
+      `<g data-accessory="hat">` +
+      `<path d="${crownPath}" fill="${accent}" stroke="${stroke}" stroke-width="${n(Math.max(1.1, sw * 0.45))}" stroke-linejoin="round"/>` +
+      `<path d="${brimPath}" fill="none" stroke="${accent}" stroke-width="${n(Math.max(1.8, sw * 0.82))}" stroke-linecap="round"/>` +
+      `</g>`
+    );
+  }
+
+  if (accessory === "glasses") {
+    const eyeBaseX = hx + upX * (hr * 0.06);
+    const eyeBaseY = hy + upY * (hr * 0.06);
+    const frameSw = n(Math.max(1.3, sw * 0.52));
+    const halfH = hr * 0.19;
+    const lensQuad = (centerT: number, halfW: number): string => {
+      const p1 = { x: eyeBaseX + upX * halfH + tanX * (centerT - halfW), y: eyeBaseY + upY * halfH + tanY * (centerT - halfW) };
+      const p2 = { x: eyeBaseX + upX * halfH + tanX * (centerT + halfW), y: eyeBaseY + upY * halfH + tanY * (centerT + halfW) };
+      const p3 = { x: eyeBaseX - upX * halfH + tanX * (centerT + halfW), y: eyeBaseY - upY * halfH + tanY * (centerT + halfW) };
+      const p4 = { x: eyeBaseX - upX * halfH + tanX * (centerT - halfW), y: eyeBaseY - upY * halfH + tanY * (centerT - halfW) };
+      return `M${n(p1.x)} ${n(p1.y)}L${n(p2.x)} ${n(p2.y)}L${n(p3.x)} ${n(p3.y)}L${n(p4.x)} ${n(p4.y)}Z`;
+    };
+    const segLine = (t1: number, t2: number): string => {
+      const a = { x: eyeBaseX + tanX * t1, y: eyeBaseY + tanY * t1 };
+      const b = { x: eyeBaseX + tanX * t2, y: eyeBaseY + tanY * t2 };
+      return `M${n(a.x)} ${n(a.y)}L${n(b.x)} ${n(b.y)}`;
+    };
+
+    if (Math.abs(facingVal) < 0.35) {
+      const leftLens = lensQuad(-hr * 0.36, hr * 0.22);
+      const rightLens = lensQuad(hr * 0.36, hr * 0.22);
+      const bridge = segLine(-hr * 0.14, hr * 0.14);
+      return `<g data-accessory="glasses" fill="#ffffff" fill-opacity="0.7" stroke="${accent}" stroke-width="${frameSw}" stroke-linejoin="round"><path d="${leftLens}"/><path d="${rightLens}"/><path d="${bridge}" fill="none"/></g>`;
+    }
+
+    const nearT = dirSign * hr * 0.16;
+    const farT = dirSign * hr * 0.64;
+    const nearW = hr * 0.21;
+    const farW = hr * 0.17;
+    const nearLens = lensQuad(nearT, nearW);
+    const farLens = lensQuad(farT, farW);
+    const bridge = segLine(nearT + dirSign * nearW, farT - dirSign * farW);
+    const temple = segLine(-dirSign * hr * 0.62, nearT - dirSign * nearW);
+    return `<g data-accessory="glasses" fill="#ffffff" fill-opacity="0.7" stroke="${accent}" stroke-width="${frameSw}" stroke-linejoin="round"><path d="${temple}" fill="none"/><path d="${nearLens}"/><path d="${farLens}"/><path d="${bridge}" fill="none"/></g>`;
+  }
+
+  if (accessory === "badge") {
+    const perpX = -downY;
+    const perpY = downX;
+    const cx = torso.x2 + downX * (torsoLen * 0.22) + perpX * (dirSign * hr * 0.24);
+    const cy = torso.y2 + downY * (torsoLen * 0.22) + perpY * (dirSign * hr * 0.24);
+    const r = Math.max(1.8, hr * 0.2);
+    return `<g data-accessory="badge"><circle cx="${n(cx)}" cy="${n(cy)}" r="${n(r)}" fill="${accent}" stroke="#ffffff" stroke-width="${n(Math.max(0.9, sw * 0.32))}"/></g>`;
+  }
+
+  return "";
+}
+
+export function renderActorFigureSvg(
+  actor: SampledActorFrame,
+  timeMs = 0,
+  options: SceneRenderOptions = {}
+): string {
+  const decimals = options.decimals ?? 3;
+  const compact = options.compact === true;
+  const n = (value: number): string => number(value, decimals);
+  const sample = actorToSampledFrame(actor, timeMs);
+  const geometry = frameGeometry(sample);
+  const strokeWidth = Math.max(geometry.strokeWidth, options.minStrokeWidth ?? 0);
+  const limbById = new Map(geometry.limbs.map((item) => [item.id, item]));
+  const detailById = new Map(geometry.paths.map((item) => [item.id, item]));
+  const dFmt = (d: string): string => compactPathNumbers(d, decimals);
+  const segAttr = (id: string): string => (compact ? "" : ` data-segment="${id}"`);
+
+  const footForSide = (side: "left" | "right"): string => {
+    const foot = detailById.get(`${side}-foot`);
+    return foot ? `<path${segAttr(foot.id)} d="${dFmt(foot.d)}"/>` : "";
+  };
+  const limb = (id: string): string => {
+    const item = limbById.get(id);
+    if (!item) throw new Error(`Missing limb ${id}.`);
+    const foot = item.kind === "leg" ? footForSide(id.startsWith("left") ? "left" : "right") : "";
+    return `<path${segAttr(item.id)} d="${dFmt(item.d)}"/>${foot}`;
+  };
+
+  const torsoD = dFmt(
+    detailById.get("torso")?.d ??
+      `M${n(actor.segments[0]!.x1)} ${n(actor.segments[0]!.y1)}L${n(actor.segments[0]!.x2)} ${n(actor.segments[0]!.y2)}`
+  );
+  const rawAccessorySvg = renderActorAccessorySvg(actor, geometry, options.themeAccentColor, decimals);
+  const accessorySvg = compact ? compactAddonSvgNumbers(rawAccessorySvg, decimals, true) : rawAccessorySvg;
+  const finger =
+    actor.action === "point" && detailById.get("point-finger")
+      ? `<path${segAttr("point-finger")} d="${dFmt(detailById.get("point-finger")!.d)}"/>`
+      : "";
+  const accessoryAttr =
+    !compact && actor.accessory && actor.accessory !== "none"
+      ? ` data-accessory-type="${xml(actor.accessory)}"`
+      : "";
+  const joinAttrs = compact ? "" : ` stroke-linecap="round" stroke-linejoin="round"`;
+  const headStrokeAttrs = compact ? "" : ` stroke="${xml(actor.color)}" stroke-width="${n(strokeWidth)}"`;
+
+  return (
+    `<g data-actor="${xml(actor.id)}" data-action="${xml(actor.action)}"${accessoryAttr} fill="none" stroke="${xml(actor.color)}" stroke-width="${n(strokeWidth)}"${joinAttrs}>` +
+    `${limb(geometry.segmentOrder[0]!)}${limb(geometry.segmentOrder[1]!)}` +
+    `<path${segAttr("torso")} d="${torsoD}"/>` +
+    `<circle${segAttr("head")} cx="${n(geometry.head.x)}" cy="${n(geometry.head.y)}" r="${n(geometry.headRadius)}" fill="#fff"${headStrokeAttrs}/>` +
+    `${accessorySvg}` +
+    `${limb(geometry.segmentOrder[3]!)}${limb(geometry.segmentOrder[4]!)}` +
+    `${finger}</g>`
+  );
+}
+
+export function renderSceneInnerSvg(frame: SampledFrame, options: SceneRenderOptions = {}): string {
+  const decimals = options.decimals ?? 3;
+  const n = (value: number): string => number(value, decimals);
+  const defaultColor = options.defaultColor ?? "#202124";
+  const hasActors = Boolean(frame.actors && frame.actors.length > 0);
+  const actorMap = new Map<string, SampledActorFrame>(
+    hasActors ? frame.actors!.map((actor) => [actor.id, actor]) : []
+  );
+
+  const renderLayerAddons = (layer: "back" | "front"): string => {
+    if (!frame.addons || frame.addons.length === 0) return "";
+    return frame.addons
+      .filter((addon) => addon.layer === layer)
+      .map((addon) => {
+        const owner = addon.actorId !== undefined ? actorMap.get(addon.actorId) : undefined;
+        const baseSw = owner ? Math.max(2.5, 11 * (owner.scale * 1.5) * 2 * 0.09) : 2.5;
+        const sw = Math.max(baseSw, options.minStrokeWidth ?? 0);
+        const svg = renderAddonSvg(addon, {
+          strokeWidth: sw,
+          themeColor: owner?.color ?? defaultColor
+        });
+        return decimals < 3 || options.compact === true
+          ? compactAddonSvgNumbers(svg, decimals, options.compact === true)
+          : svg;
+      })
+      .join("");
+  };
+
+  const backAddons = renderLayerAddons("back");
+
+  let actorsMarkup: string;
+  if (hasActors) {
+    actorsMarkup = frame.actors!
+      .map((actor) => renderActorFigureSvg(actor, frame.timeMs, options))
+      .join("");
+  } else {
+    const fallbackActor: SampledActorFrame = {
+      id: "actor",
+      action: frame.action,
+      x: frame.x,
+      groundY: frame.groundY,
+      head: frame.head,
+      segments: frame.segments,
+      ...(frame.facing !== undefined ? { facing: frame.facing } : {}),
+      ...(frame.articulated ? { articulated: true } : {}),
+      color: defaultColor,
+      scale: 1,
+      zIndex: 0
+    };
+    actorsMarkup = renderActorFigureSvg(fallbackActor, frame.timeMs, options);
+  }
+
+  let propMarkup = "";
+  if (frame.prop) {
+    const geometry = frameGeometry(frame);
+    const sw = Math.max(geometry.strokeWidth, options.minStrokeWidth ?? 0);
+    propMarkup =
+      `<g data-prop="${xml(frame.prop.id)}">` +
+      `<rect x="${n(frame.prop.x)}" y="${n(frame.prop.y)}" width="${n(frame.prop.width)}" height="${n(frame.prop.height)}" rx="3" fill="#fff" stroke="${xml(defaultColor)}" stroke-width="${n(sw)}"/>` +
+      (geometry.handlePath
+        ? `<path data-part="handle" d="${compactPathNumbers(geometry.handlePath, decimals)}" fill="none" stroke="${xml(defaultColor)}" stroke-width="${n(1.4 * geometry.scale)}" stroke-linecap="round"/>`
+        : "") +
+      `</g>`;
+  }
+
+  const frontAddons = renderLayerAddons("front");
+  return `${backAddons}${actorsMarkup}${propMarkup}${frontAddons}`;
+}
+
+function isMultiSceneFrame(frame: SampledFrame, program?: CompiledAnimation): boolean {
+  return (
+    program?.contractVersion === CONTRACT_VERSION_V2 ||
+    Boolean(frame.actors && frame.actors.length > 0) ||
+    Boolean(frame.addons && frame.addons.length > 0)
+  );
+}
+
+function v1FrameMarkup(frame: SampledFrame, color: string, width: number, height: number): string {
   const geometry = frameGeometry(frame);
   const limbById = new Map(geometry.limbs.map(limb => [limb.id, limb]));
   const detailById = new Map(geometry.paths.map(item => [item.id, item]));
@@ -156,12 +484,90 @@ function frameMarkup(frame: SampledFrame, color: string, width: number, height: 
 </svg>`;
 }
 
+function multiSceneFrameMarkup(
+  frame: SampledFrame,
+  width: number,
+  height: number,
+  options: { defaultColor?: string; themeAccentColor?: string; background?: string } = {}
+): string {
+  const background = options.background ?? "#ffffff";
+  const inner = renderSceneInnerSvg(frame, {
+    ...(options.defaultColor !== undefined ? { defaultColor: options.defaultColor } : {}),
+    ...(options.themeAccentColor !== undefined ? { themeAccentColor: options.themeAccentColor } : {})
+  });
+  return `<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Stick figure ${xml(frame.action)} at ${number(frame.timeMs)} milliseconds" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">
+<rect width="100%" height="100%" fill="${xml(background)}"/><path id="ground" d="M0 ${number(frame.groundY)}H${width}" stroke="#d8dbe0" stroke-width="1"/>
+<g id="scene">${inner}</g>
+</svg>`;
+}
+
 export function renderSvgFrame(program: CompiledAnimation, timeMs = 0, mode: PlaybackMode = "normal"): string {
-  return frameMarkup(sampleAnimation(program, timeMs, mode), program.spec.actor?.color ?? "#202124", program.spec.canvas.width, program.spec.canvas.height);
+  const frame = sampleAnimation(program, timeMs, mode);
+  const { width, height } = program.spec.canvas;
+  const defaultColor = program.spec.actor?.color ?? "#202124";
+  if (!isMultiSceneFrame(frame, program)) {
+    return v1FrameMarkup(frame, defaultColor, width, height);
+  }
+  const v2Spec = program.contractVersion === CONTRACT_VERSION_V2 ? (program.spec as AnimationSpecV2) : undefined;
+  return multiSceneFrameMarkup(frame, width, height, {
+    defaultColor,
+    ...(v2Spec?.theme?.accentColor !== undefined ? { themeAccentColor: v2Spec.theme.accentColor } : {}),
+    ...(v2Spec?.theme?.background !== undefined ? { background: v2Spec.theme.background } : {})
+  });
 }
 
 function animateAttribute(attribute: string, values: number[], durationSeconds: number, keyTimes: string): string {
-  return `<animate attributeName="${attribute}" dur="${number(durationSeconds)}s" values="${values.map(number).join(";")}" keyTimes="${keyTimes}" fill="freeze" calcMode="discrete"/>`;
+  return `<animate attributeName="${attribute}" dur="${number(durationSeconds)}s" values="${values.map((v) => number(v)).join(";")}" keyTimes="${keyTimes}" fill="freeze" calcMode="discrete"/>`;
+}
+
+function renderMultiSceneAnimatedSvg(
+  program: CompiledAnimation,
+  samples: readonly SampledFrame[]
+): string {
+  const { durationMs, canvas } = program.spec;
+  const v2Spec = program.contractVersion === CONTRACT_VERSION_V2 ? (program.spec as AnimationSpecV2) : undefined;
+  const defaultColor = program.spec.actor?.color ?? "#202124";
+  const themeAccentColor = v2Spec?.theme?.accentColor;
+  const background = v2Spec?.theme?.background ?? "#ffffff";
+  const seconds = Math.max(0.1, durationMs / 1000);
+  const intervals = Math.max(1, samples.length - 1);
+  const slicePercent = number(100 / intervals, 4);
+  const durStr = `${number(seconds, 4)}s`;
+
+  const renderOpts: SceneRenderOptions = {
+    defaultColor,
+    ...(themeAccentColor !== undefined ? { themeAccentColor } : {}),
+    decimals: 2
+  };
+
+  const frameGroups = samples
+    .map((sample, idx) => {
+      const inner = renderSceneInnerSvg(sample, renderOpts);
+      if (idx === samples.length - 1) {
+        return `<g class="sm-f sm-last" data-frame="${idx}" data-time-ms="${number(sample.timeMs, 1)}">${inner}</g>`;
+      }
+      const delaySec = (seconds * idx) / intervals;
+      return `<g class="sm-f" data-frame="${idx}" data-time-ms="${number(sample.timeMs, 1)}" style="animation-delay:${number(delaySec, 4)}s">${inner}</g>`;
+    })
+    .join("");
+
+  const reducedSample = sampleAnimation(program, durationMs, "reduced");
+  const reducedInner = renderSceneInnerSvg(reducedSample, renderOpts);
+  const firstGroundY = samples[0]?.groundY ?? canvas.height * 0.82;
+
+  const style =
+    `.sm-f{visibility:hidden;animation:sm-slice ${durStr} steps(1,end) 0s 1 normal forwards}` +
+    `.sm-f.sm-last{animation-name:sm-final}` +
+    `.sm-reduced{display:none}` +
+    `@keyframes sm-slice{0%{visibility:visible}${slicePercent}%{visibility:hidden}100%{visibility:hidden}}` +
+    `@keyframes sm-final{0%{visibility:hidden}100%{visibility:visible}}` +
+    `@media (prefers-reduced-motion:reduce){.sm-f{animation:none!important;visibility:hidden!important}.sm-reduced{display:inline}}`;
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${canvas.width} ${canvas.height}" width="${canvas.width}" height="${canvas.height}" role="img" aria-label="Deterministic stick figure animation">
+<style>${style}</style>
+<rect width="100%" height="100%" fill="${xml(background)}"/><path id="ground" d="M0 ${number(firstGroundY)}H${canvas.width}" stroke="#d8dbe0" stroke-width="1"/>
+${frameGroups}<g class="sm-reduced">${reducedInner}</g></svg>`;
 }
 
 export function renderAnimatedSvg(program: CompiledAnimation): string {
@@ -170,6 +576,9 @@ export function renderAnimatedSvg(program: CompiledAnimation): string {
   // interpolating separate endpoints between poses breaks those constraints.
   const frames = Math.max(2, Math.ceil(durationMs * canvas.fps / 1000) + 1);
   const samples = Array.from({ length: frames }, (_, index) => sampleAnimation(program, durationMs * index / (frames - 1)));
+  if (samples.some((sample) => isMultiSceneFrame(sample, program))) {
+    return renderMultiSceneAnimatedSvg(program, samples);
+  }
   const shapes = samples.map(frameGeometry);
   const keys = samples.map((_, index) => (index / (frames - 1)).toString()).join(";");
   const seconds = durationMs / 1000;
@@ -205,45 +614,7 @@ export function renderAnimatedSvg(program: CompiledAnimation): string {
 <g fill="none" stroke="${xml(color)}" stroke-width="${number(firstShape.strokeWidth)}" stroke-linecap="round" stroke-linejoin="round">${limbLayer(false)}${torso}${head}${limbLayer(true)}${pointFinger}</g>${prop}</svg>`;
 }
 
-export function renderHtml(program: CompiledAnimation): string {
-  const { canvas } = program.spec;
-  const svg = frameMarkup(sampleAnimation(program, 0), program.spec.actor?.color ?? "#202124", canvas.width, canvas.height);
-  const controls = `<label>Motion mode <select id="mode"><option value="normal">Normal</option><option value="reduced">Reduced</option><option value="static">Static</option></select></label><label>Playhead <input id="seek" type="range" min="0" max="${program.spec.durationMs}" step="1" value="0"></label><button id="toggle" type="button">Pause</button>`;
-  const script = `(()=>{"use strict";const program=${scriptJson(program)};const geometry=${frameGeometry.toString()};const sample=(program,timeMs,mode)=>{const RUNTIME_MOTION_LIBRARY=${scriptJson(RUNTIME_MOTION_LIBRARY)};globalThis.__stickmanMotionLibrary=RUNTIME_MOTION_LIBRARY;const sampleClipMotion=${sampleClipMotion.toString()};return (${sampleAnimation.toString()})(program,timeMs,mode);};const svg=document.querySelector("#stage svg");
-const modeSelect=document.querySelector("#mode"),seek=document.querySelector("#seek"),toggle=document.querySelector("#toggle");
-const duration=program.spec.durationMs;
-let mode=matchMedia("(prefers-reduced-motion: reduce)").matches?"reduced":"normal";
-modeSelect.value=mode;let time=0;let playing=mode==="normal";let previous=0;let requestId=null;
-toggle.textContent=playing?"Pause":"Play";
-function draw(){
-const frameDuration=1000/program.spec.canvas.fps;
-const sampleTime=mode==="normal"?Math.min(program.spec.durationMs,Math.floor(time/frameDuration+1e-9)*1000/program.spec.canvas.fps):time;
-const frame=sample(program,sampleTime,mode),shape=geometry(frame);
-for(const limb of shape.limbs){const el=document.getElementById(limb.id);if(!el)throw Error("Missing limb "+limb.id);el.setAttribute("d",limb.d);}
-for(const detail of shape.paths){const el=document.getElementById(detail.id);if(el)el.setAttribute("d",detail.d);}
-const head=document.getElementById("head");head.setAttribute("cx",shape.head.x);head.setAttribute("cy",shape.head.y);head.setAttribute("r",shape.headRadius);
-function appendDrawn(id){const el=document.getElementById(id);if(el)el.parentNode.appendChild(el);if(id.endsWith("-leg")){const foot=document.getElementById(id.replace("-leg","-foot"));if(foot)foot.parentNode.appendChild(foot);}}
-for(const id of shape.segmentOrder.slice(0,3)){appendDrawn(id);}
-head.parentNode.appendChild(head);
-for(const id of shape.segmentOrder.slice(3)){appendDrawn(id);}
-const finger=document.getElementById("point-finger");if(finger)finger.parentNode.appendChild(finger);
-document.getElementById("ground").setAttribute("d","M0 "+frame.groundY+"H"+program.spec.canvas.width);
-svg.setAttribute("aria-label","Stick figure "+frame.action+" at "+frame.timeMs+" milliseconds");
-const prop=document.querySelector("#prop");if(frame.prop&&prop){prop.querySelector("rect").setAttribute("x",frame.prop.x);document.getElementById("handle").setAttribute("d",shape.handlePath);}
-seek.value=String(frame.timeMs);
-}
-function stop(){playing=false;previous=0;if(requestId!==null){cancelAnimationFrame(requestId);requestId=null;}toggle.textContent="Play";}
-function schedule(){if(playing&&requestId===null)requestId=requestAnimationFrame(tick);}
-const events=program.events||[];let emitted=-1;function emit(from,to){for(const e of events){if(e.timeMs>from&&e.timeMs<=to){const detail={...e};document.dispatchEvent(new CustomEvent("stickman:marker",{detail}));if(window.parent&&window.parent!==window)window.parent.postMessage({type:"stickman:marker",...detail},"*");}}}
-function tick(now){requestId=null;if(!playing)return;if(previous)time+=now-previous;previous=now;if(time>=duration){time=duration;stop();}const before=emitted;emitted=time;emit(before,time);draw();schedule();}
-function start(){if(mode!=="normal"){mode="normal";modeSelect.value=mode;}if(time>=duration)time=0;emitted=time>0?time:-1;playing=true;previous=0;toggle.textContent="Pause";draw();schedule();}
-modeSelect.addEventListener("change",()=>{stop();mode=modeSelect.value;if(mode==="normal"){time=0;start();}else{time=duration;draw();}});
-seek.addEventListener("input",()=>{time=Number(seek.value);emitted=time;previous=0;draw();});
-toggle.addEventListener("click",()=>{if(playing)stop();else start();});
-draw();schedule();})();`;
-  return `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Stickman animation</title>
-<script>(()=>{const param=new URLSearchParams(window.location.search).get("scoutTheme");const theme=param||(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.setAttribute("data-theme",theme);})();</script>
-<style>
+const HTML_SHELL_STYLE = `
 :root {
   color-scheme: light;
   --cp-bg: #f7f4ef;
@@ -300,6 +671,157 @@ body{margin:0;background:var(--cp-bg);color:var(--cp-text);font:16px "Segoe UI",
 main{max-width:1000px;margin:2rem auto;padding:1rem}svg{display:block;width:100%;height:auto;border:1px solid var(--cp-border);border-radius:0.625rem}
 nav{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;padding:.8rem 0}input{min-width:12rem;accent-color:var(--cp-accent)}
 button,select{font:inherit;background:var(--cp-surface);color:var(--cp-text);border:1px solid var(--cp-border);border-radius:0.625rem;padding:.35rem .6rem}
-</style>
+`;
+
+function collectBakedTimestamps(program: CompiledAnimation): number[] {
+  const { durationMs, canvas } = program.spec;
+  const raw = new Set<number>([0, durationMs]);
+  const steps = Math.max(1, Math.ceil((durationMs * canvas.fps) / 1000));
+  for (let i = 0; i <= steps; i++) {
+    raw.add(Math.min(durationMs, Number(((i * 1000) / canvas.fps).toFixed(3))));
+  }
+  for (const event of program.events ?? []) {
+    if (Number.isFinite(event.timeMs)) {
+      raw.add(Math.max(0, Math.min(durationMs, Number(event.timeMs.toFixed(3)))));
+    }
+  }
+  if (program.contractVersion === CONTRACT_VERSION_V2) {
+    const v2 = program.spec as AnimationSpecV2;
+    for (const actor of v2.actors) {
+      for (const act of actor.actions) {
+        raw.add(Math.max(0, Math.min(durationMs, act.startMs)));
+        raw.add(Math.max(0, Math.min(durationMs, act.startMs + act.durationMs)));
+      }
+    }
+  }
+  const sorted = [...raw].sort((a, b) => a - b);
+  const deduped: number[] = [];
+  for (const t of sorted) {
+    if (deduped.length === 0 || t - deduped[deduped.length - 1]! >= 0.5 || t === durationMs) {
+      if (deduped.length > 0 && t === durationMs && durationMs - deduped[deduped.length - 1]! < 0.5) {
+        deduped[deduped.length - 1] = durationMs;
+      } else {
+        deduped.push(t);
+      }
+    }
+  }
+  return deduped;
+}
+
+interface BakedHtmlFrame {
+  timeMs: number;
+  action: string;
+  groundY: number;
+  markup: string;
+}
+
+function renderHtmlV2(program: CompiledAnimation): string {
+  const v2Spec = program.spec as AnimationSpecV2;
+  const { canvas, durationMs } = v2Spec;
+  const defaultColor = v2Spec.actor?.color ?? "#202124";
+  const themeAccentColor = v2Spec.theme?.accentColor;
+  const renderOpts: SceneRenderOptions = {
+    defaultColor,
+    ...(themeAccentColor !== undefined ? { themeAccentColor } : {}),
+    decimals: 2
+  };
+
+  const svg = renderSvgFrame(program, 0, "normal");
+  const controls = `<label>Motion mode <select id="mode"><option value="normal">Normal</option><option value="reduced">Reduced</option><option value="static">Static</option></select></label><label>Playhead <input id="seek" type="range" min="0" max="${durationMs}" step="1" value="0"></label><button id="toggle" type="button">Pause</button>`;
+
+  const timestamps = collectBakedTimestamps(program);
+  const bakedFrames: BakedHtmlFrame[] = timestamps.map((t) => {
+    const frame = sampleAnimation(program, t, "normal");
+    return {
+      timeMs: Number(frame.timeMs.toFixed(3)),
+      action: frame.action,
+      groundY: Number(frame.groundY.toFixed(3)),
+      markup: renderSceneInnerSvg(frame, renderOpts)
+    };
+  });
+
+  const reducedSample = sampleAnimation(program, durationMs, "reduced");
+  const bakedReduced: BakedHtmlFrame = {
+    timeMs: Number(reducedSample.timeMs.toFixed(3)),
+    action: reducedSample.action,
+    groundY: Number(reducedSample.groundY.toFixed(3)),
+    markup: renderSceneInnerSvg(reducedSample, renderOpts)
+  };
+
+  const script = `(()=>{"use strict";const program=${scriptJson(program)};const frames=${scriptJson(bakedFrames)};const reducedFrame=${scriptJson(bakedReduced)};const lookup=(timeMs,mode)=>{if(mode!=="normal")return reducedFrame;const clamped=Math.max(0,Math.min(program.spec.durationMs,timeMs));let lo=0,hi=frames.length-1;while(lo<hi){const mid=(lo+hi+1)>>1;if(frames[mid].timeMs<=clamped+1e-6)lo=mid;else hi=mid-1;}return frames[lo];};const svg=document.querySelector("#stage svg");const sceneEl=document.getElementById("scene")||(document.querySelector?document.querySelector("#scene"):null);const groundEl=document.getElementById("ground")||(document.querySelector?document.querySelector("#ground"):null);
+const modeSelect=document.querySelector("#mode"),seek=document.querySelector("#seek"),toggle=document.querySelector("#toggle");
+const duration=program.spec.durationMs;
+let mode=matchMedia("(prefers-reduced-motion: reduce)").matches?"reduced":"normal";
+modeSelect.value=mode;let time=0;let playing=mode==="normal";let previous=0;let requestId=null;
+toggle.textContent=playing?"Pause":"Play";
+function draw(){
+const frameDuration=1000/program.spec.canvas.fps;
+const sampleTime=mode==="normal"?Math.min(duration,Math.floor(time/frameDuration+1e-9)*frameDuration):duration;
+const frame=lookup(mode==="normal"?time:sampleTime,mode);
+if(sceneEl){sceneEl.innerHTML=frame.markup;if(sceneEl.setAttribute){sceneEl.setAttribute("data-time-ms",String(frame.timeMs));sceneEl.setAttribute("data-action",frame.action);}}
+if(groundEl)groundEl.setAttribute("d","M0 "+frame.groundY+"H"+program.spec.canvas.width);
+if(svg)svg.setAttribute("aria-label","Stick figure "+frame.action+" at "+frame.timeMs+" milliseconds");
+seek.value=String(Math.round(mode==="normal"?frame.timeMs:duration));
+}
+function stop(){playing=false;previous=0;if(requestId!==null){cancelAnimationFrame(requestId);requestId=null;}toggle.textContent="Play";}
+function schedule(){if(playing&&requestId===null)requestId=requestAnimationFrame(tick);}
+const events=program.events||[];let emitted=-1;function emit(from,to){for(const e of events){if(e.timeMs>from&&e.timeMs<=to){const detail={...e};if(document.dispatchEvent)document.dispatchEvent(new CustomEvent("stickman:marker",{detail}));if(typeof window!=="undefined"&&window.parent&&window.parent!==window)window.parent.postMessage({type:"stickman:marker",...detail},"*");}}}
+function tick(now){requestId=null;if(!playing)return;if(previous)time+=now-previous;previous=now;if(time>=duration){time=duration;stop();}const before=emitted;emitted=time;emit(before,time);draw();schedule();}
+function start(){if(mode!=="normal"){mode="normal";modeSelect.value=mode;}if(time>=duration)time=0;emitted=time>0?time:-1;playing=true;previous=0;toggle.textContent="Pause";draw();schedule();}
+modeSelect.addEventListener("change",()=>{stop();mode=modeSelect.value;if(mode==="normal"){time=0;start();}else{time=duration;draw();}});
+seek.addEventListener("input",()=>{time=Number(seek.value);emitted=time;previous=0;draw();});
+toggle.addEventListener("click",()=>{if(playing)stop();else start();});
+draw();schedule();})();`;
+
+  return `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Stickman animation</title>
+<script>(()=>{const param=new URLSearchParams(window.location.search).get("scoutTheme");const theme=param||(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.setAttribute("data-theme",theme);})();</script>
+<style>${HTML_SHELL_STYLE}</style>
 <main><nav>${controls}</nav><div id="stage">${svg}</div></main><script id="stickman-player">${script}</script></html>`;
 }
+
+export function renderHtml(program: CompiledAnimation): string {
+  if (program.contractVersion === CONTRACT_VERSION_V2) {
+    return renderHtmlV2(program);
+  }
+  const { canvas } = program.spec;
+  const svg = v1FrameMarkup(sampleAnimation(program, 0), program.spec.actor?.color ?? "#202124", canvas.width, canvas.height);
+  const controls = `<label>Motion mode <select id="mode"><option value="normal">Normal</option><option value="reduced">Reduced</option><option value="static">Static</option></select></label><label>Playhead <input id="seek" type="range" min="0" max="${program.spec.durationMs}" step="1" value="0"></label><button id="toggle" type="button">Pause</button>`;
+  const script = `(()=>{"use strict";const program=${scriptJson(program)};const geometry=${frameGeometry.toString()};const sample=(program,timeMs,mode)=>{const RUNTIME_MOTION_LIBRARY=${scriptJson(RUNTIME_MOTION_LIBRARY)};globalThis.__stickmanMotionLibrary=RUNTIME_MOTION_LIBRARY;const sampleClipMotion=${sampleClipMotion.toString()};return (${sampleAnimation.toString()})(program,timeMs,mode);};const svg=document.querySelector("#stage svg");
+const modeSelect=document.querySelector("#mode"),seek=document.querySelector("#seek"),toggle=document.querySelector("#toggle");
+const duration=program.spec.durationMs;
+let mode=matchMedia("(prefers-reduced-motion: reduce)").matches?"reduced":"normal";
+modeSelect.value=mode;let time=0;let playing=mode==="normal";let previous=0;let requestId=null;
+toggle.textContent=playing?"Pause":"Play";
+function draw(){
+const frameDuration=1000/program.spec.canvas.fps;
+const sampleTime=mode==="normal"?Math.min(program.spec.durationMs,Math.floor(time/frameDuration+1e-9)*1000/program.spec.canvas.fps):time;
+const frame=sample(program,sampleTime,mode),shape=geometry(frame);
+for(const limb of shape.limbs){const el=document.getElementById(limb.id);if(!el)throw Error("Missing limb "+limb.id);el.setAttribute("d",limb.d);}
+for(const detail of shape.paths){const el=document.getElementById(detail.id);if(el)el.setAttribute("d",detail.d);}
+const head=document.getElementById("head");head.setAttribute("cx",shape.head.x);head.setAttribute("cy",shape.head.y);head.setAttribute("r",shape.headRadius);
+function appendDrawn(id){const el=document.getElementById(id);if(el)el.parentNode.appendChild(el);if(id.endsWith("-leg")){const foot=document.getElementById(id.replace("-leg","-foot"));if(foot)foot.parentNode.appendChild(foot);}}
+for(const id of shape.segmentOrder.slice(0,3)){appendDrawn(id);}
+head.parentNode.appendChild(head);
+for(const id of shape.segmentOrder.slice(3)){appendDrawn(id);}
+const finger=document.getElementById("point-finger");if(finger)finger.parentNode.appendChild(finger);
+document.getElementById("ground").setAttribute("d","M0 "+frame.groundY+"H"+program.spec.canvas.width);
+svg.setAttribute("aria-label","Stick figure "+frame.action+" at "+frame.timeMs+" milliseconds");
+const prop=document.querySelector("#prop");if(frame.prop&&prop){prop.querySelector("rect").setAttribute("x",frame.prop.x);document.getElementById("handle").setAttribute("d",shape.handlePath);}
+seek.value=String(frame.timeMs);
+}
+function stop(){playing=false;previous=0;if(requestId!==null){cancelAnimationFrame(requestId);requestId=null;}toggle.textContent="Play";}
+function schedule(){if(playing&&requestId===null)requestId=requestAnimationFrame(tick);}
+const events=program.events||[];let emitted=-1;function emit(from,to){for(const e of events){if(e.timeMs>from&&e.timeMs<=to){const detail={...e};document.dispatchEvent(new CustomEvent("stickman:marker",{detail}));if(typeof window!=="undefined"&&window.parent&&window.parent!==window)window.parent.postMessage({type:"stickman:marker",...detail},"*");}}}
+function tick(now){requestId=null;if(!playing)return;if(previous)time+=now-previous;previous=now;if(time>=duration){time=duration;stop();}const before=emitted;emitted=time;emit(before,time);draw();schedule();}
+function start(){if(mode!=="normal"){mode="normal";modeSelect.value=mode;}if(time>=duration)time=0;emitted=time>0?time:-1;playing=true;previous=0;toggle.textContent="Pause";draw();schedule();}
+modeSelect.addEventListener("change",()=>{stop();mode=modeSelect.value;if(mode==="normal"){time=0;start();}else{time=duration;draw();}});
+seek.addEventListener("input",()=>{time=Number(seek.value);emitted=time;previous=0;draw();});
+toggle.addEventListener("click",()=>{if(playing)stop();else start();});
+draw();schedule();})();`;
+  return `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Stickman animation</title>
+<script>(()=>{const param=new URLSearchParams(window.location.search).get("scoutTheme");const theme=param||(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.setAttribute("data-theme",theme);})();</script>
+<style>${HTML_SHELL_STYLE}</style>
+<main><nav>${controls}</nav><div id="stage">${svg}</div></main><script id="stickman-player">${script}</script></html>`;
+}
+
+export const renderHtmlPreview = renderHtml;

@@ -1,6 +1,17 @@
+import { choreographAnimation } from "./choreograph.js";
 import { compileAnimation, sampleAnimation } from "./compiler.js";
-import { CONTRACT_VERSION, type CompiledAnimation, type PlaybackMode, type Point2D, type SampledFrame } from "./contract.js";
-import { frameGeometry } from "./render.js";
+import {
+  CONTRACT_VERSION,
+  CONTRACT_VERSION_V2,
+  type AnimationSpecV2,
+  type ChoreographInput,
+  type CompiledAnimation,
+  type MarkerEvent,
+  type PlaybackMode,
+  type Point2D,
+  type SampledFrame
+} from "./contract.js";
+import { frameGeometry, renderSceneInnerSvg } from "./render.js";
 
 export interface CssRect {
   left: number;
@@ -211,12 +222,18 @@ export interface BrowserPlayer {
 }
 
 function canonicalProgram(input: unknown): CompiledAnimation {
-  if (typeof input !== "object" || input === null || !("contractVersion" in input) || input.contractVersion !== CONTRACT_VERSION || !("spec" in input)) {
-    throw new TypeError("Mount requires a compiled stickman.animation/v1 program, not authored JavaScript or HTML.");
+  if (
+    typeof input !== "object" ||
+    input === null ||
+    !("contractVersion" in input) ||
+    (input.contractVersion !== CONTRACT_VERSION && input.contractVersion !== CONTRACT_VERSION_V2) ||
+    !("spec" in input)
+  ) {
+    throw new TypeError("Mount requires a compiled stickman.animation/v1 or stickman.animation/v2 program, not authored JavaScript or HTML.");
   }
   if (Object.keys(input).some(key => key !== "contractVersion" && key !== "spec" && key !== "events")) throw new TypeError("Compiled program may contain only contractVersion, spec and derived events.");
   const result = compileAnimation(input.spec);
-  if (!result.valid || !result.program) {
+  if (!result.valid || !result.program || result.program.contractVersion !== input.contractVersion) {
     throw new TypeError(`Invalid compiled program: ${result.diagnostics.map(item => `${item.path}: ${item.message}`).join("; ")}`);
   }
   return result.program;
@@ -373,8 +390,60 @@ export interface MountedBrowserPlayer extends BrowserPlayer {
 
 const svgNamespace = "http://www.w3.org/2000/svg";
 
+function unescapeXml(value: string): string {
+  return value
+    .replaceAll("&quot;", '"')
+    .replaceAll("&apos;", "'")
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&amp;", "&");
+}
+
+function syncSvgMarkupToDom(doc: Document, container: SVGElement, markup: string): void {
+  while (container.firstChild) {
+    container.removeChild(container.firstChild);
+  }
+  if (!markup) return;
+  const stack: SVGElement[] = [container];
+  const tagRe = /<\/?([a-zA-Z][a-zA-Z0-9-]*)((?:\s+[a-zA-Z_:][a-zA-Z0-9_.:-]*="[^"]*")*)\s*(\/?)>/g;
+  const attrRe = /([a-zA-Z_:][a-zA-Z0-9_.:-]*)="([^"]*)"/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = tagRe.exec(markup)) !== null) {
+    if (match.index > lastIndex) {
+      const text = markup.slice(lastIndex, match.index);
+      const top = stack[stack.length - 1];
+      if (top && text) top.textContent = unescapeXml(text);
+    }
+    lastIndex = tagRe.lastIndex;
+    const full = match[0];
+    const tagName = match[1]!;
+    const rawAttrs = match[2] ?? "";
+    const selfClosing = match[3] === "/";
+    if (full.startsWith("</")) {
+      if (stack.length > 1) stack.pop();
+      continue;
+    }
+    const el = doc.createElementNS(svgNamespace, tagName);
+    attrRe.lastIndex = 0;
+    let attrMatch: RegExpExecArray | null;
+    while ((attrMatch = attrRe.exec(rawAttrs)) !== null) {
+      el.setAttribute(attrMatch[1]!, unescapeXml(attrMatch[2]!));
+    }
+    stack[stack.length - 1]!.appendChild(el);
+    if (!selfClosing) {
+      stack.push(el);
+    }
+  }
+}
+
 /** Shared pose painter for scripted decks and focused controller diagnostics. */
-export function createSvgPainter(svg: SVGSVGElement, color = "#202124", parent: SVGElement = svg): {
+export function createSvgPainter(
+  svg: SVGSVGElement,
+  color = "#202124",
+  parent: SVGElement = svg,
+  themeAccentColor?: string
+): {
   draw(frame: SampledFrame): void;
   dispose(): void;
 } {
@@ -383,9 +452,9 @@ export function createSvgPainter(svg: SVGSVGElement, color = "#202124", parent: 
   const layer = document.createElementNS(svgNamespace, "g");
   if (parent.ownerDocument !== document) throw new Error("SVG painter parent must belong to the same document.");
   parent.appendChild(layer);
-  const node = <K extends keyof SVGElementTagNameMap>(tag: K, parent: SVGElement = layer): SVGElementTagNameMap[K] => {
+  const node = <K extends keyof SVGElementTagNameMap>(tag: K, targetParent: SVGElement = layer): SVGElementTagNameMap[K] => {
     const child = document.createElementNS(svgNamespace, tag);
-    parent.appendChild(child);
+    targetParent.appendChild(child);
     return child;
   };
   const attr = (element: SVGElement, values: Record<string, number | string>): void => {
@@ -394,6 +463,9 @@ export function createSvgPainter(svg: SVGSVGElement, color = "#202124", parent: 
       element.setAttribute(key, String(value));
     }
   };
+  const sceneGroup = node("g");
+  sceneGroup.setAttribute("data-stickman-scene", "true");
+  sceneGroup.style.display = "none";
   const body = node("g");
   attr(body, { fill: "none", stroke: color, "stroke-linecap": "round", "stroke-linejoin": "round" });
   const details = new Map<string, SVGPathElement>();
@@ -408,10 +480,36 @@ export function createSvgPainter(svg: SVGSVGElement, color = "#202124", parent: 
   return {
     draw(frame) {
       if (disposed) throw new Error("SVG painter is disposed.");
-      const geometry = frameGeometry(frame);
-      const viewBox = svg.viewBox.baseVal;
+      const viewBox = svg.viewBox?.baseVal;
       const rect = svg.getBoundingClientRect();
-      const scenePerCssPixel = rect.width > 0 && viewBox.width > 0 ? viewBox.width / rect.width : 1;
+      const scenePerCssPixel = rect.width > 0 && viewBox && viewBox.width > 0 ? viewBox.width / rect.width : 1;
+
+      const isMultiScene =
+        Boolean(frame.actors && frame.actors.length > 0) ||
+        Boolean(frame.addons && frame.addons.length > 0);
+
+      if (isMultiScene) {
+        body.style.display = "none";
+        head.style.display = "none";
+        prop.style.display = "none";
+        sceneGroup.style.display = "";
+        const markup = renderSceneInnerSvg(frame, {
+          defaultColor: color,
+          ...(themeAccentColor !== undefined ? { themeAccentColor } : {}),
+          minStrokeWidth: 2.5 * scenePerCssPixel
+        });
+        syncSvgMarkupToDom(document, sceneGroup, markup);
+        return;
+      }
+
+      if (sceneGroup.firstChild) {
+        while (sceneGroup.firstChild) sceneGroup.removeChild(sceneGroup.firstChild);
+      }
+      sceneGroup.style.display = "none";
+      body.style.display = "";
+      head.style.display = "";
+
+      const geometry = frameGeometry(frame);
       const strokeWidth = Math.max(geometry.strokeWidth, 2.5 * scenePerCssPixel);
       attr(body, { "stroke-width": strokeWidth });
       for (const limb of geometry.limbs) {
@@ -497,7 +595,11 @@ export function mountBrowserAnimation(host: HTMLElement, input: unknown, options
     }
   };
   const color = program.spec.actor?.color ?? "#202124";
-  const painter = createSvgPainter(svg, color);
+  const themeAccentColor =
+    program.contractVersion === CONTRACT_VERSION_V2
+      ? (program.spec as AnimationSpecV2).theme?.accentColor
+      : undefined;
+  const painter = createSvgPainter(svg, color, svg, themeAccentColor);
   const media = window.matchMedia("(prefers-reduced-motion: reduce)");
   const initialWidth = host.clientWidth;
   const initialHeight = host.clientHeight;
@@ -572,4 +674,455 @@ export function mountBrowserAnimation(host: HTMLElement, input: unknown, options
       return mapViewportPoint({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
     }
   };
+}
+
+export interface StickmanPlayerElement extends HTMLElement {
+  readonly durationMs: number;
+  readonly currentTimeMs: number;
+  setProgram(input: unknown): BrowserPlayerState;
+  play(): BrowserPlayerState;
+  pause(): BrowserPlayerState;
+  seek(timeMs: number): BrowserPlayerState;
+  setMode(mode: PlaybackMode): BrowserPlayerState;
+  snapshot(): BrowserPlayerState;
+  dispose(): void;
+}
+
+function isValidMarkerEvent(item: unknown): item is MarkerEvent {
+  if (typeof item !== "object" || item === null) return false;
+  const rec = item as Record<string, unknown>;
+  return (
+    typeof rec.timeMs === "number" &&
+    Number.isFinite(rec.timeMs) &&
+    typeof rec.actionIndex === "number" &&
+    typeof rec.action === "string" &&
+    typeof rec.marker === "string" &&
+    typeof rec.frame === "number" &&
+    (rec.actorId === undefined || typeof rec.actorId === "string")
+  );
+}
+
+function resolveElementProgramInput(raw: unknown): CompiledAnimation {
+  const parsed: unknown = typeof raw === "string" ? JSON.parse(raw) : raw;
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new TypeError("Stickman player requires a compiled program or animation specification object.");
+  }
+  if ("contractVersion" in parsed) {
+    const canonical = canonicalProgram(parsed);
+    const rawEvents = (parsed as { events?: unknown }).events;
+    if (!canonical.events && Array.isArray(rawEvents) && rawEvents.every(isValidMarkerEvent)) {
+      return { ...canonical, events: rawEvents.map((ev) => ({ ...ev })) };
+    }
+    return canonical;
+  }
+  if ("version" in parsed) {
+    const compiled = compileAnimation(parsed);
+    if (!compiled.valid || !compiled.program) {
+      throw new TypeError(
+        `Invalid animation specification: ${compiled.diagnostics.map((d) => `${d.path}: ${d.message}`).join("; ")}`
+      );
+    }
+    return compiled.program;
+  }
+  const choreographed = choreographAnimation(parsed as ChoreographInput);
+  if (!choreographed.valid || !choreographed.program) {
+    throw new TypeError(
+      `Invalid choreography input: ${choreographed.diagnostics.map((d) => `${d.path}: ${d.message}`).join("; ")}`
+    );
+  }
+  return choreographed.program;
+}
+
+export function registerStickmanPlayerElement(tagName = "stickman-player"): boolean {
+  if (typeof tagName !== "string" || !/^[a-z][a-z0-9._-]*-[a-z0-9._-]*$/.test(tagName)) {
+    throw new TypeError(`Invalid custom element tag name "${String(tagName)}"; custom elements must contain a hyphen.`);
+  }
+  const g = globalThis as typeof globalThis & {
+    HTMLElement?: typeof HTMLElement;
+    customElements?: CustomElementRegistry;
+  };
+  if (
+    typeof g.HTMLElement !== "function" ||
+    !g.customElements ||
+    typeof g.customElements.define !== "function"
+  ) {
+    return false;
+  }
+  if (typeof g.customElements.get === "function" && g.customElements.get(tagName) !== undefined) {
+    return true;
+  }
+
+  const BaseElement = g.HTMLElement;
+
+  class StickmanPlayerCustomElement extends BaseElement implements StickmanPlayerElement {
+    static get observedAttributes(): string[] {
+      return ["program", "mode", "autoplay"];
+    }
+
+    #program: CompiledAnimation | null = null;
+    #svg: SVGSVGElement | null = null;
+    #bgRect: SVGRectElement | null = null;
+    #groundPath: SVGPathElement | null = null;
+    #painter: { draw(frame: SampledFrame): void; dispose(): void } | null = null;
+    #timeMs = 0;
+    #playing = false;
+    #disposed = false;
+    #explicitMode: PlaybackMode | null = null;
+    #reducedPreference = false;
+    #requestId: number | null = null;
+    #previousClockMs: number | null = null;
+    #emittedMs = -1;
+    #detachMedia: (() => void) | null = null;
+
+    get durationMs(): number {
+      return this.#program?.spec.durationMs ?? 0;
+    }
+
+    get currentTimeMs(): number {
+      return this.#timeMs;
+    }
+
+    #window(): (Window & typeof globalThis) | undefined {
+      return (this.ownerDocument?.defaultView as (Window & typeof globalThis) | null) ?? undefined;
+    }
+
+    #now(): number {
+      const win = this.#window();
+      if (win?.performance && typeof win.performance.now === "function") return win.performance.now();
+      if (typeof globalThis.performance?.now === "function") return globalThis.performance.now();
+      return Date.now();
+    }
+
+    #requestFrame(cb: (now: number) => void): number {
+      const win = this.#window();
+      const raf = win?.requestAnimationFrame?.bind(win) ?? globalThis.requestAnimationFrame?.bind(globalThis);
+      if (typeof raf === "function") return raf(cb);
+      return Number(setTimeout(() => cb(this.#now()), 16));
+    }
+
+    #cancelFrame(id: number): void {
+      const win = this.#window();
+      const caf = win?.cancelAnimationFrame?.bind(win) ?? globalThis.cancelAnimationFrame?.bind(globalThis);
+      if (typeof caf === "function") caf(id);
+      else clearTimeout(id);
+    }
+
+    #effectiveMode(): PlaybackMode {
+      if (this.#explicitMode === "static") return "static";
+      if (this.#explicitMode === "reduced") return "reduced";
+      if (this.#reducedPreference && this.#explicitMode === null) return "reduced";
+      return "normal";
+    }
+
+    #stopRaf(): void {
+      this.#playing = false;
+      this.#previousClockMs = null;
+      if (this.#requestId !== null) {
+        this.#cancelFrame(this.#requestId);
+        this.#requestId = null;
+      }
+    }
+
+    #bindReducedMotion(): void {
+      this.#detachMedia?.();
+      this.#detachMedia = null;
+      const win = this.#window();
+      const matchMediaFn =
+        win?.matchMedia?.bind(win) ??
+        (typeof globalThis.matchMedia === "function" ? globalThis.matchMedia.bind(globalThis) : undefined);
+      if (!matchMediaFn) {
+        this.#reducedPreference = false;
+        return;
+      }
+      const mql = matchMediaFn("(prefers-reduced-motion: reduce)");
+      this.#reducedPreference = Boolean(mql.matches);
+      if (typeof mql.addEventListener === "function") {
+        const onChange = (event: MediaQueryListEvent): void => {
+          this.#reducedPreference = Boolean(event.matches);
+          if (this.#reducedPreference && this.#explicitMode === null) {
+            this.#stopRaf();
+          }
+          this.#renderCurrent();
+        };
+        mql.addEventListener("change", onChange);
+        this.#detachMedia = () => mql.removeEventListener("change", onChange);
+      }
+    }
+
+    #mountProgramDom(program: CompiledAnimation): void {
+      this.#painter?.dispose();
+      this.#painter = null;
+      if (this.#svg) {
+        if (typeof this.#svg.remove === "function") this.#svg.remove();
+        else if (this.#svg.parentNode) this.#svg.parentNode.removeChild(this.#svg);
+        this.#svg = null;
+      }
+
+      const doc = this.ownerDocument ?? globalThis.document;
+      if (!doc) return;
+
+      const { width, height } = program.spec.canvas;
+      const v2 = program.contractVersion === CONTRACT_VERSION_V2 ? (program.spec as AnimationSpecV2) : undefined;
+      const bg = v2?.theme?.background ?? "#ffffff";
+      const color = program.spec.actor?.color ?? "#202124";
+      const accent = v2?.theme?.accentColor;
+
+      const svg = doc.createElementNS(svgNamespace, "svg");
+      svg.setAttribute("data-stickman-svg", "true");
+      svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      svg.setAttribute("width", String(width));
+      svg.setAttribute("height", String(height));
+      svg.setAttribute("role", "img");
+      if (svg.style) {
+        svg.style.display = "block";
+        svg.style.width = "100%";
+        svg.style.height = "auto";
+      }
+
+      const bgRect = doc.createElementNS(svgNamespace, "rect");
+      bgRect.setAttribute("width", "100%");
+      bgRect.setAttribute("height", "100%");
+      bgRect.setAttribute("fill", bg);
+      svg.appendChild(bgRect);
+
+      const ground = doc.createElementNS(svgNamespace, "path");
+      ground.setAttribute("data-part", "ground");
+      ground.setAttribute("stroke", "#d8dbe0");
+      ground.setAttribute("stroke-width", "1");
+      svg.appendChild(ground);
+
+      this.appendChild(svg);
+      this.#svg = svg;
+      this.#bgRect = bgRect;
+      this.#groundPath = ground;
+      this.#painter = createSvgPainter(svg, color, svg, accent);
+    }
+
+    #renderCurrent(): void {
+      if (!this.#program || !this.#painter || !this.#svg) return;
+      const effMode = this.#effectiveMode();
+      const duration = this.#program.spec.durationMs;
+      const fps = this.#program.spec.canvas.fps;
+      const frameDuration = 1000 / fps;
+      const sampleTime =
+        effMode === "normal"
+          ? Math.min(duration, Math.floor(this.#timeMs / frameDuration + 1e-9) * frameDuration)
+          : duration;
+      const frame = sampleAnimation(this.#program, sampleTime, effMode);
+      if (this.#groundPath) {
+        this.#groundPath.setAttribute("d", `M0 ${Number(frame.groundY.toFixed(3))}H${this.#program.spec.canvas.width}`);
+      }
+      this.#svg.setAttribute(
+        "aria-label",
+        `Stick figure ${frame.action} at ${Number(frame.timeMs.toFixed(3))} milliseconds`
+      );
+      this.#painter.draw(frame);
+    }
+
+    #emitMarkers(fromMs: number, toMs: number): void {
+      if (!this.#program?.events || this.#program.events.length === 0) return;
+      const win = this.#window();
+      const EventCtor =
+        (win && "CustomEvent" in win ? (win as unknown as { CustomEvent?: typeof CustomEvent }).CustomEvent : undefined) ??
+        globalThis.CustomEvent;
+      if (typeof EventCtor !== "function" || typeof this.dispatchEvent !== "function") return;
+      for (const ev of this.#program.events) {
+        if (ev.timeMs > fromMs && ev.timeMs <= toMs) {
+          this.dispatchEvent(
+            new EventCtor("stickman:marker", {
+              detail: { ...ev },
+              bubbles: true,
+              composed: true
+            })
+          );
+        }
+      }
+    }
+
+    #schedule(): void {
+      if (this.#playing && this.#requestId === null && !this.#disposed) {
+        this.#requestId = this.#requestFrame((now) => this.#tick(now));
+      }
+    }
+
+    #tick(now: number): void {
+      this.#requestId = null;
+      if (!this.#playing || this.#disposed || !this.#program) return;
+      finite(now, "clock timestamp");
+      const delta = this.#previousClockMs === null ? 0 : Math.max(0, now - this.#previousClockMs);
+      this.#previousClockMs = now;
+      const duration = this.#program.spec.durationMs;
+      const nextTime = Math.min(duration, this.#timeMs + delta);
+      const before = this.#emittedMs;
+      this.#timeMs = nextTime;
+      this.#emittedMs = nextTime;
+      if (nextTime >= duration) {
+        this.#stopRaf();
+      }
+      this.#emitMarkers(before, nextTime);
+      this.#renderCurrent();
+      this.#schedule();
+    }
+
+    #tryLoadDeclarativeProgram(): void {
+      const attrVal = this.getAttribute?.("program");
+      if (attrVal && attrVal.trim()) {
+        this.setProgram(attrVal);
+        return;
+      }
+      if (typeof this.querySelector === "function") {
+        const jsonScript = this.querySelector('script[type="application/json"]');
+        if (jsonScript?.textContent && jsonScript.textContent.trim()) {
+          this.setProgram(jsonScript.textContent.trim());
+          return;
+        }
+      }
+      const rawText = this.textContent?.trim();
+      if (rawText && rawText.startsWith("{")) {
+        this.textContent = "";
+        this.setProgram(rawText);
+      }
+    }
+
+    connectedCallback(): void {
+      if (this.#disposed) return;
+      this.#bindReducedMotion();
+      const modeAttr = this.getAttribute?.("mode");
+      if (modeAttr === "normal" || modeAttr === "reduced" || modeAttr === "static") {
+        this.#explicitMode = modeAttr;
+      }
+      if (!this.#program) {
+        this.#tryLoadDeclarativeProgram();
+      } else {
+        if (!this.#svg) this.#mountProgramDom(this.#program);
+        this.#renderCurrent();
+      }
+      if (this.#program && this.hasAttribute?.("autoplay") && this.#effectiveMode() === "normal") {
+        this.play();
+      }
+    }
+
+    disconnectedCallback(): void {
+      this.#stopRaf();
+      this.#detachMedia?.();
+      this.#detachMedia = null;
+    }
+
+    attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
+      if (oldValue === newValue || this.#disposed) return;
+      if (name === "program" && newValue && newValue.trim()) {
+        this.setProgram(newValue);
+      } else if (name === "mode") {
+        if (newValue === "normal" || newValue === "reduced" || newValue === "static") {
+          this.setMode(newValue);
+        } else if (newValue === null) {
+          this.#explicitMode = null;
+          if (this.#effectiveMode() !== "normal") this.#stopRaf();
+          this.#renderCurrent();
+        }
+      } else if (name === "autoplay" && newValue !== null && this.#program && this.#effectiveMode() === "normal") {
+        this.play();
+      }
+    }
+
+    snapshot(): BrowserPlayerState {
+      return {
+        timeMs: this.#timeMs,
+        playing: this.#playing,
+        cancelled: false,
+        disposed: this.#disposed,
+        layoutValid: !this.#disposed,
+        mode: this.#effectiveMode()
+      };
+    }
+
+    setProgram(input: unknown): BrowserPlayerState {
+      if (this.#disposed) throw new Error("Stickman player element is disposed.");
+      const nextProgram = resolveElementProgramInput(input);
+      this.#stopRaf();
+      this.#program = nextProgram;
+      this.#timeMs = 0;
+      this.#emittedMs = -1;
+      if (this.#detachMedia === null) {
+        this.#bindReducedMotion();
+      }
+      this.#mountProgramDom(nextProgram);
+      this.#renderCurrent();
+      return this.snapshot();
+    }
+
+    setMode(mode: PlaybackMode): BrowserPlayerState {
+      if (mode !== "normal" && mode !== "reduced" && mode !== "static") {
+        throw new TypeError('Mode must be "normal", "reduced", or "static".');
+      }
+      this.#explicitMode = mode;
+      if (mode !== "normal") {
+        this.#stopRaf();
+      }
+      this.#renderCurrent();
+      return this.snapshot();
+    }
+
+    play(): BrowserPlayerState {
+      if (this.#disposed) throw new Error("Stickman player element is disposed.");
+      if (!this.#program) return this.snapshot();
+      if (this.#effectiveMode() !== "normal") return this.snapshot();
+      const duration = this.#program.spec.durationMs;
+      if (this.#timeMs >= duration) {
+        this.#timeMs = 0;
+        this.#emittedMs = -1;
+      } else if (this.#timeMs === 0) {
+        this.#emittedMs = -1;
+      }
+      if (!this.#playing) {
+        this.#playing = true;
+        this.#previousClockMs = this.#now();
+        this.#renderCurrent();
+        this.#schedule();
+      }
+      return this.snapshot();
+    }
+
+    pause(): BrowserPlayerState {
+      this.#stopRaf();
+      return this.snapshot();
+    }
+
+    seek(timeMs: number): BrowserPlayerState {
+      finite(timeMs, "seek timeMs");
+      if (this.#disposed) throw new Error("Stickman player element is disposed.");
+      if (!this.#program) return this.snapshot();
+      const duration = this.#program.spec.durationMs;
+      this.#timeMs = Math.max(0, Math.min(duration, timeMs));
+      this.#emittedMs = this.#timeMs;
+      if (this.#playing) {
+        this.#previousClockMs = this.#now();
+      }
+      if (this.#timeMs >= duration) {
+        this.#stopRaf();
+      }
+      this.#renderCurrent();
+      return this.snapshot();
+    }
+
+    dispose(): void {
+      if (this.#disposed) return;
+      this.#stopRaf();
+      this.#disposed = true;
+      this.#detachMedia?.();
+      this.#detachMedia = null;
+      this.#painter?.dispose();
+      this.#painter = null;
+      if (this.#svg) {
+        if (typeof this.#svg.remove === "function") this.#svg.remove();
+        else if (this.#svg.parentNode) this.#svg.parentNode.removeChild(this.#svg);
+        this.#svg = null;
+      }
+      this.#bgRect = null;
+      this.#groundPath = null;
+    }
+  }
+
+  g.customElements.define(tagName, StickmanPlayerCustomElement);
+  return true;
 }

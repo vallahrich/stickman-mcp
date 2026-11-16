@@ -6,7 +6,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
 const repo = resolve(fileURLToPath(new URL("..", import.meta.url)));
-const client = new Client({ name: "stickman-local-deck", version: "0.1.0" });
+const client = new Client({ name: "stickman-local-deck", version: "0.2.0" });
 const transport = new StdioClientTransport({
   command: process.execPath,
   args: [resolve(repo, "dist", "mcp.js"), "--root", resolve(repo, "output")],
@@ -14,7 +14,22 @@ const transport = new StdioClientTransport({
 });
 await client.connect(transport);
 await client.listTools();
-const modules = new Set(["browser.js", "compiler.js", "contract.js", "render.js", "keyboard.js", "room.js", "world-motion.js", "motion-clips.js"]);
+const modules = new Set([
+  "browser.js",
+  "compiler.js",
+  "contract.js",
+  "render.js",
+  "keyboard.js",
+  "room.js",
+  "world-motion.js",
+  "motion-clips.js",
+  "choreograph.js",
+  "props.js",
+  "events.js",
+  "motion-library.js",
+  "generated/motion-library.js",
+  "storyboard.js"
+]);
 const server = createServer(async (request, response) => {
   const origin = `http://127.0.0.1:${server.address().port}`;
   if (request.headers.host !== origin.slice(7)

@@ -1,0 +1,32 @@
+{
+  "version": "stickman.animation/v2",
+  "canvas": {
+    "width": 800,
+    "height": 450,
+    "fps": 30
+  },
+  "theme": {
+    "accentColor": "#e11d48",
+    "background": "#ffffff"
+  },
+  "actor": {
+    "id": "athlete",
+    "label": "Athlete",
+    "x": "left",
+    "color": "#0f172a",
+    "accessory": "badge"
+  },
+  "actions": [
+    {
+      "action": "hurdle",
+      "emitCue": "clearedHurdle"
+    },
+    {
+      "action": "basketball-shot",
+      "emitCue": "shotMade"
+    },
+    {
+      "action": "cheer"
+    }
+  ]
+}

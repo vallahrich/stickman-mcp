@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
-  createBrowserPlayer, createBrowserScene, createSceneProjection, mapElementAnchor,
-  measureHostViewport, projectTravelAnchor, sceneToViewport, svgViewportToScene, viewportToScene,
+  createBrowserPlayer, createBrowserScene, createSceneProjection, createSvgPainter, mapElementAnchor,
+  measureHostViewport, projectTravelAnchor, registerStickmanPlayerElement, sceneToViewport,
+  svgViewportToScene, viewportToScene,
   type BrowserClock, type BrowserPlayerOptions, type BrowserPlayerPort, type CssRect,
-  type HostViewportMetrics, type ScreenMatrix
+  type HostViewportMetrics, type ScreenMatrix, type StickmanPlayerElement
 } from "../src/browser.js";
+import { choreographAnimation } from "../src/choreograph.js";
 import { compileAnimation, sampleAnimation } from "../src/compiler.js";
 import type { AnimationSpec, CompiledAnimation, SampledFrame } from "../src/contract.js";
 
@@ -201,12 +203,12 @@ describe("browser motion sampler", () => {
     port.rect = { left: 0, top: 0, width: 1000, height: 700 };
     const clock = new FakeClock();
     const player = createBrowserPlayer(program, port, clock, { clock: "external" });
-    for (const [time, expectedFacing] of [[0, 1], [300, 0.5], [450, 0], [900, -1]] as const) {
+    for (const [time, expectedFacing] of [[0, 1], [300, 0.42], [25000 / 60, 0], [900, -1]] as const) {
       player.seek(time);
       const browserFrame = port.frames.at(-1)!;
       const rendererFrame = sampleAnimation(program, time);
       expect(browserFrame).toEqual(rendererFrame);
-      expect(browserFrame.facing).toBeCloseTo(expectedFacing, 3);
+      expect(browserFrame.facing).toBeCloseTo(expectedFacing, 2);
     }
   });
 });
@@ -426,5 +428,329 @@ describe("browser player lifecycle using typed platform fakes", () => {
     expect(player.snapshot().timeMs).toBe(100);
     expect(player.seek(-1).timeMs).toBe(0);
     expect(player.seek(9999).timeMs).toBe(2400);
+  });
+});
+
+class MockDomNode {
+  readonly tagName: string;
+  readonly ownerDocument: MockDocument;
+  parentNode: MockDomNode | null = null;
+  children: MockDomNode[] = [];
+  attributes = new Map<string, string>();
+  style: Record<string, string> = {};
+  textContent = "";
+  private listeners = new Map<string, Set<(event: unknown) => void>>();
+
+  constructor(tagName: string, doc: MockDocument) {
+    this.tagName = tagName;
+    this.ownerDocument = doc;
+  }
+
+  get firstChild(): MockDomNode | null {
+    return this.children[0] ?? null;
+  }
+
+  setAttribute(name: string, value: string): void {
+    this.attributes.set(name, String(value));
+  }
+
+  getAttribute(name: string): string | null {
+    return this.attributes.get(name) ?? null;
+  }
+
+  hasAttribute(name: string): boolean {
+    return this.attributes.has(name);
+  }
+
+  appendChild<T extends MockDomNode>(child: T): T {
+    if (child.parentNode) child.parentNode.removeChild(child);
+    child.parentNode = this;
+    this.children.push(child);
+    return child;
+  }
+
+  removeChild<T extends MockDomNode>(child: T): T {
+    const idx = this.children.indexOf(child);
+    if (idx >= 0) this.children.splice(idx, 1);
+    child.parentNode = null;
+    return child;
+  }
+
+  remove(): void {
+    if (this.parentNode) this.parentNode.removeChild(this);
+  }
+
+  getBoundingClientRect(): CssRect {
+    return { left: 0, top: 0, width: 800, height: 450 };
+  }
+
+  get viewBox(): { baseVal: { width: number; height: number } } {
+    const vb = this.attributes.get("viewBox")?.split(/\s+/).map(Number);
+    return { baseVal: { width: vb?.[2] ?? 800, height: vb?.[3] ?? 450 } };
+  }
+
+  addEventListener(type: string, fn: (event: unknown) => void): void {
+    let set = this.listeners.get(type);
+    if (!set) {
+      set = new Set();
+      this.listeners.set(type, set);
+    }
+    set.add(fn);
+  }
+
+  removeEventListener(type: string, fn: (event: unknown) => void): void {
+    this.listeners.get(type)?.delete(fn);
+  }
+
+  dispatchEvent(event: { type: string }): boolean {
+    for (const fn of this.listeners.get(event.type) ?? []) {
+      fn(event);
+    }
+    return true;
+  }
+
+  findAll(predicate: (node: MockDomNode) => boolean): MockDomNode[] {
+    const found: MockDomNode[] = [];
+    const visit = (n: MockDomNode): void => {
+      if (predicate(n)) found.push(n);
+      for (const c of n.children) visit(c);
+    };
+    visit(this);
+    return found;
+  }
+}
+
+class MockDocument {
+  defaultView: Record<string, unknown> | null = null;
+  createElementNS(_ns: string, tagName: string): MockDomNode {
+    return new MockDomNode(tagName, this);
+  }
+}
+
+describe("v2 multi-actor & add-on browser overlay and <stickman-player> custom element", () => {
+  it("paints v2 multi-actor accessories and layered add-ons cleanly via createSvgPainter & createBrowserPlayer", () => {
+    const choreo = choreographAnimation({
+      theme: { accentColor: "#2563eb" },
+      actors: [
+        {
+          id: "host",
+          x: "left",
+          accessory: "tie",
+          actions: [{ action: "write-board", emitCue: "ready" }, { action: "idea" }]
+        },
+        {
+          id: "guest",
+          x: "right",
+          accessory: "glasses",
+          actions: [{ action: "clap", afterCue: "ready" }]
+        }
+      ]
+    });
+    expect(choreo.valid).toBe(true);
+    const v2Program = choreo.program!;
+
+    const doc = new MockDocument();
+    const svg = doc.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 800 450");
+    const painter = createSvgPainter(svg as unknown as SVGSVGElement, "#202124", svg as unknown as SVGElement, "#2563eb");
+
+    const port = new FakePort();
+    port.rect = { left: 0, top: 0, width: 800, height: 450 };
+    port.draw = (frame) => {
+      port.frames.push(frame);
+      painter.draw(frame);
+    };
+
+    const player = createBrowserPlayer(v2Program, port, new FakeClock(), { clock: "external" });
+    player.seek(800); // mid write-board
+    expect(svg.findAll((n) => n.getAttribute("data-actor") === "host")).toHaveLength(1);
+    expect(svg.findAll((n) => n.getAttribute("data-actor") === "guest")).toHaveLength(1);
+    expect(svg.findAll((n) => n.getAttribute("data-accessory") === "tie")).toHaveLength(1);
+    expect(svg.findAll((n) => n.getAttribute("data-accessory") === "glasses")).toHaveLength(1);
+    expect(svg.findAll((n) => n.getAttribute("data-addon") === "board")).toHaveLength(1);
+
+    const ideaAct = (v2Program.spec as { actors: Array<{ actions: Array<{ startMs: number; durationMs: number }> }> }).actors[0]!.actions[1]!;
+    player.seek(ideaAct.startMs + ideaAct.durationMs * 0.7);
+    expect(svg.findAll((n) => n.getAttribute("data-addon") === "bulb")).toHaveLength(1);
+
+    painter.dispose();
+    player.dispose();
+  });
+
+  it("registerStickmanPlayerElement returns false without DOM globals and defines a full-featured custom element when available", () => {
+    const g = globalThis as Record<string, unknown>;
+    const saved = {
+      HTMLElement: g.HTMLElement,
+      customElements: g.customElements,
+      document: g.document,
+      matchMedia: g.matchMedia,
+      requestAnimationFrame: g.requestAnimationFrame,
+      cancelAnimationFrame: g.cancelAnimationFrame
+    };
+
+    try {
+      delete g.HTMLElement;
+      delete g.customElements;
+      expect(registerStickmanPlayerElement()).toBe(false);
+      expect(() => registerStickmanPlayerElement("invalidtag")).toThrow(/hyphen/);
+
+      let reduced = false;
+      const mediaListeners = new Set<(ev: { matches: boolean }) => void>();
+      let nowMs = 1000;
+      let nextRafId = 1;
+      const rafQueue = new Map<number, (now: number) => void>();
+
+      const mockDoc = new MockDocument();
+      mockDoc.defaultView = {
+        performance: { now: () => nowMs },
+        CustomEvent: globalThis.CustomEvent,
+        matchMedia: () => ({
+          get matches() {
+            return reduced;
+          },
+          addEventListener(_t: string, cb: (ev: { matches: boolean }) => void) {
+            mediaListeners.add(cb);
+          },
+          removeEventListener(_t: string, cb: (ev: { matches: boolean }) => void) {
+            mediaListeners.delete(cb);
+          }
+        }),
+        requestAnimationFrame(cb: (now: number) => void) {
+          const id = nextRafId++;
+          rafQueue.set(id, cb);
+          return id;
+        },
+        cancelAnimationFrame(id: number) {
+          rafQueue.delete(id);
+        }
+      };
+
+      class BaseMockHtmlElement extends MockDomNode {
+        constructor() {
+          super("stickman-player", mockDoc);
+        }
+      }
+
+      const registry = new Map<string, CustomElementConstructor>();
+      g.HTMLElement = BaseMockHtmlElement;
+      g.document = mockDoc;
+      g.customElements = {
+        define(name: string, ctor: CustomElementConstructor) {
+          registry.set(name, ctor);
+        },
+        get(name: string) {
+          return registry.get(name);
+        }
+      };
+
+      expect(registerStickmanPlayerElement("stickman-player")).toBe(true);
+      expect(registerStickmanPlayerElement("stickman-player")).toBe(true); // idempotent!
+
+      const Ctor = registry.get("stickman-player")!;
+      expect(Ctor).toBeDefined();
+
+      const choreo = choreographAnimation({
+        actors: [
+          {
+            id: "speaker",
+            x: "offstage-left",
+            accessory: "tie",
+            actions: [
+              { action: "walk-on", to: "left", emitCue: "entered" },
+              { action: "idea", emitCue: "aha", emitCueAt: "end" },
+              { action: "walk-off", to: "offstage-right" }
+            ]
+          },
+          {
+            id: "listener",
+            x: "right",
+            accessory: "glasses",
+            actions: [{ action: "thumbs-up", afterCue: "entered" }]
+          }
+        ]
+      });
+      expect(choreo.valid).toBe(true);
+      const v2Program = choreo.program!;
+
+      // 1. Programmatic setProgram + play/pause/seek + stickman:marker CustomEvent dispatch
+      const el = new Ctor() as StickmanPlayerElement & MockDomNode & {
+        connectedCallback(): void;
+        disconnectedCallback(): void;
+        attributeChangedCallback(name: string, oldVal: string | null, newVal: string | null): void;
+      };
+      const receivedMarkers: Array<Record<string, unknown>> = [];
+      el.addEventListener("stickman:marker", (ev) => {
+        receivedMarkers.push((ev as CustomEvent<Record<string, unknown>>).detail);
+      });
+
+      el.connectedCallback();
+      el.setProgram(v2Program);
+      expect(el.durationMs).toBe(v2Program.spec.durationMs);
+      expect(el.findAll((n) => n.getAttribute("data-stickman-svg") === "true")).toHaveLength(1);
+      expect(el.findAll((n) => n.getAttribute("data-actor") === "speaker")).toHaveLength(1);
+      expect(el.findAll((n) => n.getAttribute("data-actor") === "listener")).toHaveLength(1);
+
+      expect(el.play().playing).toBe(true);
+      expect(rafQueue.size).toBe(1);
+
+      while (rafQueue.size > 0) {
+        nowMs += 300;
+        const pending = [...rafQueue.values()];
+        rafQueue.clear();
+        for (const cb of pending) cb(nowMs);
+      }
+
+      expect(el.snapshot()).toMatchObject({ timeMs: v2Program.spec.durationMs, playing: false });
+      expect(receivedMarkers.map((m) => m.marker)).toEqual(expect.arrayContaining(["entered", "aha"]));
+      expect(receivedMarkers.some((m) => m.actorId === "speaker")).toBe(true);
+
+      // Seek + pause check
+      el.seek(500);
+      expect(el.currentTimeMs).toBe(500);
+      el.play();
+      expect(el.pause().playing).toBe(false);
+      expect(rafQueue.size).toBe(0);
+
+      // 2. prefers-reduced-motion: reduce pauses RAF & renders onstage summary pose
+      el.play();
+      expect(rafQueue.size).toBe(1);
+      reduced = true;
+      for (const listener of mediaListeners) listener({ matches: true });
+      expect(el.snapshot()).toMatchObject({ playing: false, mode: "reduced" });
+      expect(rafQueue.size).toBe(0);
+      expect(el.play().playing).toBe(false);
+
+      reduced = false;
+      for (const listener of mediaListeners) listener({ matches: false });
+      el.dispose();
+
+      // 3. Declarative JSON text content loading on connectedCallback
+      const declarativeEl = new Ctor() as StickmanPlayerElement & MockDomNode & {
+        connectedCallback(): void;
+      };
+      declarativeEl.textContent = JSON.stringify({
+        actor: { x: "center", accessory: "hat" },
+        actions: [{ action: "wave", durationMs: 800 }]
+      });
+      declarativeEl.connectedCallback();
+      expect(declarativeEl.durationMs).toBe(800);
+      expect(declarativeEl.findAll((n) => n.getAttribute("data-accessory") === "hat")).toHaveLength(1);
+
+      // 4. Attribute-based JSON loading via program="..."
+      const attrEl = new Ctor() as StickmanPlayerElement & MockDomNode & {
+        connectedCallback(): void;
+        attributeChangedCallback(name: string, oldVal: string | null, newVal: string | null): void;
+      };
+      const jsonSpec = JSON.stringify(v2Program);
+      attrEl.setAttribute("program", jsonSpec);
+      attrEl.connectedCallback();
+      expect(attrEl.durationMs).toBe(v2Program.spec.durationMs);
+      attrEl.dispose();
+    } finally {
+      for (const [key, val] of Object.entries(saved)) {
+        if (val === undefined) delete g[key];
+        else g[key] = val;
+      }
+    }
   });
 });

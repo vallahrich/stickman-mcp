@@ -5,9 +5,13 @@ import { fileURLToPath } from "node:url";
 import { Resvg } from "@resvg/resvg-js";
 import { renderStaticSvg } from "./review-renderer.mjs";
 
+import os from "node:os";
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-const sessionFiles = process.env.STICKMAN_SESSION_FILES ?? process.env.MOTION_SESSION_FILES ?? "C:\\Users\\t-vwallerich\\.copilot\\session-state\\5151d75e-0e30-46ad-99e0-e3d1bf08e105\\files";
-const factoryDir = path.join(sessionFiles, "motion-factory", "clips");
+const outDirArgIndex = process.argv.indexOf("--out-dir");
+const factoryRoot = outDirArgIndex >= 0 && process.argv[outDirArgIndex + 1]
+  ? path.resolve(process.argv[outDirArgIndex + 1])
+  : path.resolve(process.env.MOTION_OUT_DIR ?? path.join(os.tmpdir(), "stickman-motion-factory"));
+const factoryDir = path.join(factoryRoot, "clips");
 const onlyIndex = process.argv.indexOf("--only");
 const framesIndex = process.argv.indexOf("--frames");
 const strip = process.argv.includes("--strip");
@@ -21,7 +25,7 @@ if (!only || !frameList) {
 const clipDir = path.join(factoryDir, only);
 const clip = JSON.parse(await readFile(path.join(clipDir, "clip.json"), "utf8"));
 const spec = JSON.parse(await readFile(path.join(repo, "motions", "specs", `${only}.json`), "utf8"));
-const propsCatalog = JSON.parse(await readFile(path.join(sessionFiles, "design", "props.json"), "utf8"));
+const propsCatalog = JSON.parse(await readFile(path.join(repo, "motions", "props-catalog.json"), "utf8"));
 const shotsDir = path.join(clipDir, "shots");
 await mkdir(shotsDir, { recursive: true });
 

@@ -179,8 +179,10 @@ export async function stageCandidate(root, stage, report) {
     return [`dist/${base}.js`, `dist/${base}.d.ts`];
   }).sort();
   const payload = [...compiled, ...policy.runtimeScripts, ...policy.motionFiles, ...policy.licenseFiles,
-    "motions/catalogue.json", "motions/poses/poses.json", "motions/review-props.json", "motions/join-matrix.json",
-    "site/styles.css", "examples/wave.json", "examples/films/team-handoff.json", "examples/films/bridge-demo.json",
+    "motions/catalogue.json", "motions/poses/poses.json", "motions/review-props.json", "motions/props-catalog.json", "motions/join-matrix.json",
+    "site/styles.css", "examples/wave.json", "examples/v2-presentation-story.json",
+    "examples/v2-two-actors-collab.json", "examples/v2-sports-addons.json",
+    "examples/films/team-handoff.json", "examples/films/bridge-demo.json",
     "README.md", "package.json", "release-manifest.json"].sort();
   const pkg = {
     name: "@vallahrich/stickman-mcp", version: report.version, private: true, type: "module",

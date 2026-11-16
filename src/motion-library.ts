@@ -1,7 +1,7 @@
 import { MOTION_CLIP_LIBRARY, type MotionClip, type MotionClipLibrary, type MotionClipMeta } from "./motion-clips.js";
 import { GENERATED_MOTION_LIBRARY } from "./generated/motion-library.js";
 
-type MetaSeed = Pick<MotionClipMeta, "id" | "label" | "summary" | "kind" | "travel" | "facingChange" | "contacts" | "aim" | "prop" | "mirrorable" | "tags">;
+type MetaSeed = Pick<MotionClipMeta, "id" | "label" | "summary" | "category" | "group" | "wave" | "kind" | "travel" | "facingChange" | "contacts" | "aim" | "prop" | "mirrorable" | "tags">;
 
 const license = "CMU motion data: copying, modification and redistribution permitted; not for standalone dataset resale. See NOTICE and docs/rights.md. Not MIT.";
 const source = "runtime fixture library";
@@ -66,13 +66,13 @@ function turnAroundClip(): MotionClip {
 }
 
 const legacyMeta: Record<string, MetaSeed> = {
-  walk: { id: "walk", label: "Walk", summary: "Travel to a named flat-ground position with supported alternating steps.", kind: "loop", travel: "travel", facingChange: 0, contacts: ["lFoot", "rFoot"], aim: null, prop: null, mirrorable: true, tags: ["locomotion"] },
-  run: { id: "run", label: "Run", summary: "Run toward a named flat-ground position with reciprocal arms and flight.", kind: "loop", travel: "travel", facingChange: 0, contacts: ["lFoot", "rFoot"], aim: null, prop: null, mirrorable: true, tags: ["locomotion"] },
-  jump: { id: "jump", label: "Jump", summary: "Crouch, take off, travel vertically, absorb landing, and settle.", kind: "oneshot", travel: "in-place", facingChange: 0, contacts: ["lFoot", "rFoot"], aim: null, prop: null, mirrorable: true, tags: ["locomotion", "airborne"] },
-  point: { id: "point", label: "Point", summary: "Orient an extended hand toward a named canvas target.", kind: "oneshot", travel: "in-place", facingChange: 0, contacts: ["lFoot", "rFoot"], aim: "hand", prop: null, mirrorable: true, tags: ["gesture", "aim"] },
-  idle: { id: "idle", label: "Idle", summary: "Subtle standing hold for pauses and final poses.", kind: "loop", travel: "in-place", facingChange: 0, contacts: ["lFoot", "rFoot"], aim: null, prop: null, mirrorable: true, tags: ["hold"] },
-  stop: { id: "stop", label: "Stop", summary: "Brake from a run and settle into a supported stance.", kind: "oneshot", travel: "in-place", facingChange: 0, contacts: ["lFoot", "rFoot"], aim: null, prop: null, mirrorable: true, tags: ["locomotion", "transition"] },
-  "static-pose": { id: "static-pose", label: "Static pose", summary: "Stable reference standing pose.", kind: "hold", travel: "in-place", facingChange: 0, contacts: ["lFoot", "rFoot"], aim: null, prop: null, mirrorable: true, tags: ["hold"] }
+  walk: { id: "walk", label: "Walk", summary: "Travel to a named flat-ground position with supported alternating steps.", category: "basic", group: "Basic (moving & postures)", wave: "done", kind: "loop", travel: "travel", facingChange: 0, contacts: ["lFoot", "rFoot"], aim: null, prop: null, mirrorable: true, tags: ["locomotion"] },
+  run: { id: "run", label: "Run", summary: "Run toward a named flat-ground position with reciprocal arms and flight.", category: "basic", group: "Basic (moving & postures)", wave: "W1", kind: "loop", travel: "travel", facingChange: 0, contacts: ["lFoot", "rFoot"], aim: null, prop: null, mirrorable: true, tags: ["locomotion"] },
+  jump: { id: "jump", label: "Jump", summary: "Crouch, take off, travel vertically, absorb landing, and settle.", category: "sport", group: "Sport & action", wave: "done", kind: "oneshot", travel: "in-place", facingChange: 0, contacts: ["lFoot", "rFoot"], aim: null, prop: null, mirrorable: true, tags: ["locomotion", "airborne"] },
+  point: { id: "point", label: "Point", summary: "Orient an extended hand toward a named canvas target.", category: "gestures", group: "Gestures & emotions", wave: "done", kind: "oneshot", travel: "in-place", facingChange: 0, contacts: ["lFoot", "rFoot"], aim: "hand", prop: null, mirrorable: true, tags: ["gesture", "aim"] },
+  idle: { id: "idle", label: "Idle", summary: "Subtle standing hold for pauses and final poses.", category: "basic", group: "Basic (moving & postures)", wave: "done", kind: "loop", travel: "in-place", facingChange: 0, contacts: ["lFoot", "rFoot"], aim: null, prop: null, mirrorable: true, tags: ["hold"] },
+  stop: { id: "stop", label: "Stop", summary: "Brake from a run and settle into a supported stance.", category: "basic", group: "Basic (moving & postures)", wave: "done", kind: "oneshot", travel: "in-place", facingChange: 0, contacts: ["lFoot", "rFoot"], aim: null, prop: null, mirrorable: true, tags: ["locomotion", "transition"] },
+  "static-pose": { id: "static-pose", label: "Static pose", summary: "Stable reference standing pose.", category: "basic", group: "Basic (moving & postures)", wave: "done", kind: "hold", travel: "in-place", facingChange: 0, contacts: ["lFoot", "rFoot"], aim: null, prop: null, mirrorable: true, tags: ["hold"] }
 };
 
 const GENERATED_LIBRARY = GENERATED_MOTION_LIBRARY as MotionClipLibrary;
@@ -105,16 +105,16 @@ for (const [id, clip] of Object.entries(GENERATED_LIBRARY.clips ?? {})) {
 }
 
 clips.wave ??= withMeta({ ...MOTION_CLIP_LIBRARY.clips.point!, name: "wave", loop: false }, {
-  id: "wave", label: "Wave", summary: "Raise and wave the right hand, then settle.", kind: "oneshot", travel: "in-place",
+  id: "wave", label: "Wave", summary: "Raise and wave the right hand, then settle.", category: "gestures", group: "Gestures & emotions", wave: "W1", kind: "oneshot", travel: "in-place",
   facingChange: 0, contacts: ["lFoot", "rFoot"], aim: null, prop: null, mirrorable: true, tags: ["gesture"]
 });
 clips.push ??= withMeta({ ...MOTION_CLIP_LIBRARY.clips.stop!, name: "push", loop: false }, {
-  id: "push", label: "Push", summary: "Loaded two-hand push posture for a box or wall.", kind: "loop", travel: "travel",
+  id: "push", label: "Push", summary: "Loaded two-hand push posture for a box or wall.", category: "work", group: "Work & objects", wave: "W7", kind: "loop", travel: "travel",
   facingChange: 0, contacts: ["lFoot", "rFoot", "lHand", "rHand"], aim: null, prop: "box", mirrorable: true, tags: ["prop", "hands"]
 });
 clips["turn-around"] ??= turnAroundClip();
 clips["hold-pose"] ??= withMeta({ ...MOTION_CLIP_LIBRARY.clips["static-pose"]!, name: "hold-pose", loop: false }, {
-  id: "hold-pose", label: "Hold pose", summary: "Hold a readable standing pose on the final frame.", kind: "hold", travel: "in-place",
+  id: "hold-pose", label: "Hold pose", summary: "Hold a readable standing pose on the final frame.", category: "basic", group: "Basic (moving & postures)", wave: "done", kind: "hold", travel: "in-place",
   facingChange: 0, contacts: ["lFoot", "rFoot"], aim: null, prop: null, mirrorable: true, tags: ["hold"]
 });
 

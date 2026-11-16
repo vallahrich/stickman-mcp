@@ -1,4 +1,5 @@
 import { access, readFile, writeFile, mkdir } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import * as helpers from "./helpers.mjs";
@@ -6,25 +7,32 @@ import { renderReviewHtml } from "./review-renderer.mjs";
 import { buildKeyPoseClip, keyPoseGates } from "./keypose.mjs";
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-const sessionFiles = process.env.STICKMAN_SESSION_FILES ?? process.env.MOTION_SESSION_FILES ?? "C:\\Users\\t-vwallerich\\.copilot\\session-state\\5151d75e-0e30-46ad-99e0-e3d1bf08e105\\files";
-const approvedDir = path.join(sessionFiles, "clip-pipeline", "clips");
-const factoryDir = path.join(sessionFiles, "motion-factory");
+const outDirArgIndex = process.argv.indexOf("--out-dir");
+const factoryDir = outDirArgIndex >= 0 && process.argv[outDirArgIndex + 1]
+  ? path.resolve(process.argv[outDirArgIndex + 1])
+  : path.resolve(process.env.MOTION_OUT_DIR ?? path.join(os.tmpdir(), "stickman-motion-factory"));
+const baselinesPath = path.join(repo, "motions", "baselines.json");
+const propsCatalogPath = path.join(repo, "motions", "props-catalog.json");
 const baselineIds = new Set(["walk", "run", "jump", "stop", "point", "idle"]);
-const only = process.argv[process.argv.indexOf("--only") + 1];
-if (!only || process.argv.indexOf("--only") === -1) {
-  console.error("Use: npm run motions:build -- --only <id>. Full library assembly is npm run motions:assemble.");
+const onlyIndex = process.argv.indexOf("--only");
+const only = onlyIndex >= 0 ? process.argv[onlyIndex + 1] : null;
+if (!only) {
+  console.error("Use: npm run motions:build -- --only <id> [--out-dir <dir>]. Full library assembly is npm run motions:assemble.");
   process.exit(2);
 }
 const specPath = path.join(repo, "motions", "specs", `${only}.json`);
 const spec = JSON.parse(await readFile(specPath, "utf8"));
 const outDir = path.join(factoryDir, "clips", only);
 await mkdir(outDir, { recursive: true });
-const idleClip = JSON.parse(await readFile(path.join(approvedDir, "idle.json"), "utf8"));
+const baselinesRaw = JSON.parse(await readFile(baselinesPath, "utf8"));
+const baselineClips = baselinesRaw.clips ?? baselinesRaw;
+const idleClip = baselineClips.idle;
+const propsCatalog = JSON.parse(await readFile(propsCatalogPath, "utf8"));
 const ctx = {
   id: only,
   spec,
   processing: spec.processing ?? {},
-  paths: { repo, sessionFiles, approvedDir, factoryDir, outDir },
+  paths: { repo, baselinesPath, propsCatalogPath, factoryDir, outDir },
   helpers,
   idle: { clip: idleClip, frame: idleClip.frames[0] },
 };
@@ -73,11 +81,10 @@ async function currentGeneratedClip(id) {
     return JSON.parse(m[1]).clips?.[id] ?? null;
   } catch { return null; }
 }
-if (Array.isArray(spec.poseKeys) && spec.poseKeys.length) {
+if (Array.isArray(spec.poseKeys) && spec.poseKeys.length && !baselineIds.has(only)) {
   const clip = buildKeyPoseClip(spec, idleClip.frames[0]);
   const gates = await keyPoseGates(clip, spec);
   const report = { id: only, status: spec.status, source: "authored key poses (shipping engine)", builtAt: "1970-01-01T00:00:00.000Z", frames: clip.frames.length, keys: clip.poseKeys.length, passed: gates.passed, failures: gates.failures };
-  const propsCatalog = JSON.parse(await readFile(path.join(sessionFiles, "design", "props.json"), "utf8"));
   await writeFile(path.join(outDir, "clip.json"), JSON.stringify(clip, null, 2));
   await writeFile(path.join(outDir, "report.json"), JSON.stringify(report, null, 2));
   await writeFile(path.join(outDir, "review.html"), await renderReviewHtml({ clip, spec, report, propsCatalog }));
@@ -88,8 +95,7 @@ let clip = null;
 let source = "";
 const hook = baselineIds.has(only) ? {} : await loadHook(only);
 if (baselineIds.has(only)) {
-  clip = JSON.parse(await readFile(path.join(approvedDir, `${only}.json`), "utf8"));
-  clip.meta = { ...(clip.meta ?? {}), id: only, label: spec.label, summary: spec.summary ?? `${spec.label} approved baseline motion.`, kind: spec.kind, travel: spec.travel, facingChange: spec.facingChange ?? 0, contacts: spec.contacts, markers: clip.markers ?? {}, aim: spec.aim ?? null, prop: spec.prop ?? null, mirrorable: spec.mirrorable ?? true, tags: spec.tags ?? [], durationS: Number((clip.frames.length / clip.fps).toFixed(3)), quality: { approvedBaseline: true, passed: true }, source: { dataset: "CMU", trial: `${spec.source?.subject}_${spec.source?.trial}`, range120: spec.source?.range120 }, license: "CMU mocap (mocap.cs.cmu.edu), see NOTICE" };
+  clip = structuredClone(baselineClips[only]);
   source = "approved baseline cache";
 } else {
   try { clip = JSON.parse(await readFile(path.join(outDir, "clip.json"), "utf8")); source = "existing per-motion build"; } catch {
@@ -129,7 +135,6 @@ if (!baselineIds.has(only)) {
 }
 await writeFile(path.join(outDir, "clip.json"), JSON.stringify(clip, null, 2));
 await writeFile(path.join(outDir, "report.json"), JSON.stringify(report, null, 2));
-const propsCatalog = JSON.parse(await readFile(path.join(sessionFiles, "design", "props.json"), "utf8"));
 const html = await renderReviewHtml({ clip, spec, report, propsCatalog });
 await writeFile(path.join(outDir, "review.html"), html);
 console.log(`${only}: wrote ${outDir}`);

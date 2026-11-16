@@ -1,5 +1,6 @@
 import {
   CONTRACT_VERSION,
+  CONTRACT_VERSION_V2,
   type AnimationSpec,
   type CompileResult,
   type CompiledAnimation,
@@ -9,6 +10,7 @@ import {
   type Segment,
   type ValidationResult
 } from "./contract.js";
+import { compileV2Animation, sampleAnimationV2, validateV2Animation } from "./choreograph.js";
 import { sampleClipMotion } from "./motion-clips.js";
 import { markerEvents } from "./events.js";
 import { RUNTIME_ACTION_NAMES, RUNTIME_MOTION_LIBRARY, getMotionMeta } from "./motion-library.js";
@@ -16,8 +18,12 @@ import { RUNTIME_ACTION_NAMES, RUNTIME_MOTION_LIBRARY, getMotionMeta } from "./m
 const actionNames = new Set<string>(RUNTIME_ACTION_NAMES);
 const hexColor = /^#[0-9a-fA-F]{6}$/;
 const isTravelAction = (action: string): boolean => action === "walk" || action === "run" || (getMotionMeta(action)?.travel === "travel" && action !== "push");
-const motionGlobal = globalThis as typeof globalThis & { __stickmanMotionLibrary?: typeof RUNTIME_MOTION_LIBRARY };
+const motionGlobal = globalThis as typeof globalThis & {
+  __stickmanMotionLibrary?: typeof RUNTIME_MOTION_LIBRARY;
+  __stickmanSampleV2?: typeof sampleAnimationV2;
+};
 motionGlobal.__stickmanMotionLibrary = RUNTIME_MOTION_LIBRARY;
+motionGlobal.__stickmanSampleV2 = sampleAnimationV2;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -73,14 +79,16 @@ function hasAnimationSpecStructure(value: unknown): value is AnimationSpec {
     && typeof action.action === "string" && actionNames.has(action.action)
     && finiteNumber(action.startMs) && finiteNumber(action.durationMs)
     && (action.speed === undefined || finiteNumber(action.speed))
+    && (action.blendMs === undefined || finiteNumber(action.blendMs))
     && (action.target === undefined || typeof action.target === "string"));
 }
 
 export function validateAnimation(input: unknown): ValidationResult {
   const diagnostics: Diagnostic[] = [];
   if (!isRecord(input)) return { valid: false, diagnostics: [{ path: "$", code: "invalid_type", message: "Animation must be a JSON object." }] };
+  if (input.version === CONTRACT_VERSION_V2) return validateV2Animation(input);
   hasOnlyKeys(input, ["version", "canvas", "durationMs", "actor", "targets", "prop", "actions"], "$", diagnostics);
-  if (input.version !== CONTRACT_VERSION) diagnostics.push({ path: "$.version", code: "unsupported_version", message: `Expected "${CONTRACT_VERSION}".` });
+  if (input.version !== CONTRACT_VERSION) diagnostics.push({ path: "$.version", code: "unsupported_version", message: `Expected "${CONTRACT_VERSION}" or "${CONTRACT_VERSION_V2}".` });
 
   const canvas = input.canvas;
   if (!isRecord(canvas)) {
@@ -146,8 +154,10 @@ export function validateAnimation(input: unknown): ValidationResult {
         else if ((key === "width" || key === "height") && prop[key] <= 0) diagnostics.push({ path: `$.prop.${key}`, code: "out_of_range", message: `${key} must be greater than zero.` });
       }
       if (finiteNumber(prop.x) && finiteNumber(prop.y) && finiteNumber(prop.width) && finiteNumber(prop.height) && finiteNumber(prop.toX)) {
-        if (prop.x < 0 || prop.y < 0 || prop.x + prop.width > width || prop.y + prop.height > height || prop.toX < prop.x || prop.toX + prop.width > width) {
-          diagnostics.push({ path: "$.prop", code: "prop_path_outside_canvas", message: "Keep the complete prop and its rightward push path inside the canvas." });
+        if (prop.x < 0 || prop.y < 0 || prop.x + prop.width > width || prop.y + prop.height > height || prop.toX < 0 || prop.toX + prop.width > width) {
+          diagnostics.push({ path: "$.prop", code: "prop_path_outside_canvas", message: "Keep the complete prop and its horizontal push path inside the canvas." });
+        } else if (Math.abs(prop.toX - prop.x) < 1e-9) {
+          diagnostics.push({ path: "$.prop.toX", code: "zero_push_distance", message: "prop.toX must differ from prop.x so push translates the prop left or right." });
         }
       }
       if (!isRecord(prop.handle) || !finiteNumber(prop.handle.x) || !finiteNumber(prop.handle.y)) {
@@ -173,12 +183,13 @@ export function validateAnimation(input: unknown): ValidationResult {
         diagnostics.push({ path, code: "invalid_type", message: "Each action must be an object." });
         continue;
       }
-      hasOnlyKeys(action, ["action", "startMs", "durationMs", "target", "speed"], path, diagnostics);
+      hasOnlyKeys(action, ["action", "startMs", "durationMs", "target", "speed", "blendMs"], path, diagnostics);
       if (typeof action.action !== "string" || !actionNames.has(action.action)) {
         const supplied = typeof action.action === "string" ? action.action : "";
         diagnostics.push({ path: `${path}.action`, code: "unsupported_action", message: `Unsupported action "${supplied}". Did you mean ${closestActions(supplied).join(", ")}? Supported actions: ${[...actionNames].join(", ")}.` });
       }
       if (action.speed !== undefined && (!finiteNumber(action.speed) || action.speed < 0.5 || action.speed > 2)) diagnostics.push({ path: `${path}.speed`, code: "out_of_range", message: "speed must be a number from 0.5 to 2." });
+      if (action.blendMs !== undefined && (!finiteNumber(action.blendMs) || !Number.isInteger(action.blendMs) || action.blendMs < 0 || action.blendMs > 5000)) diagnostics.push({ path: `${path}.blendMs`, code: "out_of_range", message: "blendMs must be an integer from 0 to 5000." });
       if (!finiteNumber(action.startMs) || !Number.isInteger(action.startMs) || action.startMs < 0) diagnostics.push({ path: `${path}.startMs`, code: "invalid_time", message: "startMs must be a non-negative integer." });
       if (!finiteNumber(action.durationMs) || !Number.isInteger(action.durationMs) || action.durationMs < 300) diagnostics.push({ path: `${path}.durationMs`, code: "invalid_duration", message: "durationMs must be an integer of at least 300." });
       if (typeof action.startMs === "number" && typeof action.durationMs === "number" && Number.isFinite(action.startMs) && Number.isFinite(action.durationMs)) {
@@ -221,8 +232,14 @@ function validateMotion(spec: AnimationSpec, diagnostics: Diagnostic[]): void {
   // Cheap preflight uses the sampler's sizing policy, before any pose search
   // or coverage allocation. Small canvases remain supported; a subpixel rig
   // caused by a floor at the top of a canvas is an error, not a valid miniature.
-  const headroom = spec.actions.some((item) => item.action === "jump") ? 192
+  const isLegacyAction = (actionName: string): boolean =>
+    actionName === "walk" || actionName === "run" || actionName === "jump" || actionName === "point" || actionName === "wave" || actionName === "push";
+  const baseHeadroom = spec.actions.some((item) => item.action === "jump") ? 192
     : spec.actions.some((item) => item.action === "wave" || item.action === "point") ? 170 : 145;
+  const clipHeadroom = spec.actions.some((item) => item.action === "stairs-up" || item.action === "stairs-down") ? 208
+    : spec.actions.some((item) => item.action === "long-jump" || item.action === "basketball-shot" || item.action === "climb-ladder") ? 192
+    : spec.actions.some((item) => !isLegacyAction(item.action)) ? 174 : 0;
+  const headroom = Math.max(baseHeadroom, clipHeadroom);
   const requestedScale = Math.min(1, spec.canvas.width / 180, (ground - 4) / headroom);
   const scale = Math.max(0.001, requestedScale);
   if (requestedScale < 0.2) diagnostics.push({
@@ -264,19 +281,39 @@ function validateMotion(spec: AnimationSpec, diagnostics: Diagnostic[]): void {
         - (continuation ? 0 : Math.min(durationMs * 0.08, 200));
       root = target.x;
       if (direction !== 0) plannedFacing = direction;
-      priorTravel = direction !== 0 ? { direction, endMs: item.startMs + item.durationMs } : undefined;
+      if (getMotionMeta(item.action)?.facingChange === 180) plannedFacing = -plannedFacing;
+      priorTravel = direction !== 0 ? { direction: plannedFacing, endMs: item.startMs + item.durationMs } : undefined;
     } else if (item.action === "push") {
       const prop = spec.prop!;
-      if (prop.x + prop.handle.x <= root) diagnostics.push({ path: "$.prop.handle", code: "unsupported_push_facing", message: "v1 push is rightward. Establish a root position to the left of the handle before pushing." });
-      distance = prop.toX - prop.x;
-      const turnsToProp = plannedFacing !== 1;
+      const pushDir = Math.sign(prop.toX - prop.x) || 1;
+      if ((prop.x + prop.handle.x - root) * pushDir <= 0) {
+        diagnostics.push({
+          path: "$.prop.handle",
+          code: "unsupported_push_facing",
+          message: pushDir > 0
+            ? "Rightward push requires a root position to the left of the handle before pushing."
+            : "Leftward push requires a root position to the right of the handle before pushing."
+        });
+      } else if (pushDir > 0 ? prop.handle.x > prop.width * 0.5 : prop.handle.x < prop.width * 0.5) {
+        diagnostics.push({
+          path: "$.prop.handle",
+          code: "unreachable_contact",
+          message: pushDir > 0
+            ? "Rightward push requires a handle on the left/near side of the prop."
+            : "Leftward push requires a handle on the right/near side of the prop."
+        });
+      }
+      distance = Math.abs(prop.toX - prop.x);
+      const turnsToProp = plannedFacing !== pushDir;
       availableWindow = durationMs => durationMs * 0.62
         - (turnsToProp ? Math.min(durationMs * 0.14, 240) * 0.8 : 0);
-      root += distance;
-      plannedFacing = 1;
+      root += prop.toX - prop.x;
+      plannedFacing = pushDir;
       priorTravel = undefined;
     } else {
-      if (item.action === "point") plannedFacing = Math.sign(spec.targets![item.target!]!.x - root) || plannedFacing;
+      const meta = getMotionMeta(item.action);
+      if (item.action === "point" || meta?.aim) plannedFacing = Math.sign(spec.targets![item.target!]!.x - root) || plannedFacing;
+      if (meta?.facingChange === 180) plannedFacing = -plannedFacing;
       priorTravel = undefined;
     }
     if (distance > 0) {
@@ -415,6 +452,7 @@ function validateMotion(spec: AnimationSpec, diagnostics: Diagnostic[]): void {
 }
 
 export function compileAnimation(input: unknown): CompileResult {
+  if (isRecord(input) && input.version === CONTRACT_VERSION_V2) return compileV2Animation(input);
   const validation = validateAnimation(input);
   if (!validation.valid) return validation;
   if (!hasAnimationSpecStructure(input)) return {
@@ -541,14 +579,26 @@ export function sampleAnimation(
   if (typeof timeMs !== "number" || !Number.isFinite(timeMs)) throw new TypeError("timeMs must be a finite number.");
   if (mode !== "normal" && mode !== "reduced" && mode !== "static") throw new TypeError('mode must be "normal", "reduced", or "static".');
   if (intent !== undefined && mode !== "normal") throw new TypeError("Motion intent requires normal playback mode.");
-  const spec = program.spec;
+  if ((program as { contractVersion?: string }).contractVersion === "stickman.animation/v2") {
+    if (intent !== undefined) throw new TypeError("Motion intent requires a stickman.animation/v1 baseline program.");
+    const v2Sampler = (globalThis as { __stickmanSampleV2?: (p: CompiledAnimation, t: number, m: PlaybackMode) => SampledFrame }).__stickmanSampleV2;
+    if (!v2Sampler) throw new Error("stickman.animation/v2 sampler is unavailable in this execution context.");
+    return v2Sampler(program, timeMs, mode);
+  }
+  const spec = program.spec as AnimationSpec;
   const runtimeLibrary = ((globalThis as typeof globalThis & { __stickmanMotionLibrary?: typeof RUNTIME_MOTION_LIBRARY }).__stickmanMotionLibrary ?? { clips: {} }) as typeof RUNTIME_MOTION_LIBRARY;
-  const t = intent !== undefined ? Math.max(0, timeMs)
+  const playheadT = intent !== undefined ? Math.max(0, timeMs)
     : mode === "normal" ? Math.min(spec.durationMs, Math.max(0, timeMs)) : spec.durationMs;
   const authoredGroundY = spec.actor?.groundY ?? spec.canvas.height * 0.8;
   const groundY = intent?.groundY ?? authoredGroundY;
-  const headroom = spec.actions.some((item) => item.action === "jump") ? 192
+  const isLegacyAction = (actionName: string): boolean =>
+    actionName === "walk" || actionName === "run" || actionName === "jump" || actionName === "point" || actionName === "wave" || actionName === "push";
+  const baseHeadroom = spec.actions.some((item) => item.action === "jump") ? 192
     : spec.actions.some((item) => item.action === "wave" || item.action === "point") ? 170 : 145;
+  const clipHeadroom = spec.actions.some((item) => item.action === "stairs-up" || item.action === "stairs-down") ? 208
+    : spec.actions.some((item) => item.action === "long-jump" || item.action === "basketball-shot" || item.action === "climb-ladder") ? 192
+    : spec.actions.some((item) => !isLegacyAction(item.action)) ? 174 : 0;
+  const headroom = Math.max(baseHeadroom, clipHeadroom);
   const scale = Math.max(0.001, Math.min(1, spec.canvas.width / 180, (authoredGroundY - 4) / headroom));
   const torsoLength = 45 * scale;
   const armLength = 28 * scale;
@@ -701,6 +751,7 @@ export function sampleAnimation(
   let routeX = spec.actor?.x ?? spec.canvas.width * 0.2;
   let routeFacing = 1;
   for (const [index, item] of intent === undefined ? spec.actions.entries() : []) {
+    const itemMeta = runtimeLibrary.clips[item.action]?.meta;
     if (item.action === "walk" || item.action === "run") {
       const endX = spec.targets?.[item.target ?? ""]?.x ?? routeX;
       const direction = Math.sign(endX - routeX) || routeFacing;
@@ -711,24 +762,43 @@ export function sampleAnimation(
         steps: item.action === "run" ? baseSteps + baseSteps % 2 : baseSteps });
       routeX = endX;
       routeFacing = direction;
+    } else if (itemMeta?.travel === "travel" && item.action !== "push") {
+      const endX = spec.targets?.[item.target ?? ""]?.x ?? routeX;
+      routeFacing = Math.sign(endX - routeX) || routeFacing;
+      routeX = endX;
     } else if (item.action === "push" && spec.prop) {
       routeX += spec.prop.toX - spec.prop.x;
-      routeFacing = 1;
-    } else if (item.action === "point") {
+      routeFacing = Math.sign(spec.prop.toX - spec.prop.x) || 1;
+    } else if (item.action === "point" || itemMeta?.aim) {
       routeFacing = Math.sign((spec.targets?.[item.target ?? ""]?.x ?? routeX) - routeX) || routeFacing;
     }
+    if (itemMeta?.facingChange === 180) routeFacing = -routeFacing;
   }
+  const useClipEngine = spec.canvas.width > 1000;
+  const usesClipForAction = (actionName: string): boolean =>
+    !(actionName === "push" && spec.prop)
+    && Boolean(runtimeLibrary.clips[actionName]?.meta)
+    && (useClipEngine || !isLegacyAction(actionName));
+
+  type RawSample = {
+    frame: SampledFrame;
+    active: AnimationSpec["actions"][number] | undefined;
+    previous: AnimationSpec["actions"][number] | undefined;
+    nextAction: AnimationSpec["actions"][number] | undefined;
+  };
+  const sampleRaw = (t: number): RawSample => {
   let rootX = spec.actor?.x ?? spec.canvas.width * 0.2;
   let propX = spec.prop?.x ?? 0;
   let facing = 1;
   let active: AnimationSpec["actions"][number] | undefined;
   let activeIndex = -1;
   let previous: AnimationSpec["actions"][number] | undefined;
+  let nextAction: AnimationSpec["actions"][number] | undefined;
   let previousDirection = facing;
   // Absolute timeline scan, never previous-frame integration. Completed clips
   // carry their exact root/prop endpoint and knee orientation to the next clip.
   for (const [index, item] of intent === undefined ? spec.actions.entries() : []) {
-    if (t < item.startMs) break;
+    if (t < item.startMs) { nextAction = item; break; }
     if (mode === "normal" && (
       t < item.startMs + item.durationMs
       || (index === spec.actions.length - 1 && t <= spec.durationMs)
@@ -744,7 +814,7 @@ export function sampleAnimation(
     } else if (item.action === "push" && spec.prop) {
       rootX += spec.prop.toX - spec.prop.x;
       propX = spec.prop.toX;
-      facing = 1;
+      facing = Math.sign(spec.prop.toX - spec.prop.x) || 1;
     }
     if (item.action === "point" || itemMeta?.aim) {
       const target = spec.targets?.[item.target ?? ""];
@@ -753,64 +823,59 @@ export function sampleAnimation(
     if (itemMeta?.facingChange === 180) facing = -facing;
     previous = item;
   }
-  const useClipEngine = spec.canvas.width > 1000;
   const activeMeta = active ? runtimeLibrary.clips[active.action]?.meta : undefined;
-  const canUseClip = active && activeMeta && !(active.action === "push" && spec.prop);
-  if (useClipEngine && intent === undefined && active && canUseClip) {
+  if (intent === undefined && active && activeMeta && usesClipForAction(active.action)) {
     const p = clamp01((t - active.startMs) / active.durationMs);
     const startX = rootX;
     const target = active.target ? spec.targets?.[active.target] : undefined;
-    const direction = activeMeta!.aim && target ? Math.sign(target.x - startX) || facing
-      : activeMeta!.travel === "travel" ? Math.sign((target?.x ?? startX) - startX) || facing : facing;
+    const direction = activeMeta.aim && target ? Math.sign(target.x - startX) || facing
+      : activeMeta.travel === "travel" ? Math.sign((target?.x ?? startX) - startX) || facing : facing;
     const clip = sampleClipMotion(runtimeLibrary, {
       action: active.action,
       clipId: active.action,
       progress: p,
       durationMs: active.durationMs,
       startX,
-      endX: activeMeta!.travel === "travel" ? target?.x ?? startX : startX,
+      endX: activeMeta.travel === "travel" ? target?.x ?? startX : startX,
       groundY,
       facing: direction as -1 | 1,
       scale,
-      ...(activeMeta!.aim && target ? { pointTarget: target } : {}),
+      ...(activeMeta.aim && target ? { pointTarget: target } : {}),
       ...(active.speed !== undefined ? { speed: active.speed } : {})
+    });
+    if (clip.segments && clip.headPoint) {
+      let maxExcessY = 0;
+      for (const seg of clip.segments) {
+        if (seg.y1 > groundY) maxExcessY = Math.max(maxExcessY, seg.y1 - groundY);
+        if (seg.y2 > groundY) maxExcessY = Math.max(maxExcessY, seg.y2 - groundY);
+      }
+      const headPt = maxExcessY > 0 ? { x: clip.headPoint.x, y: clip.headPoint.y - maxExcessY } : clip.headPoint;
+      const segs = maxExcessY > 0
+        ? clip.segments.map((seg) => ({ id: seg.id, x1: seg.x1, y1: seg.y1 - maxExcessY, x2: seg.x2, y2: seg.y2 - maxExcessY }))
+        : clip.segments;
+      const prop = spec.prop ? {
+        id: spec.prop.id, x: propX, y: spec.prop.y, width: spec.prop.width, height: spec.prop.height,
+        handleX: propX + spec.prop.handle.x, handleY: spec.prop.y + spec.prop.handle.y
+      } : null;
+      return {
+        frame: { timeMs: t, action: active.action, x: clip.rootX, groundY, head: headPt, segments: segs, prop, ...(clip.facing !== undefined ? { facing: clip.facing } : {}), ...(clip.articulated ? { articulated: true } : {}) },
+        active, previous, nextAction
+      };
+    }
+  } else if (useClipEngine && intent === undefined && !active && mode === "normal" && runtimeLibrary.clips.idle) {
+    const clip = sampleClipMotion(runtimeLibrary, {
+      action: "idle", progress: ((t / 1000) % 2) / 2, startX: rootX, endX: rootX,
+      groundY, facing: facing as -1 | 1, scale
     });
     if (clip.segments && clip.headPoint) {
       const prop = spec.prop ? {
         id: spec.prop.id, x: propX, y: spec.prop.y, width: spec.prop.width, height: spec.prop.height,
         handleX: propX + spec.prop.handle.x, handleY: spec.prop.y + spec.prop.handle.y
       } : null;
-      let frame = { timeMs: t, action: active.action, x: clip.rootX, groundY, head: clip.headPoint, segments: clip.segments, prop, ...(clip.facing !== undefined ? { facing: clip.facing } : {}), ...(clip.articulated ? { articulated: true } : {}) };
-      if (previous && previous.startMs + previous.durationMs === active.startMs && t < active.startMs + 200) {
-        const prior = sampleAnimation(program, active.startMs - 1e-3, "normal");
-        const w = smooth((t - active.startMs) / 200);
-        const byId = new Map(prior.segments.map((segment) => [segment.id, segment]));
-        frame = {
-          ...frame,
-          x: mix(prior.x, frame.x, w),
-          head: { x: mix(prior.head.x, frame.head.x, w), y: mix(prior.head.y, frame.head.y, w) },
-          segments: frame.segments.map((segment) => {
-            const before = byId.get(segment.id);
-            return before ? {
-              id: segment.id,
-              x1: mix(before.x1, segment.x1, w), y1: mix(before.y1, segment.y1, w),
-              x2: mix(before.x2, segment.x2, w), y2: mix(before.y2, segment.y2, w)
-            } : segment;
-          })
-        };
-      }
-      return frame;
-    }
-  } else if (useClipEngine && intent === undefined && !active && mode === "normal") {
-    const nearActionBoundary = spec.actions.some(item =>
-      Math.abs(t - item.startMs) < 250 || Math.abs(t - (item.startMs + item.durationMs)) < 250
-    );
-    if (!nearActionBoundary) {
-      const clip = sampleClipMotion(runtimeLibrary, {
-        action: "idle", progress: ((t / 1000) % 2) / 2, startX: rootX, endX: rootX,
-        groundY, facing: facing as -1 | 1, scale
-      });
-      if (clip.segments && clip.headPoint) return { timeMs: t, action: "idle", x: clip.rootX, groundY, head: clip.headPoint, segments: clip.segments, prop: null, ...(clip.facing !== undefined ? { facing: clip.facing } : {}) };
+      return {
+        frame: { timeMs: t, action: "idle", x: clip.rootX, groundY, head: clip.headPoint, segments: clip.segments, prop, ...(clip.facing !== undefined ? { facing: clip.facing } : {}) },
+        active, previous, nextAction
+      };
     }
   }
   let hipHeight = restHeight;
@@ -1058,6 +1123,7 @@ export function sampleAnimation(
   };
   const pushPosture = (startX: number): { height: number; lean: number; load: number } => {
     const prop = spec.prop!;
+    const pushDir = Math.sign(prop.toX - prop.x) || 1;
     type Posture = { height: number; lean: number; load: number };
     // Cache invariant posture search on this named sampler, not authored data.
     // The embedded HTML gets its own cache; geometry keys also cover mutations.
@@ -1067,12 +1133,12 @@ export function sampleAnimation(
     const cache = sampler.pushPostureCache ??= new WeakMap();
     let postures = cache.get(program);
     if (!postures) { postures = new Map(); cache.set(program, postures); }
-    const key = [startX, scale, groundY, facing, prop.x, prop.y, prop.width, prop.height, prop.toX,
+    const key = [startX, scale, groundY, facing, pushDir, prop.x, prop.y, prop.width, prop.height, prop.toX,
       prop.handle.x, prop.handle.y, pushCompression, pushRotation].join(":");
     const cached = postures.get(key);
     if (cached) return cached;
     const handle = { x: prop.x + prop.handle.x, y: prop.y + prop.handle.y };
-    let result = { height: restHeight, lean: 0.35, load: 0 };
+    let result = { height: restHeight, lean: pushDir * 0.35, load: 0 };
     let best = Infinity;
     for (const load of [1, 0.6, 0.3]) {
       // Use the strongest feasible transfer. Very low handles may need a
@@ -1081,7 +1147,7 @@ export function sampleAnimation(
       let frontSupport = stance;
       for (let i = 0; i <= 32; i++) {
         const pose = gait(startX, startX + prop.toX - prop.x, i / 32, "push");
-        const pelvisX = pose.x + (3 + 2.5 * load * Math.sin(Math.PI * pose.phase)) * scale * pose.envelope;
+        const pelvisX = pose.x + pushDir * (3 + 2.5 * load * Math.sin(Math.PI * pose.phase)) * scale * pose.envelope;
         for (const foot of [pose.left, pose.right]) {
           backSupport = Math.min(backSupport, foot.x - pelvisX - 0.5 * scale);
           frontSupport = Math.max(frontSupport, foot.x - pelvisX + 0.5 * scale);
@@ -1089,16 +1155,18 @@ export function sampleAnimation(
       }
       for (let h = 70; h >= 34; h -= 2) {
         for (let angle = 0.18; angle <= 1.100001; angle += 0.04) {
+          const signedLean = pushDir * angle;
           const hip = { x: startX, y: groundY - h * scale };
-          const shoulder = bone(hip, torsoLength, Math.PI - angle);
-          const head = bone(shoulder, 16.5 * scale, Math.PI - angle);
+          const shoulder = bone(hip, torsoLength, Math.PI - signedLean);
+          const head = bone(shoulder, 16.5 * scale, Math.PI - signedLean);
           const reach = Math.hypot(handle.x - shoulder.x, handle.y - 4 * scale - shoulder.y);
           const farReach = Math.hypot(handle.x - shoulder.x, handle.y + 4 * scale - shoulder.y);
           // Both assigned grips must be physically reachable, with reserve for
           // the drive rhythm. Never move a grip to rescue a posture.
           if (Math.max(reach, farReach) > 55.5 * scale || Math.min(reach, farReach) < 20 * scale) continue;
           const safePoint = (point: Point, radius = 3 * scale): boolean =>
-            point.y + radius + 2 * scale < prop.y || point.x + radius + 3 * scale < prop.x;
+            point.y + radius + 2 * scale < prop.y
+            || (pushDir > 0 ? point.x + radius + 3 * scale < prop.x : point.x - radius - 3 * scale > prop.x + prop.width);
           if (!safePoint(hip) || !safePoint(shoulder) || !safePoint(head, 13 * scale)) continue;
           let loadClear = true;
           // Reserve the whole supported load-transfer envelope, rather than
@@ -1106,9 +1174,9 @@ export function sampleAnimation(
           for (const offset of [0, 3 + 2.5 * load]) {
             for (const compression of [0, pushCompression * load]) {
               for (const rotation of [-pushRotation * load, pushRotation * load]) {
-                const loadedHip = { x: startX + offset * scale, y: hip.y + compression * scale };
-                const loadedShoulder = bone(loadedHip, torsoLength, Math.PI - angle - rotation);
-                const loadedHead = bone(loadedShoulder, 16.5 * scale, Math.PI - angle - rotation);
+                const loadedHip = { x: startX + pushDir * offset * scale, y: hip.y + compression * scale };
+                const loadedShoulder = bone(loadedHip, torsoLength, Math.PI - signedLean - rotation);
+                const loadedHead = bone(loadedShoulder, 16.5 * scale, Math.PI - signedLean - rotation);
                 for (const y of [handle.y - 4 * scale, handle.y + 4 * scale]) {
                   const distance = Math.hypot(handle.x - loadedShoulder.x, y - loadedShoulder.y);
                   if (distance > 55.5 * scale || distance < 20 * scale) loadClear = false;
@@ -1122,13 +1190,13 @@ export function sampleAnimation(
           const supportedHip = { x: hip.x, y: hip.y + pushCompression * load * scale };
           for (const x of [startX + backSupport, startX - stance, startX + stance, startX + frontSupport]) {
             const foot = { x, y: groundY };
-            const leg = ik(supportedHip, foot, legLength, -1, 2.65);
+            const leg = ik(supportedHip, foot, legLength, -pushDir, 2.65);
             if (!safePoint(foot) || !safePoint(leg.joint) || leg.joint.y > groundY
               || Math.hypot(x - startX, h * scale) > 2 * legLength * Math.cos(0.18)) legsClear = false;
           }
           if (!legsClear) continue;
           const cost = ((70 - h) / 10) ** 2 + (angle - 0.72) ** 2 * 2;
-          if (cost < best) { best = cost; result = { height: h * scale, lean: angle, load }; }
+          if (cost < best) { best = cost; result = { height: h * scale, lean: signedLean, load }; }
         }
       }
       if (Number.isFinite(best)) break;
@@ -1318,13 +1386,16 @@ export function sampleAnimation(
         leftBend = mix(leftBend, carryDirection * 0.75, carry);
         rightBend = mix(rightBend, carryDirection * 0.75, carry);
       }
-      if (active.action === "walk" && touchingNext && next.action === "push" && direction === 1 && spec.prop) {
-        const preload = 0.55 * smooth((p - 0.85) / 0.15);
-        const posture = pushPosture(destination.x);
-        hipHeight = mix(hipHeight, posture.height, preload);
-        lean = mix(lean, posture.lean, preload);
-        gravityCompensation = posture.lean * preload;
-        grip = preload;
+      if (active.action === "walk" && touchingNext && next.action === "push" && spec.prop) {
+        const pushDir = Math.sign(spec.prop.toX - spec.prop.x) || 1;
+        if (direction === pushDir) {
+          const preload = 0.55 * smooth((p - 0.85) / 0.15);
+          const posture = pushPosture(destination.x);
+          hipHeight = mix(hipHeight, posture.height, preload);
+          lean = mix(lean, posture.lean, preload);
+          gravityCompensation = posture.lean * preload;
+          grip = preload;
+        }
       }
       if (moving && touchingNext && next.action === "jump") {
         const preload = smooth((p - 0.82) / 0.18);
@@ -1372,13 +1443,14 @@ export function sampleAnimation(
       applyJump(p, Boolean(travelIn), target);
       applyClipDefault("jump", p, startX, startX, facing as -1 | 1, target);
     } else if (active.action === "push" && spec.prop) {
-      const turnEnd = facing !== 1 ? Math.min(0.14, 240 / active.durationMs) : 0;
+      const pushDir = Math.sign(spec.prop.toX - spec.prop.x) || 1;
+      const turnEnd = facing !== pushDir ? Math.min(0.14, 240 / active.durationMs) : 0;
       const contact = turnEnd + 0.20 * (1 - turnEnd);
       const release = 0.82;
-      turn(p, 1, turnEnd);
+      turn(p, pushDir, turnEnd);
       if (p >= turnEnd) {
         const posture = pushPosture(startX);
-        const preload = previous?.action === "walk" && previous.startMs + previous.durationMs === active.startMs && facing === 1 ? 0.55 : 0;
+        const preload = previous?.action === "walk" && previous.startMs + previous.durationMs === active.startMs && facing === pushDir ? 0.55 : 0;
         grip = mix(preload, 1, smooth((p - turnEnd) / (contact - turnEnd))) * smooth((1 - p) / (1 - release));
         hipHeight = mix(restHeight, posture.height, grip);
         lean = posture.lean * grip;
@@ -1390,16 +1462,11 @@ export function sampleAnimation(
         rightFoot = pose.right;
         const force = Math.sin(Math.PI * pose.phase) ** 2;
         hipHeight -= pushCompression * posture.load * scale * (1 - force) * pose.envelope;
-        hipOffset = (3 + 2.5 * posture.load * Math.sin(Math.PI * pose.phase)) * scale * pose.envelope;
-        lean += pushRotation * posture.load * Math.cos(Math.PI * pose.phase) * pose.envelope;
+        hipOffset = pushDir * (3 + 2.5 * posture.load * Math.sin(Math.PI * pose.phase)) * scale * pose.envelope;
+        lean += pushDir * pushRotation * posture.load * Math.cos(Math.PI * pose.phase) * pose.envelope;
         gravityCompensation = lean;
       }
     }
-  } else if (mode === "normal" && intent === undefined) {
-    const nearActionBoundary = spec.actions.some(item =>
-      Math.abs(t - item.startMs) < 250 || Math.abs(t - (item.startMs + item.durationMs)) < 250
-    );
-    if (!nearActionBoundary) applyClipDefault("idle", ((t / 1000) % 2) / 2, rootX, rootX, facing as -1 | 1);
   }
 
   if (intent !== undefined) {
@@ -1498,6 +1565,7 @@ export function sampleAnimation(
     rightBend = mix(rightBend, solved.bend, gesture);
   }
   if (grip > 0 && spec.prop) {
+    const pushDir = Math.sign(spec.prop.toX - spec.prop.x) || 1;
     // Relaxed arms follow gravity while the torso hinges; anchoring their
     // neutral angles to the torso creates a backward reach and wrap-around.
     leftUpper += gravityCompensation;
@@ -1506,8 +1574,8 @@ export function sampleAnimation(
     // Reserve a readable elbow during non-contact reach/release. The drive
     // posture reserves <=55.5 units, so both assigned full-contact targets
     // remain exact; only the free transition avoids the straight-arm singularity.
-    const left = ik(shoulder, { x: handle.x, y: handle.y + 4 * scale }, armLength, -1, 2.6, 0.25);
-    const right = ik(shoulder, { x: handle.x, y: handle.y - 4 * scale }, armLength, 1, 2.6, 0.25);
+    const left = ik(shoulder, { x: handle.x, y: handle.y + 4 * scale }, armLength, -pushDir, 2.6, 0.25);
+    const right = ik(shoulder, { x: handle.x, y: handle.y - 4 * scale }, armLength, pushDir, 2.6, 0.25);
     leftUpper = angleMix(leftUpper, wrap(left.upper + lean), grip);
     rightUpper = angleMix(rightUpper, wrap(right.upper + lean), grip);
     leftBend = mix(leftBend, left.bend, grip);
@@ -1563,7 +1631,211 @@ export function sampleAnimation(
     }))) {
     throw new RangeError("Motion intent exceeds the finite numerical range of the rig.");
   }
-  return { timeMs: t, action: intent?.action ?? active?.action ?? "idle", x: rootX, groundY, head, segments, prop };
+  return {
+    frame: { timeMs: t, action: intent?.action ?? active?.action ?? "idle", x: rootX, groundY, head, segments, prop },
+    active, previous, nextAction
+  };
+  };
+
+  if (intent !== undefined || mode !== "normal") return sampleRaw(playheadT).frame;
+
+  const extractKinematic = (frame: SampledFrame) => {
+    const byId = new Map(frame.segments.map((s) => [s.id, s]));
+    const torso = byId.get("torso")!;
+    const pelvis = { x: torso.x1, y: torso.y1 };
+    const chest = { x: torso.x2, y: torso.y2 };
+    const torsoDx = chest.x - pelvis.x;
+    const torsoDy = chest.y - pelvis.y;
+    const tLen = Math.hypot(torsoDx, torsoDy) || torsoLength;
+    const tAngle = Math.atan2(torsoDx, -torsoDy);
+    const neckDx = frame.head.x - chest.x;
+    const neckDy = frame.head.y - chest.y;
+    const nLen = Math.hypot(neckDx, neckDy) || 16.5 * scale;
+    const nRel = wrap(Math.atan2(neckDx, -neckDy) - tAngle);
+    const arm = (side: "left" | "right") => {
+      const ua = byId.get(`${side}-upper-arm`)!;
+      const fa = byId.get(`${side}-forearm`)!;
+      const shOff = { x: ua.x1 - chest.x, y: ua.y1 - chest.y };
+      const uDx = ua.x2 - ua.x1, uDy = ua.y2 - ua.y1;
+      const uLen = Math.hypot(uDx, uDy) || armLength;
+      const uAngle = Math.atan2(uDx, uDy);
+      const fDx = fa.x2 - fa.x1, fDy = fa.y2 - fa.y1;
+      const fLen = Math.hypot(fDx, fDy) || armLength;
+      const bend = wrap(Math.atan2(fDx, fDy) - uAngle);
+      return { shOff, uLen, uAngle, fLen, bend };
+    };
+    const leg = (side: "left" | "right") => {
+      const th = byId.get(`${side}-thigh`)!;
+      const sh = byId.get(`${side}-shin`)!;
+      const hipOff = { x: th.x1 - pelvis.x, y: th.y1 - pelvis.y };
+      const tDx = th.x2 - th.x1, tDy = th.y2 - th.y1;
+      const l1 = Math.hypot(tDx, tDy) || legLength;
+      const l1Angle = Math.atan2(tDx, tDy);
+      const sDx = sh.x2 - sh.x1, sDy = sh.y2 - sh.y1;
+      const l2 = Math.hypot(sDx, sDy) || legLength;
+      const kneeBend = wrap(Math.atan2(sDx, sDy) - l1Angle);
+      return { hipOff, tLen: l1, tAngle: l1Angle, sLen: l2, kneeBend };
+    };
+    return {
+      x: frame.x,
+      pelvis,
+      torsoLen: tLen,
+      torsoAngle: tAngle,
+      neckLen: nLen,
+      neckRel: nRel,
+      leftArm: arm("left"),
+      rightArm: arm("right"),
+      leftLeg: leg("left"),
+      rightLeg: leg("right"),
+      facing: frame.facing ?? (Math.abs(torsoDx) > 1e-4 ? Math.sign(torsoDx) : 1)
+    };
+  };
+
+  const solveTwoBoneFloor = (
+    rootPt: Point, jointFk: Point, endFk: Point, l1: number, l2: number, floorY: number, defaultBranch: number
+  ): { joint: Point; end: Point } => {
+    if (endFk.y <= floorY) return { joint: jointFk, end: endFk };
+    const target = { x: endFk.x, y: floorY };
+    const dx = target.x - rootPt.x, dy = target.y - rootPt.y;
+    const rawD = Math.hypot(dx, dy) || 1e-9;
+    const d = Math.max(Math.abs(l1 - l2) + 1e-6, Math.min(l1 + l2 - 1e-6, rawD));
+    const ux = dx / rawD, uy = dy / rawD;
+    const a = (l1 * l1 - l2 * l2 + d * d) / (2 * d);
+    const h = Math.sqrt(Math.max(0, l1 * l1 - a * a));
+    const perp = { x: uy, y: -ux };
+    const dot = (jointFk.x - rootPt.x) * perp.x + (jointFk.y - rootPt.y) * perp.y;
+    const branch = Math.abs(dot) > 1e-6 ? Math.sign(dot) : defaultBranch;
+    return {
+      joint: { x: rootPt.x + ux * a + perp.x * h * branch, y: rootPt.y + uy * a + perp.y * h * branch },
+      end: { x: rootPt.x + ux * d, y: rootPt.y + uy * d }
+    };
+  };
+
+  const inertializeFrame = (
+    prior: SampledFrame, start: SampledFrame, curr: SampledFrame, w: number, outTimeMs: number
+  ): SampledFrame => {
+    const Kp = extractKinematic(prior);
+    const Ks = extractKinematic(start);
+    const Kc = extractKinematic(curr);
+    const inertVal = (p: number, s: number, c: number): number => c + w * (p - s);
+    const inertLen = (p: number, s: number, c: number): number =>
+      Math.max(Math.min(p, s, c), Math.min(Math.max(p, s, c), c + w * (p - s)));
+    const inertAng = (p: number, s: number, c: number): number => c + w * wrap(p - s);
+    const floorY = curr.groundY;
+    const blendedFacing = Math.max(-1, Math.min(1, inertVal(Kp.facing, Ks.facing, Kc.facing)));
+    const dirSign = Math.sign(blendedFacing) || 1;
+    const pelvis = {
+      x: inertVal(Kp.pelvis.x, Ks.pelvis.x, Kc.pelvis.x),
+      y: Math.min(floorY, inertVal(Kp.pelvis.y, Ks.pelvis.y, Kc.pelvis.y))
+    };
+    const evalLeg = (side: "leftLeg" | "rightLeg") => {
+      const lp = Kp[side], ls = Ks[side], lc = Kc[side];
+      const hipPt = {
+        x: pelvis.x + inertVal(lp.hipOff.x, ls.hipOff.x, lc.hipOff.x),
+        y: Math.min(floorY, pelvis.y + inertVal(lp.hipOff.y, ls.hipOff.y, lc.hipOff.y))
+      };
+      const l1 = inertLen(lp.tLen, ls.tLen, lc.tLen);
+      const l2 = inertLen(lp.sLen, ls.sLen, lc.sLen);
+      const ang1 = inertAng(lp.tAngle, ls.tAngle, lc.tAngle);
+      const bend = inertAng(lp.kneeBend, ls.kneeBend, lc.kneeBend);
+      const kneeFk = { x: hipPt.x + Math.sin(ang1) * l1, y: hipPt.y + Math.cos(ang1) * l1 };
+      const ankleFk = { x: kneeFk.x + Math.sin(ang1 + bend) * l2, y: kneeFk.y + Math.cos(ang1 + bend) * l2 };
+      return { hipPt, ...solveTwoBoneFloor(hipPt, kneeFk, ankleFk, l1, l2, floorY, dirSign) };
+    };
+    let lLeg = evalLeg("leftLeg");
+    let rLeg = evalLeg("rightLeg");
+    const kneeExcess = Math.max(0, lLeg.joint.y - floorY, rLeg.joint.y - floorY);
+    if (kneeExcess > 0) {
+      pelvis.y -= kneeExcess;
+      lLeg = evalLeg("leftLeg");
+      rLeg = evalLeg("rightLeg");
+    }
+    const tLen = inertLen(Kp.torsoLen, Ks.torsoLen, Kc.torsoLen);
+    const tAng = inertAng(Kp.torsoAngle, Ks.torsoAngle, Kc.torsoAngle);
+    const chest = { x: pelvis.x + Math.sin(tAng) * tLen, y: pelvis.y - Math.cos(tAng) * tLen };
+    const nLen = inertLen(Kp.neckLen, Ks.neckLen, Kc.neckLen);
+    const nWorld = tAng + inertAng(Kp.neckRel, Ks.neckRel, Kc.neckRel);
+    const headPt = { x: chest.x + Math.sin(nWorld) * nLen, y: chest.y - Math.cos(nWorld) * nLen };
+    const evalArm = (side: "leftArm" | "rightArm") => {
+      const ap = Kp[side], as = Ks[side], ac = Kc[side];
+      const shPt = {
+        x: chest.x + inertVal(ap.shOff.x, as.shOff.x, ac.shOff.x),
+        y: Math.min(floorY, chest.y + inertVal(ap.shOff.y, as.shOff.y, ac.shOff.y))
+      };
+      const l1 = inertLen(ap.uLen, as.uLen, ac.uLen);
+      const l2 = inertLen(ap.fLen, as.fLen, ac.fLen);
+      const ang1 = inertAng(ap.uAngle, as.uAngle, ac.uAngle);
+      const bend = inertAng(ap.bend, as.bend, ac.bend);
+      const elbowFk = { x: shPt.x + Math.sin(ang1) * l1, y: shPt.y + Math.cos(ang1) * l1 };
+      const handFk = { x: elbowFk.x + Math.sin(ang1 + bend) * l2, y: elbowFk.y + Math.cos(ang1 + bend) * l2 };
+      return { shPt, ...solveTwoBoneFloor(shPt, elbowFk, handFk, l1, l2, floorY, -dirSign) };
+    };
+    const lArm = evalArm("leftArm");
+    const rArm = evalArm("rightArm");
+    const outSegments: Segment[] = [
+      { id: "torso", x1: pelvis.x, y1: pelvis.y, x2: chest.x, y2: chest.y },
+      { id: "left-upper-arm", x1: lArm.shPt.x, y1: lArm.shPt.y, x2: lArm.joint.x, y2: lArm.joint.y },
+      { id: "left-forearm", x1: lArm.joint.x, y1: lArm.joint.y, x2: lArm.end.x, y2: lArm.end.y },
+      { id: "right-upper-arm", x1: rArm.shPt.x, y1: rArm.shPt.y, x2: rArm.joint.x, y2: rArm.joint.y },
+      { id: "right-forearm", x1: rArm.joint.x, y1: rArm.joint.y, x2: rArm.end.x, y2: rArm.end.y },
+      { id: "left-thigh", x1: lLeg.hipPt.x, y1: lLeg.hipPt.y, x2: lLeg.joint.x, y2: lLeg.joint.y },
+      { id: "left-shin", x1: lLeg.joint.x, y1: lLeg.joint.y, x2: lLeg.end.x, y2: lLeg.end.y },
+      { id: "right-thigh", x1: rLeg.hipPt.x, y1: rLeg.hipPt.y, x2: rLeg.joint.x, y2: rLeg.joint.y },
+      { id: "right-shin", x1: rLeg.joint.x, y1: rLeg.joint.y, x2: rLeg.end.x, y2: rLeg.end.y }
+    ];
+    const hasFacing = curr.facing !== undefined || prior.facing !== undefined;
+    const isArticulated = Boolean(curr.articulated || (w > 0.5 && prior.articulated));
+    return {
+      timeMs: outTimeMs,
+      action: curr.action,
+      x: inertVal(Kp.x, Ks.x, Kc.x),
+      groundY: floorY,
+      head: headPt,
+      segments: outSegments,
+      prop: curr.prop,
+      ...(hasFacing ? { facing: blendedFacing } : {}),
+      ...(isArticulated ? { articulated: true } : {})
+    };
+  };
+
+  const sampleAt = (evalTime: number, depth: number): SampledFrame => {
+    const { frame, active, previous, nextAction } = sampleRaw(evalTime);
+    if (depth >= 2) return frame;
+    let boundaryMs = 0;
+    let effectiveBlendMs = 0;
+    if (active !== undefined) {
+      boundaryMs = active.startMs;
+      if (boundaryMs > 0) {
+        if (active.blendMs !== undefined) {
+          effectiveBlendMs = Math.min(active.blendMs, Math.floor(active.durationMs * 0.35));
+        } else if (
+          usesClipForAction(active.action)
+          || (previous !== undefined && previous.startMs + previous.durationMs === active.startMs && usesClipForAction(previous.action))
+        ) {
+          const cap = active.action === "push" ? Math.floor(active.durationMs * 0.18) : Math.floor(active.durationMs * 0.35);
+          effectiveBlendMs = Math.min(140, cap);
+        }
+      }
+    } else if (previous !== undefined) {
+      boundaryMs = previous.startMs + previous.durationMs;
+      if (boundaryMs > 0 && (useClipEngine || usesClipForAction(previous.action))) {
+        const idleSpan = (nextAction ? nextAction.startMs : spec.durationMs) - boundaryMs;
+        effectiveBlendMs = Math.min(140, Math.max(0, idleSpan));
+      }
+    }
+    if (effectiveBlendMs > 0 && evalTime >= boundaryMs && evalTime < boundaryMs + effectiveBlendMs) {
+      const u = clamp01((evalTime - boundaryMs) / effectiveBlendMs);
+      const w = 1 - (3 * u * u - 2 * u * u * u);
+      if (w > 1e-9) {
+        const priorFrame = sampleAt(Math.max(0, boundaryMs - 1e-5), depth + 1);
+        const startFrame = evalTime === boundaryMs ? frame : sampleRaw(boundaryMs).frame;
+        return inertializeFrame(priorFrame, startFrame, frame, w, evalTime);
+      }
+    }
+    return frame;
+  };
+
+  return sampleAt(playheadT, 0);
 }
 
 export function getFinalFrame(program: CompiledAnimation, mode: "reduced" | "static" = "static"): SampledFrame {

@@ -1,8 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { actionCatalog, compileAnimation, sampleAnimation } from "../src/index.js";
+import {
+  actionCatalog,
+  compileAnimation,
+  describeAction,
+  queryActionCatalog,
+  sampleAnimation,
+  type ActionCatalogFilter
+} from "../src/index.js";
 import { CONTRACT_VERSION, type SampledFrame } from "../src/contract.js";
 import { animationSchema } from "../src/contract-schema.js";
-import { RUNTIME_ACTION_NAMES } from "../src/motion-library.js";
+import { RUNTIME_ACTION_NAMES, RUNTIME_MOTION_LIBRARY } from "../src/motion-library.js";
 import { MOTION_LIBRARY_FIXTURE } from "./fixtures/motion-library-fixture.js";
 
 const base = {
@@ -88,9 +95,106 @@ describe("generic generated motion library integration", () => {
   it("derives schema enum and MCP catalog from library metadata", () => {
     const enumValues = animationSchema.properties.actions.items.properties.action.enum;
     expect(enumValues).toEqual(RUNTIME_ACTION_NAMES);
+    expect(Array.isArray(actionCatalog)).toBe(true);
+    expect(Object.keys(RUNTIME_MOTION_LIBRARY.clips).length).toBeGreaterThanOrEqual(60);
+    expect(actionCatalog.length).toBeGreaterThanOrEqual(60);
+    expect(actionCatalog.map((entry) => entry.action)).toEqual(RUNTIME_ACTION_NAMES);
     for (const id of RUNTIME_ACTION_NAMES) {
       expect(actionCatalog.some((entry) => entry.action === id && entry.label && entry.summary)).toBe(true);
     }
+  });
+
+  it("compiles and samples every discoverable clip cleanly", () => {
+    for (const entry of actionCatalog) {
+      const clip = RUNTIME_MOTION_LIBRARY.clips[entry.action];
+      const durationMs = Math.max(2400, Math.ceil((clip?.frames.length ?? 60) / 30 * 1000) + 400);
+      const spec = {
+        version: CONTRACT_VERSION,
+        canvas: { width: 1600, height: 800, fps: 30 },
+        durationMs,
+        actor: { x: 600, groundY: 640 },
+        ...(entry.requiredBinding === "named target"
+          ? { targets: { mark: entry.travel === "travel" ? { x: 840, y: 640 } : { x: 1040, y: 260 } } }
+          : {}),
+        ...(entry.requiredBinding === "bound visible prop handle"
+          ? { prop: { id: "crate", x: 645, y: 590, width: 50, height: 50, toX: 745, handle: { x: 5, y: 8 } } }
+          : {}),
+        actions: [{
+          action: entry.action,
+          startMs: 0,
+          durationMs,
+          ...(entry.requiredBinding === "named target" ? { target: "mark" }
+            : entry.requiredBinding === "bound visible prop handle" ? { target: "crate" }
+            : {})
+        }]
+      };
+      const compiled = compileAnimation(spec);
+      expect(compiled.diagnostics, entry.action).toEqual([]);
+      expect(compiled.program, entry.action).toBeDefined();
+      for (const fraction of [0, 0.5, 1]) {
+        const frame = sampleAnimation(compiled.program!, durationMs * fraction);
+        expect(frame.segments, entry.action).toHaveLength(9);
+        expect(Number.isFinite(frame.head.x), entry.action).toBe(true);
+        expect(Number.isFinite(frame.head.y), entry.action).toBe(true);
+      }
+    }
+  });
+
+  it("resolves describeAction for both bare action names and exact versioned IDs", () => {
+    const walkBare = describeAction("walk");
+    const walkVersioned = describeAction("walk@1.0.0");
+    expect(walkBare).toBeDefined();
+    expect(walkBare).toEqual(walkVersioned);
+    expect(walkBare?.id).toBe("walk@1.0.0");
+
+    const ideaBare = describeAction("idea");
+    const ideaVersioned = describeAction("idea@1.1.0");
+    expect(ideaBare).toBeDefined();
+    expect(ideaBare).toEqual(ideaVersioned);
+    expect(ideaBare?.action).toBe("idea");
+
+    expect(describeAction("walk@9.9.9")).toBeUndefined();
+    expect(describeAction("idea@1.0.0")).toBeUndefined();
+    expect(describeAction("nonexistent-motion")).toBeUndefined();
+  });
+
+  it("filters action catalog via queryActionCatalog by category, tag, prop, kind, travel, and search", () => {
+    expect(Array.isArray(actionCatalog)).toBe(true);
+    const all = queryActionCatalog();
+    expect(all).toEqual(actionCatalog);
+    const emptyFilter: ActionCatalogFilter = {};
+    expect(queryActionCatalog(emptyFilter)).toEqual(actionCatalog);
+
+    const presentation = queryActionCatalog({ category: "presentation" });
+    expect(presentation.length).toBeGreaterThanOrEqual(8);
+    expect(presentation.some((e) => e.action === "idea")).toBe(true);
+    expect(presentation.some((e) => e.action === "walk")).toBe(false);
+    expect(queryActionCatalog({ category: "Presentation" })).toEqual(presentation);
+
+    const bulbActions = queryActionCatalog({ prop: "bulb" });
+    expect(bulbActions.map((e) => e.action)).toEqual(["idea"]);
+
+    const boxActions = queryActionCatalog({ prop: "box" });
+    expect(boxActions.some((e) => e.action === "push")).toBe(true);
+    expect(boxActions.every((e) => e.prop === "box")).toBe(true);
+
+    const loops = queryActionCatalog({ kind: "loop" });
+    expect(loops.length).toBeGreaterThan(0);
+    expect(loops.every((e) => e.kind === "loop")).toBe(true);
+
+    const travelClips = queryActionCatalog({ travel: "travel" });
+    expect(travelClips.some((e) => e.action === "walk")).toBe(true);
+    expect(travelClips.every((e) => e.travel === "travel")).toBe(true);
+
+    const tagged = queryActionCatalog({ tag: "aha" });
+    expect(tagged.map((e) => e.action)).toContain("idea");
+
+    const searched = queryActionCatalog({ search: "bulb" });
+    expect(searched.map((e) => e.action)).toContain("idea");
+
+    const combined = queryActionCatalog({ category: "work", prop: "box", travel: "in-place" });
+    expect(combined.map((e) => e.action)).toEqual(expect.arrayContaining(["pick-up", "put-down"]));
+    expect(combined.every((e) => e.prop === "box" && e.travel === "in-place")).toBe(true);
   });
 
   it("lists close valid action ids for unknown action diagnostics", () => {

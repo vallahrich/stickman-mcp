@@ -7,10 +7,13 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { runInNewContext } from "node:vm";
 import { afterEach, describe, expect, it } from "vitest";
+import { choreographAnimation } from "../src/choreograph.js";
 import { compileAnimation, sampleAnimation, validateAnimation } from "../src/compiler.js";
-import { animationSchema } from "../src/contract-schema.js";
+import { animationSchema, animationSchemaV2 } from "../src/contract-schema.js";
 import { renderAnimatedSvg, renderHtml, renderSvgFrame } from "../src/render.js";
 import type { AnimationSpec } from "../src/contract.js";
+import { ADDON_TYPES } from "../src/props.js";
+import { actionCatalog } from "../src/catalog.js";
 import { getStory, storyCatalog } from "../src/stories.js";
 
 const connections: { client: Client; root: string }[] = [];
@@ -68,12 +71,18 @@ const scene = {
 } satisfies AnimationSpec;
 
 describe("stdio MCP protocol", () => {
-  it("negotiates and advertises fourteen strict, annotated tools with output schemas", async () => {
-    const { listed, stderr, transportErrors } = await connect();
+  it("negotiates v0.2.0 capabilities (tools, resources, prompts) and advertises sixteen strict, annotated tools with output schemas", async () => {
+    const { client, listed, stderr, transportErrors } = await connect();
+    expect(client.getServerVersion()).toEqual({ name: "stickman-mcp", version: "0.2.0" });
+    expect(client.getServerCapabilities()).toMatchObject({
+      tools: {},
+      resources: {},
+      prompts: {}
+    });
     expect(listed.tools.map((tool) => tool.name)).toEqual([
       "stickman_compose_film", "stickman_render_film", "stickman_list_film_assets", "stickman_author_motion", "stickman_preview_motion", "stickman_check_join",
       "stickman_discover", "stickman_describe", "stickman_schema", "stickman_validate",
-      "stickman_compile", "stickman_preview", "stickman_export", "stickman_story"
+      "stickman_compile", "stickman_choreograph", "stickman_storyboard", "stickman_preview", "stickman_export", "stickman_story"
     ]);
     for (const tool of listed.tools) {
       expect(tool.inputSchema.additionalProperties).toBe(false);
@@ -264,5 +273,85 @@ describe("stdio MCP protocol", () => {
       expect(child.stdout).toBe("");
       expect(child.stderr).toMatch(/--root|Unknown MCP server option/);
     }
+  });
+
+  it("supports v0.2.0 filtered discover, bare describe, v2 schema, choreograph, storyboard PNG, resources, and prompts", async () => {
+    const { client, stderr } = await connect();
+
+    // Filtered discover & bare describe
+    const bulbActions = await client.callTool({ name: "stickman_discover", arguments: { prop: "bulb" } });
+    expect(bulbActions.isError).not.toBe(true);
+    expect((bulbActions.structuredContent as { result: Array<{ action: string }> }).result.map((a) => a.action)).toContain("idea");
+
+    const bareDescribe = await client.callTool({ name: "stickman_describe", arguments: { id: "idea" } });
+    expect(bareDescribe.isError).not.toBe(true);
+    expect(bareDescribe.structuredContent).toMatchObject({ result: { action: "idea", id: "idea@1.1.0", prop: "bulb" } });
+
+    // Schema v2
+    expectResult(await client.callTool({ name: "stickman_schema", arguments: { version: "v2" } }), animationSchemaV2);
+
+    // Choreograph + Storyboard (including real PNG ImageContent)
+    const shorthandScene = {
+      actors: [
+        { id: "lead", x: "left", facing: "right", accessory: "tie" as const, actions: [{ action: "wave", emitCue: "hi" }] },
+        { id: "peer", x: "right", facing: "left", accessory: "glasses" as const, actions: [{ action: "nod", afterCue: "hi" }] }
+      ]
+    };
+    const choreoResponse = await client.callTool({ name: "stickman_choreograph", arguments: { scene: shorthandScene } });
+    expect(choreoResponse.isError).not.toBe(true);
+    const expectedChoreo = choreographAnimation(shorthandScene);
+    const choreoPayload = (choreoResponse.structuredContent as { result: Record<string, unknown> }).result;
+    expect(choreoPayload.valid).toBe(true);
+    expect(choreoPayload.spec).toEqual(expectedChoreo.spec);
+
+    const sbCall = await client.callTool({
+      name: "stickman_storyboard",
+      arguments: { animation: choreoPayload.spec, columns: 3, maxPanels: 6 }
+    });
+    expect(sbCall.isError).not.toBe(true);
+    const parsedSb = CallToolResultSchema.parse(sbCall);
+    const sbData = (sbCall.structuredContent as { result: { valid: boolean; svg: string; rasterizerAvailable: boolean; analysis: { actorIds: string[]; outOfBoundsCount: number; actorOverlapWarnings: unknown[] } } }).result;
+    expect(sbData.valid).toBe(true);
+    expect(sbData.svg).toContain("<svg");
+    expect(sbData.analysis.actorIds).toEqual(["lead", "peer"]);
+    expect(sbData.analysis.outOfBoundsCount).toBe(0);
+    expect(sbData.analysis.actorOverlapWarnings).toEqual([]);
+    expect(sbData.rasterizerAvailable).toBe(true);
+    const imgBlock = parsedSb.content.find((item) => item.type === "image");
+    expect(imgBlock).toBeDefined();
+    if (imgBlock && imgBlock.type === "image") {
+      expect(imgBlock.mimeType).toBe("image/png");
+      expect(Buffer.from(imgBlock.data, "base64").subarray(0, 8)).toEqual(
+        Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+      );
+    }
+
+    // Resources (9 total)
+    const { resources } = await client.listResources();
+    const uris = resources.map((r) => r.uri);
+    expect(uris).toEqual([
+      "stickman://catalog",
+      "stickman://schema/v1",
+      "stickman://schema/v2",
+      "stickman://anchors",
+      "stickman://props",
+      "stickman://templates/presentation-pitch",
+      "stickman://templates/two-actor-dialogue",
+      "stickman://templates/idea-reveal",
+      "stickman://templates/sports-action"
+    ]);
+    const catalogRes = await client.readResource({ uri: "stickman://catalog" });
+    expect(JSON.parse((catalogRes.contents[0] as { text: string }).text)).toMatchObject({
+      totalActions: actionCatalog.length,
+      propSummary: { totalProps: ADDON_TYPES.length }
+    });
+
+    // Prompts (2 total)
+    const { prompts } = await client.listPrompts();
+    expect(prompts.map((p) => p.name)).toEqual(["choreograph-slide", "two-actor-dialogue"]);
+    const promptRes = await client.getPrompt({ name: "choreograph-slide", arguments: { topic: "Cloud migration" } });
+    expect(promptRes.messages[0]?.content.type).toBe("text");
+
+    expect(stderr).toEqual([]);
   });
 });

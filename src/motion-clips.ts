@@ -5,7 +5,7 @@
 
 export type MotionClipName = string;
 export type MotionClipKind = "loop" | "oneshot" | "hold";
-export interface MotionClipMeta { id: string; label: string; summary: string; kind: MotionClipKind; travel: "travel" | "in-place"; facingChange: 0 | 90 | 180; contacts: string[]; markers: Record<string, number>; aim: "hand" | "head" | null; prop: string | null; mirrorable: boolean; tags: string[]; durationS: number; quality: unknown; source: unknown; license: unknown }
+export interface MotionClipMeta { id: string; label: string; summary: string; category?: string; group?: string; wave?: string; kind: MotionClipKind; travel: "travel" | "in-place"; facingChange: 0 | 90 | 180; contacts: string[]; markers: Record<string, number>; aim: "hand" | "head" | null; prop: string | null; mirrorable: boolean; tags: string[]; durationS: number; quality: unknown; source: unknown; license: unknown }
 export interface MotionClipFrame { root: { x: number; y: number }; angles: { torso: number; head: number; lLeg: { thigh: number; shin: number; foot: number }; rLeg: { thigh: number; shin: number; foot: number }; lArm: { upper: number; fore: number }; rArm: { upper: number; fore: number } }; contacts: { l: boolean; r: boolean; lFoot?: boolean; rFoot?: boolean; lHand?: boolean; rHand?: boolean }; hands?: { l?: boolean; r?: boolean }; facing?: number }
 export interface PoseKeyLeg { hip: number; knee: number; lift?: number }
 export interface PoseKeyArm { shoulder: number; elbow: number; spread?: number; elbowSpread?: number }
@@ -264,6 +264,7 @@ export function sampleClipMotion(library: MotionClipLibrary, request: ClipMotion
   const moving = !clip.poseKeys?.length && (meta?.travel === "travel" || action === "walk" || action === "run");
   const unit = Math.max(0.001, request.scale);
   const distance = Math.abs(request.endX - request.startX);
+  const keyPoseTravel = Boolean(clip.poseKeys?.length) && meta?.travel === "travel" && distance > 1e-6;
   const baseStride = Math.max(1, clip.strideLength * unit);
   const cycles = moving ? Math.max(1, Math.round(distance / baseStride)) : 1;
   const strideScale = moving ? clamp(distance / (cycles * baseStride || 1), 0.85, 1.15) : 1;
@@ -271,23 +272,65 @@ export function sampleClipMotion(library: MotionClipLibrary, request: ClipMotion
   // Key-pose loops repeat at their authored cadence instead of stretching one cycle over the action.
   const loopCycles = clip.loop && clip.poseKeys?.length && request.durationMs
     ? Math.max(1, Math.round(request.durationMs * speed / (clip.frames.length / clip.fps * 1000))) / speed : 1;
-  const frameProgress = meta?.kind === "hold" ? Math.min(p * speed, 1) : clip.loop ? p * speed * loopCycles : Math.min(p * speed, 1);
-  const frameTime = moving ? p * cycles * clip.frames.length : frameProgress * (clip.loop ? clip.frames.length : clip.frames.length - 1);
+  const frameTimeFor = (prog: number): number => {
+    const fp = meta?.kind === "hold" ? Math.min(prog * speed, 1) : clip.loop ? prog * speed * loopCycles : Math.min(prog * speed, 1);
+    return moving ? prog * cycles * clip.frames.length : fp * (clip.loop ? clip.frames.length : clip.frames.length - 1);
+  };
+  const sampledFacingAt = (ft: number): number | undefined => {
+    const count = clip.frames.length;
+    if (count === 0) return undefined;
+    const bounded = clip.loop ? ((ft % count) + count) % count : clamp(ft, 0, count - 1);
+    const i0 = Math.floor(bounded) % count;
+    const i1 = clip.loop ? (i0 + 1) % count : Math.min(i0 + 1, count - 1);
+    const u = bounded - Math.floor(bounded);
+    const a = clip.frames[i0], b = clip.frames[i1];
+    return a && b && (a.facing !== undefined || b.facing !== undefined) ? lerp(a.facing ?? 1, b.facing ?? 1, u) : undefined;
+  };
+  const frameTime = frameTimeFor(p);
   const rootTravel = moving ? distance * smooth(p) : 0;
-  const authoredTravel = clip.loop && clip.poseKeys?.length ? Math.floor(frameTime / clip.frames.length) * clip.strideLength * unit : 0;
-  const rootX = action === "point" && request.pointTarget && request.placePointBeforeTarget
-    ? lerp(request.startX, request.pointTarget.x - direction * 100 * request.scale, smooth(p / 0.25))
-    : request.startX + direction * (rootTravel + authoredTravel);
-  const targetLocal = action === "point" && request.pointTarget ? { x: direction * (request.pointTarget.x - rootX) / unit, y: (request.groundY - request.pointTarget.y) / unit } : undefined;
+  const cycleTravelAt = (ft: number): number => clip.loop && clip.poseKeys?.length ? Math.floor(ft / clip.frames.length) * clip.strideLength * unit : 0;
+  const authoredTravel = cycleTravelAt(frameTime);
   const sampled = sampleMotionClip(clip, frameTime).frame;
   const poseKey = keyFor(clip, frameTime);
   const facingScale = clamp(poseKey.facing ?? sampled.facing ?? 1, -1, 1);
+  let stageOriginX = action === "point" && request.pointTarget && request.placePointBeforeTarget
+    ? lerp(request.startX, request.pointTarget.x - direction * 100 * request.scale, smooth(p / 0.25))
+    : request.startX + direction * (rootTravel + authoredTravel);
+  if (keyPoseTravel) {
+    const ft0 = frameTimeFor(0), ft1 = frameTimeFor(1);
+    const k0 = keyFor(clip, ft0), k1 = keyFor(clip, ft1);
+    const f0 = clamp(k0.facing ?? sampledFacingAt(ft0) ?? 1, -1, 1);
+    const f1 = clamp(k1.facing ?? sampledFacingAt(ft1) ?? 1, -1, 1);
+    const xOff0 = f0 * (k0.dx ?? 0) * unit;
+    const xOff1 = f1 * (k1.dx ?? 0) * unit;
+    const xOffCurr = facingScale * (poseKey.dx ?? 0) * unit;
+    const cum0 = cycleTravelAt(ft0) + xOff0;
+    const cum1 = cycleTravelAt(ft1) + xOff1;
+    const cumCurr = authoredTravel + xOffCurr;
+    const netOff = cum1 - cum0;
+    const hasFacingTurn = Boolean(meta?.facingChange) || f0 * f1 < 0;
+    const isMonotonicForward = !hasFacingTurn && netOff > 20 * unit && (clip.poseKeys ?? []).every((kf, idx, arr) => {
+      const xk = clamp(kf.pose.facing ?? 1, -1, 1) * (kf.pose.dx ?? 0) * unit;
+      if (!clip.loop && (xk < xOff0 - 10 * unit || xk > xOff1 + 10 * unit)) return false;
+      if (idx === 0) return true;
+      const prev = arr[idx - 1]!;
+      const xPrev = clamp(prev.pose.facing ?? 1, -1, 1) * (prev.pose.dx ?? 0) * unit;
+      return xk >= xPrev - 10 * unit;
+    });
+    if (isMonotonicForward) {
+      const uClip = (cumCurr - cum0) / netOff;
+      stageOriginX = request.startX - direction * cum0 + direction * authoredTravel + (request.endX - request.startX - direction * netOff) * uClip;
+    } else {
+      stageOriginX = lerp(request.startX - direction * cum0, request.endX - direction * cum1, smooth(p)) + direction * authoredTravel;
+    }
+  }
+  const targetLocal = action === "point" && request.pointTarget ? { x: direction * (request.pointTarget.x - stageOriginX) / unit, y: (request.groundY - request.pointTarget.y) / unit } : undefined;
   const local = poseLocal(clip, frameTime, targetLocal);
   const front = smooth(1 - Math.abs(facingScale));
   const lateral = (side: "l" | "r", width: number): number => (side === "l" ? -1 : 1) * front * width * unit;
   const world = (point: Point): Point => {
     const frontalX = (point as Point & { frontalX?: number }).frontalX;
-    return { x: rootX + direction * facingScale * point.x * unit + (frontalX !== undefined ? frontalX * front * unit : 0), y: request.groundY - point.y * unit };
+    return { x: stageOriginX + direction * facingScale * point.x * unit + (frontalX !== undefined ? frontalX * front * unit : 0), y: request.groundY - point.y * unit };
   };
   const worldSide = (point: Point, side: "l" | "r", width: number): Point => {
     const base = world(point);
@@ -326,5 +369,11 @@ export function sampleClipMotion(library: MotionClipLibrary, request: ClipMotion
     rightFoot.y -= lift;
   }
   const reportedHipHeight = request.groundY - lHip.y + (action === "jump" ? 40 * request.scale * Math.sin(Math.PI * p) ** 2 : 0);
-  return { rootX, hipHeight: reportedHipHeight, lean: rad(poseKey.lean) * direction, head: rad(poseKey.neck), leftFoot, rightFoot, arms: { left: { upper: leftUpperAngle, bend: leftLowerAngle - leftUpperAngle }, right: { upper: rightUpperAngle, bend: rightLowerAngle - rightUpperAngle } }, phase: frameTime / Math.max(1, clip.frames.length), weight: 1, strideScale, cycles, clipName, facing: direction * facingScale, headPoint, segments, referenceHeight: 144 * unit, joints, ...(clip.poseKeys?.length ? { articulated: true } : {}) };
+  const reportedRootX = keyPoseTravel ? pelvis.x : stageOriginX;
+  return { rootX: reportedRootX, hipHeight: reportedHipHeight, lean: rad(poseKey.lean) * direction, head: rad(poseKey.neck), leftFoot, rightFoot, arms: { left: { upper: leftUpperAngle, bend: leftLowerAngle - leftUpperAngle }, right: { upper: rightUpperAngle, bend: rightLowerAngle - rightUpperAngle } }, phase: frameTime / Math.max(1, clip.frames.length), weight: 1, strideScale, cycles, clipName, facing: direction * facingScale, headPoint, segments, referenceHeight: 144 * unit, joints, ...(clip.poseKeys?.length ? { articulated: true } : {}) };
+}
+
+export function hermiteDecayWeight(u: number): number {
+  const clamped = Math.max(0, Math.min(1, u));
+  return 1 - (3 * clamped * clamped - 2 * clamped * clamped * clamped);
 }

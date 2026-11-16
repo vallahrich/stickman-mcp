@@ -1,0 +1,58 @@
+{
+  "version": "stickman.animation/v2",
+  "canvas": {
+    "width": 800,
+    "height": 450,
+    "fps": 30
+  },
+  "theme": {
+    "accentColor": "#2563eb",
+    "background": "#ffffff"
+  },
+  "actor": {
+    "id": "presenter",
+    "label": "Slide Presenter",
+    "x": "offstage-left",
+    "color": "#1e293b",
+    "accessory": "tie"
+  },
+  "actions": [
+    {
+      "action": "walk-on",
+      "from": "offstage-left",
+      "to": "left",
+      "emitCue": "arrived"
+    },
+    {
+      "action": "point",
+      "to": "board",
+      "emitCue": "pointedBoard"
+    },
+    {
+      "action": "think"
+    },
+    {
+      "action": "idea",
+      "emitCue": "lightbulb"
+    },
+    {
+      "action": "present-card",
+      "addon": {
+        "type": "card",
+        "text": "v0.2"
+      },
+      "emitCue": "cardShown"
+    },
+    {
+      "action": "swipe-next",
+      "emitCue": "nextSlide"
+    },
+    {
+      "action": "cheer"
+    },
+    {
+      "action": "walk-off",
+      "to": "offstage-right"
+    }
+  ]
+}

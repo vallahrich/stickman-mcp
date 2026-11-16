@@ -1,9 +1,9 @@
 // Full connected product. Exact names, not recursive copy of a checkout or dist.
 export const sourceFiles = Object.freeze([
-  "src/index.ts", "src/catalog.ts", "src/compiler.ts", "src/contract.ts",
+  "src/index.ts", "src/catalog.ts", "src/choreograph.ts", "src/compiler.ts", "src/contract.ts",
   "src/contract-schema.ts", "src/events.ts", "src/export.ts",
   "src/motion-clips.ts", "src/motion-library.ts", "src/generated/motion-library.ts",
-  "src/playback.ts", "src/render.ts", "src/stories.ts", "src/cli.ts",
+  "src/playback.ts", "src/props.ts", "src/render.ts", "src/stories.ts", "src/storyboard.ts", "src/cli.ts",
   "src/browser.ts", "src/room.ts", "src/keyboard.ts", "src/world-motion.ts",
   "src/mcp.ts", "src/film.ts", "src/film-schema.ts", "src/motion-authoring.ts"
 ]);
@@ -38,9 +38,11 @@ pull-banner push-walk rack-server reveal roll seated-idle surprised swipe-next t
 walk-stop write-board write-notes`.split(/\s+/));
 export const licenseFiles = Object.freeze(["LICENSE", "NOTICE", "docs/rights.md"]);
 export const supportFiles = Object.freeze([
-  "motions/poses/poses.json", "motions/review-props.json", "motions/join-matrix.json",
-  "docs/motion-catalog-plan.md", "examples/wave.json", "examples/films/team-handoff.json",
-  "examples/films/bridge-demo.json", "scripts/release/README.md", "tsconfig.json", "package.json"
+  "motions/poses/poses.json", "motions/review-props.json", "motions/props-catalog.json", "motions/join-matrix.json",
+  "docs/motion-catalog-plan.md", "examples/wave.json", "examples/v2-presentation-story.json",
+  "examples/v2-two-actors-collab.json", "examples/v2-sports-addons.json",
+  "examples/films/team-handoff.json", "examples/films/bridge-demo.json",
+  "scripts/release/README.md", "tsconfig.json", "package.json"
 ]);
 export const buildToolFiles = Object.freeze([
   "scripts/release/policy.mjs", "scripts/release/prepare.mjs",

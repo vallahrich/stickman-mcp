@@ -1,4 +1,4 @@
-import type { CompiledAnimation, PlaybackMode, SampledFrame } from "./contract.js";
+import type { CompiledAnimation, MarkerEvent, PlaybackMode, SampledFrame } from "./contract.js";
 import { sampleAnimation } from "./compiler.js";
 
 export interface PlaybackSnapshot {
@@ -70,5 +70,12 @@ export class PlaybackSession {
     this.playing = false;
     this.generation++;
     return this.snapshot();
+  }
+
+  eventsBetween(fromMs: number, toMs: number): MarkerEvent[] {
+    if (!Number.isFinite(fromMs) || !Number.isFinite(toMs)) {
+      throw new TypeError("Event range bounds must be finite numbers.");
+    }
+    return (this.program.events ?? []).filter((event) => event.timeMs > fromMs && event.timeMs <= toMs);
   }
 }

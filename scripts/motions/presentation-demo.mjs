@@ -2,14 +2,20 @@
 // Builds a self-contained HTML slide deck that showcases the presentation motions as a live co-presenter.
 // Each slide plays one motion through the shipping engine sampler at 30 fps and reacts to the motion's markers.
 import { readFile, writeFile, mkdir } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { stageKitSource, loadEngineRenderer } from "./review-renderer.mjs";
+import { buildKeyPoseClip } from "./keypose.mjs";
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-const sessionFiles = process.env.STICKMAN_SESSION_FILES ?? process.env.MOTION_SESSION_FILES ?? "C:\\Users\\t-vwallerich\\.copilot\\session-state\\5151d75e-0e30-46ad-99e0-e3d1bf08e105\\files";
-const factory = path.join(sessionFiles, "motion-factory");
-const outFile = process.argv.includes("--out") ? process.argv[process.argv.indexOf("--out") + 1] : path.join(factory, "presentation-demo.html");
+const outDirIndex = process.argv.indexOf("--out-dir");
+const factory = outDirIndex >= 0 && process.argv[outDirIndex + 1]
+  ? path.resolve(process.argv[outDirIndex + 1])
+  : path.resolve(process.env.MOTION_OUT_DIR ?? path.join(os.tmpdir(), "stickman-motion-factory"));
+const outFile = process.argv.includes("--out")
+  ? path.resolve(process.argv[process.argv.indexOf("--out") + 1])
+  : path.join(factory, "presentation-demo.html");
 
 const motionIds = ["reveal", "type-at-desk", "present-card", "write-board", "tap-element", "idea", "pull-banner", "swipe-next"];
 
@@ -17,13 +23,17 @@ async function readJson(file) {
   return JSON.parse(await readFile(file, "utf8"));
 }
 
+const baselinesRaw = await readJson(path.join(repo, "motions", "baselines.json"));
+const baselineClips = baselinesRaw.clips ?? baselinesRaw;
+const idleFrame = baselineClips.idle.frames[0];
+
 const motions = {};
 for (const id of motionIds) {
-  const clip = await readJson(path.join(factory, "clips", id, "clip.json"));
   const spec = await readJson(path.join(repo, "motions", "specs", `${id}.json`));
+  const clip = buildKeyPoseClip(spec, idleFrame);
   motions[id] = { clip, spec: { prop: spec.prop ?? null, review: spec.review ?? {}, markers: spec.markers ?? {} } };
 }
-const propsCatalog = await readJson(path.join(sessionFiles, "design", "props.json"));
+const propsCatalog = await readJson(path.join(repo, "motions", "props-catalog.json"));
 const kit = await stageKitSource();
 
 // Slide-to-slide transition: the approved shipping run (accelerate from a stand, brake back to a stand),

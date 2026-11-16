@@ -1,13 +1,16 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, "..", "..");
-const sessionFiles = "C:\\Users\\t-vwallerich\\.copilot\\session-state\\5151d75e-0e30-46ad-99e0-e3d1bf08e105\\files";
-const mocap = path.resolve(process.env.MOTION_SOURCE_DIR ?? path.join(sessionFiles, "mocap"));
-const approvedDir = path.join(sessionFiles, "clip-pipeline", "clips");
-const factoryDir = path.join(sessionFiles, "motion-factory");
+const outDirArgIndex = process.argv.indexOf("--out-dir");
+const factoryDir = outDirArgIndex >= 0 && process.argv[outDirArgIndex + 1]
+  ? path.resolve(process.argv[outDirArgIndex + 1])
+  : path.resolve(process.env.MOTION_OUT_DIR ?? path.join(os.tmpdir(), "stickman-motion-factory"));
+const mocap = path.resolve(process.env.MOTION_SOURCE_DIR ?? path.join(factoryDir, "mocap"));
+const baselinesPath = path.join(repo, "motions", "baselines.json");
 const outDir = path.join(factoryDir, "clips");
 const FPS = 30;
 const licenseAcknowledgement =
@@ -454,34 +457,36 @@ const host=document.getElementById('g');for(const clip of R.clips){const rep=R.r
 await mkdir(outDir, { recursive: true });
 await mkdir(path.join(factoryDir, "shots"), { recursive: true });
 const catalog = JSON.parse(await readFile(path.join(repo, "motions", "catalog.json"), "utf8"));
+const baselinesRaw = JSON.parse(await readFile(baselinesPath, "utf8"));
+const baselineClips = baselinesRaw.clips ?? baselinesRaw;
 const generated = { version: 1, fps: FPS, rig, clips: {} };
 const clips = [];
 const report = { generatedAt: "1970-01-01T00:00:00.000Z", thresholds, clips: [] };
-const approvedIndex = JSON.parse(await readFile(path.join(approvedDir, "index.json"), "utf8"));
 for (const entry of catalog.motions) {
-  if (entry.status === "rejected") { report.clips.push({ id: entry.id, passed: false, rejected: true, reason: entry.reason }); continue; }
+  const spec = JSON.parse(await readFile(path.join(repo, entry.spec), "utf8"));
+  if (entry.status === "rejected") { report.clips.push({ id: entry.id, passed: false, rejected: true, reason: spec.reason }); continue; }
   let clip;
   try {
     if (approvedIds.has(entry.id)) {
-      const baseline = JSON.parse(await readFile(path.join(approvedDir, `${entry.id}.json`), "utf8"));
+      const baseline = baselineClips[entry.id];
       clip = { name: entry.id, fps: FPS, loop: baseline.loop, frames: baseline.frames, markers: baseline.markers ?? {}, strideLength: baseline.strideLength, rig, source: baseline.source };
     } else {
-      const bvh = await parseBvh(await ensureBvh(entry));
+      const bvh = await parseBvh(await ensureBvh(spec));
       const worlds = bvh.motion.map(row => fkFrame(bvh, row));
-      const fwd = forward(worlds), p = project(worlds, fwd, 2, entry.view ?? "side"), s = scaleOf(p), c = contacts(p, bvh.fps);
-      const rr = entry.source.range120; const r = rr ? { start: Math.max(2, rr[0]), end: Math.min(rr[1], p.length - 1) } : rangeFor(entry.kind === "loop" ? "cycle" : entry.id, p, c);
-      let frames = framesFrom(p, c, r, s, entry.kind === "loop");
-      if (entry.travel === "in-place") { const x0 = frames[0].root.x, x1 = frames.at(-1).root.x; frames = frames.map((fr,i)=>({ ...fr, root: { ...fr.root, x: rd(fr.root.x - x0 - (x1-x0)*(i/Math.max(1,frames.length-1))) }})); }
-      const wantsHands = entry.contacts.includes("lHand") || entry.contacts.includes("rHand");
-      frames = frames.map((fr, idx) => ({ ...fr, ...(wantsHands ? { hands: handFlags(fr, true) } : {}), ...(entry.id === "walk-backwards" ? { facing: -1 } : {}), ...(entry.facingChange ? { facing: rd(Math.cos((entry.facingChange * Math.PI / 180) * (idx / Math.max(1, frames.length - 1))), 3) } : {}) }));
-      clip = { name: entry.id, fps: FPS, loop: entry.kind === "loop", frames, markers: markers(entry.id, frames, r, p), strideLength: rd(Math.max(0, frames.at(-1).root.x - frames[0].root.x)), rig, source: { dataset: "CMU", trial: `${entry.source.subject}_${entry.source.trial}`, file: entry.source.file, sourceFps: rd(bvh.fps), sourceFrames: [r.start, r.end], licenseAcknowledgement } };
+      const fwd = forward(worlds), p = project(worlds, fwd, 2, spec.view ?? "side"), s = scaleOf(p), c = contacts(p, bvh.fps);
+      const rr = spec.source.range120; const r = rr ? { start: Math.max(2, rr[0]), end: Math.min(rr[1], p.length - 1) } : rangeFor(spec.kind === "loop" ? "cycle" : spec.id, p, c);
+      let frames = framesFrom(p, c, r, s, spec.kind === "loop");
+      if (spec.travel === "in-place") { const x0 = frames[0].root.x, x1 = frames.at(-1).root.x; frames = frames.map((fr,i)=>({ ...fr, root: { ...fr.root, x: rd(fr.root.x - x0 - (x1-x0)*(i/Math.max(1,frames.length-1))) }})); }
+      const wantsHands = (spec.contacts ?? []).includes("lHand") || (spec.contacts ?? []).includes("rHand");
+      frames = frames.map((fr, idx) => ({ ...fr, ...(wantsHands ? { hands: handFlags(fr, true) } : {}), ...(spec.id === "walk-backwards" ? { facing: -1 } : {}), ...(spec.facingChange ? { facing: rd(Math.cos((spec.facingChange * Math.PI / 180) * (idx / Math.max(1, frames.length - 1))), 3) } : {}) }));
+      clip = { name: spec.id, fps: FPS, loop: spec.kind === "loop", frames, markers: markers(spec.id, frames, r, p), strideLength: rd(Math.max(0, frames.at(-1).root.x - frames[0].root.x)), rig, source: { dataset: "CMU", trial: `${spec.source.subject}_${spec.source.trial}`, file: spec.source.file, sourceFps: rd(bvh.fps), sourceFrames: [r.start, r.end], licenseAcknowledgement } };
     }
-    postprocessClip(clip, entry);
-    let quality = qualityFor(entry, clip);
+    postprocessClip(clip, spec);
+    let quality = qualityFor(spec, clip);
     if (approvedIds.has(entry.id) && !quality.passed) {
       quality = { ...quality, approved: true, passed: true, gateExemptions: quality.failures.map(f => `${f.metric}=${f.value}>${f.threshold}`), failures: [] };
     }
-    clip.meta = buildMeta(entry, clip, quality);
+    clip.meta = buildMeta(spec, clip, quality);
     const passed = quality.passed;
     report.clips.push({ id: entry.id, kind: entry.kind, passed, approved: quality.approved ?? false, gateExemptions: quality.gateExemptions ?? [], metrics: Object.fromEntries(Object.entries(quality).filter(([k]) => k !== "failures")), failures: quality.failures });
     if (passed) { generated.clips[entry.id] = clip; clips.push(clip); await writeFile(path.join(outDir, `${entry.id}.json`), JSON.stringify(clip)); console.log(`${entry.id}: pass ${clip.frames.length}f`); }

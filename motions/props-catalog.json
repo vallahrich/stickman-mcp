@@ -1,0 +1,594 @@
+{
+  "version": 1,
+  "props": [
+    {
+      "type": "anger-mark",
+      "label": "Anger Mark",
+      "category": "presentation",
+      "defaultSize": {
+        "w": 28,
+        "h": 28
+      },
+      "defaultColor": "#d74240",
+      "socket": "aboveHead"
+    },
+    {
+      "type": "ball",
+      "label": "Ball",
+      "category": "sport",
+      "defaultSize": {
+        "w": 18,
+        "h": 18,
+        "r": 9
+      },
+      "defaultColor": "#ffffff",
+      "socket": "rHand"
+    },
+    {
+      "type": "banner",
+      "label": "Banner",
+      "category": "presentation",
+      "defaultSize": {
+        "w": 94,
+        "h": 44
+      },
+      "defaultColor": "#b11f4b",
+      "socket": "bothHands"
+    },
+    {
+      "type": "bar",
+      "label": "Overhead Bar",
+      "category": "sport",
+      "defaultSize": {
+        "w": 80,
+        "h": 6
+      },
+      "defaultColor": "#4a4f57",
+      "socket": "bothHands"
+    },
+    {
+      "type": "basketball",
+      "label": "Basketball",
+      "category": "sport",
+      "defaultSize": {
+        "w": 20,
+        "h": 20,
+        "r": 10
+      },
+      "defaultColor": "#f28c28",
+      "socket": "bothHands"
+    },
+    {
+      "type": "bench",
+      "label": "Bench",
+      "category": "furniture",
+      "defaultSize": {
+        "w": 72,
+        "h": 52
+      },
+      "defaultColor": "#8b5a2b",
+      "socket": "stage"
+    },
+    {
+      "type": "binoculars",
+      "label": "Binoculars",
+      "category": "wearable",
+      "defaultSize": {
+        "w": 50,
+        "h": 25
+      },
+      "defaultColor": "#202124",
+      "socket": "bothHands"
+    },
+    {
+      "type": "board",
+      "label": "Whiteboard",
+      "category": "presentation",
+      "defaultSize": {
+        "w": 92,
+        "h": 118
+      },
+      "defaultColor": "#ffffff",
+      "socket": "stage"
+    },
+    {
+      "type": "box",
+      "label": "Box",
+      "category": "object",
+      "defaultSize": {
+        "w": 50,
+        "h": 40
+      },
+      "defaultColor": "#b78345",
+      "socket": "bothHands"
+    },
+    {
+      "type": "bulb",
+      "label": "Idea Bulb",
+      "category": "presentation",
+      "defaultSize": {
+        "w": 24,
+        "h": 32
+      },
+      "defaultColor": "#ffd43b",
+      "socket": "aboveHead"
+    },
+    {
+      "type": "cable",
+      "label": "Network Cable",
+      "category": "object",
+      "defaultSize": {
+        "w": 64,
+        "h": 32
+      },
+      "defaultColor": "#5278ad",
+      "socket": "rHand"
+    },
+    {
+      "type": "card",
+      "label": "Presentation Card",
+      "category": "presentation",
+      "defaultSize": {
+        "w": 30,
+        "h": 20
+      },
+      "defaultColor": "#b11f4b",
+      "socket": "rHand"
+    },
+    {
+      "type": "chair",
+      "label": "Chair",
+      "category": "furniture",
+      "defaultSize": {
+        "w": 60,
+        "h": 100
+      },
+      "defaultColor": "#202124",
+      "socket": "stage"
+    },
+    {
+      "type": "cone",
+      "label": "Marker Cone",
+      "category": "sport",
+      "defaultSize": {
+        "w": 14,
+        "h": 18
+      },
+      "defaultColor": "#f28c28",
+      "socket": "stage"
+    },
+    {
+      "type": "crate",
+      "label": "Crate",
+      "category": "object",
+      "defaultSize": {
+        "w": 60,
+        "h": 65
+      },
+      "defaultColor": "#b78345",
+      "socket": "bothHands"
+    },
+    {
+      "type": "cursor",
+      "label": "Pointer Cursor",
+      "category": "presentation",
+      "defaultSize": {
+        "w": 12,
+        "h": 18
+      },
+      "defaultColor": "#e2a532",
+      "socket": "rHand"
+    },
+    {
+      "type": "desk",
+      "label": "Workstation Desk",
+      "category": "furniture",
+      "defaultSize": {
+        "w": 110,
+        "h": 92
+      },
+      "defaultColor": "#202124",
+      "socket": "stage"
+    },
+    {
+      "type": "detective-hat",
+      "label": "Detective Hat",
+      "category": "wearable",
+      "defaultSize": {
+        "w": 46,
+        "h": 20
+      },
+      "defaultColor": "#9e784c",
+      "socket": "aboveHead"
+    },
+    {
+      "type": "door",
+      "label": "Doorway",
+      "category": "stage",
+      "defaultSize": {
+        "w": 67,
+        "h": 185
+      },
+      "defaultColor": "#202124",
+      "socket": "stage"
+    },
+    {
+      "type": "football",
+      "label": "Football",
+      "category": "sport",
+      "defaultSize": {
+        "w": 18,
+        "h": 18,
+        "r": 9
+      },
+      "defaultColor": "#ffffff",
+      "socket": "stage"
+    },
+    {
+      "type": "glasses",
+      "label": "Glasses",
+      "category": "wearable",
+      "defaultSize": {
+        "w": 24,
+        "h": 10
+      },
+      "defaultColor": "#202124",
+      "socket": "eyes"
+    },
+    {
+      "type": "glove",
+      "label": "Boxing Glove",
+      "category": "sport",
+      "defaultSize": {
+        "w": 16,
+        "h": 12
+      },
+      "defaultColor": "#202124",
+      "socket": "rHand"
+    },
+    {
+      "type": "gloves",
+      "label": "Boxing Gloves",
+      "category": "sport",
+      "defaultSize": {
+        "w": 16,
+        "h": 12
+      },
+      "defaultColor": "#202124",
+      "socket": "bothHands"
+    },
+    {
+      "type": "goal",
+      "label": "Goal Net",
+      "category": "sport",
+      "defaultSize": {
+        "w": 84,
+        "h": 99
+      },
+      "defaultColor": "#dddddd",
+      "socket": "stage"
+    },
+    {
+      "type": "headphones",
+      "label": "Headset",
+      "category": "wearable",
+      "defaultSize": {
+        "w": 42,
+        "h": 40
+      },
+      "defaultColor": "#367ea8",
+      "socket": "eyes"
+    },
+    {
+      "type": "hoop",
+      "label": "Basketball Hoop",
+      "category": "sport",
+      "defaultSize": {
+        "w": 72,
+        "h": 64
+      },
+      "defaultColor": "#d84a2b",
+      "socket": "stage"
+    },
+    {
+      "type": "hurdle",
+      "label": "Track Hurdle",
+      "category": "sport",
+      "defaultSize": {
+        "w": 26,
+        "h": 40
+      },
+      "defaultColor": "#b11f4b",
+      "socket": "stage"
+    },
+    {
+      "type": "ladder",
+      "label": "Ladder",
+      "category": "stage",
+      "defaultSize": {
+        "w": 40,
+        "h": 240,
+        "rungs": 7
+      },
+      "defaultColor": "#202124",
+      "socket": "stage"
+    },
+    {
+      "type": "laptop",
+      "label": "Laptop",
+      "category": "object",
+      "defaultSize": {
+        "w": 48,
+        "h": 34
+      },
+      "defaultColor": "#6675cc",
+      "socket": "stage"
+    },
+    {
+      "type": "ledge",
+      "label": "Ledge",
+      "category": "stage",
+      "defaultSize": {
+        "w": 50,
+        "h": 16
+      },
+      "defaultColor": "#202124",
+      "socket": "stage"
+    },
+    {
+      "type": "magnifier",
+      "label": "Magnifier",
+      "category": "object",
+      "defaultSize": {
+        "w": 24,
+        "h": 34
+      },
+      "defaultColor": "#e2a532",
+      "socket": "rHand"
+    },
+    {
+      "type": "notebook",
+      "label": "Notebook",
+      "category": "presentation",
+      "defaultSize": {
+        "w": 30,
+        "h": 36
+      },
+      "defaultColor": "#cf647e",
+      "socket": "lHand"
+    },
+    {
+      "type": "palm",
+      "label": "Open Palm",
+      "category": "wearable",
+      "defaultSize": {
+        "w": 24,
+        "h": 26
+      },
+      "defaultColor": "#ffffff",
+      "socket": "rHand"
+    },
+    {
+      "type": "pen",
+      "label": "Pen",
+      "category": "presentation",
+      "defaultSize": {
+        "w": 4,
+        "h": 22
+      },
+      "defaultColor": "#4169c1",
+      "socket": "rHand"
+    },
+    {
+      "type": "phone",
+      "label": "Smartphone",
+      "category": "object",
+      "defaultSize": {
+        "w": 7,
+        "h": 12
+      },
+      "defaultColor": "#202124",
+      "socket": "rHand"
+    },
+    {
+      "type": "platform",
+      "label": "Step Platform",
+      "category": "stage",
+      "defaultSize": {
+        "w": 82,
+        "h": 24
+      },
+      "defaultColor": "#202124",
+      "socket": "stage"
+    },
+    {
+      "type": "pointer",
+      "label": "Presenter Pointer",
+      "category": "presentation",
+      "defaultSize": {
+        "w": 36,
+        "h": 4
+      },
+      "defaultColor": "#202124",
+      "socket": "rHand"
+    },
+    {
+      "type": "sand-pit",
+      "label": "Sand Pit",
+      "category": "sport",
+      "defaultSize": {
+        "w": 104,
+        "h": 14
+      },
+      "defaultColor": "#e8c872",
+      "socket": "stage"
+    },
+    {
+      "type": "sand-puff",
+      "label": "Sand Puff",
+      "category": "sport",
+      "defaultSize": {
+        "w": 32,
+        "h": 16
+      },
+      "defaultColor": "#e8c872",
+      "socket": "stage"
+    },
+    {
+      "type": "server",
+      "label": "Server Tower",
+      "category": "stage",
+      "defaultSize": {
+        "w": 64,
+        "h": 120
+      },
+      "defaultColor": "#59677d",
+      "socket": "stage"
+    },
+    {
+      "type": "server-module",
+      "label": "Server Blade Module",
+      "category": "object",
+      "defaultSize": {
+        "w": 52,
+        "h": 16
+      },
+      "defaultColor": "#839bb8",
+      "socket": "bothHands"
+    },
+    {
+      "type": "server-rack",
+      "label": "Server Rack",
+      "category": "stage",
+      "defaultSize": {
+        "w": 64,
+        "h": 120
+      },
+      "defaultColor": "#59677d",
+      "socket": "stage"
+    },
+    {
+      "type": "sign",
+      "label": "Handheld Sign",
+      "category": "presentation",
+      "defaultSize": {
+        "w": 90,
+        "h": 55
+      },
+      "defaultColor": "#fff7d6",
+      "socket": "rHand"
+    },
+    {
+      "type": "socket",
+      "label": "Wall Socket",
+      "category": "stage",
+      "defaultSize": {
+        "w": 18,
+        "h": 22
+      },
+      "defaultColor": "#7a8799",
+      "socket": "stage"
+    },
+    {
+      "type": "spear",
+      "label": "Javelin Spear",
+      "category": "sport",
+      "defaultSize": {
+        "w": 48,
+        "h": 6
+      },
+      "defaultColor": "#8b5a2b",
+      "socket": "rHand"
+    },
+    {
+      "type": "stairs",
+      "label": "Stairs",
+      "category": "stage",
+      "defaultSize": {
+        "w": 90,
+        "h": 54,
+        "steps": 4
+      },
+      "defaultColor": "#202124",
+      "socket": "stage"
+    },
+    {
+      "type": "tablet",
+      "label": "Tablet",
+      "category": "object",
+      "defaultSize": {
+        "w": 22,
+        "h": 30
+      },
+      "defaultColor": "#259b91",
+      "socket": "lHand"
+    },
+    {
+      "type": "target",
+      "label": "Bullseye Target",
+      "category": "sport",
+      "defaultSize": {
+        "w": 24,
+        "h": 24,
+        "r": 12
+      },
+      "defaultColor": "#d62828",
+      "socket": "stage"
+    },
+    {
+      "type": "thought-cloud",
+      "label": "Thought Cloud",
+      "category": "presentation",
+      "defaultSize": {
+        "w": 52,
+        "h": 36
+      },
+      "defaultColor": "#f5f1df",
+      "socket": "aboveHead"
+    },
+    {
+      "type": "thumb",
+      "label": "Thumbs Up Hand",
+      "category": "wearable",
+      "defaultSize": {
+        "w": 13,
+        "h": 20
+      },
+      "defaultColor": "#ffffff",
+      "socket": "rHand"
+    },
+    {
+      "type": "wall",
+      "label": "Climbing Wall",
+      "category": "stage",
+      "defaultSize": {
+        "w": 60,
+        "h": 140
+      },
+      "defaultColor": "#202124",
+      "socket": "stage"
+    },
+    {
+      "type": "watch",
+      "label": "Wristwatch",
+      "category": "wearable",
+      "defaultSize": {
+        "w": 15,
+        "h": 13
+      },
+      "defaultColor": "#ffffff",
+      "socket": "wrist"
+    },
+    {
+      "type": "window",
+      "label": "App Window",
+      "category": "presentation",
+      "defaultSize": {
+        "w": 80,
+        "h": 54
+      },
+      "defaultColor": "#6675cc",
+      "socket": "rHand"
+    }
+  ]
+}

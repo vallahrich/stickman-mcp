@@ -6,8 +6,9 @@ import { isAbsolute, relative, resolve, sep } from "node:path";
 import { randomUUID } from "node:crypto";
 import type { CompiledAnimation, PlaybackMode } from "./contract.js";
 import { renderAnimatedSvg, renderHtml, renderSvgFrame } from "./render.js";
+import { renderStoryboardSvg } from "./storyboard.js";
 
-export type ExportFormat = "svg" | "html" | "gif" | "mp4";
+export type ExportFormat = "svg-frame" | "svg" | "html" | "gif" | "mp4" | "storyboard-svg";
 
 export interface ExportResult {
   format: ExportFormat;
@@ -17,11 +18,22 @@ export interface ExportResult {
   estimatedWork: { frameCount: number; pixelsPerFrame: number; totalRasterPixels: number };
 }
 export interface ExportProgress { phase: "prepare" | "rasterize" | "encode" | "complete" | "compose" | "poster" | "qa"; current: number; total: number }
+
+export interface VideoRasterizer {
+  new (svg: string, options?: { font?: { loadSystemFonts?: boolean } }): {
+    render(): { asPng(): Uint8Array };
+  };
+}
+
 export interface ExportOptions {
   timeMs?: number;
   mode?: PlaybackMode;
+  maxPanels?: number;
+  columns?: number;
   signal?: AbortSignal;
   onProgress?: (progress: ExportProgress) => void | Promise<void>;
+  loadResvg?: () => Promise<{ Resvg: VideoRasterizer }>;
+  runEncoder?: (args: string[], signal?: AbortSignal) => Promise<void>;
 }
 export interface ExportPlan {
   estimatedWork: ExportResult["estimatedWork"];
@@ -56,7 +68,21 @@ export function planAnimationExport(program: CompiledAnimation, format: ExportFo
   return { estimatedWork, warnings: exportWarnings(format, estimatedWork) };
 }
 
-export function renderArtifact(program: CompiledAnimation, format: "svg" | "html", options: { timeMs?: number; mode?: PlaybackMode } = {}): string {
+export function renderArtifact(
+  program: CompiledAnimation,
+  format: "svg-frame" | "svg" | "html" | "storyboard-svg",
+  options: { timeMs?: number; mode?: PlaybackMode; maxPanels?: number; columns?: number } = {}
+): string {
+  if (format === "storyboard-svg") {
+    return renderStoryboardSvg(program, {
+      ...(options.maxPanels !== undefined ? { maxPanels: options.maxPanels } : {}),
+      ...(options.columns !== undefined ? { columns: options.columns } : {}),
+      ...(options.mode !== undefined ? { mode: options.mode } : {})
+    });
+  }
+  if (format === "svg-frame") {
+    return renderSvgFrame(program, options.timeMs ?? 0, options.mode ?? "normal");
+  }
   return format === "svg"
     ? (options.timeMs === undefined && options.mode === undefined ? renderAnimatedSvg(program) : renderSvgFrame(program, options.timeMs ?? 0, options.mode ?? "normal"))
     : renderHtml(program);
@@ -109,13 +135,31 @@ async function writeExclusive(file: string, contents: string | Buffer, onCreate:
   return Buffer.byteLength(contents);
 }
 
+async function resolveFfmpegExecutable(): Promise<string> {
+  try {
+    const mod: unknown = await import("ffmpeg-static");
+    const candidate = typeof mod === "string"
+      ? mod
+      : (typeof mod === "object" && mod !== null && "default" in mod && typeof (mod as { default: unknown }).default === "string"
+          ? (mod as { default: string }).default
+          : undefined);
+    if (candidate) return candidate;
+  } catch {
+    // Fall back to system ffmpeg on PATH.
+  }
+  return "ffmpeg";
+}
+
 async function runFfmpeg(args: string[], signal?: AbortSignal): Promise<void> {
-  await new Promise<void>((resolvePromise, rejectPromise) => {
-    const process = spawn("ffmpeg", args, { stdio: "ignore", windowsHide: true });
-    const abort = () => process.kill();
+  const spawnWith = (executable: string) => new Promise<void>((resolvePromise, rejectPromise) => {
+    const child = spawn(executable, args, { stdio: "ignore", windowsHide: true });
+    const abort = () => child.kill();
     signal?.addEventListener("abort", abort, { once: true });
-    process.once("error", error => rejectPromise(new Error(`Cannot start FFmpeg (${error.message}). Install FFmpeg and add it to PATH for GIF/MP4 export.`)));
-    process.once("close", code => {
+    child.once("error", error => {
+      signal?.removeEventListener("abort", abort);
+      rejectPromise(error);
+    });
+    child.once("close", code => {
       signal?.removeEventListener("abort", abort);
       if (signal?.aborted) {
         const error = new Error("Animation export was cancelled.");
@@ -126,12 +170,30 @@ async function runFfmpeg(args: string[], signal?: AbortSignal): Promise<void> {
     });
     if (signal?.aborted) abort();
   });
+
+  try {
+    await spawnWith("ffmpeg");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException)?.code === "ENOENT") {
+      const fallback = await resolveFfmpegExecutable();
+      if (fallback !== "ffmpeg") {
+        await spawnWith(fallback);
+        return;
+      }
+    }
+    if ((error as Error)?.name === "AbortError") throw error;
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.startsWith("FFmpeg exited")) throw error;
+    throw new Error(`Cannot start FFmpeg (${message}). Install FFmpeg or optional ffmpeg-static for GIF/MP4 export.`);
+  }
 }
 
 async function writeVideo(program: CompiledAnimation, destination: string, format: "gif" | "mp4", options: ExportOptions, onCreate: () => void): Promise<number> {
-  let rasterize: typeof import("@resvg/resvg-js").Resvg;
+  let rasterize: VideoRasterizer;
   try {
-    rasterize = (await import("@resvg/resvg-js")).Resvg;
+    rasterize = options.loadResvg
+      ? (await options.loadResvg()).Resvg
+      : (await import("@resvg/resvg-js")).Resvg;
   } catch (error) {
     if (error instanceof Error && "code" in error && error.code === "ERR_MODULE_NOT_FOUND") {
       throw new Error("GIF/MP4 export needs optional @resvg/resvg-js to rasterize SVG frames. Install it, then retry.");
@@ -148,8 +210,8 @@ async function writeVideo(program: CompiledAnimation, destination: string, forma
       const time = Math.min(program.spec.durationMs, index * 1000 / fps);
       const svg = renderSvgFrame(program, time);
       const file = resolve(framesDirectory, `frame${String(index).padStart(6, "0")}.png`);
-      // v1 frames contain no text; loading the system font database per frame is unnecessary.
-      const png = new rasterize(svg, { font: { loadSystemFonts: false } }).render().asPng();
+      // Pure stickman frames contain no text; load system fonts only when a prop renders <text>.
+      const png = new rasterize(svg, { font: { loadSystemFonts: svg.includes("<text") } }).render().asPng();
       await writeFile(file, png);
       await reportProgress(options.onProgress, { phase: "rasterize", current: index + 1, total: frameCount });
     }
@@ -162,7 +224,7 @@ async function writeVideo(program: CompiledAnimation, destination: string, forma
       : ["-hide_banner", "-loglevel", "error", "-n", "-framerate", String(fps), "-i", sequence, "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2:0:0:white,format=yuv420p", "-movflags", "+faststart", encoded];
     throwIfAborted(options.signal);
     await reportProgress(options.onProgress, { phase: "encode", current: 0, total: 1 });
-    await runFfmpeg(args, options.signal);
+    await (options.runEncoder ?? runFfmpeg)(args, options.signal);
     throwIfAborted(options.signal);
     await copyFile(encoded, destination, constants.COPYFILE_EXCL);
     onCreate();
@@ -179,8 +241,9 @@ export async function exportAnimation(
   format: ExportFormat,
   options: ExportOptions = {}
 ): Promise<ExportResult> {
+  const expectedExt = format === "storyboard-svg" || format === "svg-frame" ? "svg" : format;
   const ext = outputPath.split(".").pop()?.toLowerCase();
-  if (ext !== format) throw new Error(`Output filename must end in .${format}.`);
+  if (ext !== expectedExt) throw new Error(`Output filename must end in .${expectedExt}.`);
   const target = await resolveSafeOutputPath(outputRoot, outputPath);
   const lockPath = format === "gif" || format === "mp4" ? `${target.file}.stickman-lock` : undefined;
   const lock = lockPath ? await open(lockPath, "wx", 0o600) : undefined;
@@ -200,6 +263,6 @@ export async function exportAnimation(
     if (outputCreated) await rm(target.file, { force: true });
     throw error;
   } finally {
-    if (lockPath && lock) await unlink(lockPath);
+    if (lockPath && lock) await unlink(lockPath).catch(() => undefined);
   }
 }

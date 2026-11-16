@@ -1,0 +1,59 @@
+{
+  "version": "stickman.animation/v2",
+  "canvas": {
+    "width": 800,
+    "height": 450,
+    "fps": 30
+  },
+  "theme": {
+    "accentColor": "#2563eb",
+    "background": "#ffffff"
+  },
+  "actors": [
+    {
+      "id": "presenter",
+      "label": "Lead Presenter",
+      "x": "left",
+      "facing": "right",
+      "color": "#0f172a",
+      "accessory": "tie",
+      "accentColor": "#e11d48",
+      "zIndex": 2,
+      "actions": [
+        {
+          "action": "write-board",
+          "emitCue": "boardWritten"
+        },
+        {
+          "action": "fist-pump",
+          "afterCue": "approved"
+        }
+      ]
+    },
+    {
+      "id": "colleague",
+      "label": "Design Reviewer",
+      "x": "right",
+      "facing": "left",
+      "color": "#334155",
+      "accessory": "glasses",
+      "zIndex": 1,
+      "actions": [
+        {
+          "action": "surprised",
+          "afterCue": "boardWritten",
+          "emitCue": "reacted"
+        },
+        {
+          "action": "thumbs-up",
+          "afterCue": "reacted",
+          "emitCue": "approved"
+        },
+        {
+          "action": "fist-pump",
+          "afterCue": "approved"
+        }
+      ]
+    }
+  ]
+}
