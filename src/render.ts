@@ -532,7 +532,7 @@ function multiSceneFrameMarkup(
 </svg>`;
 }
 
-const BLUEPRINT_STAGE_STYLE =
+export const BLUEPRINT_STAGE_STYLE =
   `.bp-d{font:10px Consolas,"Courier New",Courier,monospace;fill:#1e3a5f}` +
   `.bp-a{font:700 10px Consolas,"Courier New",Courier,monospace;fill:#0f172a;text-anchor:middle}` +
   `.bp-ax{font:8.5px Consolas,"Courier New",Courier,monospace;fill:#334155;text-anchor:middle}`;
@@ -553,7 +553,7 @@ function renderBlueprintRegistrationMarkSvg(cx: number, cy: number, arm = 5, dec
   return `<path data-part="registration-mark" d="M${n(cx - arm)} ${n(cy)}H${n(cx + arm)}M${n(cx)} ${n(cy - arm)}V${n(cy + arm)}" fill="none" stroke="#1e3a5f" stroke-width="1"/>`;
 }
 
-function renderBlueprintStageBackdropSvg(
+export function renderBlueprintStageBackdropSvg(
   width: number,
   height: number,
   groundY: number,
@@ -648,7 +648,7 @@ function renderBlueprintActorDimensionsSvg(frame: SampledFrame, width: number, d
     .join("");
 }
 
-function renderBlueprintFrameSceneSvg(frame: SampledFrame, width: number, decimals = 3): string {
+export function renderBlueprintFrameSceneSvg(frame: SampledFrame, width: number, decimals = 3): string {
   const inner = renderSceneInnerSvg(frame, {
     defaultColor: "#0f172a",
     themeAccentColor: "#1e3a5f",

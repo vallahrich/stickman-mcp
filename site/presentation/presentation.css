@@ -1,8 +1,10 @@
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--cp-bg); color: var(--cp-text); font: 16px "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif; }
-button, select { font: inherit; color: var(--cp-text); background: var(--cp-surface); border: 1px solid var(--cp-border); border-radius: .625rem; padding: 8px 12px; }
+button, select { font: inherit; color: var(--cp-text); background: var(--cp-surface); border: 1px solid var(--cp-border); border-radius: .625rem; padding: 8px 12px; transition: border-color var(--cp-dur-fast, 140ms) var(--cp-ease-out, cubic-bezier(0.22, 1, 0.36, 1)), background-color var(--cp-dur-fast, 140ms) var(--cp-ease-out, cubic-bezier(0.22, 1, 0.36, 1)), color var(--cp-dur-fast, 140ms) var(--cp-ease-out, cubic-bezier(0.22, 1, 0.36, 1)), transform var(--cp-dur-fast, 140ms) var(--cp-ease-out, cubic-bezier(0.22, 1, 0.36, 1)), opacity var(--cp-dur-fast, 140ms) var(--cp-ease-out, cubic-bezier(0.22, 1, 0.36, 1)); }
+input[type="range"] { transition: none; }
 button { cursor: pointer; }
 button:hover { border-color: var(--cp-accent); }
+button:active { transform: scale(.985); }
 button:disabled { opacity: .5; cursor: default; }
 button:focus-visible, select:focus-visible, a:focus-visible { outline: 3px solid var(--cp-accent); outline-offset: 3px; }
 button.primary { background: var(--cp-accent); color: var(--cp-accent-fg); border-color: var(--cp-accent); }
@@ -79,8 +81,18 @@ video[hidden] { display: none; }
 #beat-status { color: var(--cp-text-muted); margin-right: auto; min-width: 200px; font-size: 14px; font-variant-numeric: tabular-nums; }
 .help { margin: 12px 0 0; color: var(--cp-text-muted); font-size: 13px; }
 #error { padding: 12px 16px; border: 1px solid var(--cp-danger); color: var(--cp-danger); border-radius: .625rem; margin-top: 12px; white-space: pre-wrap; }
-dialog { max-width: min(1200px, 94vw); max-height: 92vh; border: 1px solid var(--cp-border); border-radius: 16px; background: var(--cp-surface); color: var(--cp-text); padding: 24px; }
-dialog::backdrop { background: var(--cp-overlay); }
+@keyframes cp-dialog-enter {
+  from { opacity: 0; transform: translateY(4px) scale(0.99); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes cp-backdrop-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+dialog { max-width: min(1200px, 94vw); max-height: 92vh; border: 1px solid var(--cp-border); border-radius: 16px; background: var(--cp-surface); color: var(--cp-text); padding: 24px; box-shadow: var(--cp-shadow); transition: opacity var(--cp-dur-enter, 180ms) var(--cp-ease-out, cubic-bezier(0.22, 1, 0.36, 1)), transform var(--cp-dur-enter, 180ms) var(--cp-ease-out, cubic-bezier(0.22, 1, 0.36, 1)), border-color var(--cp-dur-fast, 140ms) var(--cp-ease-out, cubic-bezier(0.22, 1, 0.36, 1)); }
+dialog[open] { animation: cp-dialog-enter var(--cp-dur-enter, 180ms) var(--cp-ease-out, cubic-bezier(0.22, 1, 0.36, 1)); }
+dialog::backdrop { background: var(--cp-overlay); transition: opacity var(--cp-dur-enter, 180ms) var(--cp-ease-out, cubic-bezier(0.22, 1, 0.36, 1)); }
+dialog[open]::backdrop { animation: cp-backdrop-enter var(--cp-dur-enter, 180ms) var(--cp-ease-out, cubic-bezier(0.22, 1, 0.36, 1)); }
 .dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 16px; }
 .dialog-header h2 { margin: 0; font-size: 24px; }
 .notes { max-width: 900px; line-height: 1.6; white-space: pre-wrap; }
@@ -101,5 +113,5 @@ dialog::backdrop { background: var(--cp-overlay); }
   button, select { padding: 8px; font-size: 14px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  * { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+  *, *::before, *::after, dialog[open], dialog[open]::backdrop { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
 }

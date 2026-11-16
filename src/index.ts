@@ -67,5 +67,6 @@ export {
   type ScrollTimelineMediaQueryListLike,
   type ScrollTimelineOptions,
   type ScrollTimelineTarget,
-  type StickmanPlayerElement
+  type StickmanPlayerElement,
+  type StickmanPlayerScrollOptions
 } from "./browser.js";

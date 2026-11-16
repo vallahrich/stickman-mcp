@@ -1,9 +1,13 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import {
+  BLUEPRINT_STAGE_STYLE,
   analyzeStoryboard,
   compileAnimation,
   renderAnimatedSvg,
+  renderBlueprintDefsSvg,
+  renderBlueprintFrameSceneSvg,
+  renderBlueprintStageBackdropSvg,
   renderStoryboardSvg,
   sampleAnimation
 } from "../../dist/index.js";
@@ -135,6 +139,38 @@ function buildIsometricRoomSvg() {
   };
 }
 
+function buildScrollScrubStageSvg(program) {
+  const sliceCount = 25;
+  const { width, height } = program.spec.canvas;
+  const durationMs = program.spec.durationMs;
+  const v2Spec = program.contractVersion === "stickman.animation/v2" ? program.spec : undefined;
+  const initialSample = sampleAnimation(program, 0, "normal");
+  const backdrop = renderBlueprintStageBackdropSvg(width, height, initialSample.groundY, v2Spec?.anchors, 2);
+
+  const sliceGroups = Array.from({ length: sliceCount }, (_unused, idx) => {
+    const progress = idx / (sliceCount - 1);
+    const timeMs = durationMs * progress;
+    const sample = sampleAnimation(program, timeMs, "normal");
+    const inner = renderBlueprintFrameSceneSvg(sample, width, 2);
+    const pct = Math.round(progress * 100);
+    const stateAttrs = idx === 0 ? ' data-active="true"' : " hidden";
+    return `<g class="scroll-scrub-slice" data-scrub-slice="${idx}" data-time-ms="${Math.round(sample.timeMs)}" data-action="${escapeHtml(sample.action)}" data-progress="${pct}"${stateAttrs}>${inner}</g>`;
+  }).join("");
+
+  const rawStageSvg =
+    `<svg xmlns="http://www.w3.org/2000/svg" data-style="blueprint" data-scroll-scrub-stage="true" data-active-slice="0" data-active-time-ms="0" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="img" aria-label="Scroll-scrubbed CAD choreography stage">` +
+    `${renderBlueprintDefsSvg()}` +
+    `<style>${BLUEPRINT_STAGE_STYLE}.scroll-scrub-slice[hidden]{display:none}</style>` +
+    `${backdrop}` +
+    `<g data-scroll-slices="true">${sliceGroups}</g>` +
+    `</svg>`;
+
+  return {
+    svg: scopeInlineSvg(rawStageSvg, "bp-scroll-stage"),
+    sliceCount
+  };
+}
+
 export async function blueprintSection(repoRoot) {
   const collab = await compileShowcaseExample(repoRoot, "examples/v2-two-actors-collab.json");
   const sports = await compileShowcaseExample(repoRoot, "examples/v2-sports-addons.json");
@@ -142,6 +178,12 @@ export async function blueprintSection(repoRoot) {
 
   const collabAnimSvg = scopeInlineSvg(renderAnimatedSvg(collab.program), "bp-anim-collab", { loop: true });
   const sportsAnimSvg = scopeInlineSvg(renderAnimatedSvg(sports.program), "bp-anim-sports", { loop: true });
+  const sportsBlueprintStageSvg = scopeInlineSvg(
+    renderAnimatedSvg(sports.program, { style: "blueprint" }),
+    "bp-stage-sports",
+    { loop: true }
+  );
+  const scrollScrub = buildScrollScrubStageSvg(sports.program);
 
   const collabCadSvg = scopeInlineSvg(
     renderStoryboardSvg(collab.program, {
@@ -238,6 +280,7 @@ export async function blueprintSection(repoRoot) {
         <button type="button" class="blueprint-tab" data-blueprint-view="cad" aria-pressed="true" aria-controls="blueprintPanelCad">CAD Blueprint</button>
         <button type="button" class="blueprint-tab" data-blueprint-view="standard" aria-pressed="false" aria-controls="blueprintPanelStandard">Standard Contact Sheet</button>
         <button type="button" class="blueprint-tab" data-blueprint-view="room" aria-pressed="false" aria-controls="blueprintPanelRoom">2.5D Room Datum</button>
+        <button type="button" class="blueprint-tab" data-blueprint-view="stage" aria-pressed="false" aria-controls="blueprintPanelStage">Full-Stage Blueprint</button>
       </div>
     </div>
     <p id="blueprintViewStatus" class="quiet" aria-live="polite">CAD Dimensional Blueprint · monochrome orthographic panels with 144u rig leaders, L/C/R anchor ticks, and T+0.00s timecodes.</p>
@@ -262,6 +305,67 @@ export async function blueprintSection(repoRoot) {
           <span class="metric-pill">datum (108, 220, h=0)</span>
         </div>
         <figure class="blueprint-sheet">${room.svg}</figure>
+      </div>
+    </div>
+    <div id="blueprintPanelStage" class="blueprint-panel" data-blueprint-panel="stage" hidden>
+      <div class="blueprint-sheet-stack">
+        <div class="blueprint-metrics" aria-label="Full-stage CAD blueprint metrics">
+          <span class="metric-pill metric-pass">style: blueprint</span>
+          <span class="metric-pill">hatched props: ${escapeHtml(sports.analysis.addonTypes.join(" · "))}</span>
+          <span class="metric-pill">rig datum: 144u + x-track</span>
+          <span class="metric-pill">anchors: L · CL · C · CR · R</span>
+        </div>
+        <figure class="blueprint-sheet">${sportsBlueprintStageSvg}</figure>
+      </div>
+    </div>
+  </div>
+  <div class="blueprint-scroll-demo" id="blueprintScrollDemo">
+    <div class="scroll-scrub-head">
+      <div>
+        <p class="eyebrow">bindScrollTimeline · Scroll-linked playhead</p>
+        <h3>Scroll-scrubbed choreography</h3>
+        <p class="quiet">Scroll the compact runway, use arrow keys, or drag the playhead to scrub ${scrollScrub.sliceCount} deterministic CAD keyframe slices from 0% to 100%.</p>
+      </div>
+      <div class="scroll-scrub-readouts" aria-label="Scroll-scrub playhead readouts">
+        <output id="scrollScrubTimecode" class="cp-timecode metric-pill" data-timecode="true" data-scroll-scrub-timecode="true">0.00s / ${escapeHtml(sportsSec)}s</output>
+        <output id="scrollScrubProgress" class="cp-timecode metric-pill" data-timecode="true" data-scroll-scrub-progress="true">0%</output>
+        <span id="scrollScrubAction" class="metric-pill" data-scroll-scrub-action="true">frame 01/${scrollScrub.sliceCount} · hurdle</span>
+      </div>
+    </div>
+    <div class="scroll-scrub-layout">
+      <div class="scroll-scrub-stage-wrap">
+        <figure class="blueprint-figure">
+          ${scrollScrub.svg}
+          <figcaption class="quiet">Pure function of scroll progress (<code>scrollTop / maxScroll</code>) · hatched props, dashed ground datum &amp; moving <code>144u</code> rig callouts</figcaption>
+        </figure>
+        <label class="scroll-scrub-range-label" for="scrollScrubRange">
+          <span>Scrub playhead (0%–100%)</span>
+          <input type="range" id="scrollScrubRange" data-scroll-scrub-range="true" min="0" max="1000" step="1" value="0" aria-label="Scroll-scrub playhead">
+        </label>
+      </div>
+      <div class="scroll-scrub-track" id="scrollScrubContainer" data-scroll-scrub-demo="true" data-duration-ms="${sports.analysis.durationMs}" tabindex="0" role="region" aria-label="Scrollable choreography runway">
+        <div class="scroll-scrub-runway">
+          <div class="scroll-scrub-step" data-scrub-step="0" data-step-min="0" data-step-active="true">
+            <span class="scroll-scrub-step-meta">0% · T+0.00s</span>
+            <strong>01 · Hurdle Approach &amp; Takeoff</strong>
+            <p>Grounded sprint from the left stage anchor into hurdle clearance (<code>emitCue: "clearedHurdle"</code>).</p>
+          </div>
+          <div class="scroll-scrub-step" data-scrub-step="1" data-step-min="0.3">
+            <span class="scroll-scrub-step-meta">33% · T+${((sports.analysis.durationMs * 0.33) / 1000).toFixed(2)}s</span>
+            <strong>02 · Socket Pickup (<code>bothHands</code>)</strong>
+            <p>Hatched basketball attaches to hand sockets while C1 Hermite blending bridges stride into set stance.</p>
+          </div>
+          <div class="scroll-scrub-step" data-scrub-step="2" data-step-min="0.6">
+            <span class="scroll-scrub-step-meta">67% · T+${((sports.analysis.durationMs * 0.67) / 1000).toFixed(2)}s</span>
+            <strong>03 · Parabolic Arc &amp; Rim Contact</strong>
+            <p>Deterministic ballistic arc releases toward the <code>hoop</code> stage datum (<code>emitCue: "shotMade"</code>).</p>
+          </div>
+          <div class="scroll-scrub-step" data-scrub-step="3" data-step-min="0.88">
+            <span class="scroll-scrub-step-meta">100% · T+${escapeHtml(sportsSec)}s</span>
+            <strong>04 · Completed Pose (<code>cheer</code>)</strong>
+            <p>Planted celebration pose; pinned automatically when <code>prefers-reduced-motion: reduce</code> is active.</p>
+          </div>
+        </div>
       </div>
     </div>
   </div>

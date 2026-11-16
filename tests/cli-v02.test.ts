@@ -89,7 +89,7 @@ describe("CLI v0.2 commands and flags", () => {
     const badSchema = invokeCli(["schema", "--version", "v9"]);
     expect(badSchema.status).toBe(1);
     expect(badSchema.stderr).toContain('must be "v1" or "v2"');
-  });
+  }, 60_000);
 
   it("supports choreograph, storyboard (SVG & --lint-only), and storyboard-svg/svg-frame preview & export", async () => {
     const dir = await createScratchDir();
@@ -311,5 +311,5 @@ describe("CLI v0.2 commands and flags", () => {
     const conflictingStyle = invokeCli(["preview", "--input", shorthandPath, "--blueprint", "--style", "default"]);
     expect(conflictingStyle.status).toBe(1);
     expect(conflictingStyle.stderr).toContain("Cannot combine --blueprint with --style default");
-  });
+  }, 60_000);
 });

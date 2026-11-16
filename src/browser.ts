@@ -9,9 +9,17 @@ import {
   type MarkerEvent,
   type PlaybackMode,
   type Point2D,
+  type RenderStyle,
   type SampledFrame
 } from "./contract.js";
-import { frameGeometry, renderSceneInnerSvg } from "./render.js";
+import { renderBlueprintDefsSvg } from "./props.js";
+import {
+  BLUEPRINT_STAGE_STYLE,
+  frameGeometry,
+  renderBlueprintFrameSceneSvg,
+  renderBlueprintStageBackdropSvg,
+  renderSceneInnerSvg
+} from "./render.js";
 
 export interface CssRect {
   left: number;
@@ -693,11 +701,62 @@ svg[data-stickman-svg="true"] {
   height: auto;
   box-shadow: var(--cp-card-shadow);
 }
-button, select, [data-stickman-control] {
-  transition: border-color var(--cp-dur-fast) var(--cp-ease-out), background-color var(--cp-dur-fast) var(--cp-ease-out), transform var(--cp-dur-fast) var(--cp-ease-out), opacity var(--cp-dur-fast) var(--cp-ease-out);
+[data-stickman-controls="true"] {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: var(--cp-surface, #ffffff);
+  color: var(--cp-text, #242424);
+  border: 1px solid var(--cp-border, #dedede);
+  border-radius: 10px;
+  box-shadow: var(--cp-card-shadow);
+  font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+}
+button, select, [data-stickman-control="toggle"] {
+  font: inherit;
+  font-weight: 600;
+  min-width: 68px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--cp-border, #dedede);
+  background: var(--cp-surface, #ffffff);
+  color: var(--cp-text, #242424);
+  cursor: pointer;
+  transition: border-color 140ms var(--cp-ease-out), background-color 140ms var(--cp-ease-out), color 140ms var(--cp-ease-out), transform 140ms var(--cp-ease-out), opacity 140ms var(--cp-ease-out);
+}
+button:hover, select:hover, [data-stickman-control="toggle"]:hover {
+  border-color: var(--cp-accent, #b11f4b);
+}
+button:active, [data-stickman-control="toggle"]:active {
+  transform: scale(0.985);
+}
+[data-stickman-control="toggle"][aria-pressed="true"] {
+  background: var(--cp-accent, #b11f4b);
+  color: var(--cp-accent-fg, #ffffff);
+  border-color: var(--cp-accent, #b11f4b);
+}
+input[type="range"][data-stickman-control="scrubber"] {
+  flex: 1 1 140px;
+  min-width: 96px;
+  accent-color: var(--cp-accent, #b11f4b);
+  cursor: pointer;
+  transition: none;
+}
+button:focus-visible, select:focus-visible, input:focus-visible, [data-stickman-control]:focus-visible {
+  outline: 3px solid var(--cp-accent, #b11f4b);
+  outline-offset: 4px;
 }
 .cp-timecode, output, [data-timecode], [data-frame-counter], [data-status-numeric] {
   font-variant-numeric: tabular-nums;
+  font-family: Consolas, "Courier New", Courier, monospace;
+  font-size: 13px;
+  color: var(--cp-text-muted, #5c5c5c);
+  min-width: 12ch;
+  text-align: right;
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -707,6 +766,10 @@ button, select, [data-stickman-control] {
 }
 `;
 
+export type StickmanPlayerScrollOptions = Omit<ScrollTimelineOptions, "durationMs"> & {
+  durationMs?: number;
+};
+
 export interface StickmanPlayerElement extends HTMLElement {
   readonly durationMs: number;
   readonly currentTimeMs: number;
@@ -715,6 +778,7 @@ export interface StickmanPlayerElement extends HTMLElement {
   pause(): BrowserPlayerState;
   seek(timeMs: number): BrowserPlayerState;
   setMode(mode: PlaybackMode): BrowserPlayerState;
+  bindScroll(options?: StickmanPlayerScrollOptions): ScrollTimelineBinding;
   snapshot(): BrowserPlayerState;
   dispose(): void;
 }
@@ -764,6 +828,30 @@ function resolveElementProgramInput(raw: unknown): CompiledAnimation {
   return choreographed.program;
 }
 
+function removeDomNode(node: Element | null): void {
+  if (!node) return;
+  if (typeof node.remove === "function") node.remove();
+  else if (node.parentNode) node.parentNode.removeChild(node);
+}
+
+function createHtmlNode(doc: Document, tag: string): Element {
+  return typeof (doc as { createElement?: unknown }).createElement === "function"
+    ? doc.createElement(tag)
+    : doc.createElementNS("http://www.w3.org/1999/xhtml", tag);
+}
+
+function findDescendantByAttr(root: Element, attrName: string, attrValue: string): Element | null {
+  const kids = (root as unknown as { children?: ArrayLike<Element> }).children;
+  if (!kids) return null;
+  for (let i = 0; i < kids.length; i++) {
+    const child = kids[i]!;
+    if (child.getAttribute?.(attrName) === attrValue) return child;
+    const nested = findDescendantByAttr(child, attrName, attrValue);
+    if (nested) return nested;
+  }
+  return null;
+}
+
 export function registerStickmanPlayerElement(tagName = "stickman-player"): boolean {
   if (typeof tagName !== "string" || !/^[a-z][a-z0-9._-]*-[a-z0-9._-]*$/.test(tagName)) {
     throw new TypeError(`Invalid custom element tag name "${String(tagName)}"; custom elements must contain a hyphen.`);
@@ -787,7 +875,7 @@ export function registerStickmanPlayerElement(tagName = "stickman-player"): bool
 
   class StickmanPlayerCustomElement extends BaseElement implements StickmanPlayerElement {
     static get observedAttributes(): string[] {
-      return ["program", "mode", "autoplay"];
+      return ["program", "mode", "autoplay", "controls", "scroll-scrub", "style-mode", "blueprint"];
     }
 
     #program: CompiledAnimation | null = null;
@@ -795,6 +883,10 @@ export function registerStickmanPlayerElement(tagName = "stickman-player"): bool
     #svg: SVGSVGElement | null = null;
     #bgRect: SVGRectElement | null = null;
     #groundPath: SVGPathElement | null = null;
+    #controlsEl: Element | null = null;
+    #toggleBtn: Element | null = null;
+    #scrubberInput: Element | null = null;
+    #timecodeOutput: Element | null = null;
     #painter: { draw(frame: SampledFrame): void; dispose(): void } | null = null;
     #timeMs = 0;
     #playing = false;
@@ -805,6 +897,9 @@ export function registerStickmanPlayerElement(tagName = "stickman-player"): bool
     #previousClockMs: number | null = null;
     #emittedMs = -1;
     #detachMedia: (() => void) | null = null;
+    #innerScrollBinding: ScrollTimelineBinding | null = null;
+    #activeScrollOptions: StickmanPlayerScrollOptions | null = null;
+    #scrollSource: "manual" | "attribute" | null = null;
 
     get durationMs(): number {
       return this.#program?.spec.durationMs ?? 0;
@@ -846,12 +941,222 @@ export function registerStickmanPlayerElement(tagName = "stickman-player"): bool
       return "normal";
     }
 
+    #effectiveRenderStyle(): RenderStyle {
+      const styleMode = this.getAttribute?.("style-mode")?.trim();
+      if (styleMode === "blueprint" || styleMode === "default") {
+        return styleMode;
+      }
+      if (this.hasAttribute?.("blueprint") && this.getAttribute?.("blueprint") !== "false") {
+        return "blueprint";
+      }
+      const v2 =
+        this.#program?.contractVersion === CONTRACT_VERSION_V2
+          ? (this.#program.spec as AnimationSpecV2)
+          : undefined;
+      return v2?.theme?.style === "blueprint" ? "blueprint" : "default";
+    }
+
+    #wantsControls(): boolean {
+      return Boolean(this.hasAttribute?.("controls") && this.getAttribute?.("controls") !== "false");
+    }
+
+    #wantsDeclarativeScrollScrub(): boolean {
+      return Boolean(this.hasAttribute?.("scroll-scrub") && this.getAttribute?.("scroll-scrub") !== "false");
+    }
+
     #stopRaf(): void {
       this.#playing = false;
       this.#previousClockMs = null;
       if (this.#requestId !== null) {
         this.#cancelFrame(this.#requestId);
         this.#requestId = null;
+      }
+      this.#syncControls();
+    }
+
+    #teardownInnerScrollBinding(): void {
+      if (this.#innerScrollBinding) {
+        const prev = this.#innerScrollBinding;
+        this.#innerScrollBinding = null;
+        prev.dispose();
+      }
+    }
+
+    #clearScrollBinding(): void {
+      this.#teardownInnerScrollBinding();
+      this.#activeScrollOptions = null;
+      this.#scrollSource = null;
+    }
+
+    #resolveDeclarativeScrollOptions(): StickmanPlayerScrollOptions {
+      const raw = this.getAttribute?.("scroll-scrub")?.trim() ?? "";
+      const win = this.#window() as unknown as ScrollTimelineContainerLike | undefined;
+      if (raw && raw !== "true" && raw !== "window") {
+        if (raw === "self") {
+          return {
+            ...(win ? { container: win } : {}),
+            scrollElement: this as unknown as ScrollTimelineElementLike
+          };
+        }
+        const doc = this.ownerDocument as unknown as { querySelector?: (sel: string) => unknown } | null;
+        if (typeof doc?.querySelector === "function") {
+          try {
+            const found = doc.querySelector(raw) as ScrollTimelineContainerLike | null;
+            if (found) {
+              return { container: found };
+            }
+          } catch {
+            // Fall back to window scroll container on invalid selector.
+          }
+        }
+      }
+      return win ? { container: win } : {};
+    }
+
+    #mountInnerScrollBinding(options: StickmanPlayerScrollOptions): ScrollTimelineBinding {
+      this.#teardownInnerScrollBinding();
+      const win = this.#window() as unknown as ScrollTimelineContainerLike | undefined;
+      const durationMs = options.durationMs ?? this.durationMs;
+      const binding = bindScrollTimeline(
+        (timeMs) => {
+          if (this.#disposed || !this.#program) return;
+          if (this.#playing) this.#stopRaf();
+          this.seek(timeMs);
+        },
+        {
+          ...(win ? { container: win } : {}),
+          ...options,
+          durationMs
+        }
+      );
+      this.#innerScrollBinding = binding;
+      return binding;
+    }
+
+    #syncDeclarativeScrollScrub(): void {
+      if (this.#disposed) return;
+      if (this.#wantsDeclarativeScrollScrub()) {
+        if (this.#scrollSource !== "manual") {
+          const opts = this.#resolveDeclarativeScrollOptions();
+          this.#activeScrollOptions = opts;
+          this.#scrollSource = "attribute";
+          this.#mountInnerScrollBinding(opts);
+        }
+      } else if (this.#scrollSource === "attribute") {
+        this.#clearScrollBinding();
+      }
+    }
+
+    #teardownControlsDom(): void {
+      removeDomNode(this.#controlsEl);
+      this.#controlsEl = null;
+      this.#toggleBtn = null;
+      this.#scrubberInput = null;
+      this.#timecodeOutput = null;
+    }
+
+    #syncControlsDom(): void {
+      if (this.#disposed || !this.#program) {
+        if (!this.#wantsControls()) this.#teardownControlsDom();
+        return;
+      }
+      if (!this.#wantsControls()) {
+        this.#teardownControlsDom();
+        return;
+      }
+      if (!this.#controlsEl) {
+        const doc = this.ownerDocument ?? globalThis.document;
+        if (!doc) return;
+        const bar = createHtmlNode(doc, "div");
+        bar.setAttribute("class", "cp-player-controls");
+        bar.setAttribute("data-stickman-controls", "true");
+        bar.setAttribute("role", "group");
+        bar.setAttribute("aria-label", "Playback controls");
+
+        const toggle = createHtmlNode(doc, "button");
+        toggle.setAttribute("type", "button");
+        toggle.setAttribute("class", "cp-player-toggle");
+        toggle.setAttribute("data-stickman-control", "toggle");
+        toggle.setAttribute("aria-label", "Play animation");
+        toggle.setAttribute("aria-pressed", "false");
+        toggle.textContent = "Play";
+        toggle.addEventListener("click", () => {
+          if (this.#disposed) return;
+          if (this.#playing) this.pause();
+          else this.play();
+        });
+
+        const scrubber = createHtmlNode(doc, "input");
+        scrubber.setAttribute("type", "range");
+        scrubber.setAttribute("class", "cp-player-scrubber");
+        scrubber.setAttribute("data-stickman-control", "scrubber");
+        scrubber.setAttribute("aria-label", "Animation playhead");
+        scrubber.setAttribute("min", "0");
+        scrubber.setAttribute("max", String(this.durationMs));
+        scrubber.setAttribute("step", "1");
+        scrubber.setAttribute("value", "0");
+        const onScrub = (): void => {
+          if (this.#disposed || !this.#program) return;
+          const rawVal =
+            (scrubber as unknown as { value?: string }).value ?? scrubber.getAttribute("value") ?? "0";
+          const nextTime = Number(rawVal);
+          if (Number.isFinite(nextTime)) {
+            if (this.#playing) this.#stopRaf();
+            this.seek(nextTime);
+          }
+        };
+        scrubber.addEventListener("input", onScrub);
+        scrubber.addEventListener("change", onScrub);
+
+        const timecode = createHtmlNode(doc, "output");
+        timecode.setAttribute("class", "cp-timecode");
+        timecode.setAttribute("data-stickman-control", "timecode");
+        timecode.setAttribute("data-timecode", "true");
+        timecode.textContent = `0.00s / ${(this.durationMs / 1000).toFixed(2)}s`;
+
+        bar.appendChild(toggle);
+        bar.appendChild(scrubber);
+        bar.appendChild(timecode);
+        this.appendChild(bar);
+
+        this.#controlsEl = bar;
+        this.#toggleBtn = toggle;
+        this.#scrubberInput = scrubber;
+        this.#timecodeOutput = timecode;
+      } else {
+        // Keep control bar positioned after the SVG stage.
+        this.appendChild(this.#controlsEl);
+      }
+      this.#syncControls();
+    }
+
+    #syncControls(): void {
+      if (!this.#controlsEl) return;
+      const duration = this.durationMs;
+      const effMode = this.#effectiveMode();
+      const shownMs =
+        !this.#program
+          ? 0
+          : effMode === "normal"
+            ? Math.max(0, Math.min(duration, this.#timeMs))
+            : duration;
+      if (this.#toggleBtn) {
+        this.#toggleBtn.textContent = this.#playing ? "Pause" : "Play";
+        this.#toggleBtn.setAttribute("aria-pressed", this.#playing ? "true" : "false");
+        this.#toggleBtn.setAttribute("aria-label", this.#playing ? "Pause animation" : "Play animation");
+      }
+      if (this.#scrubberInput) {
+        const rounded = String(Math.round(shownMs));
+        this.#scrubberInput.setAttribute("max", String(duration));
+        this.#scrubberInput.setAttribute("value", rounded);
+        try {
+          (this.#scrubberInput as unknown as { value: string }).value = rounded;
+        } catch {
+          // Synthetic DOM mock without mutable value setter.
+        }
+      }
+      if (this.#timecodeOutput) {
+        this.#timecodeOutput.textContent = `${(shownMs / 1000).toFixed(2)}s / ${(duration / 1000).toFixed(2)}s`;
       }
     }
 
@@ -884,24 +1189,17 @@ export function registerStickmanPlayerElement(tagName = "stickman-player"): bool
     #mountProgramDom(program: CompiledAnimation): void {
       this.#painter?.dispose();
       this.#painter = null;
-      if (this.#styleEl) {
-        if (typeof this.#styleEl.remove === "function") this.#styleEl.remove();
-        else if (this.#styleEl.parentNode) this.#styleEl.parentNode.removeChild(this.#styleEl);
-        this.#styleEl = null;
-      }
-      if (this.#svg) {
-        if (typeof this.#svg.remove === "function") this.#svg.remove();
-        else if (this.#svg.parentNode) this.#svg.parentNode.removeChild(this.#svg);
-        this.#svg = null;
-      }
+      removeDomNode(this.#styleEl);
+      this.#styleEl = null;
+      removeDomNode(this.#svg);
+      this.#svg = null;
+      this.#bgRect = null;
+      this.#groundPath = null;
 
       const doc = this.ownerDocument ?? globalThis.document;
       if (!doc) return;
 
-      const styleEl =
-        typeof (doc as { createElement?: unknown }).createElement === "function"
-          ? doc.createElement("style")
-          : doc.createElementNS("http://www.w3.org/1999/xhtml", "style");
+      const styleEl = createHtmlNode(doc, "style");
       styleEl.setAttribute("data-stickman-style", "true");
       styleEl.textContent =
         tagName === "stickman-player"
@@ -913,6 +1211,7 @@ export function registerStickmanPlayerElement(tagName = "stickman-player"): bool
       const bg = v2?.theme?.background ?? "#ffffff";
       const color = program.spec.actor?.color ?? "#202124";
       const accent = v2?.theme?.accentColor;
+      const renderStyle = this.#effectiveRenderStyle();
 
       const svg = doc.createElementNS(svgNamespace, "svg");
       svg.setAttribute("data-stickman-svg", "true");
@@ -927,25 +1226,55 @@ export function registerStickmanPlayerElement(tagName = "stickman-player"): bool
         svg.style.boxShadow = "var(--cp-card-shadow)";
       }
 
-      const bgRect = doc.createElementNS(svgNamespace, "rect");
-      bgRect.setAttribute("width", "100%");
-      bgRect.setAttribute("height", "100%");
-      bgRect.setAttribute("fill", bg);
-      svg.appendChild(bgRect);
+      if (renderStyle === "blueprint") {
+        svg.setAttribute("data-style", "blueprint");
+        const initialFrame = sampleAnimation(program, 0, this.#effectiveMode());
+        const backdropMarkup = (
+          renderBlueprintDefsSvg() +
+          `<style>${BLUEPRINT_STAGE_STYLE}</style>` +
+          renderBlueprintStageBackdropSvg(width, height, initialFrame.groundY, v2?.anchors, 3)
+        ).replace(' id="ground"', "");
+        syncSvgMarkupToDom(doc, svg, backdropMarkup);
+        const groundDatum = findDescendantByAttr(svg, "data-part", "ground-datum") as SVGPathElement | null;
+        const sceneGroup = doc.createElementNS(svgNamespace, "g");
+        sceneGroup.setAttribute("data-stickman-scene", "true");
+        svg.appendChild(sceneGroup);
+        this.appendChild(styleEl);
+        this.appendChild(svg);
+        this.#styleEl = styleEl;
+        this.#svg = svg;
+        this.#groundPath = groundDatum;
+        this.#painter = {
+          draw(frame: SampledFrame) {
+            syncSvgMarkupToDom(doc, sceneGroup, renderBlueprintFrameSceneSvg(frame, width, 3));
+          },
+          dispose() {
+            removeDomNode(sceneGroup);
+          }
+        };
+      } else {
+        const bgRect = doc.createElementNS(svgNamespace, "rect");
+        bgRect.setAttribute("width", "100%");
+        bgRect.setAttribute("height", "100%");
+        bgRect.setAttribute("fill", bg);
+        svg.appendChild(bgRect);
 
-      const ground = doc.createElementNS(svgNamespace, "path");
-      ground.setAttribute("data-part", "ground");
-      ground.setAttribute("stroke", "#d8dbe0");
-      ground.setAttribute("stroke-width", "1");
-      svg.appendChild(ground);
+        const ground = doc.createElementNS(svgNamespace, "path");
+        ground.setAttribute("data-part", "ground");
+        ground.setAttribute("stroke", "#d8dbe0");
+        ground.setAttribute("stroke-width", "1");
+        svg.appendChild(ground);
 
-      this.appendChild(styleEl);
-      this.appendChild(svg);
-      this.#styleEl = styleEl;
-      this.#svg = svg;
-      this.#bgRect = bgRect;
-      this.#groundPath = ground;
-      this.#painter = createSvgPainter(svg, color, svg, accent);
+        this.appendChild(styleEl);
+        this.appendChild(svg);
+        this.#styleEl = styleEl;
+        this.#svg = svg;
+        this.#bgRect = bgRect;
+        this.#groundPath = ground;
+        this.#painter = createSvgPainter(svg, color, svg, accent);
+      }
+
+      this.#syncControlsDom();
     }
 
     #renderCurrent(): void {
@@ -967,6 +1296,7 @@ export function registerStickmanPlayerElement(tagName = "stickman-player"): bool
         `Stick figure ${frame.action} at ${Number(frame.timeMs.toFixed(3))} milliseconds`
       );
       this.#painter.draw(frame);
+      this.#syncControls();
     }
 
     #emitMarkers(fromMs: number, toMs: number): void {
@@ -1045,8 +1375,10 @@ export function registerStickmanPlayerElement(tagName = "stickman-player"): bool
         this.#tryLoadDeclarativeProgram();
       } else {
         if (!this.#svg) this.#mountProgramDom(this.#program);
+        else this.#syncControlsDom();
         this.#renderCurrent();
       }
+      this.#syncDeclarativeScrollScrub();
       if (this.#program && this.hasAttribute?.("autoplay") && this.#effectiveMode() === "normal") {
         this.play();
       }
@@ -1056,6 +1388,11 @@ export function registerStickmanPlayerElement(tagName = "stickman-player"): bool
       this.#stopRaf();
       this.#detachMedia?.();
       this.#detachMedia = null;
+      this.#teardownInnerScrollBinding();
+      if (this.#scrollSource === "manual") {
+        this.#activeScrollOptions = null;
+        this.#scrollSource = null;
+      }
     }
 
     attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
@@ -1072,6 +1409,20 @@ export function registerStickmanPlayerElement(tagName = "stickman-player"): bool
         }
       } else if (name === "autoplay" && newValue !== null && this.#program && this.#effectiveMode() === "normal") {
         this.play();
+      } else if (name === "controls") {
+        this.#syncControlsDom();
+      } else if (name === "scroll-scrub") {
+        if (newValue === null || newValue === "false") {
+          this.#clearScrollBinding();
+        } else {
+          const opts = this.#resolveDeclarativeScrollOptions();
+          this.#activeScrollOptions = opts;
+          this.#scrollSource = "attribute";
+          this.#mountInnerScrollBinding(opts);
+        }
+      } else if ((name === "style-mode" || name === "blueprint") && this.#program) {
+        this.#mountProgramDom(this.#program);
+        this.#renderCurrent();
       }
     }
 
@@ -1098,6 +1449,11 @@ export function registerStickmanPlayerElement(tagName = "stickman-player"): bool
       }
       this.#mountProgramDom(nextProgram);
       this.#renderCurrent();
+      if (this.#activeScrollOptions !== null) {
+        this.#mountInnerScrollBinding(this.#activeScrollOptions);
+      } else if (this.#wantsDeclarativeScrollScrub()) {
+        this.#syncDeclarativeScrollScrub();
+      }
       return this.snapshot();
     }
 
@@ -1111,6 +1467,33 @@ export function registerStickmanPlayerElement(tagName = "stickman-player"): bool
       }
       this.#renderCurrent();
       return this.snapshot();
+    }
+
+    bindScroll(options: StickmanPlayerScrollOptions = {}): ScrollTimelineBinding {
+      if (this.#disposed) throw new Error("Stickman player element is disposed.");
+      if (typeof options !== "object" || options === null) {
+        throw new TypeError("Scroll options must be an object when provided.");
+      }
+      const stored: StickmanPlayerScrollOptions = { ...options };
+      this.#activeScrollOptions = stored;
+      this.#scrollSource = "manual";
+      this.#mountInnerScrollBinding(stored);
+      let handleDisposed = false;
+      return {
+        update: () => {
+          if (handleDisposed || !this.#innerScrollBinding || this.#activeScrollOptions !== stored) {
+            return this.#timeMs;
+          }
+          return this.#innerScrollBinding.update();
+        },
+        dispose: () => {
+          if (handleDisposed) return;
+          handleDisposed = true;
+          if (this.#activeScrollOptions === stored) {
+            this.#clearScrollBinding();
+          }
+        }
+      };
     }
 
     play(): BrowserPlayerState {
@@ -1159,20 +1542,16 @@ export function registerStickmanPlayerElement(tagName = "stickman-player"): bool
       if (this.#disposed) return;
       this.#stopRaf();
       this.#disposed = true;
+      this.#clearScrollBinding();
       this.#detachMedia?.();
       this.#detachMedia = null;
       this.#painter?.dispose();
       this.#painter = null;
-      if (this.#styleEl) {
-        if (typeof this.#styleEl.remove === "function") this.#styleEl.remove();
-        else if (this.#styleEl.parentNode) this.#styleEl.parentNode.removeChild(this.#styleEl);
-        this.#styleEl = null;
-      }
-      if (this.#svg) {
-        if (typeof this.#svg.remove === "function") this.#svg.remove();
-        else if (this.#svg.parentNode) this.#svg.parentNode.removeChild(this.#svg);
-        this.#svg = null;
-      }
+      this.#teardownControlsDom();
+      removeDomNode(this.#styleEl);
+      this.#styleEl = null;
+      removeDomNode(this.#svg);
+      this.#svg = null;
       this.#bgRect = null;
       this.#groundPath = null;
     }

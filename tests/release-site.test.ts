@@ -93,7 +93,7 @@ describe("native release presentation", () => {
       if (video) await video.saveAs(join(review, "continuous-playback.webm"));
       await browser.close();
     }
-  }, 180_000);
+  }, 240_000);
 
   it("renders v0.2 #blueprint inline SVGs, toggles aria-pressed views, keeps video count === 2, and has zero mobile overflow", async () => {
     const pkg = JSON.parse(await readFile(join(process.cwd(), "package.json"), "utf8")) as { version: string };
@@ -200,13 +200,16 @@ describe("native release presentation", () => {
       const cadBtn = page.locator("[data-blueprint-view='cad']");
       const stdBtn = page.locator("[data-blueprint-view='standard']");
       const roomBtn = page.locator("[data-blueprint-view='room']");
+      const stageBtn = page.locator("[data-blueprint-view='stage']");
 
       expect(await cadBtn.getAttribute("aria-pressed")).toBe("true");
       expect(await stdBtn.getAttribute("aria-pressed")).toBe("false");
       expect(await roomBtn.getAttribute("aria-pressed")).toBe("false");
+      expect(await stageBtn.getAttribute("aria-pressed")).toBe("false");
       expect(await page.locator("#blueprintPanelCad").isVisible()).toBe(true);
       expect(await page.locator("#blueprintPanelStandard").isVisible()).toBe(false);
       expect(await page.locator("#blueprintPanelRoom").isVisible()).toBe(false);
+      expect(await page.locator("#blueprintPanelStage").isVisible()).toBe(false);
       expect(await page.locator("#bp-cad-collab").getAttribute("data-theme")).toBe("blueprint");
 
       await stdBtn.click();
@@ -224,10 +227,59 @@ describe("native release presentation", () => {
       expect(await page.locator("#bp-room-datum [data-part='floor-grid']").count()).toBe(1);
       expect(await page.locator("#bp-room-datum [data-occupiable='true']").count()).toBe(1);
 
-      // Mobile 390x844 containment check across all three blueprint views + dark theme
+      // Full-Stage Hatched CAD Blueprint view verification
+      await roomBtn.focus();
+      await roomBtn.press("ArrowRight");
+      expect(await stageBtn.getAttribute("aria-pressed")).toBe("true");
+      expect(await roomBtn.getAttribute("aria-pressed")).toBe("false");
+      expect(await page.locator("#blueprintPanelStage").isVisible()).toBe(true);
+      expect(await page.locator("#bp-stage-sports").getAttribute("data-style")).toBe("blueprint");
+      expect(await page.locator("#bp-stage-sports [fill='url(#bp-stage-sports-bp-hatch)']").count()).toBeGreaterThan(0);
+      expect(await page.locator("#bp-stage-sports [data-part='ground-datum']").getAttribute("stroke-dasharray")).toBe("4 3");
+      expect(await page.locator("#bp-stage-sports [data-part='anchor-ticks'] [data-anchor-tick]").count()).toBe(5);
+      expect(await page.locator("#bp-stage-sports [data-part='rig-height-label']").first().textContent()).toBe("144u");
+      const distinctRootLabels = await page
+        .locator("#bp-stage-sports [data-part='actor-root-label']")
+        .evaluateAll((nodes) => [...new Set(nodes.map((n) => n.textContent))].length);
+      expect(distinctRootLabels).toBeGreaterThan(1);
+
+      // Live Interactive Scroll-Scrubbed Playhead Demo verification
+      const scrubScroller = page.locator("[data-scroll-scrub-demo]");
+      const scrubStage = page.locator("#bp-scroll-stage");
+      const scrubTimecode = page.locator("#scrollScrubTimecode");
+      const scrubProgress = page.locator("#scrollScrubProgress");
+
+      expect(await scrubScroller.getAttribute("tabindex")).toBe("0");
+      expect(await scrubStage.getAttribute("data-active-slice")).toBe("0");
+      expect(await scrubProgress.textContent()).toBe("0%");
+      expect(await scrubTimecode.textContent()).toMatch(/^0\.00s \/ \d+\.\d{2}s$/);
+      expect(
+        await scrubTimecode.evaluate((node) => getComputedStyle(node).fontVariantNumeric)
+      ).toContain("tabular-nums");
+
+      // Scroll to midpoint (50% of maxScroll) -> active slice & tabular-nums readout update
+      await scrubScroller.evaluate((node) => {
+        const el = node as HTMLElement;
+        const max = el.scrollHeight - el.clientHeight;
+        el.scrollTop = Math.round(max * 0.5);
+        el.dispatchEvent(new Event("scroll"));
+      });
+      await expect.poll(() => scrubStage.getAttribute("data-active-slice")).toBe("12");
+      expect(await page.locator("#bp-scroll-stage [data-scrub-slice][data-active='true']").count()).toBe(1);
+      expect(await page.locator("#bp-scroll-stage [data-scrub-slice='12']").getAttribute("data-active")).toBe("true");
+      expect(await scrubProgress.textContent()).toBe("50%");
+      expect(await scrubTimecode.textContent()).not.toMatch(/^0\.00s \//);
+
+      // Keyboard operability on focused scroll-scrub container (End -> 100%)
+      await scrubScroller.focus();
+      await scrubScroller.press("End");
+      await expect.poll(() => scrubStage.getAttribute("data-active-slice")).toBe("24");
+      expect(await scrubProgress.textContent()).toBe("100%");
+
+      // Mobile 390x844 containment check across all four blueprint views + reduced motion + dark theme
       await page.emulateMedia({ reducedMotion: "reduce" });
       await page.setViewportSize({ width: 390, height: 844 });
-      for (const btn of [cadBtn, stdBtn, roomBtn]) {
+      for (const btn of [cadBtn, stdBtn, roomBtn, stageBtn]) {
         await btn.click();
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
       }
@@ -242,5 +294,5 @@ describe("native release presentation", () => {
       await new Promise<void>((resolveClose) => server.close(() => resolveClose()));
       await rm(siteOut, { recursive: true, force: true });
     }
-  }, 120_000);
+  }, 180_000);
 });

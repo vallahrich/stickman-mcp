@@ -60,6 +60,8 @@ describe("stickman deck provider", () => {
     expect(html).toContain('max="89"');
     expect(html).toContain('data-controls="shown"');
     expect(html).toContain('body[data-view=present] figure.scene{background:transparent;border-color:transparent;border-radius:0;box-shadow:none;');
+    expect(html).toContain("font-variant-numeric:tabular-nums");
+    expect(html).toContain("140ms cubic-bezier(0.22, 1, 0.36, 1)");
     expect(html).not.toMatch(/"<\/script>"/);
     expect(html.indexOf("window.ok=1;")).toBeLessThan(html.lastIndexOf("</body>"));
     expect(() => injectDeck(html, { timing, film: {}, client: "" })).toThrow(/already/);

@@ -14,13 +14,27 @@ describe("DESIGN.md token parity, WCAG 2.1 contrast & anti-slop CSS linter", () 
     expect(report.valid).toBe(true);
     expect(report.tokenCounts.light).toBeGreaterThanOrEqual(18);
     expect(report.tokenCounts.dark).toBeGreaterThanOrEqual(18);
+    expect(report.tokenCounts.blueprintSheet).toBeGreaterThanOrEqual(8);
 
     for (const scheme of ["light", "dark"] as const) {
-      for (const key of ["textOnBg", "textOnSurface", "accentFgOnAccent"] as const) {
+      for (const key of [
+        "textOnBg",
+        "textOnBgElevated",
+        "textOnSurface",
+        "textOnSurfaceSoft",
+        "accentFgOnAccent",
+        "textMutedOnSurface"
+      ] as const) {
         const entry = report.contrast[scheme][key];
         expect(entry.passesAA, `${scheme}.${key}`).toBe(true);
         expect(entry.ratio, `${scheme}.${key}`).toBeGreaterThanOrEqual(4.5);
       }
+    }
+
+    for (const bpKey of ["captionFgOnPanelBg", "captionFgOnSheetBg"] as const) {
+      const entry = report.contrast.blueprint[bpKey];
+      expect(entry.passesAA, `blueprint.${bpKey}`).toBe(true);
+      expect(entry.ratio, `blueprint.${bpKey}`).toBeGreaterThanOrEqual(4.5);
     }
 
     // Exact WCAG 2.1 luminance sanity anchors
@@ -112,5 +126,59 @@ describe("DESIGN.md token parity, WCAG 2.1 contrast & anti-slop CSS linter", () 
       button:focus-visible { outline: 3px solid var(--cp-accent); outline-offset: 4px; }
     `;
     expect(checkAntiSlopCss(cleanFocusCss, "clean-focus.css")).toEqual([]);
+  });
+
+  it("enforces DESIGN.md prose sections, YAML schema groups, blueprint_sheet parity across storyboard/render, and dialog/presentation motion rules", async () => {
+    const root = process.cwd();
+    const designMd = await readFile(resolve(root, "DESIGN.md"), "utf8");
+    const stylesCss = await readFile(resolve(root, "site", "styles.css"), "utf8");
+    const presentationCss = await readFile(resolve(root, "site", "presentation", "presentation.css"), "utf8");
+    const storyboardTs = await readFile(resolve(root, "src", "storyboard.ts"), "utf8");
+    const renderTs = await readFile(resolve(root, "src", "render.ts"), "utf8");
+    const browserTs = await readFile(resolve(root, "src", "browser.ts"), "utf8");
+
+    // Dialog enter keyframes & backdrop fade + reduced-motion guard in both site & presentation stylesheets
+    for (const css of [stylesCss, presentationCss]) {
+      expect(css).toContain("@keyframes cp-dialog-enter");
+      expect(css).toContain("translateY(4px)");
+      expect(css).toContain("dialog[open]");
+      expect(css).toContain("dialog[open]::backdrop");
+      expect(css).toContain("prefers-reduced-motion");
+    }
+
+    // 1. Missing required DESIGN.md prose section (## 3.) & missing YAML schema group (tokens.geometry)
+    const missingSectionAndGroup = designMd
+      .replace("## 3. Blueprint, Datum & Contact-Sheet Conventions", "### Unnumbered Subsection")
+      .replace(/  geometry:\r?\n[\s\S]*?(?=  motion:)/, "");
+    const sectionReport = await lintDesignSystem({ designMd: missingSectionAndGroup });
+    expect(sectionReport.valid).toBe(false);
+    expect(sectionReport.errors.map((e: { rule: string }) => e.rule)).toEqual(
+      expect.arrayContaining(["missing-design-section", "missing-yaml-group"])
+    );
+
+    // 2. Blueprint token drift in src/storyboard.ts & src/render.ts
+    const driftedStoryboard = storyboardTs.replace('<rect width="100%" height="100%" fill="#f1f5f9"/>', '<rect width="100%" height="100%" fill="#ffffff"/>');
+    const driftedRender = renderTs.replace('stroke="#cbd5e1" stroke-width="1"/>', 'stroke="#94a3b8" stroke-width="1"/>');
+    const bpDriftReport = await lintDesignSystem({
+      storyboardTs: driftedStoryboard,
+      renderTs: driftedRender
+    });
+    expect(bpDriftReport.valid).toBe(false);
+    const bpErrors = bpDriftReport.errors.filter((e: { rule: string }) => e.rule === "blueprint-token-mismatch");
+    expect(bpErrors.map((e: { file: string }) => e.file)).toEqual(
+      expect.arrayContaining(["src/storyboard.ts", "src/render.ts"])
+    );
+
+    // 3. Missing motion timing or tabular-nums in site/presentation/presentation.css & src/browser.ts
+    const brokenPresentationCss = presentationCss.replaceAll("180ms", "450ms");
+    const brokenBrowserTs = browserTs.replaceAll("tabular-nums", "normal");
+    const motionReport = await lintDesignSystem({
+      presentationCss: brokenPresentationCss,
+      browserTs: brokenBrowserTs
+    });
+    expect(motionReport.valid).toBe(false);
+    expect(motionReport.errors.map((e: { rule: string }) => e.rule)).toEqual(
+      expect.arrayContaining(["require-motion-duration-enter", "require-tabular-nums"])
+    );
   });
 });

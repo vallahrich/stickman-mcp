@@ -454,6 +454,10 @@ class MockDomNode {
     this.attributes.set(name, String(value));
   }
 
+  removeAttribute(name: string): void {
+    this.attributes.delete(name);
+  }
+
   getAttribute(name: string): string | null {
     return this.attributes.get(name) ?? null;
   }
@@ -747,7 +751,167 @@ describe("v2 multi-actor & add-on browser overlay and <stickman-player> custom e
       attrEl.setAttribute("program", jsonSpec);
       attrEl.connectedCallback();
       expect(attrEl.durationMs).toBe(v2Program.spec.durationMs);
+      // Default element without "controls" attribute keeps pure stage SVG without a control bar
+      expect(attrEl.findAll((n) => n.getAttribute("data-stickman-controls") === "true")).toHaveLength(0);
       attrEl.dispose();
+
+      // 5. <stickman-player controls blueprint> + style-mode="blueprint" + .bindScroll() + scroll-scrub cleanup
+      const observed = (Ctor as unknown as { observedAttributes: string[] }).observedAttributes;
+      expect(observed).toEqual(
+        expect.arrayContaining(["program", "mode", "autoplay", "controls", "scroll-scrub", "style-mode", "blueprint"])
+      );
+
+      const richSports = choreographAnimation({
+        actor: { id: "athlete", x: "left", accessory: "badge" },
+        actions: [{ action: "hurdle" }, { action: "basketball-shot" }]
+      });
+      expect(richSports.valid).toBe(true);
+      const sportsProgram = richSports.program!;
+      const totalSec = (sportsProgram.spec.durationMs / 1000).toFixed(2);
+
+      const fullEl = new Ctor() as StickmanPlayerElement & MockDomNode & {
+        connectedCallback(): void;
+        disconnectedCallback(): void;
+        attributeChangedCallback(name: string, oldVal: string | null, newVal: string | null): void;
+      };
+      fullEl.setAttribute("controls", "");
+      fullEl.setAttribute("blueprint", "");
+      fullEl.connectedCallback();
+      fullEl.setProgram(sportsProgram);
+
+      // Blueprint stage verification
+      const stageSvg = fullEl.findAll((n) => n.getAttribute("data-stickman-svg") === "true")[0]!;
+      expect(stageSvg.getAttribute("data-style")).toBe("blueprint");
+      expect(stageSvg.findAll((n) => n.getAttribute("id") === "sm-bp-grid")).toHaveLength(1);
+      expect(stageSvg.findAll((n) => n.getAttribute("id") === "sm-bp-hatch")).toHaveLength(1);
+      expect(stageSvg.findAll((n) => n.getAttribute("data-part") === "ground-datum")).toHaveLength(1);
+      expect(stageSvg.findAll((n) => n.getAttribute("data-part") === "anchor-ticks")).toHaveLength(1);
+      expect(stageSvg.findAll((n) => n.getAttribute("data-part") === "rig-height-label")[0]?.textContent).toBe("144u");
+
+      // Controls bar verification (Play/Pause toggle, range scrubber, tabular-nums timecode)
+      const controlsBar = fullEl.findAll((n) => n.getAttribute("data-stickman-controls") === "true");
+      expect(controlsBar).toHaveLength(1);
+      const toggleBtn = fullEl.findAll((n) => n.getAttribute("data-stickman-control") === "toggle")[0]!;
+      const scrubber = fullEl.findAll((n) => n.getAttribute("data-stickman-control") === "scrubber")[0]!;
+      const timecode = fullEl.findAll((n) => n.getAttribute("data-stickman-control") === "timecode")[0]!;
+
+      expect(toggleBtn.textContent).toBe("Play");
+      expect(toggleBtn.getAttribute("aria-pressed")).toBe("false");
+      expect(timecode.textContent).toBe(`0.00s / ${totalSec}s`);
+
+      // Click Play -> flips to Pause; advance RAF -> updates timecode; click Pause -> flips back to Play
+      toggleBtn.dispatchEvent({ type: "click" });
+      expect(fullEl.snapshot().playing).toBe(true);
+      expect(toggleBtn.textContent).toBe("Pause");
+      expect(toggleBtn.getAttribute("aria-pressed")).toBe("true");
+
+      nowMs += 500;
+      const pendingTick = [...rafQueue.values()];
+      rafQueue.clear();
+      for (const cb of pendingTick) cb(nowMs);
+      expect(timecode.textContent).toBe(`0.50s / ${totalSec}s`);
+
+      toggleBtn.dispatchEvent({ type: "click" });
+      expect(fullEl.snapshot().playing).toBe(false);
+      expect(toggleBtn.textContent).toBe("Play");
+
+      // Scrubbing via range input into basketball-shot seeks deterministically, rendering hatched props & updating x=... + timecode
+      const initialRootLabel = stageSvg.findAll((n) => n.getAttribute("data-part") === "actor-root-label")[0]?.textContent;
+      const shotMs = Math.round(sportsProgram.spec.durationMs * 0.72);
+      (scrubber as unknown as { value: string }).value = String(shotMs);
+      scrubber.setAttribute("value", String(shotMs));
+      scrubber.dispatchEvent({ type: "input" });
+      expect(fullEl.currentTimeMs).toBe(shotMs);
+      expect(timecode.textContent).toBe(`${(shotMs / 1000).toFixed(2)}s / ${totalSec}s`);
+      expect(stageSvg.findAll((n) => n.getAttribute("fill") === "url(#sm-bp-hatch)").length).toBeGreaterThan(0);
+      const midRootLabel = stageSvg.findAll((n) => n.getAttribute("data-part") === "actor-root-label")[0]?.textContent;
+      expect(midRootLabel).not.toBe(initialRootLabel);
+
+      // style-mode="default" overrides blueprint cleanly, and style-mode="blueprint" restores it
+      fullEl.setAttribute("style-mode", "default");
+      fullEl.attributeChangedCallback("style-mode", null, "default");
+      expect(fullEl.findAll((n) => n.getAttribute("data-stickman-svg") === "true")[0]!.getAttribute("data-style")).toBeNull();
+      fullEl.setAttribute("style-mode", "blueprint");
+      fullEl.attributeChangedCallback("style-mode", "default", "blueprint");
+      expect(fullEl.findAll((n) => n.getAttribute("data-stickman-svg") === "true")[0]!.getAttribute("data-style")).toBe("blueprint");
+
+      // .bindScroll(options?) + automatic cleanup on disconnectedCallback()
+      const scrollListeners = new Map<string, Set<() => void>>();
+      const mockScroller = {
+        scrollTop: 0,
+        scrollHeight: 1500,
+        clientHeight: 500,
+        addEventListener(type: string, fn: () => void) {
+          let set = scrollListeners.get(type);
+          if (!set) {
+            set = new Set();
+            scrollListeners.set(type, set);
+          }
+          set.add(fn);
+        },
+        removeEventListener(type: string, fn: () => void) {
+          scrollListeners.get(type)?.delete(fn);
+        }
+      };
+
+      const scrollHandle = fullEl.bindScroll({ container: mockScroller });
+      expect(fullEl.currentTimeMs).toBe(0);
+      mockScroller.scrollTop = 500; // 50% of 1000 maxScroll
+      for (const fn of scrollListeners.get("scroll") ?? []) fn();
+      expect(fullEl.currentTimeMs).toBeCloseTo(sportsProgram.spec.durationMs * 0.5, 3);
+      expect(timecode.textContent).toBe(`${((sportsProgram.spec.durationMs * 0.5) / 1000).toFixed(2)}s / ${totalSec}s`);
+
+      fullEl.disconnectedCallback();
+      expect(scrollListeners.get("scroll")?.size ?? 0).toBe(0);
+      mockScroller.scrollTop = 1000;
+      expect(scrollHandle.update()).toBeCloseTo(sportsProgram.spec.durationMs * 0.5, 3);
+      fullEl.dispose();
+
+      // 6. Declarative scroll-scrub attribute + attribute removal cleanup
+      const winScrollListeners = new Map<string, Set<() => void>>();
+      let winScrollY = 0;
+      mockDoc.defaultView = {
+        ...mockDoc.defaultView,
+        scrollY: 0,
+        innerHeight: 400,
+        document: { documentElement: { scrollHeight: 1400, clientHeight: 400 } },
+        addEventListener(type: string, fn: () => void) {
+          let set = winScrollListeners.get(type);
+          if (!set) {
+            set = new Set();
+            winScrollListeners.set(type, set);
+          }
+          set.add(fn);
+        },
+        removeEventListener(type: string, fn: () => void) {
+          winScrollListeners.get(type)?.delete(fn);
+        }
+      };
+      Object.defineProperty(mockDoc.defaultView, "scrollY", {
+        get: () => winScrollY,
+        configurable: true
+      });
+
+      const scrubEl = new Ctor() as StickmanPlayerElement & MockDomNode & {
+        connectedCallback(): void;
+        disconnectedCallback(): void;
+        attributeChangedCallback(name: string, oldVal: string | null, newVal: string | null): void;
+      };
+      scrubEl.setAttribute("scroll-scrub", "");
+      scrubEl.connectedCallback();
+      scrubEl.setProgram(sportsProgram);
+
+      winScrollY = 250; // 25% of (1400 - 400)
+      for (const fn of winScrollListeners.get("scroll") ?? []) fn();
+      expect(scrubEl.currentTimeMs).toBeCloseTo(sportsProgram.spec.durationMs * 0.25, 3);
+
+      // Removing scroll-scrub attribute disposes window scroll listeners immediately
+      scrubEl.removeAttribute("scroll-scrub");
+      scrubEl.attributeChangedCallback("scroll-scrub", "", null);
+      expect(winScrollListeners.get("scroll")?.size ?? 0).toBe(0);
+      winScrollY = 900;
+      expect(scrubEl.currentTimeMs).toBeCloseTo(sportsProgram.spec.durationMs * 0.25, 3);
+      scrubEl.dispose();
     } finally {
       for (const [key, val] of Object.entries(saved)) {
         if (val === undefined) delete g[key];

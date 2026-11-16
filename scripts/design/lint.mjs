@@ -4,6 +4,26 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const WCAG_AA_NORMAL_MIN = 4.5;
 
+export const REQUIRED_PROSE_SECTIONS = Object.freeze(["## 1.", "## 2.", "## 3.", "## 4."]);
+
+export const REQUIRED_YAML_GROUPS = Object.freeze([
+  "tokens.color.light",
+  "tokens.color.dark",
+  "tokens.color.blueprint_sheet",
+  "tokens.typography",
+  "tokens.geometry",
+  "tokens.motion"
+]);
+
+export const REQUIRED_BLUEPRINT_SHEET_TOKENS = Object.freeze([
+  "sheet_bg",
+  "panel_bg",
+  "panel_border",
+  "divider",
+  "ground_datum",
+  "caption_fg"
+]);
+
 function stripInlineYamlComment(raw) {
   let inSingle = false;
   let inDouble = false;
@@ -70,14 +90,12 @@ export function parseDesignTokens(markdownText) {
   const dark = sections.get("tokens.color.dark") ?? {};
   const blueprintSheet = sections.get("tokens.color.blueprint_sheet") ?? {};
   const uiChrome = sections.get("tokens.motion.ui_chrome") ?? {};
-
-  if (Object.keys(light).length === 0 || Object.keys(dark).length === 0) {
-    throw new Error("DESIGN.md YAML block must define tokens.color.light and tokens.color.dark.");
-  }
+  const sectionPaths = [...sections.keys()].filter((p) => Object.keys(sections.get(p) ?? {}).length > 0);
 
   return {
     color: { light, dark, blueprintSheet },
-    motion: { uiChrome }
+    motion: { uiChrome },
+    sectionPaths
   };
 }
 
@@ -127,6 +145,60 @@ export function extractRenderShellCss(renderTsText) {
     throw new Error("Could not locate HTML_SHELL_STYLE template in src/render.ts.");
   }
   return match[1];
+}
+
+export function extractBrowserPlayerCss(browserTsText) {
+  const match = /export\s+const\s+STICKMAN_PLAYER_STYLE\s*=\s*`([\s\S]*?)`;/.exec(browserTsText);
+  if (!match) {
+    throw new Error("Could not locate STICKMAN_PLAYER_STYLE template in src/browser.ts.");
+  }
+  return match[1];
+}
+
+export function extractStoryboardBlueprintTokens(storyboardTsText) {
+  return {
+    sheet_bg:
+      /rx="5"\/><\/clipPath><style>\$\{style\}<\/style><\/defs>`\s*\+\s*`<rect width="100%" height="100%" fill="(#[0-9a-fA-F]{3,6})"\/>/.exec(
+        storyboardTsText
+      )?.[1]?.toLowerCase() ?? undefined,
+    panel_bg:
+      /<rect width="\$\{panelW\}" height="\$\{panelH\}" rx="6" fill="(#[0-9a-fA-F]{3,6})"/.exec(
+        storyboardTsText
+      )?.[1]?.toLowerCase() ?? undefined,
+    panel_border:
+      /<rect width="\$\{panelW\}" height="\$\{panelH\}" rx="6" fill="#[0-9a-fA-F]{3,6}" stroke="(#[0-9a-fA-F]{3,6})"\/>/.exec(
+        storyboardTsText
+      )?.[1]?.toLowerCase() ?? undefined,
+    divider:
+      /<line x1="0" y1="\$\{sceneH\}" x2="\$\{panelW\}" y2="\$\{sceneH\}" stroke="(#[0-9a-fA-F]{3,6})"\/>/.exec(
+        storyboardTsText
+      )?.[1]?.toLowerCase() ?? undefined,
+    ground_datum:
+      /<path d="M0 \$\{num\(frame\.groundY, 0\)\}H\$\{canvas\.width\}" stroke="(#[0-9a-fA-F]{3,6})"/.exec(
+        storyboardTsText
+      )?.[1]?.toLowerCase() ?? undefined,
+    caption_fg:
+      /\.sb-l\{[^}]*fill:(#[0-9a-fA-F]{3,6})\}/.exec(storyboardTsText)?.[1]?.toLowerCase() ?? undefined
+  };
+}
+
+export function extractRenderBlueprintTokens(renderTsText) {
+  return {
+    panel_bg:
+      /`<rect width="100%" height="100%" fill="(#[0-9a-fA-F]{3,6})"\/>`\s*\+\s*`<rect width="100%" height="100%" fill="url\(#sm-bp-grid\)"\/>/.exec(
+        renderTsText
+      )?.[1]?.toLowerCase() ?? undefined,
+    panel_border:
+      /<rect x="1\.5" y="1\.5"[^`]*?fill="none" stroke="(#[0-9a-fA-F]{3,6})" stroke-width="1"\/>/.exec(
+        renderTsText
+      )?.[1]?.toLowerCase() ?? undefined,
+    ground_datum:
+      /<path id="ground" d="M0 \$\{number\(frame\.groundY\)\}H\$\{width\}" stroke="(#[0-9a-fA-F]{3,6})" stroke-width="1"\/>/.exec(
+        renderTsText
+      )?.[1]?.toLowerCase() ?? undefined,
+    caption_fg:
+      /\.bp-ax\{[^}]*fill:(#[0-9a-fA-F]{3,6});/.exec(renderTsText)?.[1]?.toLowerCase() ?? undefined
+  };
 }
 
 export function parseHexRgb(hex) {
@@ -259,9 +331,14 @@ export function checkAntiSlopCss(cssText, fileLabel) {
   return violations;
 }
 
-function checkRequiredSheetCapabilities(cssText, fileLabel, expectedEaseOut) {
+function checkRequiredSheetCapabilities(cssText, fileLabel, motionUiChrome, { requireRootEaseToken = true } = {}) {
   const errors = [];
   const stripped = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
+  const normalizedStripped = normalizeCssValue(stripped);
+  const expectedEaseOut = motionUiChrome?.ease_out ?? "cubic-bezier(0.22, 1, 0.36, 1)";
+  const fastMs = `${motionUiChrome?.press_hover_ms ?? "140"}ms`;
+  const enterMs = `${motionUiChrome?.popover_dialog_enter_ms ?? "180"}ms`;
+
   if (!/\btabular-nums\b/.test(stripped)) {
     errors.push({
       file: fileLabel,
@@ -269,23 +346,55 @@ function checkRequiredSheetCapabilities(cssText, fileLabel, expectedEaseOut) {
       message: `${fileLabel}: missing font-variant-numeric: tabular-nums.`
     });
   }
-  if (!/--cp-ease-out\s*:/.test(stripped)) {
+
+  if (!new RegExp(`\\b${fastMs}\\b`, "i").test(stripped)) {
     errors.push({
       file: fileLabel,
-      rule: "require-ease-out-token",
-      message: `${fileLabel}: missing --cp-ease-out motion token.`
+      rule: "require-motion-duration-fast",
+      message: `${fileLabel}: missing fast UI motion timing (${fastMs}).`
     });
-  } else if (expectedEaseOut) {
-    const tokens = extractCssThemeTokens(stripped);
-    const actual = tokens.light["--cp-ease-out"];
-    if (actual !== normalizeCssValue(expectedEaseOut)) {
+  }
+
+  if (!new RegExp(`\\b${enterMs}\\b`, "i").test(stripped)) {
+    errors.push({
+      file: fileLabel,
+      rule: "require-motion-duration-enter",
+      message: `${fileLabel}: missing enter motion timing (${enterMs}).`
+    });
+  }
+
+  if (requireRootEaseToken) {
+    if (!/--cp-ease-out\s*:/.test(stripped)) {
       errors.push({
         file: fileLabel,
-        rule: "ease-out-token-mismatch",
-        message: `${fileLabel}: --cp-ease-out "${actual ?? ""}" does not match DESIGN.md "${expectedEaseOut}".`
+        rule: "require-ease-out-token",
+        message: `${fileLabel}: missing --cp-ease-out motion token.`
       });
+    } else if (expectedEaseOut) {
+      const tokens = extractCssThemeTokens(stripped);
+      const actual = tokens.light["--cp-ease-out"];
+      if (actual && actual !== normalizeCssValue(expectedEaseOut)) {
+        errors.push({
+          file: fileLabel,
+          rule: "ease-out-token-mismatch",
+          message: `${fileLabel}: --cp-ease-out "${actual}" does not match DESIGN.md "${expectedEaseOut}".`
+        });
+      } else if (!normalizedStripped.includes(normalizeCssValue(expectedEaseOut))) {
+        errors.push({
+          file: fileLabel,
+          rule: "ease-out-token-mismatch",
+          message: `${fileLabel}: easing curve does not match DESIGN.md "${expectedEaseOut}".`
+        });
+      }
     }
+  } else if (!normalizedStripped.includes(normalizeCssValue(expectedEaseOut))) {
+    errors.push({
+      file: fileLabel,
+      rule: "require-ease-out-curve",
+      message: `${fileLabel}: missing easing curve "${expectedEaseOut}".`
+    });
   }
+
   if (!/:focus-visible\b/.test(stripped)) {
     errors.push({
       file: fileLabel,
@@ -300,6 +409,88 @@ function checkRequiredSheetCapabilities(cssText, fileLabel, expectedEaseOut) {
       message: `${fileLabel}: missing @media (prefers-reduced-motion: reduce) guard.`
     });
   }
+  return errors;
+}
+
+function checkDesignMdProseAndSchema(designMdText, spec) {
+  const errors = [];
+  const proseOnly = designMdText.replace(/```[\s\S]*?```/g, "");
+  for (let n = 1; n <= 4; n++) {
+    const headingRe = new RegExp(`^##\\s+${n}\\.\\s+\\S+`, "m");
+    if (!headingRe.test(proseOnly)) {
+      errors.push({
+        file: "DESIGN.md",
+        rule: "missing-design-section",
+        message: `DESIGN.md: missing required prose section "## ${n}."`
+      });
+    }
+  }
+
+  for (const group of REQUIRED_YAML_GROUPS) {
+    const present = spec.sectionPaths.some((p) => p === group || p.startsWith(`${group}.`));
+    if (!present) {
+      errors.push({
+        file: "DESIGN.md",
+        rule: "missing-yaml-group",
+        message: `DESIGN.md: missing required YAML schema group "${group}".`
+      });
+    }
+  }
+
+  return errors;
+}
+
+function checkBlueprintTokenParity(spec, storyboardTsText, renderTsText) {
+  const errors = [];
+  const expectedMap = spec.color.blueprintSheet ?? {};
+  const storyboardActuals = extractStoryboardBlueprintTokens(storyboardTsText);
+  const renderActuals = extractRenderBlueprintTokens(renderTsText);
+
+  for (const tokenKey of REQUIRED_BLUEPRINT_SHEET_TOKENS) {
+    const expectedRaw = expectedMap[tokenKey];
+    if (!expectedRaw) {
+      errors.push({
+        file: "DESIGN.md",
+        rule: "missing-blueprint-token",
+        message: `DESIGN.md (blueprint_sheet): missing required token "${tokenKey}".`
+      });
+      continue;
+    }
+    const expected = normalizeCssValue(expectedRaw);
+
+    const sbActual = storyboardActuals[tokenKey];
+    if (!sbActual) {
+      errors.push({
+        file: "src/storyboard.ts",
+        rule: "missing-blueprint-token",
+        message: `src/storyboard.ts: could not verify blueprint_sheet token "${tokenKey}" (expected ${expected}).`
+      });
+    } else if (sbActual !== expected) {
+      errors.push({
+        file: "src/storyboard.ts",
+        rule: "blueprint-token-mismatch",
+        message: `src/storyboard.ts: blueprint_sheet "${tokenKey}" is "${sbActual}", expected "${expected}" from DESIGN.md.`
+      });
+    }
+
+    if (Object.prototype.hasOwnProperty.call(renderActuals, tokenKey)) {
+      const renderActual = renderActuals[tokenKey];
+      if (!renderActual) {
+        errors.push({
+          file: "src/render.ts",
+          rule: "missing-blueprint-token",
+          message: `src/render.ts: could not verify blueprint_sheet token "${tokenKey}" (expected ${expected}).`
+        });
+      } else if (renderActual !== expected) {
+        errors.push({
+          file: "src/render.ts",
+          rule: "blueprint-token-mismatch",
+          message: `src/render.ts: blueprint_sheet "${tokenKey}" is "${renderActual}", expected "${expected}" from DESIGN.md.`
+        });
+      }
+    }
+  }
+
   return errors;
 }
 
@@ -333,12 +524,23 @@ export async function lintDesignSystem(options = {}) {
     options.designMd ?? (await readFile(join(rootDir, "DESIGN.md"), "utf8"));
   const stylesCssText =
     options.stylesCss ?? (await readFile(join(rootDir, "site", "styles.css"), "utf8"));
+  const presentationCssText =
+    options.presentationCss ??
+    (await readFile(join(rootDir, "site", "presentation", "presentation.css"), "utf8"));
   const renderTsText =
     options.renderTs ?? (await readFile(join(rootDir, "src", "render.ts"), "utf8"));
+  const storyboardTsText =
+    options.storyboardTs ?? (await readFile(join(rootDir, "src", "storyboard.ts"), "utf8"));
+  const browserTsText =
+    options.browserTs ?? (await readFile(join(rootDir, "src", "browser.ts"), "utf8"));
 
   const errors = [];
   const spec = parseDesignTokens(designMdText);
+  errors.push(...checkDesignMdProseAndSchema(designMdText, spec));
+  errors.push(...checkBlueprintTokenParity(spec, storyboardTsText, renderTsText));
+
   const renderShellCss = extractRenderShellCss(renderTsText);
+  const browserPlayerCss = extractBrowserPlayerCss(browserTsText);
 
   const targets = [
     { label: "site/styles.css", tokens: extractCssThemeTokens(stylesCssText), css: stylesCssText },
@@ -369,11 +571,14 @@ export async function lintDesignSystem(options = {}) {
     }
   }
 
-  const contrast = { light: {}, dark: {} };
+  const contrast = { light: {}, dark: {}, blueprint: {} };
   const contrastPairs = [
-    { id: "textOnBg", fg: "text", bg: "bg", label: "text on bg" },
-    { id: "textOnSurface", fg: "text", bg: "surface", label: "text on surface" },
-    { id: "accentFgOnAccent", fg: "accent_fg", bg: "accent", label: "accent_fg on accent" }
+    { id: "textOnBg", fg: "text", bg: "bg", label: "text on bg", min: WCAG_AA_NORMAL_MIN },
+    { id: "textOnBgElevated", fg: "text", bg: "bg_elevated", label: "text on bg_elevated", min: WCAG_AA_NORMAL_MIN },
+    { id: "textOnSurface", fg: "text", bg: "surface", label: "text on surface", min: WCAG_AA_NORMAL_MIN },
+    { id: "textOnSurfaceSoft", fg: "text", bg: "surface_soft", label: "text on surface_soft", min: WCAG_AA_NORMAL_MIN },
+    { id: "accentFgOnAccent", fg: "accent_fg", bg: "accent", label: "accent_fg on accent", min: WCAG_AA_NORMAL_MIN },
+    { id: "textMutedOnSurface", fg: "text_muted", bg: "surface", label: "text_muted on surface", min: WCAG_AA_NORMAL_MIN }
   ];
 
   for (const scheme of ["light", "dark"]) {
@@ -395,21 +600,62 @@ export async function lintDesignSystem(options = {}) {
         foreground: fgHex,
         background: bgHex,
         ratio: rounded,
-        passesAA: ratio >= WCAG_AA_NORMAL_MIN
+        passesAA: ratio >= pair.min
       };
-      if (ratio < WCAG_AA_NORMAL_MIN) {
+      if (ratio < pair.min) {
         errors.push({
           file: "DESIGN.md",
           rule: "wcag-aa-contrast",
-          message: `DESIGN.md (${scheme}): ${pair.label} (${fgHex} on ${bgHex}) contrast ${rounded}:1 is below WCAG 2.1 AA minimum ${WCAG_AA_NORMAL_MIN}:1.`
+          message: `DESIGN.md (${scheme}): ${pair.label} (${fgHex} on ${bgHex}) contrast ${rounded}:1 is below WCAG 2.1 AA minimum ${pair.min}:1.`
         });
       }
     }
   }
 
-  const expectedEaseOut = spec.motion.uiChrome.ease_out;
-  for (const target of targets) {
-    errors.push(...checkRequiredSheetCapabilities(target.css, target.label, expectedEaseOut));
+  const blueprintContrastPairs = [
+    { id: "captionFgOnPanelBg", fg: "caption_fg", bg: "panel_bg", label: "blueprint caption_fg on panel_bg", min: WCAG_AA_NORMAL_MIN },
+    { id: "captionFgOnSheetBg", fg: "caption_fg", bg: "sheet_bg", label: "blueprint caption_fg on sheet_bg", min: WCAG_AA_NORMAL_MIN }
+  ];
+  for (const pair of blueprintContrastPairs) {
+    const fgHex = spec.color.blueprintSheet[pair.fg];
+    const bgHex = spec.color.blueprintSheet[pair.bg];
+    if (!fgHex || !bgHex) {
+      errors.push({
+        file: "DESIGN.md",
+        rule: "missing-contrast-token",
+        message: `DESIGN.md (blueprint_sheet): missing ${pair.fg} or ${pair.bg} hex token for WCAG contrast check.`
+      });
+      continue;
+    }
+    const ratio = contrastRatio(fgHex, bgHex);
+    const rounded = Number(ratio.toFixed(2));
+    contrast.blueprint[pair.id] = {
+      foreground: fgHex,
+      background: bgHex,
+      ratio: rounded,
+      passesAA: ratio >= pair.min
+    };
+    if (ratio < pair.min) {
+      errors.push({
+        file: "DESIGN.md",
+        rule: "wcag-aa-contrast",
+        message: `DESIGN.md (blueprint_sheet): ${pair.label} (${fgHex} on ${bgHex}) contrast ${rounded}:1 is below WCAG 2.1 AA minimum ${pair.min}:1.`
+      });
+    }
+  }
+
+  const capabilityTargets = [
+    { label: "site/styles.css", css: stylesCssText, requireRootEaseToken: true },
+    { label: "site/presentation/presentation.css", css: presentationCssText, requireRootEaseToken: false },
+    { label: "src/render.ts#HTML_SHELL_STYLE", css: renderShellCss, requireRootEaseToken: true },
+    { label: "src/browser.ts#STICKMAN_PLAYER_STYLE", css: browserPlayerCss, requireRootEaseToken: true }
+  ];
+  for (const surface of capabilityTargets) {
+    errors.push(
+      ...checkRequiredSheetCapabilities(surface.css, surface.label, spec.motion.uiChrome, {
+        requireRootEaseToken: surface.requireRootEaseToken
+      })
+    );
   }
 
   const cssFilesToCheck = [];
@@ -417,8 +663,9 @@ export async function lintDesignSystem(options = {}) {
     for (const [label, css] of Object.entries(options.extraCssFiles)) {
       cssFilesToCheck.push({ label, css });
     }
-  } else if (options.stylesCss !== undefined) {
+  } else if (options.stylesCss !== undefined || options.presentationCss !== undefined) {
     cssFilesToCheck.push({ label: "site/styles.css", css: stylesCssText });
+    cssFilesToCheck.push({ label: "site/presentation/presentation.css", css: presentationCssText });
   } else {
     const discovered = await listCssFilesRecursive(join(rootDir, "site"), rootDir);
     for (const entry of discovered) {
@@ -429,8 +676,9 @@ export async function lintDesignSystem(options = {}) {
     }
   }
   cssFilesToCheck.push({ label: "src/render.ts#HTML_SHELL_STYLE", css: renderShellCss });
+  cssFilesToCheck.push({ label: "src/browser.ts#STICKMAN_PLAYER_STYLE", css: browserPlayerCss });
 
-  const seenLabels = new Set();
+  const seenLabels = new Set(["src/storyboard.ts"]);
   for (const item of cssFilesToCheck) {
     seenLabels.add(item.label);
     errors.push(...checkAntiSlopCss(item.css, item.label));
@@ -443,7 +691,8 @@ export async function lintDesignSystem(options = {}) {
     checkedFiles: ["DESIGN.md", ...seenLabels],
     tokenCounts: {
       light: Object.keys(spec.color.light).length,
-      dark: Object.keys(spec.color.dark).length
+      dark: Object.keys(spec.color.dark).length,
+      blueprintSheet: Object.keys(spec.color.blueprintSheet).length
     }
   };
 }
