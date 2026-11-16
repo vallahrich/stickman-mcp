@@ -1,6 +1,6 @@
 {
   "schema": "stickman.site-manifest/v1",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "scope": "connected-mcp-library-cli-and-offline-demos",
   "publicationApproved": false,
   "nativePresentation": true,
@@ -27,18 +27,18 @@
     },
     {
       "path": "connection-guide.md",
-      "bytes": 4792,
-      "sha256": "7c53e0991c5264caa90327eb5956648458ff957191ffb5a6f1ed9df3dacf8dab"
+      "bytes": 4836,
+      "sha256": "7af92ce00f89160fd0809e828608343cf9a42c38f7a9c3837be8d6f33d837f24"
     },
     {
       "path": "index.html",
-      "bytes": 86896,
-      "sha256": "db4af3ca857b36e3867236c197d94066021aa3767d49c0ee42a461dbadcd10d1"
+      "bytes": 1419214,
+      "sha256": "fba6edd910402956db02a93ba96da5f9d4d041be4484df4335a818483a108f07"
     },
     {
       "path": "llms.txt",
-      "bytes": 4792,
-      "sha256": "7c53e0991c5264caa90327eb5956648458ff957191ffb5a6f1ed9df3dacf8dab"
+      "bytes": 4836,
+      "sha256": "7af92ce00f89160fd0809e828608343cf9a42c38f7a9c3837be8d6f33d837f24"
     },
     {
       "path": "motions/arms-crossed.html",
@@ -1082,8 +1082,8 @@
     },
     {
       "path": "showcase/on-prem-to-cloud.html",
-      "bytes": 323874,
-      "sha256": "96f7ed20a19f1eab8860aa30b2d7d92122254ce212aab1cf75c384a8b4619efa"
+      "bytes": 328455,
+      "sha256": "594f83738de90d0cb276232f0b85c56edf8fe2686f04dddf74011fcc954abd16"
     },
     {
       "path": "showcase/open-source.mp4",
@@ -1622,8 +1622,8 @@
     },
     {
       "path": "stories/cloud-journey.html",
-      "bytes": 1841878,
-      "sha256": "cf149519021fdb712781d09b35607634805efee56ef6092a5ed5388330134a61"
+      "bytes": 1846459,
+      "sha256": "1e2a22c4bac7318d332533e5d6ad5852f78f873f30ad8410c01d59a025ae83d9"
     },
     {
       "path": "stories/cloud-journey.json",
@@ -1632,8 +1632,8 @@
     },
     {
       "path": "stories/cloud-journey.motion.html",
-      "bytes": 3569192,
-      "sha256": "cb3924cc4d6025b1c89e7b4d0ef17e813b3a64f342d4a4841111d1d523a905b1"
+      "bytes": 3570689,
+      "sha256": "b6a7af235646fa99fedbb4c904b950bfcfe5841eba478b997393491b31ce2be4"
     },
     {
       "path": "stories/cloud-journey.svg",
@@ -1647,8 +1647,8 @@
     },
     {
       "path": "stories/deployment-rollout.html",
-      "bytes": 1234374,
-      "sha256": "5d1ff9d0fc25542c18ebadd1eb917db8c63afd794dced2792d7c696b3e656514"
+      "bytes": 1238955,
+      "sha256": "5220d7ccd9c25258a08a33181f37d487e5fab43216d04fe6dfe6b4484bfc3cf1"
     },
     {
       "path": "stories/deployment-rollout.json",
@@ -1657,8 +1657,8 @@
     },
     {
       "path": "stories/deployment-rollout.motion.html",
-      "bytes": 3569998,
-      "sha256": "6bdf08d8901427852a6fa27d929d61378f5737806782b182411b89720e29e408"
+      "bytes": 3571495,
+      "sha256": "db548f1c561746c3790aba61f768b36f79ca2f26f82822355f064e340c49617b"
     },
     {
       "path": "stories/deployment-rollout.svg",
@@ -1672,8 +1672,8 @@
     },
     {
       "path": "stories/incident-resolution.html",
-      "bytes": 1812089,
-      "sha256": "291dc14a9975a253b66a834f7ee84e26ffd8fe5e4e0f988febf45a43fac36607"
+      "bytes": 1816670,
+      "sha256": "fffd0b5b26297ac384fe9e6b9df7fa4aa7c75d438a17e638da91a8ac691c6ca2"
     },
     {
       "path": "stories/incident-resolution.json",
@@ -1682,8 +1682,8 @@
     },
     {
       "path": "stories/incident-resolution.motion.html",
-      "bytes": 3569191,
-      "sha256": "3a99eb38c65d9012c84b159c86b98d76251cbd8feb1c7a54a75ac8aae153e0df"
+      "bytes": 3570688,
+      "sha256": "a3251fe3f0b657e9d5a435ffb7cb5b17ea9d558fd155fd81efec0f9019a829a1"
     },
     {
       "path": "stories/incident-resolution.svg",

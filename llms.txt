@@ -12,7 +12,7 @@ No external presentation renderer, private history or dependency binaries ship.
 ## Install the reviewed local candidate
 
 ```sh
-npm install ./vallahrich-stickman-mcp-0.2.0.tgz
+npm install ./vallahrich-stickman-mcp-0.2.1.tgz
 npx stickman discover
 npx stickman schema
 ```
@@ -26,7 +26,7 @@ No package is currently published on npm. The tarball retains `private: true`.
 
 ```js
 import { compileAnimation, choreographAnimation } from "@vallahrich/stickman-mcp";
-// Also available: /browser (<stickman-player> + overlay), /room, /keyboard, /film, /motion-authoring.
+// Also available: /browser (<stickman-player>, bindScrollTimeline, overlay), /room (renderRoomBlueprintSvg), /keyboard, /film, /motion-authoring.
 ```
 
 Node-only `/film` and `/motion-authoring` entries expose the same packaged

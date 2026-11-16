@@ -12,6 +12,7 @@
   --cp-text: #242424;
   --cp-text-muted: #5c5c5c;
   --cp-text-soft: #6f6f6f;
+  --cp-actor-ink: #202124;
   --cp-accent: #b11f4b;
   --cp-accent-hover: #9a1a41;
   --cp-accent-soft: rgba(177, 31, 75, 0.08);
@@ -20,6 +21,10 @@
   --cp-danger: #dc2626;
   --cp-warning: #f59e0b;
   --cp-link: #0078d4;
+  --cp-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --cp-dur-fast: 140ms;
+  --cp-dur-enter: 180ms;
+  --cp-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
   --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
   --cp-overlay: rgba(255, 255, 255, 0.8);
   --cp-panel: rgba(255, 255, 255, 0.86);
@@ -38,6 +43,7 @@ html[data-theme="dark"] {
   --cp-text: #dedede;
   --cp-text-muted: #919191;
   --cp-text-soft: #b0b0b0;
+  --cp-actor-ink: #dedede;
   --cp-accent: #fd8ea1;
   --cp-accent-hover: #fb7b91;
   --cp-accent-soft: rgba(253, 142, 161, 0.14);
@@ -46,6 +52,10 @@ html[data-theme="dark"] {
   --cp-danger: #f87171;
   --cp-warning: #fbbf24;
   --cp-link: #4da6ff;
+  --cp-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --cp-dur-fast: 140ms;
+  --cp-dur-enter: 180ms;
+  --cp-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.24), 0 8px 24px rgba(0, 0, 0, 0.32);
   --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
   --cp-overlay: rgba(41, 41, 41, 0.88);
   --cp-panel: rgba(41, 41, 41, 0.72);
@@ -54,11 +64,14 @@ html[data-theme="dark"] {
   --cp-highlight: rgba(253, 142, 161, 0.12);
 }
 body{margin:0;background:var(--cp-bg);color:var(--cp-text);font:16px "Segoe UI",Aptos,Calibri,-apple-system,BlinkMacSystemFont,sans-serif}
-main{max-width:1000px;margin:2rem auto;padding:1rem}svg{display:block;width:100%;height:auto;border:1px solid var(--cp-border);border-radius:0.625rem}
-nav{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;padding:.8rem 0}input{min-width:12rem;accent-color:var(--cp-accent)}
-button,select{font:inherit;background:var(--cp-surface);color:var(--cp-text);border:1px solid var(--cp-border);border-radius:0.625rem;padding:.35rem .6rem}
+main{max-width:1000px;margin:2rem auto;padding:1rem}svg{display:block;width:100%;height:auto;background:var(--cp-surface);border:1px solid var(--cp-border);border-radius:0.625rem;box-shadow:var(--cp-card-shadow)}
+nav{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;padding:.8rem 0}input[type="range"]{min-width:12rem;accent-color:var(--cp-accent)}
+button,select{font:inherit;background:var(--cp-surface);color:var(--cp-text);border:1px solid var(--cp-border);border-radius:0.625rem;padding:.35rem .6rem;transition:border-color var(--cp-dur-fast) var(--cp-ease-out),background-color var(--cp-dur-fast) var(--cp-ease-out),transform var(--cp-dur-fast) var(--cp-ease-out),opacity var(--cp-dur-fast) var(--cp-ease-out)}
+button{cursor:pointer}button:hover,select:hover{border-color:var(--cp-accent)}button:active{transform:scale(0.98)}:focus-visible{outline:3px solid var(--cp-accent);outline-offset:4px}
+.cp-timecode,output,[data-timecode],[data-frame-counter]{font-variant-numeric:tabular-nums;font-family:Consolas,"Courier New",Courier,monospace;font-size:.875rem;color:var(--cp-text-muted);min-width:11ch;text-align:right}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 </style>
-<main><nav><label>Motion mode <select id="mode"><option value="normal">Normal</option><option value="reduced">Reduced</option><option value="static">Static</option></select></label><label>Playhead <input id="seek" type="range" min="0" max="16500" step="1" value="0"></label><button id="toggle" type="button">Pause</button></nav><div id="stage"><svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Stick figure run at 0 milliseconds" viewBox="0 0 1000 720" width="1000" height="720">
+<main><nav><label>Motion mode <select id="mode"><option value="normal">Normal</option><option value="reduced">Reduced</option><option value="static">Static</option></select></label><label>Playhead <input id="seek" type="range" min="0" max="16500" step="1" value="0"></label><output id="timecode" class="cp-timecode" data-timecode="true" for="seek">0.00s / 16.50s</output><button id="toggle" type="button">Pause</button></nav><div id="stage"><svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Stick figure run at 0 milliseconds" viewBox="0 0 1000 720" width="1000" height="720">
 <rect width="100%" height="100%" fill="#ffffff"/><path id="ground" d="M0 560H1000" stroke="#d8dbe0" stroke-width="1"/>
 <g fill="none" stroke="#202124" stroke-width="2.97" stroke-linecap="round" stroke-linejoin="round"><path id="left-arm" d="M160 445Q153.745 472.718 137.279 495.878"/><path id="left-leg" d="M160 490Q169.631 526.817 151 560"/><path id="left-foot" d="M142.75 560L159.25 560"/><path id="torso" d="M160 490L160 445"/><circle id="head" cx="160" cy="428.5" r="16.5" fill="#ffffff" stroke="#202124" stroke-width="2.97"/><path id="right-leg" d="M160 490Q178.631 523.183 169 560"/><path id="right-foot" d="M160.75 560L177.25 560"/><path id="right-arm" d="M160 445Q166.255 472.718 182.721 495.878"/><path id="point-finger" d="M182.721 495.878L182.721 495.878"/></g>
 </svg></div></main><script id="stickman-player">(()=>{"use strict";const program={"contractVersion":"stickman.animation/v1","spec":{"version":"stickman.animation/v1","canvas":{"width":1000,"height":720,"fps":30},"durationMs":16500,"actor":{"x":160,"groundY":560},"targets":{"alert":{"x":420,"y":560},"evidence":{"x":490,"y":435},"service":{"x":800,"y":560},"status":{"x":870,"y":435}},"actions":[{"action":"run","startMs":0,"durationMs":3500,"target":"alert"},{"action":"point","startMs":3500,"durationMs":2500,"target":"evidence"},{"action":"walk","startMs":6000,"durationMs":6000,"target":"service"},{"action":"point","startMs":12000,"durationMs":2500,"target":"status"},{"action":"wave","startMs":14500,"durationMs":2000}]},"events":[{"timeMs":3500,"actionIndex":1,"action":"point","marker":"anticipation","frame":0},{"timeMs":4500,"actionIndex":1,"action":"point","marker":"hold","frame":16},{"timeMs":6000,"actionIndex":1,"action":"point","marker":"release","frame":40},{"timeMs":12000,"actionIndex":3,"action":"point","marker":"anticipation","frame":0},{"timeMs":13000,"actionIndex":3,"action":"point","marker":"hold","frame":16},{"timeMs":14500,"actionIndex":3,"action":"point","marker":"release","frame":40},{"timeMs":14703,"actionIndex":4,"action":"wave","marker":"anticipation","frame":6},{"timeMs":14975,"actionIndex":4,"action":"wave","marker":"turnToAudience","frame":14},{"timeMs":15246,"actionIndex":4,"action":"wave","marker":"armUp","frame":22},{"timeMs":15381,"actionIndex":4,"action":"wave","marker":"wave1","frame":26},{"timeMs":15585,"actionIndex":4,"action":"wave","marker":"wave2","frame":32},{"timeMs":15788,"actionIndex":4,"action":"wave","marker":"wave3","frame":38},{"timeMs":16127,"actionIndex":4,"action":"wave","marker":"lower","frame":48},{"timeMs":16500,"actionIndex":4,"action":"wave","marker":"stand","frame":59}]};const geometry=function frameGeometry(frame) {
@@ -1948,7 +1961,7 @@ intent) {
     };
     return sampleAt(playheadT, 0);
 })(program,timeMs,mode);};const svg=document.querySelector("#stage svg");
-const modeSelect=document.querySelector("#mode"),seek=document.querySelector("#seek"),toggle=document.querySelector("#toggle");
+const modeSelect=document.querySelector("#mode"),seek=document.querySelector("#seek"),toggle=document.querySelector("#toggle"),timecode=document.getElementById?document.getElementById("timecode"):null;
 const duration=program.spec.durationMs;
 let mode=matchMedia("(prefers-reduced-motion: reduce)").matches?"reduced":"normal";
 modeSelect.value=mode;let time=0;let playing=mode==="normal";let previous=0;let requestId=null;
@@ -1969,6 +1982,7 @@ document.getElementById("ground").setAttribute("d","M0 "+frame.groundY+"H"+progr
 svg.setAttribute("aria-label","Stick figure "+frame.action+" at "+frame.timeMs+" milliseconds");
 const prop=document.querySelector("#prop");if(frame.prop&&prop){prop.querySelector("rect").setAttribute("x",frame.prop.x);document.getElementById("handle").setAttribute("d",shape.handlePath);}
 seek.value=String(frame.timeMs);
+if(timecode)timecode.textContent=(frame.timeMs/1000).toFixed(2)+"s / "+(duration/1000).toFixed(2)+"s";
 }
 function stop(){playing=false;previous=0;if(requestId!==null){cancelAnimationFrame(requestId);requestId=null;}toggle.textContent="Play";}
 function schedule(){if(playing&&requestId===null)requestId=requestAnimationFrame(tick);}
