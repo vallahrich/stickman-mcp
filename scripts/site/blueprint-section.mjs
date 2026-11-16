@@ -42,7 +42,7 @@ export function scopeInlineSvg(rawSvg, prefix, { loop = false } = {}) {
     .replaceAll("url(#sm-sb-clip)", `url(#${prefix}-sb-clip)`)
     .replaceAll('id="sm-bp-grid"', `id="${prefix}-bp-grid"`)
     .replaceAll("url(#sm-bp-grid)", `url(#${prefix}-bp-grid)`)
-    .replaceAll('id="sm-bp-hatch"', `id="${prefix}-bp-hatch"`)
+    .replaceAll('id="sm-bp-hatch"', `id="${prefix}-bp-hatch" data-pattern="sm-bp-hatch"`)
     .replaceAll("url(#sm-bp-hatch)", `url(#${prefix}-bp-hatch)`);
 
   if (svg.includes("@keyframes sm-slice")) {
