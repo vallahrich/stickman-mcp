@@ -298,3 +298,31 @@ section (`sm-bp-hatch` + `data-scroll-scrub-demo`) + `v0.2.1` metadata checks,
 regression suite (**37 files / 562 tests passed**).
 Published as GitHub Release `v0.2.1` on `vallahrich/stickman-mcp` with live
 visualization on GitHub Pages (`https://vallahrich.github.io/stickman-mcp/`).
+
+## Verified release: 0.2.2 (2026-11-17)
+
+Built from clean committed source `496c4c42f68a6c4af5e14509b5a947c48903e760` and verified in `.release-local/0.2.2/` alongside `RELEASE-NOTES-0.2.2.md`:
+
+| Artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `vallahrich-stickman-mcp-0.2.2.tgz` | 592,617 | `6d2a50afb315e22511c96ad57343c260d9dd62b9438c1c15dd17da97dd5e7295` |
+| `stickman-source-0.2.2.zip` | 7,213,336 | `949a11b9428242fd384e8086366091092c40f96324ba7faf2b09cc5b85d92e16` |
+| `stickman-site-0.2.2.zip` | 54,771,124 | `5e861a4d90673fbc4d01a28005a69dae37b6280020daffe9bc33563301fbc106` |
+| `provenance.json` | 87,250 | `fc1781457a9d29759410626479e798dc9b79499f6c3eb0269ad72b8d3afe514b` |
+| `showcase/open-source.mp4` | — | `8120499c8ba2a3724de95674f620c67bde993a93cf1528cb100b0d9ae1303e60` |
+| `showcase/julius-caesar.mp4` | — | `fab9d2bd2eaeae7dcdc704184170ea27e269755ea66554e674264d0e67894f72` |
+
+Verified with `node scripts/release/verify-candidate.mjs .release-local/0.2.2`
+(`archiveChecksums: "passed"`, `siteFiles: 337`, `motions: 97`, `runtimeIds: 106`,
+`nativePresentation: true`, `keyboardPreview: true`, `mobile: true`,
+`noExternalRequests: true`, `errors: []`, `failed: []`), post-overhaul quantitative
+biomechanics audit across all 106 runtime motions (`0` `loopKindMismatch`/`loopSeam`
+failures, `0` unintentional grounded float clips, `0` IK branch flips `> 4500 deg/s`
+with max `1867.5 deg/s`, `55/55` aligned prop actions with max contact distance
+`14px <= 35px`, and smooth gallery travel stage `walk` `Δx = 78.6px` / `run`
+`Δx = 111.26px`), `npm run design:check`, `npm run motions:check`, all 6
+outside-checkout install/MCP/CLI tests in `tests/release.test.ts` via
+`STICKMAN_CANDIDATE_TARBALL`, and the full serial regression suite
+(**37 files / 567 tests passed**).
+Published as GitHub Release `v0.2.2` on `vallahrich/stickman-mcp` with live
+visualization on GitHub Pages (`https://vallahrich.github.io/stickman-mcp/`).
