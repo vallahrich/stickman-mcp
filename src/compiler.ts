@@ -21,9 +21,11 @@ const isTravelAction = (action: string): boolean => action === "walk" || action 
 const motionGlobal = globalThis as typeof globalThis & {
   __stickmanMotionLibrary?: typeof RUNTIME_MOTION_LIBRARY;
   __stickmanSampleV2?: typeof sampleAnimationV2;
+  __stickmanSampleClipMotion?: typeof sampleClipMotion;
 };
 motionGlobal.__stickmanMotionLibrary = RUNTIME_MOTION_LIBRARY;
 motionGlobal.__stickmanSampleV2 = sampleAnimationV2;
+motionGlobal.__stickmanSampleClipMotion = sampleClipMotion;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -587,6 +589,7 @@ export function sampleAnimation(
   }
   const spec = program.spec as AnimationSpec;
   const runtimeLibrary = ((globalThis as typeof globalThis & { __stickmanMotionLibrary?: typeof RUNTIME_MOTION_LIBRARY }).__stickmanMotionLibrary ?? { clips: {} }) as typeof RUNTIME_MOTION_LIBRARY;
+  const clipSampler = (globalThis as typeof globalThis & { __stickmanSampleClipMotion?: typeof sampleClipMotion }).__stickmanSampleClipMotion!;
   const playheadT = intent !== undefined ? Math.max(0, timeMs)
     : mode === "normal" ? Math.min(spec.durationMs, Math.max(0, timeMs)) : spec.durationMs;
   const authoredGroundY = spec.actor?.groundY ?? spec.canvas.height * 0.8;
@@ -830,7 +833,7 @@ export function sampleAnimation(
     const target = active.target ? spec.targets?.[active.target] : undefined;
     const direction = activeMeta.aim && target ? Math.sign(target.x - startX) || facing
       : activeMeta.travel === "travel" ? Math.sign((target?.x ?? startX) - startX) || facing : facing;
-    const clip = sampleClipMotion(runtimeLibrary, {
+    const clip = clipSampler(runtimeLibrary, {
       action: active.action,
       clipId: active.action,
       progress: p,
@@ -863,7 +866,7 @@ export function sampleAnimation(
       };
     }
   } else if (useClipEngine && intent === undefined && !active && mode === "normal" && runtimeLibrary.clips.idle) {
-    const clip = sampleClipMotion(runtimeLibrary, {
+    const clip = clipSampler(runtimeLibrary, {
       action: "idle", progress: ((t / 1000) % 2) / 2, startX: rootX, endX: rootX,
       groundY, facing: facing as -1 | 1, scale
     });
@@ -1278,7 +1281,7 @@ export function sampleAnimation(
     target?: Point
   ): void => {
     if (!useClipEngine || !runtimeLibrary.clips[action]) return;
-    const clip = sampleClipMotion(runtimeLibrary, {
+    const clip = clipSampler(runtimeLibrary, {
       action, progress, startX, endX, groundY, facing: direction, scale,
       ...(target ? { pointTarget: target } : {})
     });

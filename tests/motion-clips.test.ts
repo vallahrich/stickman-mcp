@@ -2,10 +2,13 @@ import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rm } from "node:fs/promises";
 import { resolve } from "node:path";
+import { runInNewContext } from "node:vm";
 import { describe, expect, it } from "vitest";
 import { compileAnimation, sampleAnimation } from "../src/compiler.js";
 import { CONTRACT_VERSION, type AnimationSpec, type SampledFrame } from "../src/contract.js";
 import { MOTION_CLIP_LIBRARY, hermiteDecayWeight, sampleClipMotion, sampleMotionClip, type MotionClip } from "../src/motion-clips.js";
+import { RUNTIME_MOTION_LIBRARY } from "../src/motion-library.js";
+import { renderHtml } from "../src/render.js";
 
 const rad = (degrees: number): number => degrees * Math.PI / 180;
 const wrap = (angle: number): number => ((angle + 180) % 360 + 360) % 360 - 180;
@@ -482,5 +485,164 @@ describe("canvas-independent clip routing and C1 inertialization seam blending",
     } finally {
       await rm(scratchDir, { recursive: true, force: true });
     }
+  });
+});
+
+describe("M1 monotone cubic spline, soft-knee two-bone IK, and grounded stance contacts", () => {
+  it("maintains nonzero pass-through midpoint velocity with zero overshoot on a 3-key monotonic pose sequence", () => {
+    const baseIdle = MOTION_CLIP_LIBRARY.clips.idle!;
+    const pose0 = {
+      anchor: "both" as const,
+      lean: 0,
+      neck: 0,
+      bob: 0,
+      dx: 0,
+      facing: 1,
+      rLeg: { hip: 5, knee: 13 },
+      lLeg: { hip: -8, knee: 14 },
+      rArm: { shoulder: 0, elbow: 40 },
+      lArm: { shoulder: 0, elbow: 40 },
+      rFoot: { x: 5, y: 0 },
+      lFoot: { x: -7, y: 0 }
+    };
+    const clip: MotionClip = {
+      ...baseIdle,
+      name: "monotone-pass-through",
+      loop: false,
+      frames: baseIdle.frames.slice(0, 21),
+      poseKeys: [
+        { frame: 0, pose: pose0, ease: "inOut" },
+        { frame: 10, pose: { ...pose0, lean: 10, dx: 24, rArm: { shoulder: 45, elbow: 40 }, rFoot: { x: 29, y: 0 }, lFoot: { x: 17, y: 0 } }, ease: "inOut" },
+        { frame: 20, pose: { ...pose0, lean: 20, dx: 60, rArm: { shoulder: 90, elbow: 40 }, rFoot: { x: 65, y: 0 }, lFoot: { x: 53, y: 0 } }, ease: "inOut" }
+      ]
+    };
+    const lib = { clips: { [clip.name]: clip } };
+    const sampleAt = (p: number) => sampleClipMotion(lib, {
+      action: clip.name, clipId: clip.name, progress: p, startX: 100, endX: 100, groundY: 300, facing: 1, scale: 1
+    });
+    const dt = 0.005;
+    const midBefore = sampleAt(0.5 - dt);
+    const midAfter = sampleAt(0.5 + dt);
+    const durationS = (clip.frames.length - 1) / clip.fps;
+    const midPelvisVel = (midAfter.joints!.pelvis.x - midBefore.joints!.pelvis.x) / (2 * dt * durationS);
+    const midLeanVelDeg = ((midAfter.lean - midBefore.lean) * 180 / Math.PI) / (2 * dt * durationS);
+    // Average velocity is 60 / (20/30) = 90 px/s and 30 deg/s; midpoint pass-through must flow briskly instead of stalling near 0.
+    expect(midPelvisVel).toBeGreaterThan(60);
+    expect(midLeanVelDeg).toBeGreaterThan(20);
+
+    let prevX = -Infinity;
+    let prevLean = -Infinity;
+    for (let i = 0; i <= 80; i++) {
+      const s = sampleAt(i / 80);
+      const x = s.joints!.pelvis.x - 100;
+      const leanDeg = s.lean * 180 / Math.PI;
+      expect(x).toBeGreaterThanOrEqual(-1e-9);
+      expect(x).toBeLessThanOrEqual(60 + 1e-9);
+      expect(x).toBeGreaterThanOrEqual(prevX - 1e-9);
+      expect(leanDeg).toBeGreaterThanOrEqual(-1e-9);
+      expect(leanDeg).toBeLessThanOrEqual(20 + 1e-9);
+      expect(leanDeg).toBeGreaterThanOrEqual(prevLean - 1e-9);
+      expect(s.joints!.leftAnkle.y).toBeCloseTo(300, 5);
+      expect(s.joints!.rightAnkle.y).toBeCloseTo(300, 5);
+      prevX = x;
+      prevLean = leanDeg;
+    }
+  });
+
+  it("samples look-around, put-down, phone-call, wave, sidestep, and vault smoothly with bounded angular velocity, exact bone lengths, and grounded stance feet", () => {
+    const groundY = 150;
+    const scale = 0.75;
+    const segAngle = (s: { x1: number; y1: number; x2: number; y2: number }) => Math.atan2(s.x2 - s.x1, s.y2 - s.y1) * 180 / Math.PI;
+    for (const id of ["look-around", "put-down", "phone-call", "wave", "sidestep", "vault"] as const) {
+      const clip = RUNTIME_MOTION_LIBRARY.clips[id]!;
+      expect(clip, id).toBeDefined();
+      const n = clip.frames.length;
+      let maxBendVel = 0;
+      let floatBothFrames = 0;
+      let prevById: Record<string, { id: string; x1: number; y1: number; x2: number; y2: number }> | undefined;
+      for (let f = 0; f < n; f++) {
+        const pose = sampleClipMotion(RUNTIME_MOTION_LIBRARY, {
+          action: id, clipId: id, progress: clip.loop ? f / n : f / Math.max(1, n - 1),
+          startX: 160, endX: 160, groundY, facing: 1, scale
+        });
+        const byId = Object.fromEntries(pose.segments!.map((seg) => [seg.id, seg]));
+        for (const seg of pose.segments!) {
+          const expected = (seg.id === "torso" ? 45 : seg.id.includes("arm") ? 28 : 36) * scale;
+          const actual = Math.hypot(seg.x2 - seg.x1, seg.y2 - seg.y1);
+          expect(Math.max(seg.y1, seg.y2), `${id} f${f} ${seg.id} floor`).toBeLessThanOrEqual(groundY + 1e-6);
+          const absFacing = Math.abs(pose.facing ?? 1);
+          if (absFacing > 0.999) {
+            expect(actual, `${id} f${f} ${seg.id} exact side bone`).toBeCloseTo(expected, 3);
+          } else if (absFacing > 0.95) {
+            expect(Math.abs(actual - expected) / expected, `${id} f${f} ${seg.id} near-side bone`).toBeLessThanOrEqual(1 - absFacing + 0.015);
+          } else {
+            expect(actual, `${id} f${f} ${seg.id} projected cap`).toBeLessThanOrEqual(expected * 1.05);
+          }
+        }
+        const lClear = groundY - pose.joints!.leftAnkle.y;
+        const rClear = groundY - pose.joints!.rightAnkle.y;
+        if (lClear > 2.5 && rClear > 2.5) floatBothFrames++;
+        if (prevById) {
+          for (const [, u, l] of [
+            ["lKnee", "left-thigh", "left-shin"],
+            ["rKnee", "right-thigh", "right-shin"],
+            ["lElbow", "left-upper-arm", "left-forearm"],
+            ["rElbow", "right-upper-arm", "right-forearm"]
+          ] as const) {
+            const currBend = wrap(segAngle(byId[l]!) - segAngle(byId[u]!));
+            const prevBend = wrap(segAngle(prevById[l]!) - segAngle(prevById[u]!));
+            maxBendVel = Math.max(maxBendVel, Math.abs(wrap(currBend - prevBend)) * clip.fps);
+          }
+        }
+        prevById = byId;
+      }
+      expect(maxBendVel, `${id} angular velocity`).toBeLessThan(4000);
+      if (id === "put-down" || id === "phone-call" || id === "wave" || id === "sidestep") {
+        expect(floatBothFrames, `${id} grounded stance`).toBe(0);
+      }
+    }
+  });
+
+  it("serializes sampleClipMotion cleanly inside standalone renderHtml scripts without external ReferenceErrors", () => {
+    const compiled = compileAnimation({
+      version: CONTRACT_VERSION,
+      canvas: { width: 800, height: 450, fps: 30 },
+      durationMs: 2000,
+      actor: { x: 400, groundY: 360 },
+      targets: { mark: { x: 620, y: 220 } },
+      actions: [{ action: "look-around", startMs: 0, durationMs: 1800, target: "mark" }]
+    });
+    expect(compiled.diagnostics).toEqual([]);
+    const html = renderHtml(compiled.program!);
+    const script = /<script id="stickman-player">([\s\S]+?)<\/script>/.exec(html)![1]!;
+    const nodes = new Map<string, {
+      value: string; textContent: string; attributes: Map<string, string | number>;
+      parentNode: { appendChild(): void };
+      setAttribute(key: string, value: string | number): void;
+      addEventListener(): void;
+    }>();
+    for (const id of ["mode", "seek", "toggle", "head", "stage-svg", "ground", "torso", "left-arm", "right-arm", "left-leg", "right-leg", "left-foot", "right-foot", "point-finger"]) {
+      const attributes = new Map<string, string | number>();
+      nodes.set(id, {
+        value: "normal", textContent: "Pause", attributes, parentNode: { appendChild() {} },
+        setAttribute: (k, v) => { attributes.set(k, v); },
+        addEventListener: () => {}
+      });
+    }
+    let tickFn: ((now: number) => void) | undefined;
+    expect(() => runInNewContext(script, {
+      document: {
+        querySelector: (sel: string) => nodes.get(sel === "#stage svg" ? "stage-svg" : sel.slice(1)) ?? null,
+        getElementById: (id: string) => nodes.get(id) ?? null,
+        dispatchEvent: () => true
+      },
+      matchMedia: () => ({ matches: false }),
+      requestAnimationFrame: (cb: (now: number) => void) => { tickFn = cb; return 1; },
+      cancelAnimationFrame: () => {},
+      CustomEvent: class { detail: unknown; constructor(_t: string, init?: { detail?: unknown }) { this.detail = init?.detail; } }
+    })).not.toThrow();
+    expect(tickFn).toBeDefined();
+    expect(() => tickFn!(600)).not.toThrow();
+    expect(() => tickFn!(1200)).not.toThrow();
   });
 });

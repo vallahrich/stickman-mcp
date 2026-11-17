@@ -18,14 +18,14 @@ describe("film recipes", () => {
     expect(result).toMatchObject({ valid: true, frames: 309, seconds: 10.3, fps: 30,
       scenes: [{ startFrame: 0, frames: 150 }, { startFrame: 150, frames: 159 }],
       items: [{ startFrame: 0, endFrame: 149 }, { startFrame: 159, endFrame: 308 }],
-      continuity: { lead: { maxJointStep: 13.45, limit: 14, passed: true }, actors: [
+      continuity: { lead: { maxJointStep: 13.66, limit: 14, passed: true }, actors: [
         { extraIndex: 0, continuity: { passed: true } }, { extraIndex: 1, continuity: { passed: true } }
       ] }
     });
   });
   it("bridges the walk-to-look-around join deterministically and leaves smooth joins alone", async () => {
     const first = await composeFilmRecipe(bridgeDemo), second = await composeFilmRecipe(bridgeDemo);
-    expect(first).toMatchObject({ bridges: [{ from: "walk-right", to: "look-around", kind: "generated-bridge", feetLocked: true, costBefore: 19.94, costAfter: 13.21 }] });
+    expect(first).toMatchObject({ bridges: [{ from: "walk-right", to: "look-around", kind: "generated-bridge", feetLocked: true, costBefore: 14.97, costAfter: 13.42 }] });
     expect(first.bridges).toEqual(second.bridges);
     expect(first.continuity.lead).toMatchObject({ passed: true, limit: 14 });
     const smooth = { ...small(), performance: [

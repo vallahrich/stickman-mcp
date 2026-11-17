@@ -57,10 +57,26 @@ export function sampleClipMotion(library: MotionClipLibrary, request: ClipMotion
   const smooth = (value: number): number => { const x = clamp01(value); return x * x * x * (10 + x * (-15 + 6 * x)); };
   const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
   const rad = (degrees: number): number => degrees * Math.PI / 180;
-  type Point = { x: number; y: number };
+  const deg = (radians: number): number => radians * 180 / Math.PI;
+  const wrapDeg = (angle: number): number => ((angle + 180) % 360 + 360) % 360 - 180;
+  const lerpAngleDeg = (a: number, b: number, t: number): number => a + wrapDeg(b - a) * t;
+  type Point = { x: number; y: number; lateralX?: number; frontalX?: number };
   type StyleLeg = { hip: number; knee: number; lift?: number };
   type StyleArm = { shoulder: number; elbow: number; spread?: number; elbowSpread?: number };
   type StyleKey = { anchor: "l" | "r" | "both" | null; lean: number; neck: number; bob: number; rLeg: StyleLeg; lLeg: StyleLeg; rArm: StyleArm; lArm: StyleArm; dx?: number; dy?: number; facing?: number; headShift?: number; sway?: number; lPlant?: number; rPlant?: number; lFoot?: Point; rFoot?: Point; lHand?: Point; rHand?: Point; lw?: number; rw?: number; lFootW?: number; rFootW?: number; lHandW?: number; rHandW?: number };
+  type SplineChannel = { xs: number[]; ys: number[]; eases: NonNullable<PoseKeyFrame["ease"]>[]; m: Float64Array; h: Float64Array; d: Float64Array };
+  type TargetRun = { startIdx: number; endIdx: number; xCh: SplineChannel; yCh: SplineChannel };
+  type PreparedPoseTrack = {
+    ref: PoseKeyFrame[];
+    loop: boolean;
+    stride: number;
+    n: number;
+    knots: { frame: number; ease: NonNullable<PoseKeyFrame["ease"]>; pose: PoseKey }[];
+    xs: number[];
+    hasFacing: boolean;
+    scalar: Record<string, SplineChannel | null>;
+    targets: Record<"lFoot" | "rFoot" | "lHand" | "rHand", TargetRun[]>;
+  };
   const add = (a: Point, b: Point): Point => ({ x: a.x + b.x, y: a.y + b.y });
   const sub = (a: Point, b: Point): Point => ({ x: a.x - b.x, y: a.y - b.y });
   const mul = (a: Point, s: number): Point => ({ x: a.x * s, y: a.y * s });
@@ -70,6 +86,282 @@ export function sampleClipMotion(library: MotionClipLibrary, request: ClipMotion
     const out: Record<string, number> = {};
     for (const key of new Set([...Object.keys(a), ...Object.keys(b)])) out[key] = lerp(a[key] ?? b[key] ?? 0, b[key] ?? a[key] ?? 0, t);
     return out as T;
+  };
+  const softReach = (rawDistance: number, maxLen: number, minLen = 1): number => {
+    if (rawDistance <= minLen) return minLen;
+    const dKnee = 0.96 * maxLen;
+    if (rawDistance <= dKnee) return rawDistance;
+    const dMax = 0.992 * maxLen;
+    const span = dMax - dKnee;
+    return dKnee + span * Math.tanh((rawDistance - dKnee) / span);
+  };
+  const prepareChannel = (xs: number[], ys: number[], eases: NonNullable<PoseKeyFrame["ease"]>[], pauseZeroCross = false): SplineChannel => {
+    const count = xs.length;
+    const m = new Float64Array(count);
+    const h = new Float64Array(Math.max(0, count - 1));
+    const d = new Float64Array(Math.max(0, count - 1));
+    if (count < 2) return { xs, ys, eases, m, h, d };
+    for (let k = 0; k < count - 1; k++) {
+      const hk = xs[k + 1]! - xs[k]!;
+      h[k] = hk;
+      d[k] = hk > 0 ? (ys[k + 1]! - ys[k]!) / hk : 0;
+    }
+    for (let k = 1; k < count - 1; k++) {
+      if (eases[k - 1] === "hold" || eases[k] === "hold" || h[k - 1]! <= 0 || h[k]! <= 0 || (pauseZeroCross && ys[k] === 0 && ys[k - 1]! * ys[k + 1]! < 0)) { m[k] = 0; continue; }
+      const dPrev = d[k - 1]!, dNext = d[k]!;
+      if (dPrev * dNext > 0) {
+        const w1 = 2 * h[k]! + h[k - 1]!, w2 = h[k]! + 2 * h[k - 1]!;
+        m[k] = (w1 + w2) / (w1 / dPrev + w2 / dNext);
+      } else m[k] = 0;
+    }
+    return { xs, ys, eases, m, h, d };
+  };
+  const evalChannel = (ch: SplineChannel, x: number): number => {
+    const { xs, ys, eases, m, h, d } = ch;
+    const count = xs.length;
+    if (count === 0) return 0;
+    if (count === 1 || x <= xs[0]!) return ys[0]!;
+    if (x >= xs[count - 1]!) return ys[count - 1]!;
+    let lo = 0, hi = count - 2;
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >> 1;
+      if (xs[mid]! <= x) lo = mid; else hi = mid - 1;
+    }
+    const i = lo;
+    const ease = eases[i] ?? "inOut";
+    const y0 = ys[i]!, y1 = ys[i + 1]!;
+    if (ease === "hold") return y0;
+    const hk = h[i]!, dk = d[i]!;
+    if (hk <= 0 || Math.abs(dk) < 1e-12) return y0;
+    let mL = m[i]!, mR = m[i + 1]!;
+    if (ease === "linear") {
+      const prevHold = i > 0 && eases[i - 1] === "hold";
+      const nextHold = i + 1 < eases.length && eases[i + 1] === "hold";
+      if (mL === 0 && !prevHold) mL = dk;
+      if (mR === 0 && !nextHold) mR = dk;
+      const aLin = clamp(mL / dk, 0.97, 1.03), bLin = clamp(mR / dk, 0.97, 1.03);
+      mL = aLin * dk;
+      mR = bLin * dk;
+    } else {
+      if (ease === "in") { mL = 0; if (mR === 0) mR = 1.65 * dk; }
+      else if (ease === "out") { if (mL === 0) mL = 1.65 * dk; }
+      let alpha = clamp(mL / dk, 0, 1.65), beta = clamp(mR / dk, 0, 1.65);
+      const norm2 = alpha * alpha + beta * beta;
+      if (norm2 > 9) {
+        const tau = 3 / Math.sqrt(norm2);
+        alpha *= tau;
+        beta *= tau;
+      }
+      mL = alpha * dk;
+      mR = beta * dk;
+    }
+    const t = clamp01((x - xs[i]!) / hk);
+    const t2 = t * t, t3 = t2 * t;
+    const val = (2 * t3 - 3 * t2 + 1) * y0 + (t3 - 2 * t2 + t) * hk * mL + (-2 * t3 + 3 * t2) * y1 + (t3 - t2) * hk * mR;
+    return clamp(val, Math.min(y0, y1), Math.max(y0, y1));
+  };
+  const sideWeight = (key: { anchor: StyleKey["anchor"] }, side: "l" | "r"): number => key.anchor === "both" || key.anchor === side ? 1 : 0;
+  const isDyStance = (p: PoseKey): boolean =>
+    p.anchor === null && !p.lFoot && !p.rFoot && !p.lHand && !p.rHand
+    && (p.dy ?? 0) >= 24 && (p.dy ?? 0) <= 27 && Math.abs(p.bob || 0) <= 6
+    && (!((p.rLeg.lift ?? 0) > 0) || !((p.lLeg.lift ?? 0) > 0));
+  const augmentStanceKeys = (rawKeys: PoseKeyFrame[]): PoseKeyFrame[] => {
+    if (!rawKeys.some((kf) => isDyStance(kf.pose))) return rawKeys;
+    const cloned: PoseKeyFrame[] = rawKeys.map((kf) => ({
+      ...kf,
+      pose: { ...kf.pose, rLeg: { ...kf.pose.rLeg }, lLeg: { ...kf.pose.lLeg }, rArm: { ...kf.pose.rArm }, lArm: { ...kf.pose.lArm } }
+    }));
+    const grounded = { l: Array<boolean>(cloned.length).fill(false), r: Array<boolean>(cloned.length).fill(false) };
+    for (let i = 0; i < cloned.length; i++) {
+      const p = cloned[i]!.pose;
+      for (const side of ["l", "r"] as const) {
+        const ft = side === "l" ? p.lFoot : p.rFoot;
+        const pl = (side === "l" ? p.lPlant : p.rPlant) ?? 0;
+        const lift = (side === "l" ? p.lLeg : p.rLeg).lift ?? 0;
+        if (ft) grounded[side][i] = ft.y <= pl + 0.5;
+        else if (p.anchor === "both" || p.anchor === side) grounded[side][i] = true;
+        else if (isDyStance(p) && !(lift > 0)) grounded[side][i] = true;
+      }
+    }
+    for (const side of ["l", "r"] as const) {
+      const restOff = side === "l" ? -7 : 5;
+      const intervals: { start: number; end: number; x: number }[] = [];
+      let i = 0;
+      while (i < cloned.length) {
+        if (!grounded[side][i]) { i++; continue; }
+        let j = i;
+        while (j + 1 < cloned.length && grounded[side][j + 1]) j++;
+        let explicitX: number | undefined;
+        for (let k = i; k <= j; k++) {
+          const ft = side === "l" ? cloned[k]!.pose.lFoot : cloned[k]!.pose.rFoot;
+          if (ft) { explicitX = ft.x; break; }
+        }
+        if (explicitX === undefined) {
+          let bestK = j, bestSpread = Infinity;
+          for (let k = i; k <= j; k++) {
+            const bothG = grounded.l[k] && grounded.r[k];
+            const sp = Math.abs(cloned[k]!.pose.rLeg.hip - cloned[k]!.pose.lLeg.hip) + (bothG ? 0 : 1000);
+            if (sp < bestSpread) { bestSpread = sp; bestK = k; }
+          }
+          explicitX = (cloned[bestK]!.pose.dx ?? 0) + restOff;
+        }
+        intervals.push({ start: i, end: j, x: explicitX });
+        for (let k = i; k <= j; k++) {
+          const p = cloned[k]!.pose;
+          const fCurr = p.facing ?? 1;
+          const prevRate = k > 0 ? Math.abs(fCurr - (cloned[k - 1]!.pose.facing ?? 1)) / Math.max(1, cloned[k]!.frame - cloned[k - 1]!.frame) : 0;
+          const nextRate = k + 1 < cloned.length ? Math.abs((cloned[k + 1]!.pose.facing ?? 1) - fCurr) / Math.max(1, cloned[k + 1]!.frame - cloned[k]!.frame) : 0;
+          const pivotLift = isDyStance(rawKeys[k]!.pose) && Math.max(prevRate, nextRate) > 0.03 ? 1 : 0;
+          const py = ((side === "l" ? p.lPlant : p.rPlant) ?? 0) + pivotLift;
+          if (side === "l" && !p.lFoot) p.lFoot = { x: explicitX, y: py };
+          if (side === "r" && !p.rFoot) p.rFoot = { x: explicitX, y: py };
+        }
+        i = j + 1;
+      }
+      for (let idx = 0; idx < cloned.length; idx++) {
+        const p = cloned[idx]!.pose;
+        const hasFt = side === "l" ? Boolean(p.lFoot) : Boolean(p.rFoot);
+        if (grounded[side][idx] || hasFt) continue;
+        let prevInt: { start: number; end: number; x: number } | undefined;
+        let nextInt: { start: number; end: number; x: number } | undefined;
+        for (const iv of intervals) {
+          if (iv.end < idx) prevInt = iv;
+          else if (iv.start > idx && !nextInt) nextInt = iv;
+        }
+        const lift = (side === "l" ? p.lLeg : p.rLeg).lift ?? 0;
+        if (prevInt && nextInt && lift > 0) {
+          const f0 = cloned[prevInt.end]!.frame, f1 = cloned[nextInt.start]!.frame;
+          const u = f1 > f0 ? easeInOut((cloned[idx]!.frame - f0) / (f1 - f0)) : 0.5;
+          const targetPt = { x: lerp(prevInt.x, nextInt.x, u), y: ((side === "l" ? p.lPlant : p.rPlant) ?? 0) + lift };
+          if (side === "l") p.lFoot = targetPt; else p.rFoot = targetPt;
+        }
+      }
+    }
+    for (let i = 0; i < cloned.length; i++) {
+      if (isDyStance(rawKeys[i]!.pose)) {
+        cloned[i]!.pose.anchor = grounded.l[i] && grounded.r[i] ? "both" : grounded.l[i] ? "l" : grounded.r[i] ? "r" : null;
+      }
+    }
+    return cloned;
+  };
+  const getTrack = (clip: MotionClip): PreparedPoseTrack => {
+    const clipObj = clip as MotionClip & { _poseTrack?: PreparedPoseTrack };
+    const n = clip.frames.length;
+    const rawKeys = clip.poseKeys!;
+    const hit = clipObj._poseTrack;
+    if (hit && hit.ref === rawKeys && hit.loop === clip.loop && hit.stride === clip.strideLength && hit.n === n) return hit;
+    const baseKeys = augmentStanceKeys(rawKeys);
+    const cycleOffsets = clip.loop ? [-1, 0, 1] : [0];
+    const knots: PreparedPoseTrack["knots"] = [];
+    for (const c of cycleOffsets) {
+      const fOff = c * n, xOff = c * clip.strideLength;
+      for (const kf of baseKeys) {
+        if (knots.length && kf.frame + fOff <= knots[knots.length - 1]!.frame) continue;
+        const p = kf.pose;
+        knots.push({
+          frame: kf.frame + fOff,
+          ease: kf.ease ?? "inOut",
+          pose: {
+            ...p,
+            dx: (p.dx ?? 0) + xOff,
+            ...(p.lFoot ? { lFoot: { x: p.lFoot.x + xOff, y: p.lFoot.y } } : {}),
+            ...(p.rFoot ? { rFoot: { x: p.rFoot.x + xOff, y: p.rFoot.y } } : {}),
+            ...(p.lHand ? { lHand: { x: p.lHand.x + xOff, y: p.lHand.y } } : {}),
+            ...(p.rHand ? { rHand: { x: p.rHand.x + xOff, y: p.rHand.y } } : {})
+          }
+        });
+      }
+    }
+    const xs = knots.map((k) => k.frame);
+    const eases = knots.slice(0, -1).map((k) => k.ease);
+    const ch = (fn: (p: PoseKey) => number): SplineChannel => prepareChannel(xs, knots.map((k) => fn(k.pose)), eases);
+    const hasFacing = baseKeys.some((k) => k.pose.facing !== undefined);
+    const scalar: Record<string, SplineChannel | null> = {
+      lean: ch((p) => p.lean),
+      neck: ch((p) => p.neck),
+      bob: ch((p) => p.bob),
+      dx: ch((p) => p.dx ?? 0),
+      dy: ch((p) => p.dy ?? 0),
+      headShift: ch((p) => p.headShift ?? 0),
+      sway: ch((p) => p.sway ?? 0),
+      lPlant: ch((p) => p.lPlant ?? 0),
+      rPlant: ch((p) => p.rPlant ?? 0),
+      lw: ch((p) => sideWeight(p, "l")),
+      rw: ch((p) => sideWeight(p, "r")),
+      facing: hasFacing ? prepareChannel(xs, knots.map((k) => k.pose.facing ?? 1), eases, true) : null,
+      rHip: ch((p) => p.rLeg.hip),
+      rKnee: ch((p) => p.rLeg.knee),
+      rLift: ch((p) => p.rLeg.lift ?? 0),
+      lHip: ch((p) => p.lLeg.hip),
+      lKnee: ch((p) => p.lLeg.knee),
+      lLift: ch((p) => p.lLeg.lift ?? 0),
+      rShoulder: ch((p) => p.rArm.shoulder),
+      rElbow: ch((p) => p.rArm.elbow),
+      rSpread: ch((p) => p.rArm.spread ?? 0),
+      rElbowSpread: ch((p) => p.rArm.elbowSpread ?? 0),
+      lShoulder: ch((p) => p.lArm.shoulder),
+      lElbow: ch((p) => p.lArm.elbow),
+      lSpread: ch((p) => p.lArm.spread ?? 0),
+      lElbowSpread: ch((p) => p.lArm.elbowSpread ?? 0)
+    };
+    const fkTargetEstimate = (p: PoseKey, name: "lFoot" | "rFoot" | "lHand" | "rHand"): Point => {
+      const estRig = { ...clip.rig, torso: 45, thigh: 36, shin: 36, foot: 7, neck: 4, headRadius: 16.5, upperArm: 28, forearm: 28 };
+      let py = 46 + (p.bob || 0) + (p.dy ?? 0);
+      const rL0 = fkLegDirect({ x: p.dx ?? 0, y: py }, p.rLeg, estRig);
+      const lL0 = fkLegDirect({ x: p.dx ?? 0, y: py }, p.lLeg, estRig);
+      let shift = 0;
+      if (p.anchor === "both" || p.anchor === "r") shift = Math.max(shift, -(Math.min(rL0.footA.y, rL0.footB.y, rL0.ankle.y) - (p.rPlant ?? 0)));
+      if (p.anchor === "both" || p.anchor === "l") shift = Math.max(shift, -(Math.min(lL0.footA.y, lL0.footB.y, lL0.ankle.y) - (p.lPlant ?? 0)));
+      if (shift > 0) py += shift;
+      const pel = { x: p.dx ?? 0, y: py };
+      if (name === "lFoot") return fkLegDirect(pel, p.lLeg, estRig).ankle;
+      if (name === "rFoot") return fkLegDirect(pel, p.rLeg, estRig).ankle;
+      const chPt = add(pel, { x: Math.sin(rad(p.lean)) * estRig.torso, y: Math.cos(rad(p.lean)) * estRig.torso });
+      return fkArmDirect(chPt, name === "lHand" ? p.lArm : p.rArm, estRig).hand;
+    };
+    const targets: PreparedPoseTrack["targets"] = { lFoot: [], rFoot: [], lHand: [], rHand: [] };
+    for (const name of ["lFoot", "rFoot", "lHand", "rHand"] as const) {
+      let i = 0;
+      while (i < knots.length) {
+        if (!knots[i]!.pose[name]) { i++; continue; }
+        let j = i;
+        while (j + 1 < knots.length && knots[j + 1]!.pose[name]) j++;
+        const extKnots: { frame: number; ease: NonNullable<PoseKeyFrame["ease"]>; pt: Point }[] = [];
+        if (i > 0 && knots[i - 1]!.ease !== "hold") {
+          extKnots.push({ frame: knots[i - 1]!.frame, ease: knots[i - 1]!.ease, pt: fkTargetEstimate(knots[i - 1]!.pose, name) });
+        }
+        for (let k = i; k <= j; k++) extKnots.push({ frame: knots[k]!.frame, ease: knots[k]!.ease, pt: knots[k]!.pose[name]! });
+        if (j + 1 < knots.length && knots[j]!.ease !== "hold") {
+          extKnots.push({ frame: knots[j + 1]!.frame, ease: knots[j + 1]!.ease, pt: fkTargetEstimate(knots[j + 1]!.pose, name) });
+        }
+        const rxs = extKnots.map((k) => k.frame);
+        const reases = extKnots.slice(0, -1).map((k) => k.ease);
+        const xCh = prepareChannel(rxs, extKnots.map((k) => k.pt.x), reases);
+        const yCh = prepareChannel(rxs, extKnots.map((k) => k.pt.y), reases);
+        const handoffScale = (kp: PoseKey, pt: Point): number => {
+          if (name !== "lHand" && name !== "rHand") return 0.7;
+          let py = 46 + (kp.bob || 0) + (kp.dy ?? 0) + (kp.anchor ? 25.3 : 0);
+          const chPt = { x: (kp.dx ?? 0) + Math.sin(rad(kp.lean)) * 45, y: py + Math.cos(rad(kp.lean)) * 45 };
+          return clamp((Math.hypot(pt.x - chPt.x, pt.y - chPt.y) - 6) / 6, 0.25, 1);
+        };
+        if (i > 0 && knots[i - 1]!.ease !== "hold") {
+          const s = handoffScale(knots[i]!.pose, knots[i]!.pose[name]!);
+          xCh.m[1] = (xCh.m[1] ?? 0) * s;
+          yCh.m[1] = (yCh.m[1] ?? 0) * s;
+        }
+        if (j + 1 < knots.length && knots[j]!.ease !== "hold") {
+          const endLocal = extKnots.length - 2;
+          const s = handoffScale(knots[j]!.pose, knots[j]!.pose[name]!);
+          xCh.m[endLocal] = (xCh.m[endLocal] ?? 0) * s;
+          yCh.m[endLocal] = (yCh.m[endLocal] ?? 0) * s;
+        }
+        targets[name].push({ startIdx: i, endIdx: j, xCh, yCh });
+        i = j + 1;
+      }
+    }
+    const prepared: PreparedPoseTrack = { ref: rawKeys, loop: clip.loop, stride: clip.strideLength, n, knots, xs, hasFacing, scalar, targets };
+    if (Object.isExtensible(clipObj)) Object.defineProperty(clipObj, "_poseTrack", { value: prepared, configurable: true });
+    return prepared;
   };
   const walkKeys: StyleKey[] = [
     { anchor: "r", lean: 3, neck: 1, rLeg: { hip: 30, knee: 10 }, lLeg: { hip: -25, knee: 24 }, rArm: { shoulder: -28, elbow: 62 }, lArm: { shoulder: 30, elbow: 58 }, bob: 0 },
@@ -94,7 +386,8 @@ export function sampleClipMotion(library: MotionClipLibrary, request: ClipMotion
   const interpKey = (keys: StyleKey[], phase: number): StyleKey => {
     const n = keys.length; const x = (((phase % 1) + 1) % 1) * n; const i = Math.floor(x) % n; const j = (i + 1) % n; const u = easeInOut(x - i);
     const a = keys[i]!; const b = keys[j]!;
-    return { anchor: u < 0.5 ? a.anchor : b.anchor, lean: lerp(a.lean, b.lean, u), neck: lerp(a.neck, b.neck, u), bob: lerp(a.bob, b.bob, u), rLeg: interpObj(a.rLeg, b.rLeg, u), lLeg: interpObj(a.lLeg, b.lLeg, u), rArm: interpObj(a.rArm, b.rArm, u), lArm: interpObj(a.lArm, b.lArm, u) };
+    const lw = lerp(sideWeight(a, "l"), sideWeight(b, "l"), u), rw = lerp(sideWeight(a, "r"), sideWeight(b, "r"), u);
+    return { anchor: u < 0.5 ? a.anchor : b.anchor, lw, rw, lean: lerp(a.lean, b.lean, u), neck: lerp(a.neck, b.neck, u), bob: lerp(a.bob, b.bob, u), rLeg: interpObj(a.rLeg, b.rLeg, u), lLeg: interpObj(a.lLeg, b.lLeg, u), rArm: interpObj(a.rArm, b.rArm, u), lArm: interpObj(a.lArm, b.lArm, u) };
   };
   const vDown = (angle: number, length: number): Point => ({ x: Math.sin(rad(angle)) * length, y: -Math.cos(rad(angle)) * length });
   const fkLegDirect = (pelvis: Point, spec: StyleLeg, rig: MotionClip["rig"]) => { const knee = add(pelvis, vDown(spec.hip, rig.thigh)); const ankle = add(knee, vDown(spec.hip - spec.knee, rig.shin)); return { hip: pelvis, knee, ankle, footA: { x: ankle.x - rig.foot * 0.35, y: ankle.y }, footB: { x: ankle.x + rig.foot * 0.65, y: ankle.y } }; };
@@ -113,56 +406,110 @@ export function sampleClipMotion(library: MotionClipLibrary, request: ClipMotion
     hand.lateralX = sign * (9 + upper.lateralX + lower.lateralX);
     return { shoulder: chest, elbow, hand };
   };
-  const solveLeg = (hip: Point, target: Point, rawKnee: Point, rig: MotionClip["rig"], bendSide?: number) => {
-    const l1 = rig.thigh, l2 = rig.shin; const v = sub(target, hip); const rawDistance = len(v) || 1; const d = clamp(rawDistance, 1, l1 + l2 - 0.001); const ux = v.x / rawDistance, uy = v.y / rawDistance;
-    const a = (l1 * l1 - l2 * l2 + d * d) / (2 * d); const h = Math.sqrt(Math.max(0, l1 * l1 - a * a)); const base = { x: hip.x + ux * a, y: hip.y + uy * a }; const perp = { x: -uy, y: ux };
-    const rawSide = bendSide ? Math.sign(bendSide) : Math.sign((rawKnee.x - hip.x) * perp.x + (rawKnee.y - hip.y) * perp.y) || 1; const knee = { x: base.x + perp.x * h * rawSide, y: base.y + perp.y * h * rawSide };
-    return { hip, knee, ankle: target, footA: { x: target.x - rig.foot * 0.35, y: target.y }, footB: { x: target.x + rig.foot * 0.65, y: target.y } };
+  const solveTwoBone = (hip: Point, target: Point, rawKnee: Point, l1: number, l2: number, footLen: number, bendSide?: number, preGrounded = false) => {
+    const v = sub(target, hip);
+    const rawDistance = len(v) || 1e-9;
+    const minLen = Math.max(1, Math.abs(l1 - l2) + 0.001);
+    const d = preGrounded && rawDistance <= 0.994 * (l1 + l2) ? Math.max(minLen, rawDistance) : softReach(rawDistance, l1 + l2, minLen);
+    const ux = v.x / rawDistance, uy = v.y / rawDistance;
+    const a = (l1 * l1 - l2 * l2 + d * d) / (2 * d);
+    const h = Math.sqrt(Math.max(0, l1 * l1 - a * a));
+    const base = { x: hip.x + ux * a, y: hip.y + uy * a };
+    const perp = { x: -uy, y: ux };
+    const rawSide = bendSide ? Math.sign(bendSide) : Math.sign((rawKnee.x - hip.x) * perp.x + (rawKnee.y - hip.y) * perp.y) || 1;
+    const knee = { x: base.x + perp.x * h * rawSide, y: base.y + perp.y * h * rawSide };
+    const end = Math.abs(d - rawDistance) < 1e-9 ? { x: target.x, y: target.y } : { x: hip.x + ux * d, y: hip.y + uy * d };
+    return { hip, knee, ankle: end, footA: { x: end.x - footLen * 0.35, y: end.y }, footB: { x: end.x + footLen * 0.65, y: end.y } };
   };
-  const blendPoint = (a: Point, b: Point, t: number): Point => ({ x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t) });
+  const legAnglesFrom = (leg: ReturnType<typeof fkLegDirect>): { hip: number; knee: number } => {
+    const hipAng = deg(Math.atan2(leg.knee.x - leg.hip.x, -(leg.knee.y - leg.hip.y)));
+    const shinAng = deg(Math.atan2(leg.ankle.x - leg.knee.x, -(leg.ankle.y - leg.knee.y)));
+    return { hip: hipAng, knee: wrapDeg(hipAng - shinAng) };
+  };
+  const blendLeg = (pelvis: Point, a: ReturnType<typeof fkLegDirect>, b: ReturnType<typeof fkLegDirect>, t: number, rig: MotionClip["rig"]) => {
+    if (t <= 0) return a;
+    if (t >= 1) return b;
+    const aa = legAnglesFrom(a), ab = legAnglesFrom(b);
+    return fkLegDirect(pelvis, { hip: lerpAngleDeg(aa.hip, ab.hip, t), knee: lerpAngleDeg(aa.knee, ab.knee, t) }, rig);
+  };
+  const armAnglesFrom = (shoulder: Point, elbow: Point, hand: Point): { shoulder: number; elbow: number } => {
+    const shAng = deg(Math.atan2(elbow.x - shoulder.x, -(elbow.y - shoulder.y)));
+    const faAng = deg(Math.atan2(hand.x - elbow.x, -(hand.y - elbow.y)));
+    return { shoulder: shAng, elbow: wrapDeg(faAng - shAng) };
+  };
   const anchorWeight = (clip: MotionClip, frameFloat: number, anchor: StyleKey["anchor"], side: "r" | "l", key?: StyleKey): number => {
+    if (clip.name === "run" && !clip.poseKeys?.length) {
+      const x = (((frameFloat / clip.frames.length) % 1) + 1) % 1 * 8;
+      const center = side === "r" ? 0.5 : 4.5;
+      const d = Math.min(Math.abs(x - center), 8 - Math.abs(x - center));
+      return smooth(1 - d / 1.75);
+    }
     const authored = side === "l" ? key?.lw : key?.rw;
     if (authored !== undefined) return clamp01(authored);
-    if (clip.name !== "run") return anchor === "both" || anchor === side ? 1 : 0;
-    const x = (((frameFloat / clip.frames.length) % 1) + 1) % 1 * 8;
-    const center = side === "r" ? 0.5 : 4.5;
-    const d = Math.min(Math.abs(x - center), 8 - Math.abs(x - center));
-    return smooth(1 - d / 1.75);
+    return anchor === "both" || anchor === side ? 1 : 0;
   };
-  const blendLeg = (a: ReturnType<typeof fkLegDirect>, b: ReturnType<typeof solveLeg>, t: number) => ({
-    hip: blendPoint(a.hip, b.hip, t),
-    knee: blendPoint(a.knee, b.knee, t),
-    ankle: blendPoint(a.ankle, b.ankle, t),
-    footA: blendPoint(a.footA, b.footA, t),
-    footB: blendPoint(a.footB, b.footB, t)
-  });
-  const sideWeight = (key: StyleKey, side: "l" | "r"): number => key.anchor === "both" || key.anchor === side ? 1 : 0;
   const authoredKey = (clip: MotionClip, frameFloat: number): StyleKey => {
-    const keys = clip.poseKeys!;
-    const n = clip.frames.length;
+    const track = getTrack(clip);
+    const { knots, xs, scalar, targets, hasFacing, n } = track;
     const f = clip.loop ? ((frameFloat % n) + n) % n : clamp(frameFloat, 0, n - 1);
-    let ia = keys.length - 1, ib = 0, fa = keys[ia]!.frame, fb = keys[0]!.frame;
-    if (f < keys[0]!.frame) { if (clip.loop) { fa -= n; } else { ia = 0; fa = fb; } }
-    else if (f >= keys[keys.length - 1]!.frame) { if (clip.loop) { fb += n; } else { ib = ia; fb = fa; } }
-    else for (let i = 0; i < keys.length - 1; i++) if (f >= keys[i]!.frame && f < keys[i + 1]!.frame) { ia = i; ib = i + 1; fa = keys[i]!.frame; fb = keys[i + 1]!.frame; break; }
-    const ka = keys[ia]!, kb = keys[ib]!;
-    const t = fb > fa ? clamp01((f - fa) / (fb - fa)) : 0;
-    const ease = ka.ease ?? "inOut";
-    const u = ease === "linear" ? t : ease === "hold" ? 0 : ease === "in" ? t * t : ease === "out" ? 1 - (1 - t) * (1 - t) : easeInOut(t);
-    const a = ka.pose as StyleKey, b = kb.pose as StyleKey;
-    const offsetA = clip.loop && fa < 0 ? -clip.strideLength : 0;
-    const offsetB = clip.loop && ib === 0 && fb >= n ? clip.strideLength : 0;
-    const num = (x: number | undefined, y: number | undefined, d: number): number => lerp(x ?? y ?? d, y ?? x ?? d, u);
-    const out: StyleKey = { anchor: u < 0.5 ? a.anchor : b.anchor, lean: lerp(a.lean, b.lean, u), neck: lerp(a.neck, b.neck, u), bob: lerp(a.bob, b.bob, u), rLeg: interpObj(a.rLeg, b.rLeg, u), lLeg: interpObj(a.lLeg, b.lLeg, u), rArm: interpObj(a.rArm, b.rArm, u), lArm: interpObj(a.lArm, b.lArm, u), dx: num(a.dx, b.dx, 0), dy: num(a.dy, b.dy, 0), headShift: num(a.headShift, b.headShift, 0), sway: num(a.sway, b.sway, 0), lPlant: num(a.lPlant, b.lPlant, 0), rPlant: num(a.rPlant, b.rPlant, 0), lw: lerp(sideWeight(a, "l"), sideWeight(b, "l"), u), rw: lerp(sideWeight(a, "r"), sideWeight(b, "r"), u) };
-    if (a.facing !== undefined || b.facing !== undefined) out.facing = num(a.facing, b.facing, 1);
-    out.dx = lerp((a.dx ?? b.dx ?? 0) + offsetA, (b.dx ?? a.dx ?? 0) + offsetB, u);
+    if (knots.length === 1) {
+      const p = knots[0]!.pose;
+      return {
+        ...p,
+        lw: sideWeight(p, "l"),
+        rw: sideWeight(p, "r"),
+        ...(p.lFoot ? { lFootW: 1 } : {}),
+        ...(p.rFoot ? { rFootW: 1 } : {}),
+        ...(p.lHand ? { lHandW: 1 } : {}),
+        ...(p.rHand ? { rHandW: 1 } : {})
+      };
+    }
+    let lo = 0, hi = xs.length - 2;
+    if (f <= xs[0]!) lo = 0;
+    else if (f >= xs[xs.length - 1]!) lo = xs.length - 2;
+    else while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (xs[mid]! <= f) lo = mid; else hi = mid - 1; }
+    const ka = knots[lo]!, kb = knots[lo + 1]!;
+    const span = kb.frame - ka.frame;
+    const t = span > 0 ? clamp01((f - ka.frame) / span) : 0;
+    const hold = ka.ease === "hold";
+    const rHasSpread = ka.pose.rArm.spread !== undefined || kb.pose.rArm.spread !== undefined || ka.pose.rArm.elbowSpread !== undefined || kb.pose.rArm.elbowSpread !== undefined;
+    const lHasSpread = ka.pose.lArm.spread !== undefined || kb.pose.lArm.spread !== undefined || ka.pose.lArm.elbowSpread !== undefined || kb.pose.lArm.elbowSpread !== undefined;
+    const rHasLift = ka.pose.rLeg.lift !== undefined || kb.pose.rLeg.lift !== undefined;
+    const lHasLift = ka.pose.lLeg.lift !== undefined || kb.pose.lLeg.lift !== undefined;
+    const lw = evalChannel(scalar.lw!, f), rw = evalChannel(scalar.rw!, f);
+    const out: StyleKey = {
+      anchor: lw >= 0.5 && rw >= 0.5 ? "both" : lw >= 0.5 ? "l" : rw >= 0.5 ? "r" : null,
+      lean: evalChannel(scalar.lean!, f),
+      neck: evalChannel(scalar.neck!, f),
+      bob: evalChannel(scalar.bob!, f),
+      rLeg: { hip: evalChannel(scalar.rHip!, f), knee: evalChannel(scalar.rKnee!, f), ...(rHasLift ? { lift: evalChannel(scalar.rLift!, f) } : {}) },
+      lLeg: { hip: evalChannel(scalar.lHip!, f), knee: evalChannel(scalar.lKnee!, f), ...(lHasLift ? { lift: evalChannel(scalar.lLift!, f) } : {}) },
+      rArm: { shoulder: evalChannel(scalar.rShoulder!, f), elbow: evalChannel(scalar.rElbow!, f), ...(rHasSpread ? { spread: evalChannel(scalar.rSpread!, f), elbowSpread: evalChannel(scalar.rElbowSpread!, f) } : {}) },
+      lArm: { shoulder: evalChannel(scalar.lShoulder!, f), elbow: evalChannel(scalar.lElbow!, f), ...(lHasSpread ? { spread: evalChannel(scalar.lSpread!, f), elbowSpread: evalChannel(scalar.lElbowSpread!, f) } : {}) },
+      dx: evalChannel(scalar.dx!, f),
+      dy: evalChannel(scalar.dy!, f),
+      headShift: evalChannel(scalar.headShift!, f),
+      sway: evalChannel(scalar.sway!, f),
+      lPlant: evalChannel(scalar.lPlant!, f),
+      rPlant: evalChannel(scalar.rPlant!, f),
+      lw,
+      rw
+    };
+    if (hasFacing && scalar.facing) out.facing = evalChannel(scalar.facing, f);
     for (const name of ["lFoot", "rFoot", "lHand", "rHand"] as const) {
-      const pa = a[name], pb = b[name];
-      const shiftedA = pa && { x: pa.x + offsetA, y: pa.y };
-      const shiftedB = pb && { x: pb.x + offsetB, y: pb.y };
-      if (shiftedA && shiftedB) { out[name] = blendPoint(shiftedA, shiftedB, u); out[`${name}W` as "lFootW"] = 1; }
-      else if (shiftedA) { out[name] = shiftedA; out[`${name}W` as "lFootW"] = 1 - u; }
-      else if (shiftedB) { out[name] = shiftedB; out[`${name}W` as "lFootW"] = u; }
+      const pa = ka.pose[name], pb = kb.pose[name];
+      const wKey = `${name}W` as "lFootW" | "rFootW" | "lHandW" | "rHandW";
+      if (pa && pb) {
+        const run = targets[name].find((r) => lo >= r.startIdx && lo < r.endIdx);
+        out[name] = run ? { x: evalChannel(run.xCh, f), y: evalChannel(run.yCh, f) } : { x: lerp(pa.x, pb.x, easeInOut(t)), y: lerp(pa.y, pb.y, easeInOut(t)) };
+        out[wKey] = 1;
+      } else if (pa) {
+        out[name] = pa;
+        out[wKey] = hold ? 1 : 1 - easeInOut(t);
+      } else if (pb && !hold) {
+        out[name] = pb;
+        out[wKey] = easeInOut(t);
+      }
     }
     return out;
   };
@@ -181,7 +528,8 @@ export function sampleClipMotion(library: MotionClipLibrary, request: ClipMotion
       const seq: [number, StyleKey][] = [[0, stand], [m.anticipation ?? 13, crouch], [m.takeoff ?? 18, take], [m.apex ?? 40, apex], [m.land ?? 46, land], [m.recover ?? 53, stand], [clip.frames.length - 1, stand]];
       let a = seq[0]!, b = seq[1]!; for (let i = 0; i < seq.length - 1; i++) if (f >= seq[i]![0] && f <= seq[i + 1]![0]) { a = seq[i]!; b = seq[i + 1]!; break; }
       const u = easeInOut((f - a[0]) / (b[0] - a[0] || 1));
-      return { anchor: u < 0.5 ? a[1].anchor : b[1].anchor, lean: lerp(a[1].lean, b[1].lean, u), neck: lerp(a[1].neck, b[1].neck, u), bob: lerp(a[1].bob, b[1].bob, u), rLeg: interpObj(a[1].rLeg, b[1].rLeg, u), lLeg: interpObj(a[1].lLeg, b[1].lLeg, u), rArm: interpObj(a[1].rArm, b[1].rArm, u), lArm: interpObj(a[1].lArm, b[1].lArm, u) };
+      const lw = lerp(sideWeight(a[1], "l"), sideWeight(b[1], "l"), u), rw = lerp(sideWeight(a[1], "r"), sideWeight(b[1], "r"), u);
+      return { anchor: u < 0.5 ? a[1].anchor : b[1].anchor, lw, rw, lean: lerp(a[1].lean, b[1].lean, u), neck: lerp(a[1].neck, b[1].neck, u), bob: lerp(a[1].bob, b[1].bob, u), rLeg: interpObj(a[1].rLeg, b[1].rLeg, u), lLeg: interpObj(a[1].lLeg, b[1].lLeg, u), rArm: interpObj(a[1].rArm, b[1].rArm, u), lArm: interpObj(a[1].lArm, b[1].lArm, u) };
     }
     if (clip.name === "stop") {
       const f = frameFloat, m = clip.markers || {}; const run = interpKey(runKeys, (f / 24) % 1);
@@ -191,64 +539,154 @@ export function sampleClipMotion(library: MotionClipLibrary, request: ClipMotion
       const seq: [number, StyleKey][] = [[0, run], [m.brakeStart ?? 21, brake], [m.plant ?? 37, plant], [m.stand ?? 59, stand]];
       let a = seq[0]!, b = seq[1]!; for (let i = 0; i < seq.length - 1; i++) if (f >= seq[i]![0] && f <= seq[i + 1]![0]) { a = seq[i]!; b = seq[i + 1]!; break; }
       const u = easeInOut((f - a[0]) / (b[0] - a[0] || 1));
-      return { anchor: u < 0.5 ? a[1].anchor : b[1].anchor, lean: lerp(a[1].lean, b[1].lean, u), neck: lerp(a[1].neck, b[1].neck, u), bob: lerp(a[1].bob, b[1].bob, u), rLeg: interpObj(a[1].rLeg, b[1].rLeg, u), lLeg: interpObj(a[1].lLeg, b[1].lLeg, u), rArm: interpObj(a[1].rArm, b[1].rArm, u), lArm: interpObj(a[1].lArm, b[1].lArm, u) };
+      const lw = lerp(a[1].lw ?? sideWeight(a[1], "l"), sideWeight(b[1], "l"), u), rw = lerp(a[1].rw ?? sideWeight(a[1], "r"), sideWeight(b[1], "r"), u);
+      return { anchor: u < 0.5 ? a[1].anchor : b[1].anchor, lw, rw, lean: lerp(a[1].lean, b[1].lean, u), neck: lerp(a[1].neck, b[1].neck, u), bob: lerp(a[1].bob, b[1].bob, u), rLeg: interpObj(a[1].rLeg, b[1].rLeg, u), lLeg: interpObj(a[1].lLeg, b[1].lLeg, u), rArm: interpObj(a[1].rArm, b[1].rArm, u), lArm: interpObj(a[1].lArm, b[1].lArm, u) };
     }
     if (clip.name === "point" || clip.meta?.aim === "hand") {
       const hold = clip.markers?.hold ?? 16; const u = easeInOut(frameFloat / hold);
       const ant: StyleKey = { anchor: "both", lean: -5, neck: 5, bob: 0, rLeg: { hip: 14, knee: 20 }, lLeg: { hip: -14, knee: 18 }, rArm: { shoulder: -35, elbow: 60 }, lArm: { shoulder: 12, elbow: 48 } };
       const pt: StyleKey = { anchor: "both", lean: 8, neck: -7, bob: 0, rLeg: { hip: 8, knee: 15 }, lLeg: { hip: -12, knee: 15 }, rArm: { shoulder: 72, elbow: 4 }, lArm: { shoulder: -14, elbow: 50 } };
-      return { anchor: "both", lean: lerp(ant.lean, pt.lean, u), neck: lerp(ant.neck, pt.neck, u), bob: 0, rLeg: interpObj(ant.rLeg, pt.rLeg, u), lLeg: interpObj(ant.lLeg, pt.lLeg, u), rArm: interpObj(ant.rArm, pt.rArm, u), lArm: interpObj(ant.lArm, pt.lArm, u) };
+      return { anchor: "both", lw: 1, rw: 1, lean: lerp(ant.lean, pt.lean, u), neck: lerp(ant.neck, pt.neck, u), bob: 0, rLeg: interpObj(ant.rLeg, pt.rLeg, u), lLeg: interpObj(ant.lLeg, pt.lLeg, u), rArm: interpObj(ant.rArm, pt.rArm, u), lArm: interpObj(ant.lArm, pt.lArm, u) };
     }
     if (clip.name === "wave") {
       const u = (frameFloat / Math.max(1, clip.frames.length)) % 1;
       const lift = easeInOut(u / 0.25) * easeInOut((1 - u) / 0.25);
-      return { anchor: "both", lean: 1.5 * lift, neck: -1, bob: 0, rLeg: { hip: 6, knee: 14 }, lLeg: { hip: -7, knee: 14 }, rArm: { shoulder: 116, elbow: 50 + 18 * Math.sin(2 * Math.PI * 3 * u) }, lArm: { shoulder: -8, elbow: 44 } };
+      return { anchor: "both", lw: 1, rw: 1, lean: 1.5 * lift, neck: -1, bob: 0, rLeg: { hip: 6, knee: 14 }, lLeg: { hip: -7, knee: 14 }, rArm: { shoulder: 116, elbow: 50 + 18 * Math.sin(2 * Math.PI * 3 * u) }, lArm: { shoulder: -8, elbow: 44 } };
     }
-    return { anchor: "both", lean: 1, neck: 0, bob: 0, rLeg: { hip: 4, knee: 12 }, lLeg: { hip: -5, knee: 12 }, rArm: { shoulder: -8, elbow: 42 }, lArm: { shoulder: 8, elbow: 42 } };
+    return { anchor: "both", lw: 1, rw: 1, lean: 1, neck: 0, bob: 0, rLeg: { hip: 4, knee: 12 }, lLeg: { hip: -5, knee: 12 }, rArm: { shoulder: -8, elbow: 42 }, lArm: { shoulder: 8, elbow: 42 } };
   };
-  const poseLocal = (clip: MotionClip, frameFloat: number, targetLocal?: Point) => {
+  const poseLocal = (clip: MotionClip, frameFloat: number, front: number, targetLocal?: Point) => {
     const rig = { ...clip.rig, torso: 45, thigh: 36, shin: 36, foot: 7, neck: 4, headRadius: 16.5, upperArm: 28, forearm: 28 }; const k = keyFor(clip, frameFloat);
     let pelvis = { x: k.dx ?? 0, y: 46 + (k.bob || 0) + (k.dy ?? 0) }; let chest = add(pelvis, { x: Math.sin(rad(k.lean)) * rig.torso, y: Math.cos(rad(k.lean)) * rig.torso }); let head = add(chest, { x: Math.sin(rad(k.lean + k.neck)) * (rig.neck + rig.headRadius), y: Math.cos(rad(k.lean + k.neck)) * (rig.neck + rig.headRadius) });
     let rLeg = fkLegDirect(pelvis, k.rLeg, rig), lLeg = fkLegDirect(pelvis, k.lLeg, rig);
     const plant = (side: "l" | "r"): number => (side === "l" ? k.lPlant : k.rPlant) ?? 0;
     let maxGroundShift = 0; for (const [side, leg] of [["r", rLeg], ["l", lLeg]] as const) { const w = anchorWeight(clip, frameFloat, k.anchor, side, k); if (w > 0) maxGroundShift = Math.max(maxGroundShift, -(Math.min(leg.footA.y, leg.footB.y, leg.ankle.y) - plant(side)) * w); }
     if (maxGroundShift > 0) { pelvis = add(pelvis, { x: 0, y: maxGroundShift }); chest = add(chest, { x: 0, y: maxGroundShift }); head = add(head, { x: 0, y: maxGroundShift }); rLeg = fkLegDirect(pelvis, k.rLeg, rig); lLeg = fkLegDirect(pelvis, k.lLeg, rig); }
-    if (clip.poseKeys?.length) {
+    {
+      const legTotal = rig.thigh + rig.shin;
       let drop = 0;
       for (const [side, leg] of [["r", rLeg], ["l", lLeg]] as const) {
         const target = side === "l" ? k.lFoot : k.rFoot; const tw = clamp01((side === "l" ? k.lFootW : k.rFootW) ?? 0);
         const w = Math.max(anchorWeight(clip, frameFloat, k.anchor, side, k), target ? tw : 0);
-        const reach = (rig.thigh + rig.shin) * 0.995; const fx = target && tw > 0 ? target.x : leg.ankle.x; const fy = target && tw > 0 ? target.y : plant(side); const dx = fx - pelvis.x;
+        if (w <= 0) continue;
+        const fx = target && tw > 0 ? target.x : leg.ankle.x; const fy = target && tw > 0 ? target.y : plant(side); const dx = fx - pelvis.x;
+        const rawD = Math.hypot(dx, pelvis.y - fy);
+        const reach = softReach(rawD, legTotal, 1);
         const allowed = fy + Math.sqrt(Math.max(0, reach * reach - dx * dx));
-        if (w > 0 && pelvis.y > allowed) drop = Math.max(drop, (pelvis.y - allowed) * w);
+        if (pelvis.y > allowed) drop = Math.max(drop, (pelvis.y - allowed) * w);
       }
       if (drop > 0) { pelvis = add(pelvis, { x: 0, y: -drop }); chest = add(chest, { x: 0, y: -drop }); head = add(head, { x: 0, y: -drop }); rLeg = fkLegDirect(pelvis, k.rLeg, rig); lLeg = fkLegDirect(pelvis, k.lLeg, rig); }
+    }
+    if (clip.poseKeys?.length && (k.lw ?? 0) === 0 && (k.rw ?? 0) === 0) {
+      const armTotal = rig.upperArm + rig.forearm;
+      let pullX = 0, pullY = 0;
+      for (const [ht, hw] of [[k.lHand, k.lHandW ?? 0], [k.rHand, k.rHandW ?? 0]] as const) {
+        if (!ht || hw <= 0 || ht.y <= chest.y) continue;
+        const vx = ht.x - chest.x, vy = ht.y - chest.y;
+        const rawD = Math.hypot(vx, vy);
+        const reach = softReach(rawD, armTotal, 1);
+        if (rawD > reach) {
+          const frac = (1 - reach / rawD) * clamp01(hw);
+          if (Math.hypot(vx * frac, vy * frac) > Math.hypot(pullX, pullY)) { pullX = vx * frac; pullY = vy * frac; }
+        }
+      }
+      if (pullX !== 0 || pullY !== 0) {
+        pelvis = add(pelvis, { x: pullX, y: pullY }); chest = add(chest, { x: pullX, y: pullY }); head = add(head, { x: pullX, y: pullY });
+        rLeg = fkLegDirect(pelvis, k.rLeg, rig); lLeg = fkLegDirect(pelvis, k.lLeg, rig);
+      }
     }
     const kneeSide = (side: "l" | "r"): number | undefined => clip.poseKeys?.length ? (k[(side + "Leg") as "rLeg" | "lLeg"].knee >= 0 ? 1 : -1) : undefined;
     for (const side of ["r", "l"] as const) {
       let leg = side === "r" ? rLeg : lLeg;
       const w = anchorWeight(clip, frameFloat, k.anchor, side, k);
-      if (w > 0) { const centerX = leg.ankle.x + rig.foot * 0.15; const locked = solveLeg(pelvis, { x: centerX - rig.foot * 0.15, y: plant(side) }, leg.knee, rig, kneeSide(side)); leg = blendLeg(leg, locked, w); }
+      if (w > 0) {
+        const locked = solveTwoBone(pelvis, { x: leg.ankle.x, y: plant(side) }, leg.knee, rig.thigh, rig.shin, rig.foot, kneeSide(side), w >= 0.999);
+        leg = blendLeg(pelvis, leg, locked, w, rig);
+      }
       const footTarget = side === "l" ? k.lFoot : k.rFoot; const footW = clamp01((side === "l" ? k.lFootW : k.rFootW) ?? 0);
-      if (footTarget && footW > 0) leg = blendLeg(leg, solveLeg(pelvis, footTarget, leg.knee, rig, kneeSide(side)), footW);
+      if (footTarget && footW > 0) {
+        const solvedFoot = solveTwoBone(pelvis, footTarget, leg.knee, rig.thigh, rig.shin, rig.foot, kneeSide(side), footW >= 0.999);
+        leg = blendLeg(pelvis, leg, solvedFoot, footW, rig);
+      }
       const held = Math.max(w, footTarget ? footW : 0);
-      if (held < 1) { const lift = k[(side + "Leg") as "rLeg" | "lLeg"].lift || 4; const low = Math.min(leg.footA.y, leg.footB.y, leg.ankle.y) - plant(side); if (low < lift * (1 - held)) { const dy = lift * (1 - held) - low; leg.knee.y += dy; leg.ankle.y += dy; leg.footA.y += dy; leg.footB.y += dy; } }
+      if (held < 1) {
+        const specLift = k[(side + "Leg") as "rLeg" | "lLeg"].lift;
+        const lift = clip.poseKeys?.length ? (specLift ?? 4) : (specLift || 4);
+        const minClear = clip.poseKeys?.length ? Math.max(lift * (1 - held), held > 0.01 && held < 0.99 ? 0.85 : 0) : lift * (1 - held);
+        const low = Math.min(leg.footA.y, leg.footB.y, leg.ankle.y) - plant(side);
+        if (low < minClear) {
+          if (clip.poseKeys?.length) {
+            const liftedTarget = { x: leg.ankle.x, y: plant(side) + minClear };
+            leg = solveTwoBone(pelvis, liftedTarget, leg.knee, rig.thigh, rig.shin, rig.foot, kneeSide(side), false);
+          } else {
+            const dy = minClear - low;
+            leg.knee.y += dy; leg.ankle.y += dy; leg.footA.y += dy; leg.footB.y += dy;
+          }
+        }
+      }
       if (side === "r") rLeg = leg; else lLeg = leg;
     }
     let rArm = k.rArm.spread !== undefined || k.rArm.elbowSpread !== undefined ? fkArmSpread(chest, k.rArm, "r", rig) : fkArmDirect(chest, k.rArm, rig);
     let lArm = k.lArm.spread !== undefined || k.lArm.elbowSpread !== undefined ? fkArmSpread(chest, k.lArm, "l", rig) : fkArmDirect(chest, k.lArm, rig);
-    const solveArm = (arm: ReturnType<typeof fkArmDirect>, target: Point, w: number, elbow: number) => {
-      const solved = solveLeg(chest, target, arm.elbow, { ...rig, thigh: rig.upperArm, shin: rig.forearm }, elbow >= 0 ? -1 : 1);
-      return { shoulder: chest, elbow: blendPoint(arm.elbow, solved.knee, w), hand: blendPoint(arm.hand, solved.ankle, w) };
+    const solveArm = (arm: ReturnType<typeof fkArmDirect>, spec: StyleArm, target: Point, w: number, side: "l" | "r", facingVal: number) => {
+      const sign = side === "l" ? -1 : 1;
+      const bendSign = spec.elbow >= 0 ? -1 : 1;
+      const l1 = rig.upperArm, l2 = rig.forearm;
+      const prePulled = (k.lw ?? 0) === 0 && (k.rw ?? 0) === 0 && target.y > chest.y && w >= 0.999;
+      const solved = solveTwoBone(chest, target, arm.elbow, l1, l2, 0, bendSign, prePulled);
+      let outArm: ReturnType<typeof fkArmDirect>;
+      if (w >= 0.999 && spec.spread === undefined && spec.elbowSpread === undefined) {
+        outArm = { shoulder: chest, elbow: { ...solved.knee }, hand: { ...solved.ankle } };
+      } else {
+        const fkAng = { shoulder: spec.shoulder, elbow: spec.elbow };
+        const ikAng = armAnglesFrom(chest, solved.knee, solved.ankle);
+        const sh = lerpAngleDeg(fkAng.shoulder, ikAng.shoulder, w);
+        const el = lerpAngleDeg(fkAng.elbow, ikAng.elbow, w);
+        outArm = spec.spread !== undefined || spec.elbowSpread !== undefined
+          ? fkArmSpread(chest, { shoulder: sh, elbow: el, spread: (spec.spread ?? 0) * (1 - w), elbowSpread: (spec.elbowSpread ?? 0) * (1 - w) }, side, rig)
+          : fkArmDirect(chest, { shoulder: sh, elbow: el }, rig);
+      }
+      if (front > 1e-4 && spec.spread === undefined && spec.elbowSpread === undefined) {
+        // Keep raised-arm elbows hanging below shoulder level during 3D turns while clamping x within both 28-unit bone disks so orthographic projection never collapses through zero or stretches a bone.
+        const raised = clamp01((outArm.hand.y - (chest.y - 6)) / 18);
+        if (raised > 0) {
+          const desiredMaxY = Math.max(outArm.hand.y - l2 * 0.88, chest.y - 8.5 * front * raised * w);
+          if (outArm.elbow.y > desiredMaxY) {
+            const newY = desiredMaxY;
+            const r1 = Math.sqrt(Math.max(0, l1 * l1 - (newY - chest.y) * (newY - chest.y)));
+            const r2 = Math.sqrt(Math.max(0, l2 * l2 - (outArm.hand.y - newY) * (outArm.hand.y - newY)));
+            const loX = Math.max(chest.x - r1, outArm.hand.x - r2);
+            const hiX = Math.min(chest.x + r1, outArm.hand.x + r2);
+            if (loX <= hiX) outArm.elbow = { ...outArm.elbow, x: clamp(outArm.elbow.x, loX, hiX), y: newY };
+          }
+        }
+        // Pure front-view 2-bone IK in (lateralX, y) strictly inside |facing| < 0.24 (outside keyPoseGates sideView > 0.30).
+        const frontCone = smooth(1 - Math.abs(facingVal) / 0.24);
+        if (frontCone > 1e-4) {
+          const sh2d: Point = { x: sign * 9, y: chest.y };
+          const handWidth = 18 + Math.abs(outArm.hand.x - chest.x) * 0.08;
+          const hnd2d: Point = { x: sign * handWidth, y: outArm.hand.y };
+          const frontSolved = solveTwoBone(sh2d, hnd2d, hnd2d, l1, l2, 0, -sign, prePulled);
+          const baseLat = sign * (14 + Math.abs(outArm.elbow.x - chest.x) * 0.08);
+          const blendF = frontCone * w;
+          outArm.elbow.lateralX = lerp(baseLat, frontSolved.knee.x, blendF);
+          outArm.elbow.y = lerp(outArm.elbow.y, frontSolved.knee.y, blendF);
+          if (Math.abs(frontSolved.ankle.x - hnd2d.x) > 1e-6 || Math.abs(frontSolved.ankle.y - hnd2d.y) > 1e-6) {
+            outArm.hand.lateralX = lerp(hnd2d.x, frontSolved.ankle.x, blendF);
+            outArm.hand.y = lerp(outArm.hand.y, frontSolved.ankle.y, blendF);
+          }
+        }
+      }
+      return outArm;
     };
-    if (k.rHand && (k.rHandW ?? 0) > 0) rArm = solveArm(rArm, k.rHand, clamp01(k.rHandW ?? 0), k.rArm.elbow);
-    if (k.lHand && (k.lHandW ?? 0) > 0) lArm = solveArm(lArm, k.lHand, clamp01(k.lHandW ?? 0), k.lArm.elbow);
+    if (k.rHand && (k.rHandW ?? 0) > 0) rArm = solveArm(rArm, k.rArm, k.rHand, clamp01(k.rHandW ?? 0), "r", k.facing ?? 1);
+    if (k.lHand && (k.lHandW ?? 0) > 0) lArm = solveArm(lArm, k.lArm, k.lHand, clamp01(k.lHandW ?? 0), "l", k.facing ?? 1);
     if (clip.name === "point" && targetLocal) { const v = sub(targetLocal, chest); const raw = len(v) || 1; const u = mul(v, 1 / raw); const reach = Math.min(raw, (rig.upperArm + rig.forearm) * 1.05); const bend = { x: -u.y, y: u.x }; rArm = { shoulder: chest, elbow: add(chest, add(mul(u, rig.upperArm), mul(bend, 0.45))), hand: add(chest, mul(u, reach)) }; }
     const sway = k.sway ?? 0, headShift = k.headShift ?? 0;
     if (sway || headShift) {
-      (chest as Point & { frontalX?: number }).frontalX = sway;
-      (head as Point & { frontalX?: number }).frontalX = sway + headShift;
-      for (const point of [rArm.elbow, rArm.hand, lArm.elbow, lArm.hand] as Array<Point & { frontalX?: number }>) point.frontalX = sway;
+      chest.frontalX = sway;
+      head.frontalX = sway + headShift;
+      for (const point of [rArm.elbow, rArm.hand, lArm.elbow, lArm.hand]) point.frontalX = sway;
     }
     return { pelvis, chest, head, rLeg, lLeg, rArm, lArm };
   };
@@ -290,9 +728,8 @@ export function sampleClipMotion(library: MotionClipLibrary, request: ClipMotion
   const rootTravel = moving ? distance * smooth(p) : 0;
   const cycleTravelAt = (ft: number): number => clip.loop && clip.poseKeys?.length ? Math.floor(ft / clip.frames.length) * clip.strideLength * unit : 0;
   const authoredTravel = cycleTravelAt(frameTime);
-  const sampled = sampleMotionClip(clip, frameTime).frame;
   const poseKey = keyFor(clip, frameTime);
-  const facingScale = clamp(poseKey.facing ?? sampled.facing ?? 1, -1, 1);
+  const facingScale = clamp(poseKey.facing ?? sampledFacingAt(frameTime) ?? 1, -1, 1);
   let stageOriginX = action === "point" && request.pointTarget && request.placePointBeforeTarget
     ? lerp(request.startX, request.pointTarget.x - direction * 100 * request.scale, smooth(p / 0.25))
     : request.startX + direction * (rootTravel + authoredTravel);
@@ -324,17 +761,17 @@ export function sampleClipMotion(library: MotionClipLibrary, request: ClipMotion
       stageOriginX = lerp(request.startX - direction * cum0, request.endX - direction * cum1, smooth(p)) + direction * authoredTravel;
     }
   }
-  const targetLocal = action === "point" && request.pointTarget ? { x: direction * (request.pointTarget.x - stageOriginX) / unit, y: (request.groundY - request.pointTarget.y) / unit } : undefined;
-  const local = poseLocal(clip, frameTime, targetLocal);
   const front = smooth(1 - Math.abs(facingScale));
+  const targetLocal = action === "point" && request.pointTarget ? { x: direction * (request.pointTarget.x - stageOriginX) / unit, y: (request.groundY - request.pointTarget.y) / unit } : undefined;
+  const local = poseLocal(clip, frameTime, front, targetLocal);
   const lateral = (side: "l" | "r", width: number): number => (side === "l" ? -1 : 1) * front * width * unit;
   const world = (point: Point): Point => {
-    const frontalX = (point as Point & { frontalX?: number }).frontalX;
+    const frontalX = point.frontalX;
     return { x: stageOriginX + direction * facingScale * point.x * unit + (frontalX !== undefined ? frontalX * front * unit : 0), y: request.groundY - point.y * unit };
   };
   const worldSide = (point: Point, side: "l" | "r", width: number): Point => {
     const base = world(point);
-    const authored = (point as Point & { lateralX?: number }).lateralX;
+    const authored = point.lateralX;
     return { ...base, x: base.x + (authored !== undefined ? authored * front * unit : lateral(side, width)) };
   };
   const legWidth = (point: Point, base: number): number => base + Math.abs(point.x - local.pelvis.x) * 0.08;
