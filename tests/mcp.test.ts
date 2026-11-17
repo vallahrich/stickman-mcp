@@ -71,9 +71,9 @@ const scene = {
 } satisfies AnimationSpec;
 
 describe("stdio MCP protocol", () => {
-  it("negotiates v0.2.1 capabilities (tools, resources, prompts) and advertises sixteen strict, annotated tools with output schemas", async () => {
+  it("negotiates v0.2.2 capabilities (tools, resources, prompts) and advertises sixteen strict, annotated tools with output schemas", async () => {
     const { client, listed, stderr, transportErrors } = await connect();
-    expect(client.getServerVersion()).toEqual({ name: "stickman-mcp", version: "0.2.1" });
+    expect(client.getServerVersion()).toEqual({ name: "stickman-mcp", version: "0.2.2" });
     expect(client.getServerCapabilities()).toMatchObject({
       tools: {},
       resources: {},

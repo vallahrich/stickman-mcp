@@ -6,22 +6,23 @@ An original, deterministic 2D vector stick-figure animation engine for presentat
 
 - **Repository:** [`vallahrich/stickman-mcp`](https://github.com/vallahrich/stickman-mcp) (default branch: `vallahrich-stickman-mcp-engine`)
 - **Live visualization & motion gallery:** [`https://vallahrich.github.io/stickman-mcp/`](https://vallahrich.github.io/stickman-mcp/)
-- **Releases (`v0.2.1`):** [`https://github.com/vallahrich/stickman-mcp/releases/tag/v0.2.1`](https://github.com/vallahrich/stickman-mcp/releases/tag/v0.2.1)
+- **Releases (`v0.2.2`):** [`https://github.com/vallahrich/stickman-mcp/releases/tag/v0.2.2`](https://github.com/vallahrich/stickman-mcp/releases/tag/v0.2.2)
 
-### What's in `v0.2.1`
+### What's in `v0.2.2`
 
+- **Motion biomechanics overhaul, C1 monotone Hermite splines & soft-knee 2-bone IK:** Fritsch–Carlson monotone cubic Hermite pose interpolation eliminating inter-key velocity cusps and overshoots, soft-knee 2-bone IK damping hyperextension branch snaps (`0` elbow/knee flips `> 4500 deg/s`), grounded foot pinning (`0` unintentional floating clips), **35 fine-tuned motion specs** passing strict `loopSeam`, `groundedFloat`, and `jointAngularVelocity` gates, **55 aligned prop-bearing runtime actions** verified against hand/foot/head/stage contacts (`<= 35px`), and **gallery preview unification** with world-space travel camera (`STAGE_CFG`) and scrolling ground ticks (`data-ground-ticks`) eliminating travel-clip treadmill moonwalking while syncing `--cp-*` light/dark tokens with `DESIGN.md`.
 - **Full-stage CAD Blueprint render mode & `DESIGN.md` precision polish:** Orthographic CAD Blueprint rendering (`style: "blueprint"` / `--blueprint` across `v2` `theme.style`, `stickman preview`/`export`/`storyboard`, `stickman_preview`/`stickman_export`/`stickman_storyboard`, `renderStoryboardSvg`, and `renderRoomBlueprintSvg`) with 45° diagonal hatched prop geometry (`#sm-bp-hatch`), `<stickman-player controls scroll-scrub blueprint>` + `bindScrollTimeline`, `tabular-nums` + `140–180ms` `cubic-bezier(0.22, 1, 0.36, 1)` micro-interactions, and the `npm run design:check` WCAG AA / `--cp-*` token parity / anti-slop gate.
-- **106 runtime actions & 53 geometric runtime props/add-ons:** 104 assembled clips (98 user-approved key-pose motions + 6 mocap baselines) plus static/hold/turn actions, paired with 53 geometric vector props/add-ons featuring appear, socket attachment, ballistic flight, and exit lifecycles.
+- **106 runtime actions & 53 geometric runtime props/add-ons:** 104 assembled clips (98 user-approved key-pose motions + 6 mocap baselines) plus static/hold/turn actions, paired with 53 geometric vector props/add-ons (`55` auto-mapped prop-bearing runtime actions) featuring appear, socket attachment, ballistic flight, and exit lifecycles.
 - **`stickman.animation/v2` & `stickman_choreograph`:** Multi-actor scenes (`2+` stickmen with `tie`, `hat`, `glasses`, and `badge` accessories), cross-actor `emitCue`/`afterCue` synchronization, semantic stage anchors, C1 Hermite transition blending, bilateral `push`, and zero-math auto-sequencing.
 - **`stickman_storyboard`:** Compact multi-panel SVG contact sheet (`default` or `blueprint` CAD theme), optional PNG `ImageContent` preview, and spatial/bounds/seam lint (`outOfBoundsCount`, `actorOverlapWarnings`, `maxSeamStepPx`).
 - **Full local MCP & browser surface:** 16 MCP tools, 9 MCP resources (`stickman://*`), 2 MCP prompts (`choreograph-slide`, `two-actor-dialogue`), `<stickman-player controls scroll-scrub blueprint>` (`registerStickmanPlayerElement`), and `bindScrollTimeline` (`@vallahrich/stickman-mcp/browser`).
 
-### Option 1: Install from the `v0.2.1` GitHub Release
+### Option 1: Install from the `v0.2.2` GitHub Release
 
-Download `vallahrich-stickman-mcp-0.2.1.tgz` (and optionally `stickman-site-0.2.1.zip` for the pre-rendered offline showcase gallery) from the [v0.2.1 release](https://github.com/vallahrich/stickman-mcp/releases/tag/v0.2.1):
+Download `vallahrich-stickman-mcp-0.2.2.tgz` (and optionally `stickman-site-0.2.2.zip` for the pre-rendered offline showcase gallery) from the [v0.2.2 release](https://github.com/vallahrich/stickman-mcp/releases/tag/v0.2.2):
 
 ```powershell
-npm install ./vallahrich-stickman-mcp-0.2.1.tgz
+npm install ./vallahrich-stickman-mcp-0.2.2.tgz
 npx stickman discover
 npx stickman-mcp --root .\stickman-output
 ```
@@ -103,7 +104,7 @@ npm run site:build
 npm run site:serve
 ```
 
-Open `http://127.0.0.1:4173/`. `npm run site:showcase` builds the self-contained native workload comparison slide and renders both silent short films into `dist/site/showcase/` (or extract `stickman-site-0.2.1.zip` from the [v0.2.1 release](https://github.com/vallahrich/stickman-mcp/releases/tag/v0.2.1) to serve the pre-rendered site immediately). The default, release-style gallery has **no ratings
+Open `http://127.0.0.1:4173/`. `npm run site:showcase` builds the self-contained native workload comparison slide and renders both silent short films into `dist/site/showcase/` (or extract `stickman-site-0.2.2.zip` from the [v0.2.2 release](https://github.com/vallahrich/stickman-mcp/releases/tag/v0.2.2) to serve the pre-rendered site immediately). The default, release-style gallery has **no ratings
 or review notes**, including its JSON, downloaded specs and embedded previews.
 It currently contains 97 motion entries; the historically approved `sneak`
 is excluded pending mechanical requalification. Ratings remain in the
@@ -217,7 +218,7 @@ of seamless game control or completed room-scene MCP/video authoring.
 
 - SVG frame/animation, multi-panel `storyboard-svg`, and self-contained HTML preview need no renderer service or external assets.
 - GIF, MP4, and `stickman_storyboard` PNG `ImageContent` rasterize deterministic SVG frames with optional `@resvg/resvg-js` (and encode video with FFmpeg). If optional packages are unavailable, video export fails with an actionable error while SVG, `storyboard-svg`, and HTML remain available.
-- `v0.2.1` ships 106 deterministic runtime actions, 53 geometric vector props/add-ons, multi-actor `v2` cue choreography, full-stage CAD Blueprint rendering (`style: "blueprint"` / `--blueprint`) with 45° diagonal hatched prop geometry, bilateral prop push, `<stickman-player controls scroll-scrub blueprint>`, and `bindScrollTimeline`. It does not claim arbitrary motion understanding, general physics, imported 3D/bitmap assets, speech, production qualification, or universal contact-safe novel combinations. Inspect exported visuals (and `stickman_storyboard` contact sheets) in the intended presentation and validate accessibility/brand requirements separately.
+- `v0.2.2` ships 106 deterministic runtime actions (with monotone cubic Hermite pose splines, soft-knee 2-bone IK, grounded foot pinning, and 35 biomechanically fine-tuned specs), 53 geometric vector props/add-ons (`55` aligned prop-bearing runtime actions), unified world-travel gallery previews, multi-actor `v2` cue choreography, full-stage CAD Blueprint rendering (`style: "blueprint"` / `--blueprint`) with 45° diagonal hatched prop geometry, bilateral prop push, `<stickman-player controls scroll-scrub blueprint>`, and `bindScrollTimeline`. It does not claim arbitrary motion understanding, general physics, imported 3D/bitmap assets, speech, production qualification, or universal contact-safe novel combinations. Inspect exported visuals (and `stickman_storyboard` contact sheets) in the intended presentation and validate accessibility/brand requirements separately.
 - `PlaybackSession.advance(ms)` is caller-driven and has a single clock; the library starts no hidden ticker or background process.
 
 ## Motion authoring and feedback
