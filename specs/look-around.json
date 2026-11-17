@@ -301,11 +301,11 @@
         },
         "rFoot": {
           "x": 5,
-          "y": 8
+          "y": 3
         },
         "lFoot": {
           "x": -7,
-          "y": 8
+          "y": 1.8
         },
         "rArm": {
           "shoulder": 78,
@@ -330,7 +330,7 @@
     {
       "frame": 48,
       "pose": {
-        "anchor": "both",
+        "anchor": null,
         "lean": 0,
         "neck": 0,
         "bob": -1,
@@ -349,11 +349,11 @@
         },
         "rFoot": {
           "x": 5,
-          "y": 0
+          "y": 1.8
         },
         "lFoot": {
           "x": -7,
-          "y": 0
+          "y": 1.8
         },
         "rArm": {
           "shoulder": 78,
@@ -377,7 +377,7 @@
     {
       "frame": 60,
       "pose": {
-        "anchor": "both",
+        "anchor": null,
         "lean": -1,
         "neck": 4,
         "bob": -1,
@@ -396,11 +396,11 @@
         },
         "rFoot": {
           "x": 5,
-          "y": 0
+          "y": 1.8
         },
         "lFoot": {
           "x": -7,
-          "y": 0
+          "y": 1.8
         },
         "rArm": {
           "shoulder": 78,
@@ -442,11 +442,11 @@
         },
         "rFoot": {
           "x": 5,
-          "y": 8
+          "y": 1.9
         },
         "lFoot": {
           "x": -7,
-          "y": 8
+          "y": 3.5
         },
         "rArm": {
           "shoulder": 78,
@@ -465,6 +465,51 @@
           "x": -8,
           "y": 136
         }
+      },
+      "ease": "linear"
+    },
+    {
+      "frame": 74,
+      "pose": {
+        "anchor": null,
+        "lean": -5,
+        "neck": 8,
+        "bob": -2,
+        "dx": -1.6,
+        "facing": -0.82,
+        "rLeg": {
+          "hip": -8,
+          "knee": 22
+        },
+        "lLeg": {
+          "hip": 9,
+          "knee": 22
+        },
+        "rFoot": {
+          "x": 5,
+          "y": 1.7
+        },
+        "lFoot": {
+          "x": -7,
+          "y": 2
+        },
+        "rArm": {
+          "shoulder": 84,
+          "elbow": 54
+        },
+        "lArm": {
+          "shoulder": 78,
+          "elbow": 58
+        },
+        "rHand": {
+          "x": 28,
+          "y": 136
+        },
+        "lHand": {
+          "x": 0,
+          "y": 136
+        },
+        "dy": 22
       },
       "ease": "linear"
     },
@@ -621,11 +666,11 @@
         },
         "rFoot": {
           "x": 5,
-          "y": 8
+          "y": 1.8
         },
         "lFoot": {
           "x": -7,
-          "y": 8
+          "y": 3
         },
         "rArm": {
           "shoulder": 88,
@@ -650,7 +695,7 @@
     {
       "frame": 102,
       "pose": {
-        "anchor": "both",
+        "anchor": null,
         "lean": 0,
         "neck": 0,
         "bob": -1,
@@ -669,11 +714,11 @@
         },
         "rFoot": {
           "x": 5,
-          "y": 0
+          "y": 1.8
         },
         "lFoot": {
           "x": -7,
-          "y": 0
+          "y": 1.8
         },
         "rArm": {
           "shoulder": 78,
@@ -697,7 +742,7 @@
     {
       "frame": 112,
       "pose": {
-        "anchor": "both",
+        "anchor": null,
         "lean": 1,
         "neck": -3,
         "bob": 0,
@@ -713,11 +758,11 @@
         },
         "rFoot": {
           "x": 5,
-          "y": 0
+          "y": 1.8
         },
         "lFoot": {
           "x": -7,
-          "y": 0
+          "y": 1.8
         },
         "rArm": {
           "shoulder": 78,
@@ -734,14 +779,15 @@
         "lHand": {
           "x": 3,
           "y": 136
-        }
+        },
+        "dy": 24
       },
       "ease": "inOut"
     },
     {
       "frame": 120,
       "pose": {
-        "anchor": "both",
+        "anchor": null,
         "lean": 1,
         "neck": -3,
         "bob": 0,
@@ -757,11 +803,11 @@
         },
         "rFoot": {
           "x": 5,
-          "y": 0
+          "y": 1.8
         },
         "lFoot": {
           "x": -7,
-          "y": 0
+          "y": 1.8
         },
         "rArm": {
           "shoulder": 18,
@@ -778,7 +824,8 @@
         "lHand": {
           "x": 8,
           "y": 104
-        }
+        },
+        "dy": 24
       },
       "ease": "inOut"
     },
@@ -803,11 +850,11 @@
         },
         "rFoot": {
           "x": 5,
-          "y": 8
+          "y": 3
         },
         "lFoot": {
           "x": -7,
-          "y": 8
+          "y": 1.8
         },
         "rArm": {
           "shoulder": 24,

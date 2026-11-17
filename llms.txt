@@ -12,7 +12,7 @@ No external presentation renderer, private history or dependency binaries ship.
 ## Install the reviewed local candidate
 
 ```sh
-npm install ./vallahrich-stickman-mcp-0.2.1.tgz
+npm install ./vallahrich-stickman-mcp-0.2.2.tgz
 npx stickman discover
 npx stickman schema
 ```

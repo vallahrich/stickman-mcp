@@ -5,13 +5,13 @@
     "seconds": 56.7,
     "runtime": "stickman-native",
     "continuity": {
-      "maxJointStep": 2.61,
-      "worstFrame": 105,
+      "maxJointStep": 2.25,
+      "worstFrame": 910,
       "footSlides": [],
       "maxFootSlide": 0,
       "supportTransitions": [],
-      "maxVisibleStep": 1.7615457655168345,
-      "maxVisibleAcceleration": 1.7275108633692249,
+      "maxVisibleStep": 1.5191448184896603,
+      "maxVisibleAcceleration": 0.7054187347620318,
       "visibleLimits": {
         "step": 4,
         "acceleration": 2
@@ -27,28 +27,28 @@
       "captions": "open-source.vtt",
       "seconds": 58.43,
       "frames": 1753,
-      "sha256": "c674dbbb010bcb3dff1f921e2c8522f234a55b80683f025d341fae56483a2232",
+      "sha256": "8120499c8ba2a3724de95674f620c67bde993a93cf1528cb100b0d9ae1303e60",
       "provenance": [
         {
           "id": "frustrated-pc",
           "kind": "authored-key-pose",
           "frames": 198,
           "mechanicalCheck": "passed",
-          "specSha256": "fd13d1dd97b4f5880e880b3890466546506a36e82315dcaa45e27b54d15f8a51"
+          "specSha256": "827f6e071dc3075411bbd621dd5c30d13a8cd134dfc305f96e58ebe765193652"
         },
         {
           "id": "stand-up",
           "kind": "authored-key-pose",
           "frames": 70,
           "mechanicalCheck": "passed",
-          "specSha256": "0f679c1e7274ae738c0e9062c34e618130402c7aa730eb80ddecbd69463bd894"
+          "specSha256": "559fd6fd884a056c1223c9377f14e5aeb8ca5555ae0ffe5905cf66f163fd2f29"
         },
         {
           "id": "inspect-magnifier",
           "kind": "authored-key-pose",
           "frames": 162,
           "mechanicalCheck": "passed",
-          "specSha256": "b3215623f7b65bc449ca9cc12a32f1312f6a2703b6dc3bc7a6e72ec10cdf32df"
+          "specSha256": "badb708847e527054fd9668053156f92dd9836ab9d062371e99ace69b91f1c6a"
         },
         {
           "id": "reveal",
@@ -62,7 +62,7 @@
           "kind": "authored-key-pose",
           "frames": 76,
           "mechanicalCheck": "passed",
-          "specSha256": "3b5b638bd2964e5ff4650a86a9e6e027e8b7ea35f6e4538efc6667b7de0005c7"
+          "specSha256": "2a6b4c7d3f28fcce956e09e217edc5e58d0ee9460651d0e7d47affc8c63d95eb"
         },
         {
           "id": "type-at-desk",
@@ -76,7 +76,7 @@
           "kind": "authored-key-pose",
           "frames": 198,
           "mechanicalCheck": "passed",
-          "specSha256": "757c56246092b16f02453ed79b75087e0cd192810169f7f59c098877b09a8eb2"
+          "specSha256": "9d003231e89546b51b41b66ed10851bb9c19a240f4e781925953871947f235fe"
         },
         {
           "id": "thumbs-up",
@@ -118,7 +118,7 @@
           "kind": "authored-key-pose",
           "frames": 54,
           "mechanicalCheck": "passed",
-          "specSha256": "e7021ec4974685d68ecc25d14a54793119117a75bb7d7437ab656ca5e4760225"
+          "specSha256": "90aab5c6bb37f3ab2b5250c57f01f9c276424936dd5e5e1941822b78b79a64eb"
         },
         {
           "id": "generated-walk",
@@ -130,7 +130,7 @@
           "id": "film-performance",
           "kind": "continuous-composite",
           "frames": 1753,
-          "maxJointStep": 11.57,
+          "maxJointStep": 10.92,
           "camera": "locked"
         }
       ],
@@ -145,7 +145,7 @@
       "captions": "julius-caesar.vtt",
       "seconds": 59.17,
       "frames": 1775,
-      "sha256": "7fc43b35e6ae9f44baf5a743e64fff7440f55ee0e82b16dc86f0b07fe2fa2cc4",
+      "sha256": "fab9d2bd2eaeae7dcdc704184170ea27e269755ea66554e674264d0e67894f72",
       "provenance": [
         {
           "id": "wave",
@@ -159,7 +159,7 @@
           "kind": "authored-key-pose",
           "frames": 72,
           "mechanicalCheck": "passed",
-          "specSha256": "5aa7c933812e5662ec90b0f040ce55089417548e9440634f7e7f087ffd1bf621"
+          "specSha256": "740f2329136558b8a32bd92191c63476bf47429cec27917e8c8cd682d2b97034"
         },
         {
           "id": "beckon",
@@ -201,7 +201,7 @@
           "kind": "authored-key-pose",
           "frames": 212,
           "mechanicalCheck": "passed",
-          "specSha256": "b6dbd5eb234ec9ca6845994eb587d6e555e948a588e7be03c43f8955780dc51a"
+          "specSha256": "4fcadf0c5112800cf91495060f07b98efac85d5fb564d9620b38bcdb35df3a1b"
         },
         {
           "id": "nod",
@@ -234,14 +234,14 @@
           "id": "supporting-actors",
           "kind": "continuous-composite",
           "count": 17,
-          "maxJointStep": 13.75,
+          "maxJointStep": 12.57,
           "camera": "locked"
         },
         {
           "id": "film-performance",
           "kind": "continuous-composite",
           "frames": 1775,
-          "maxJointStep": 13.88,
+          "maxJointStep": 13.66,
           "camera": "locked"
         }
       ],

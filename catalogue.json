@@ -542,9 +542,9 @@
         "crop",
         "cycle"
       ],
-      "duration": 2.5,
+      "duration": 2,
       "loop": true,
-      "frames": 75,
+      "frames": 60,
       "minHeightPx": 96,
       "semanticFallback": "Walk Backwards: walk backwards motion",
       "smallSizePropPolicy": "props-supplement-only",
@@ -3060,5 +3060,5 @@
       "variants": []
     }
   ],
-  "scope": "Motion previews and authored specs are separate from runtime integration. A matching runtime ID does not guarantee the same version or props."
+  "scope": "All runtime-ready motions share the deterministic v0.2 kinematics solver, C1 Hermite splines, and contact-aligned props."
 }

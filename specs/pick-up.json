@@ -99,43 +99,44 @@
       "ease": "linear"
     },
     {
-      "frame": 8,
+      "frame": 4,
       "pose": {
-        "anchor": "both",
-        "lean": 4,
-        "neck": -2,
-        "bob": -1,
+        "anchor": "r",
+        "lean": 3,
+        "neck": -1.5,
+        "bob": -0.5,
         "rLeg": {
-          "hip": 12,
-          "knee": 24
+          "hip": 8,
+          "knee": 18
         },
         "lLeg": {
-          "hip": 4,
-          "knee": 24
+          "hip": -4,
+          "knee": 24,
+          "lift": 4
         },
         "rArm": {
-          "shoulder": 10,
-          "elbow": 58
+          "shoulder": 2,
+          "elbow": 52
         },
         "lArm": {
-          "shoulder": 18,
-          "elbow": 58
+          "shoulder": 14,
+          "elbow": 52
         },
         "rFoot": {
-          "x": 7,
+          "x": 5,
           "y": 0
         },
         "lFoot": {
-          "x": -9,
-          "y": 0
+          "x": -11,
+          "y": 4
         },
         "rHand": {
-          "x": 22,
+          "x": 20,
           "y": 68
         },
         "lHand": {
-          "x": 24,
-          "y": 68
+          "x": 23,
+          "y": 69.5
         },
         "dx": 0,
         "facing": 1
@@ -143,7 +144,96 @@
       "ease": "inOut"
     },
     {
-      "frame": 16,
+      "frame": 8,
+      "pose": {
+        "anchor": "both",
+        "lean": 5,
+        "neck": -2,
+        "bob": -1,
+        "rLeg": {
+          "hip": 14,
+          "knee": 26
+        },
+        "lLeg": {
+          "hip": 2,
+          "knee": 24
+        },
+        "rArm": {
+          "shoulder": 12,
+          "elbow": 58
+        },
+        "lArm": {
+          "shoulder": 20,
+          "elbow": 58
+        },
+        "rFoot": {
+          "x": 5,
+          "y": 0
+        },
+        "lFoot": {
+          "x": -15,
+          "y": 0
+        },
+        "rHand": {
+          "x": 22,
+          "y": 66.5
+        },
+        "lHand": {
+          "x": 24,
+          "y": 69.5
+        },
+        "dx": 0,
+        "facing": 1
+      },
+      "ease": "inOut"
+    },
+    {
+      "frame": 11,
+      "pose": {
+        "anchor": "l",
+        "lean": 9,
+        "neck": -4,
+        "bob": -4,
+        "rLeg": {
+          "hip": 26,
+          "knee": 46,
+          "lift": 4
+        },
+        "lLeg": {
+          "hip": 16,
+          "knee": 42
+        },
+        "rArm": {
+          "shoulder": 22,
+          "elbow": 62
+        },
+        "lArm": {
+          "shoulder": 30,
+          "elbow": 60
+        },
+        "rFoot": {
+          "x": 8,
+          "y": 4
+        },
+        "lFoot": {
+          "x": -15,
+          "y": 0
+        },
+        "rHand": {
+          "x": 27,
+          "y": 62
+        },
+        "lHand": {
+          "x": 29,
+          "y": 65
+        },
+        "dx": -1,
+        "facing": 1
+      },
+      "ease": "inOut"
+    },
+    {
+      "frame": 15,
       "pose": {
         "anchor": "both",
         "lean": 14,
@@ -166,20 +256,20 @@
           "elbow": 62
         },
         "rFoot": {
-          "x": 9,
+          "x": 10,
           "y": 0
         },
         "lFoot": {
-          "x": -13,
+          "x": -15,
           "y": 0
         },
         "rHand": {
           "x": 33,
-          "y": 58
+          "y": 56.5
         },
         "lHand": {
           "x": 35,
-          "y": 58
+          "y": 59.5
         },
         "dx": -2,
         "facing": 1
@@ -210,20 +300,20 @@
           "elbow": 62
         },
         "rFoot": {
-          "x": 11,
+          "x": 10,
           "y": 0
         },
         "lFoot": {
-          "x": -17,
+          "x": -15,
           "y": 0
         },
         "rHand": {
           "x": 35,
-          "y": 34
+          "y": 32.5
         },
         "lHand": {
           "x": 37,
-          "y": 34
+          "y": 35.5
         },
         "dx": -5,
         "facing": 1
@@ -254,20 +344,20 @@
           "elbow": 54
         },
         "rFoot": {
-          "x": 11,
+          "x": 10,
           "y": 0
         },
         "lFoot": {
-          "x": -17,
+          "x": -15,
           "y": 0
         },
         "rHand": {
           "x": 35,
-          "y": 30
+          "y": 28.5
         },
         "lHand": {
           "x": 37,
-          "y": 30
+          "y": 31.5
         },
         "dx": -6,
         "facing": 1
@@ -298,20 +388,20 @@
           "elbow": 53
         },
         "rFoot": {
-          "x": 11,
+          "x": 10,
           "y": 0
         },
         "lFoot": {
-          "x": -17,
+          "x": -15,
           "y": 0
         },
         "rHand": {
           "x": 35,
-          "y": 30
+          "y": 28.5
         },
         "lHand": {
           "x": 37,
-          "y": 30
+          "y": 31.5
         },
         "dx": -6,
         "facing": 1
@@ -346,16 +436,16 @@
           "y": 0
         },
         "lFoot": {
-          "x": -16,
+          "x": -15,
           "y": 0
         },
         "rHand": {
           "x": 32,
-          "y": 40
+          "y": 38.5
         },
         "lHand": {
           "x": 34,
-          "y": 40
+          "y": 41.5
         },
         "dx": -5,
         "facing": 1
@@ -386,7 +476,7 @@
           "elbow": 56
         },
         "rFoot": {
-          "x": 9,
+          "x": 10,
           "y": 0
         },
         "lFoot": {
@@ -395,11 +485,11 @@
         },
         "rHand": {
           "x": 28,
-          "y": 52
+          "y": 50.5
         },
         "lHand": {
           "x": 30,
-          "y": 52
+          "y": 53.5
         },
         "dx": -4,
         "facing": 1
@@ -430,20 +520,20 @@
           "elbow": 62
         },
         "rFoot": {
-          "x": 8,
+          "x": 10,
           "y": 0
         },
         "lFoot": {
-          "x": -13,
+          "x": -15,
           "y": 0
         },
         "rHand": {
           "x": 25,
-          "y": 62
+          "y": 60.5
         },
         "lHand": {
           "x": 27,
-          "y": 62
+          "y": 63.5
         },
         "dx": -3,
         "facing": 1
@@ -474,25 +564,70 @@
           "elbow": 70
         },
         "rFoot": {
-          "x": 7,
+          "x": 10,
           "y": 0
         },
         "lFoot": {
-          "x": -11,
+          "x": -15,
           "y": 0
         },
         "rHand": {
           "x": 22,
-          "y": 68
+          "y": 66.5
         },
         "lHand": {
           "x": 24,
-          "y": 68
+          "y": 69.5
         },
         "dx": -2,
         "facing": 1
       },
-      "ease": "out"
+      "ease": "inOut"
+    },
+    {
+      "frame": 78,
+      "pose": {
+        "anchor": "r",
+        "lean": 3,
+        "neck": -0.5,
+        "bob": -1,
+        "rLeg": {
+          "hip": 12,
+          "knee": 22
+        },
+        "lLeg": {
+          "hip": -2,
+          "knee": 24,
+          "lift": 4
+        },
+        "rArm": {
+          "shoulder": 24,
+          "elbow": 80
+        },
+        "lArm": {
+          "shoulder": 28,
+          "elbow": 78
+        },
+        "rFoot": {
+          "x": 10,
+          "y": 0
+        },
+        "lFoot": {
+          "x": -11.5,
+          "y": 4
+        },
+        "rHand": {
+          "x": 21,
+          "y": 67
+        },
+        "lHand": {
+          "x": 23,
+          "y": 69
+        },
+        "dx": -1,
+        "facing": 1
+      },
+      "ease": "inOut"
     },
     {
       "frame": 82,
@@ -518,11 +653,56 @@
           "elbow": 84
         },
         "rFoot": {
-          "x": 6,
+          "x": 10,
           "y": 0
         },
         "lFoot": {
-          "x": -9,
+          "x": -8,
+          "y": 0
+        },
+        "rHand": {
+          "x": 20,
+          "y": 68
+        },
+        "lHand": {
+          "x": 22,
+          "y": 68
+        },
+        "dx": 0,
+        "facing": 1
+      },
+      "ease": "inOut"
+    },
+    {
+      "frame": 86,
+      "pose": {
+        "anchor": "l",
+        "lean": 1.5,
+        "neck": 0,
+        "bob": 0,
+        "rLeg": {
+          "hip": 7,
+          "knee": 20,
+          "lift": 4
+        },
+        "lLeg": {
+          "hip": -7,
+          "knee": 16
+        },
+        "rArm": {
+          "shoulder": 17,
+          "elbow": 87
+        },
+        "lArm": {
+          "shoulder": 23,
+          "elbow": 85
+        },
+        "rFoot": {
+          "x": 7.5,
+          "y": 4
+        },
+        "lFoot": {
+          "x": -8,
           "y": 0
         },
         "rHand": {

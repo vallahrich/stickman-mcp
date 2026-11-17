@@ -13,7 +13,7 @@
     "url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/082/82_06.bvh",
     "alternativeFor": "push"
   },
-  "kind": "loop",
+  "kind": "oneshot",
   "travel": "travel",
   "view": "side",
   "expect": {

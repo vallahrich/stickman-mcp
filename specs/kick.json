@@ -89,7 +89,7 @@
           "y": 0
         }
       },
-      "ease": "out"
+      "ease": "inOut"
     },
     {
       "frame": 4,
@@ -460,8 +460,8 @@
           "y": 0
         },
         "lFoot": {
-          "x": -68,
-          "y": 32
+          "x": -34,
+          "y": 22
         }
       },
       "ease": "linear"
@@ -473,7 +473,7 @@
         "lean": 10,
         "neck": -3,
         "bob": -1,
-        "dx": -16,
+        "dx": -13,
         "facing": 0.96,
         "rLeg": {
           "hip": 5,
@@ -497,11 +497,47 @@
           "y": 0
         },
         "lFoot": {
-          "x": 11,
-          "y": 12
+          "x": 6,
+          "y": 10
         }
       },
       "ease": "linear"
+    },
+    {
+      "frame": 41,
+      "ease": "linear",
+      "pose": {
+        "anchor": "both",
+        "lean": 7,
+        "neck": -3.5,
+        "bob": -1,
+        "dx": -2,
+        "facing": 0.96,
+        "rLeg": {
+          "hip": -6,
+          "knee": 32
+        },
+        "lLeg": {
+          "hip": 14,
+          "knee": 28
+        },
+        "rArm": {
+          "shoulder": -46,
+          "elbow": 73
+        },
+        "lArm": {
+          "shoulder": 56,
+          "elbow": 70
+        },
+        "rFoot": {
+          "x": -12,
+          "y": 0
+        },
+        "lFoot": {
+          "x": 30,
+          "y": 0
+        }
+      }
     },
     {
       "frame": 43,
@@ -530,8 +566,8 @@
           "elbow": 64
         },
         "rFoot": {
-          "x": 12,
-          "y": 10
+          "x": 0,
+          "y": 14
         },
         "lFoot": {
           "x": 30,
@@ -641,8 +677,8 @@
           "elbow": 63
         },
         "rFoot": {
-          "x": -12,
-          "y": 28
+          "x": -8,
+          "y": 25
         },
         "lFoot": {
           "x": 30,
@@ -678,8 +714,8 @@
           "elbow": 62
         },
         "rFoot": {
-          "x": 9,
-          "y": 10.5
+          "x": 12,
+          "y": 11
         },
         "lFoot": {
           "x": 30,
@@ -715,7 +751,7 @@
           "elbow": 62
         },
         "rFoot": {
-          "x": 23.5,
+          "x": 26.5,
           "y": 10.5
         },
         "lFoot": {
@@ -789,7 +825,7 @@
           "elbow": 60
         },
         "rFoot": {
-          "x": 70,
+          "x": 66,
           "y": 17
         },
         "lFoot": {
@@ -1238,7 +1274,7 @@
     }
   ],
   "gates": {
-    "maxJointStep": 20
+    "maxJointStep": 14
   },
   "review": {
     "prop": null,
