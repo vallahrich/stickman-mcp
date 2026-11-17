@@ -1,9 +1,12 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { describeAction } from "../src/catalog.js";
+import { actionCatalog, describeAction } from "../src/catalog.js";
+import { choreographAnimation } from "../src/choreograph.js";
 import { compileAnimation, sampleAnimation } from "../src/compiler.js";
 import { CONTRACT_VERSION, type AddonType, type SampledAddon, type SampledFrame } from "../src/contract.js";
+import { RUNTIME_MOTION_LIBRARY } from "../src/motion-library.js";
+import { frameGeometry } from "../src/render.js";
 import {
   ADDON_TYPES,
   AUTO_MAPPED_ACTIONS,
@@ -570,9 +573,14 @@ describe("R3 runtime props & add-ons lifecycle engine", () => {
     expect(clampedBall.x + clampedBall.width / 2).toBeCloseTo(clampedHoop.x + clampedHoop.width * 0.7, 2);
 
     // Every auto-mapped action compiles (when in runtime catalog) and renders valid XML across its timeline
+    const pureLocomotion = new Set(["walk", "run", "jog", "walk-backwards", "crawl", "push-walk", "sneak"]);
     for (const action of AUTO_MAPPED_ACTIONS) {
       if (!describeAction(action)) continue;
-      const program = compileSingleAction(action, 2600);
+      const program = compileSingleAction(
+        action,
+        2600,
+        pureLocomotion.has(action) ? { target: { x: 420, y: 360 } } : {}
+      );
       for (const p of [0.1, 0.5, 0.8]) {
         const frame = sampleAnimation(program, p * 2600);
         const addons = sampleActionAddons({
@@ -588,6 +596,203 @@ describe("R3 runtime props & add-ons lifecycle engine", () => {
           const svg = renderAddonSvg(addon);
           assertWellFormedXmlFragment(svg, `${action}-${addon.id}@${p}`);
         }
+      }
+    }
+  });
+
+  it("enforces physical hand/foot/head/pelvis contact proximity (<= 35px, zero phantom floating props) across all 55 prop-bearing runtime clips", () => {
+    expect(AUTO_MAPPED_ACTIONS).toHaveLength(55);
+
+    // Every catalog action with a non-push, non-hand-shape prop must be auto-mapped
+    const handGestureShapes = new Set(["palm", "thumb"]);
+    for (const entry of actionCatalog) {
+      if (entry.prop && entry.action !== "push" && !handGestureShapes.has(entry.prop)) {
+        expect(
+          defaultAddonsForAction(entry.action).length,
+          `${entry.action} (prop=${entry.prop}) must map defaultAddonsForAction`
+        ).toBeGreaterThan(0);
+      }
+    }
+
+    const addonDistanceToPoint = (addon: SampledAddon, px: number, py: number): number => {
+      let dist = Math.hypot(
+        Math.max(addon.x - px, 0, px - (addon.x + addon.width)),
+        Math.max(addon.y - py, 0, py - (addon.y + addon.height))
+      );
+      if (addon.type === "sign") {
+        const cx = addon.x + addon.width / 2;
+        const y0 = addon.y + addon.height;
+        const y1 = y0 + addon.height * 1.02;
+        dist = Math.min(dist, Math.hypot(cx - px, Math.max(y0 - py, 0, py - y1)));
+      }
+      return dist;
+    };
+
+    const boxDistance = (a: SampledAddon, b: SampledAddon): number =>
+      Math.hypot(
+        Math.max(a.x - (b.x + b.width), 0, b.x - (a.x + a.width)),
+        Math.max(a.y - (b.y + b.height), 0, b.y - (a.y + a.height))
+      );
+
+    const pureLocomotion = new Set(["walk", "run", "jog", "walk-backwards", "crawl", "push-walk", "sneak"]);
+
+    for (const action of AUTO_MAPPED_ACTIONS) {
+      const clip = RUNTIME_MOTION_LIBRARY.clips[action];
+      expect(clip, `runtime clip for ${action}`).toBeDefined();
+      const n = clip!.frames.length;
+
+      for (const facing of ["right", "left"] as const) {
+        const startAnchor = facing === "right" ? "center-left" : "center-right";
+        const toAnchor = pureLocomotion.has(action)
+          ? facing === "right"
+            ? "center-right"
+            : "center-left"
+          : undefined;
+        const choreo = choreographAnimation({
+          actor: { x: startAnchor, facing },
+          actions: [{ action, ...(toAnchor ? { to: toAnchor } : {}) }]
+        });
+        expect(choreo.valid, `${action} (${facing}) choreograph valid`).toBe(true);
+        const program = choreo.program!;
+        const durationMs = choreo.spec!.durationMs;
+
+        const minContactByAddon = new Map<string, number>();
+
+        for (let f = 0; f <= n; f++) {
+          const p = f / n;
+          const frame = sampleAnimation(program, p * durationMs);
+          const geom = frameGeometry(frame);
+          const seg = (id: string) => frame.segments.find((s) => s.id === id)!;
+          const rFore = seg("right-forearm");
+          const lFore = seg("left-forearm");
+          const rShin = seg("right-shin");
+          const lShin = seg("left-shin");
+          const torso = seg("torso");
+
+          const bodyContacts = [
+            { x: rFore.x2, y: rFore.y2, radius: 0 },
+            { x: lFore.x2, y: lFore.y2, radius: 0 },
+            { x: rFore.x1 + (rFore.x2 - rFore.x1) * 0.82, y: rFore.y1 + (rFore.y2 - rFore.y1) * 0.82, radius: 0 },
+            { x: rShin.x2, y: rShin.y2, radius: 0 },
+            { x: lShin.x2, y: lShin.y2, radius: 0 },
+            { x: torso.x1, y: torso.y1, radius: 0 },
+            { x: torso.x2, y: torso.y2, radius: 0 },
+            { x: geom.head.x, y: geom.head.y, radius: geom.headRadius }
+          ];
+
+          const addons = frame.addons ?? [];
+          for (const addon of addons) {
+            if (addon.opacity < 0.25) continue;
+            let best = Infinity;
+            for (const pt of bodyContacts) {
+              const d = Math.max(0, addonDistanceToPoint(addon, pt.x, pt.y) - pt.radius);
+              if (d < best) best = d;
+            }
+            if (addon.type === "hoop" || addon.type === "goal") {
+              for (const other of addons) {
+                if (other.id !== addon.id && (other.type === "basketball" || other.type === "football" || other.type === "ball")) {
+                  best = Math.min(best, boxDistance(addon, other));
+                }
+              }
+            }
+            const prev = minContactByAddon.get(addon.id);
+            if (prev === undefined || best < prev) {
+              minContactByAddon.set(addon.id, best);
+            }
+          }
+        }
+
+        expect(minContactByAddon.size, `${action} (${facing}) must emit visible addons`).toBeGreaterThan(0);
+        for (const [addonId, minDist] of minContactByAddon.entries()) {
+          expect(minDist, `${action} (${facing}) addon "${addonId}" contact distance`).toBeLessThanOrEqual(35);
+        }
+      }
+    }
+
+    // Verify exact stair step tread support (<= 2px) on stairs-down, stairs-up, and step-up
+    for (const stairAction of ["stairs-down", "stairs-up", "step-up"] as const) {
+      const clip = RUNTIME_MOTION_LIBRARY.clips[stairAction]!;
+      const n = clip.frames.length;
+      const choreo = choreographAnimation({
+        canvas: { width: 1200, height: 600, fps: 30 },
+        groundY: 480,
+        actor: { x: 400 },
+        actions: [{ action: stairAction }]
+      });
+      const program = choreo.program!;
+      const durationMs = choreo.spec!.durationMs;
+
+      for (let f = 1; f < n - 1; f++) {
+        const frame = sampleAnimation(program, (f / (n - 1)) * durationMs);
+        const prevFrame = sampleAnimation(program, ((f - 1) / (n - 1)) * durationMs);
+        const nextFrame = sampleAnimation(program, ((f + 1) / (n - 1)) * durationMs);
+        const stairs = frame.addons?.find((a) => a.type === "stairs");
+        if (!stairs) continue;
+        const steps = stairs.height / Math.max(1, stairs.width) <= 0.4 ? 1 : 3;
+        for (const shinId of ["left-shin", "right-shin"] as const) {
+          const sh = frame.segments.find((s) => s.id === shinId)!;
+          const shPrev = prevFrame.segments.find((s) => s.id === shinId)!;
+          const shNext = nextFrame.segments.find((s) => s.id === shinId)!;
+          const planted =
+            Math.hypot(sh.x2 - shPrev.x2, sh.y2 - shPrev.y2) < 0.25 &&
+            Math.hypot(sh.x2 - shNext.x2, sh.y2 - shNext.y2) < 0.25;
+          if (planted && sh.y2 < frame.groundY - 1) {
+            expect(sh.x2, `${stairAction}@f${f} ${shinId} within stairs X`).toBeGreaterThanOrEqual(stairs.x - 1);
+            expect(sh.x2, `${stairAction}@f${f} ${shinId} within stairs X`).toBeLessThanOrEqual(stairs.x + stairs.width + 1);
+            const u = Math.min(0.999999, Math.max(0, (sh.x2 - stairs.x) / stairs.width));
+            const stepIdx = Math.floor(u * steps);
+            const treadY =
+              stairs.hinge === "left"
+                ? stairs.y + (stairs.height * stepIdx) / steps
+                : stairs.y + stairs.height * (1 - (stepIdx + 1) / steps);
+            expect(Math.abs(sh.y2 - treadY), `${stairAction}@f${f} ${shinId} tread Y alignment`).toBeLessThanOrEqual(2);
+          }
+        }
+      }
+    }
+
+    // Verify sustained hand grip proximity (<= 12px) on held & carried props
+    const sustainedHeldChecks: ReadonlyArray<[string, string, number, number, "rHand" | "lHand" | "bothHands"]> = [
+      ["present-card", "card", 0.22, 0.5, "rHand"],
+      ["reveal", "card", 0.46, 0.67, "rHand"],
+      ["hand-over", "card", 0.1, 0.56, "rHand"],
+      ["tablet-tap", "tablet", 0.1, 0.85, "lHand"],
+      ["write-notes", "notebook", 0.1, 0.88, "lHand"],
+      ["write-notes", "pen", 0.1, 0.88, "rHand"],
+      ["hold-sign", "sign", 0.1, 0.88, "rHand"],
+      ["inspect-magnifier", "magnifier", 0.1, 0.9, "rHand"],
+      ["inspect-magnifier", "notebook", 0.1, 0.9, "lHand"],
+      ["phone-call", "phone", 0.08, 0.88, "rHand"],
+      ["pick-up", "box", 0.41, 0.9, "bothHands"],
+      ["put-down", "box", 0.02, 0.58, "bothHands"],
+      ["lift-carry", "box", 0.12, 0.85, "bothHands"],
+      ["drag-object", "box", 0.2, 0.74, "bothHands"],
+      ["pull", "box", 0.13, 0.82, "bothHands"],
+      ["push-walk", "box", 0.13, 0.78, "bothHands"]
+    ];
+    for (const [actName, addonId, pStart, pEnd, socket] of sustainedHeldChecks) {
+      const choreo = choreographAnimation({
+        actor: { x: "center-left" },
+        actions: [{ action: actName, ...(actName === "push-walk" ? { to: "center-right" } : {}) }]
+      });
+      const program = choreo.program!;
+      const durationMs = choreo.spec!.durationMs;
+      for (const tFrac of [pStart, (pStart + pEnd) / 2, pEnd]) {
+        const frame = sampleAnimation(program, tFrac * durationMs);
+        const addon = frame.addons?.find((a) => a.id === addonId);
+        expect(addon, `${actName}@${tFrac} missing ${addonId}`).toBeDefined();
+        const rFore = frame.segments.find((s) => s.id === "right-forearm")!;
+        const lFore = frame.segments.find((s) => s.id === "left-forearm")!;
+        const gripDist =
+          socket === "rHand"
+            ? addonDistanceToPoint(addon!, rFore.x2, rFore.y2)
+            : socket === "lHand"
+              ? addonDistanceToPoint(addon!, lFore.x2, lFore.y2)
+              : Math.min(
+                  addonDistanceToPoint(addon!, rFore.x2, rFore.y2),
+                  addonDistanceToPoint(addon!, lFore.x2, lFore.y2)
+                );
+        expect(gripDist, `${actName}@${tFrac} ${addonId} grip distance`).toBeLessThanOrEqual(12);
       }
     }
   });

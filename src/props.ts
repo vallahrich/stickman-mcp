@@ -778,7 +778,7 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       layer: "front",
       width: 24,
       height: 32,
-      dy: 14,
+      dy: 4,
       color: "#f59e0b",
       secondaryColor: "#ffd43b",
       enter: "pop",
@@ -795,8 +795,8 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       type: "card",
       socket: "rHand",
       layer: "front",
-      width: 34,
-      height: 22,
+      width: 30,
+      height: 20,
       dx: 3,
       dy: 2,
       color: BRAND_ACCENT_HEX,
@@ -805,9 +805,9 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       enterDuration: 0.09,
       attachWindow: {
         from: 0.2,
-        until: 0.51,
+        until: 0.507,
         pinOnRelease: true,
-        pinnedPoint: { x: 63.2, y: 131.5 }
+        pinnedPoint: { x: 63.2, y: 130.9 }
       },
       exit: "fade",
       exitAt: 0.92,
@@ -820,10 +820,10 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       type: "card",
       socket: "rHand",
       layer: "front",
-      width: 36,
-      height: 24,
-      dx: 10,
-      dy: 12,
+      width: 34,
+      height: 22,
+      dx: 4,
+      dy: 4,
       color: BRAND_ACCENT_HEX,
       enter: "pop",
       enterAt: 0.44,
@@ -832,11 +832,61 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
         from: 0.44,
         until: 0.68,
         pinOnRelease: true,
-        pinnedPoint: { x: 58, y: 120 }
+        pinnedPoint: { x: 53.2, y: 101.7 }
       },
       exit: "fade",
       exitAt: 0.92,
       exitDuration: 0.08
+    }
+  ],
+  "hand-over": [
+    {
+      id: "card",
+      type: "card",
+      socket: "rHand",
+      layer: "front",
+      width: 26,
+      height: 18,
+      dx: 4,
+      dy: 3,
+      color: BRAND_ACCENT_HEX,
+      enter: "fade",
+      enterAt: 0.084,
+      enterDuration: 0.04,
+      attachWindow: {
+        from: 0.084,
+        until: 0.571
+      },
+      flight: {
+        from: 0.571,
+        to: 0.672,
+        target: { x: 104, y: 111.5 },
+        apex: 0,
+        spin: 0,
+        releaseOffset: { x: 66.1, y: 111.5 }
+      },
+      exit: "fade",
+      exitAt: 0.74,
+      exitDuration: 0.12
+    }
+  ],
+  "tap-element": [
+    {
+      id: "window",
+      type: "window",
+      socket: "stage",
+      layer: "back",
+      x: 42,
+      y: 92,
+      width: 56,
+      height: 38,
+      color: "#6675cc",
+      enter: "pop",
+      enterAt: 0.08,
+      enterDuration: 0.08,
+      exit: "fade",
+      exitAt: 0.88,
+      exitDuration: 0.12
     }
   ],
   "write-board": [
@@ -899,6 +949,96 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       exitAt: 0.88,
       exitDuration: 0.12,
       keyframes: DOOR_OPEN_KEYFRAMES
+    }
+  ],
+  "enter-door": [
+    {
+      id: "door",
+      type: "door",
+      socket: "stage",
+      layer: "back",
+      x: 75,
+      y: 0,
+      width: 85,
+      height: 185,
+      hinge: "left",
+      open: 0.9,
+      color: "#202124",
+      enter: "fade",
+      enterAt: 0,
+      enterDuration: 0.058,
+      exit: "fade",
+      exitAt: 0.808,
+      exitDuration: 0.115
+    },
+    {
+      id: "door-frame",
+      type: "door",
+      socket: "stage",
+      layer: "front",
+      x: 75,
+      y: 0,
+      width: 85,
+      height: 185,
+      hinge: "left",
+      open: 0.9,
+      color: "#202124",
+      enter: "fade",
+      enterAt: 0,
+      enterDuration: 0.058,
+      exit: "fade",
+      exitAt: 0.808,
+      exitDuration: 0.115
+    }
+  ],
+  "exit-door": [
+    {
+      id: "door",
+      type: "door",
+      socket: "stage",
+      layer: "back",
+      x: 102,
+      y: 0,
+      width: 70,
+      height: 185,
+      hinge: "right",
+      color: "#202124",
+      enter: "instant",
+      exit: "fade",
+      exitAt: 0.9,
+      exitDuration: 0.1,
+      keyframes: [
+        { at: 0, open: 0 },
+        { at: 0.264, open: 0 },
+        { at: 0.455, open: 0.9 },
+        { at: 0.791, open: 0.9 },
+        { at: 0.9, open: 0 },
+        { at: 1, open: 0 }
+      ]
+    },
+    {
+      id: "door-frame",
+      type: "door",
+      socket: "stage",
+      layer: "front",
+      x: 102,
+      y: 0,
+      width: 70,
+      height: 185,
+      hinge: "right",
+      color: "#202124",
+      enter: "instant",
+      exit: "fade",
+      exitAt: 0.9,
+      exitDuration: 0.1,
+      keyframes: [
+        { at: 0, open: 0 },
+        { at: 0.264, open: 0 },
+        { at: 0.455, open: 0.9 },
+        { at: 0.791, open: 0.9 },
+        { at: 0.9, open: 0 },
+        { at: 1, open: 0 }
+      ]
     }
   ],
   "type-at-desk": [
@@ -1056,12 +1196,12 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       enterAt: 0,
       enterDuration: 0.04,
       flight: {
-        from: 0.555,
+        from: 0.419,
         to: 0.718,
         target: "goal",
         apex: 38,
         spin: 1080,
-        dropToGroundAt: 0.77
+        dropToGroundAt: 0.78
       },
       exit: "shrink",
       exitAt: 0.833,
@@ -1088,10 +1228,10 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       flight: {
         from: 0.495,
         to: 0.62,
-        target: { x: 240, y: 153 },
+        target: { x: 220, y: 150 },
         apex: 18,
         spin: 1440,
-        releaseOffset: { x: 30.48, y: 153.05 }
+        releaseOffset: { x: 39.6, y: 158.6 }
       },
       exit: "fade",
       exitAt: 0.62,
@@ -1113,19 +1253,42 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       enterDuration: 0.08,
       attachWindow: {
         from: 0,
-        until: 0.48
+        until: 0.495
       },
       flight: {
-        from: 0.48,
+        from: 0.495,
         to: 0.66,
-        target: { x: 220, y: 140 },
+        target: { x: 210, y: 140 },
         apex: 22,
         spin: 1080,
-        releaseOffset: { x: 28, y: 146 }
+        releaseOffset: { x: 39.6, y: 158.6 }
       },
       exit: "fade",
       exitAt: 0.66,
       exitDuration: 0.07
+    }
+  ],
+  catch: [
+    {
+      id: "ball",
+      type: "ball",
+      socket: "bothHands",
+      layer: "front",
+      width: 14,
+      height: 14,
+      color: "#ffffff",
+      secondaryColor: "#c62828",
+      enter: "fade",
+      enterAt: 0.086,
+      enterDuration: 0.04,
+      exit: "fade",
+      exitAt: 0.74,
+      exitDuration: 0.08,
+      keyframes: [
+        { at: 0.086, x: 96, y: 28, rotation: 0 },
+        { at: 0.276, x: 0, y: 0, rotation: -360 },
+        { at: 1, x: 0, y: 0, rotation: -360 }
+      ]
     }
   ],
   hurdle: [
@@ -1134,7 +1297,7 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       type: "hurdle",
       socket: "stage",
       layer: "front",
-      x: 112,
+      x: 138,
       y: 0,
       width: 26,
       height: 40,
@@ -1246,7 +1409,9 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       exitDuration: 0.08,
       keyframes: [
         { at: 0, y: 96 },
-        { at: 0.145, y: 96 },
+        { at: 0.145, y: 42 },
+        { at: 0.289, y: 26 },
+        { at: 0.434, y: 10 },
         { at: 0.554, y: 0 },
         { at: 1, y: 0 }
       ]
@@ -1258,7 +1423,7 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       type: "banner",
       socket: "stage",
       layer: "front",
-      x: 42,
+      x: 34,
       y: 112,
       width: 94,
       height: 44,
@@ -1269,7 +1434,8 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       exitDuration: 0.08,
       keyframes: [
         { at: 0, y: -112 },
-        { at: 0.145, y: -92 },
+        { at: 0.145, y: -80 },
+        { at: 0.361, y: -68 },
         { at: 0.554, y: 0 },
         { at: 1, y: 0 }
       ]
@@ -1281,7 +1447,7 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       type: "banner",
       socket: "stage",
       layer: "front",
-      x: -218,
+      x: 148,
       y: 36,
       width: 94,
       height: 44,
@@ -1293,8 +1459,8 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       keyframes: [
         { at: 0, x: 0 },
         { at: 0.348, x: 0 },
-        { at: 0.83, x: 48 },
-        { at: 1, x: 48 }
+        { at: 0.83, x: -48 },
+        { at: 1, x: -48 }
       ]
     }
   ],
@@ -1376,7 +1542,7 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
     {
       id: "binoculars",
       type: "binoculars",
-      socket: "eyes",
+      socket: "bothHands",
       layer: "front",
       width: 50,
       height: 25,
@@ -1385,7 +1551,7 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       enterAt: 0.059,
       enterDuration: 0.05,
       exit: "fade",
-      exitAt: 0.889,
+      exitAt: 0.84,
       exitDuration: 0.06
     }
   ],
@@ -1395,14 +1561,65 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       type: "ladder",
       socket: "stage",
       layer: "back",
-      x: 28,
+      x: 30,
       y: 0,
-      width: 40,
-      height: 240,
+      width: 28,
+      height: 220,
       color: "#202124",
       enter: "instant",
       exit: "fade",
       exitAt: 0.92,
+      exitDuration: 0.08
+    }
+  ],
+  "climb-down": [
+    {
+      id: "ladder",
+      type: "ladder",
+      socket: "stage",
+      layer: "back",
+      x: 18,
+      y: 0,
+      width: 34,
+      height: 220,
+      color: "#202124",
+      enter: "instant",
+      exit: "fade",
+      exitAt: 0.9,
+      exitDuration: 0.08
+    }
+  ],
+  "climb-ledge": [
+    {
+      id: "ledge",
+      type: "ledge",
+      socket: "stage",
+      layer: "back",
+      x: 62,
+      y: 0,
+      width: 64,
+      height: 46,
+      color: "#202124",
+      enter: "instant",
+      exit: "fade",
+      exitAt: 0.92,
+      exitDuration: 0.08
+    }
+  ],
+  "hang-swing": [
+    {
+      id: "bar",
+      type: "bar",
+      socket: "stage",
+      layer: "back",
+      x: -22,
+      y: 182,
+      width: 80,
+      height: 6,
+      color: "#4a4f57",
+      enter: "instant",
+      exit: "fade",
+      exitAt: 0.9,
       exitDuration: 0.08
     }
   ],
@@ -1414,8 +1631,8 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       layer: "back",
       x: 25,
       y: 0,
-      width: 90,
-      height: 24,
+      width: 55,
+      height: 20,
       color: "#202124",
       enter: "instant",
       exit: "fade",
@@ -1429,7 +1646,7 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       type: "stairs",
       socket: "stage",
       layer: "back",
-      x: 25,
+      x: 50,
       y: 0,
       width: 90,
       height: 54,
@@ -1447,9 +1664,9 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       type: "stairs",
       socket: "stage",
       layer: "back",
-      x: 25,
+      x: -2,
       y: 0,
-      width: 90,
+      width: 114,
       height: 54,
       hinge: "left",
       color: "#202124",
@@ -1463,99 +1680,140 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
     {
       id: "box",
       type: "box",
-      socket: "stage",
+      socket: "bothHands",
       layer: "front",
-      x: 35,
-      y: 0,
       width: 50,
       height: 40,
+      dx: 24,
+      dy: -10,
       color: "#b78345",
       enter: "pop",
       enterAt: 0,
       enterDuration: 0.06,
+      attachWindow: {
+        from: 0.4,
+        until: 1,
+        pinOnRelease: true
+      },
       exit: "fade",
       exitAt: 0.92,
-      exitDuration: 0.08,
-      keyframes: [
-        { at: 0, x: 0, y: 0 },
-        { at: 0.42, x: 0, y: 0 },
-        { at: 0.85, x: -15, y: 38 },
-        { at: 1, x: -15, y: 38 }
-      ]
+      exitDuration: 0.08
     }
   ],
   "put-down": [
     {
       id: "box",
       type: "box",
-      socket: "stage",
+      socket: "bothHands",
       layer: "front",
-      x: 12,
-      y: 0,
       width: 50,
       height: 40,
+      dx: 15,
+      dy: -21.5,
       color: "#b78345",
       enter: "instant",
+      attachWindow: {
+        from: 0,
+        until: 0.584,
+        pinOnRelease: true
+      },
       exit: "fade",
       exitAt: 0.85,
-      exitDuration: 0.15,
-      keyframes: [
-        { at: 0, x: 0, y: 32 },
-        { at: 0.09, x: 0, y: 32 },
-        { at: 0.58, x: 10, y: 0 },
-        { at: 1, x: 10, y: 0 }
-      ]
+      exitDuration: 0.15
     }
   ],
   "lift-carry": [
     {
       id: "box",
       type: "box",
-      socket: "stage",
+      socket: "bothHands",
       layer: "front",
-      x: 35,
-      y: 0,
       width: 50,
       height: 40,
+      dx: 24,
+      dy: -10.2,
       color: "#b78345",
       enter: "pop",
       enterAt: 0,
       enterDuration: 0.04,
+      attachWindow: {
+        from: 0.111,
+        until: 0.861,
+        pinOnRelease: true
+      },
       exit: "fade",
       exitAt: 0.94,
-      exitDuration: 0.06,
-      keyframes: [
-        { at: 0, x: 0, y: 0 },
-        { at: 0.14, x: 0, y: 0 },
-        { at: 0.29, x: -15, y: 38 },
-        { at: 0.35, x: -31, y: 57 },
-        { at: 0.65, x: 66, y: 57 },
-        { at: 0.86, x: 92, y: 0 },
-        { at: 1, x: 92, y: 0 }
-      ]
+      exitDuration: 0.06
+    }
+  ],
+  "drag-object": [
+    {
+      id: "box",
+      type: "box",
+      socket: "bothHands",
+      layer: "front",
+      width: 76,
+      height: 62,
+      dx: -38,
+      dy: -30,
+      color: "#35a69a",
+      enter: "fade",
+      enterAt: 0,
+      enterDuration: 0.06,
+      attachWindow: {
+        from: 0.194,
+        until: 0.748,
+        pinOnRelease: true
+      },
+      exit: "fade",
+      exitAt: 0.92,
+      exitDuration: 0.08
     }
   ],
   pull: [
     {
       id: "box",
       type: "box",
-      socket: "stage",
+      socket: "bothHands",
       layer: "front",
-      x: 28,
-      y: 0,
       width: 70,
       height: 55,
+      dx: 35,
+      dy: -26.5,
       color: "#b78345",
       enter: "instant",
+      attachWindow: {
+        from: 0.125,
+        until: 0.83,
+        pinOnRelease: true
+      },
       exit: "fade",
       exitAt: 0.92,
-      exitDuration: 0.08,
-      keyframes: [
-        { at: 0, x: 0 },
-        { at: 0.348, x: 0 },
-        { at: 0.83, x: -48 },
-        { at: 1, x: -48 }
-      ]
+      exitDuration: 0.08
+    }
+  ],
+  "push-walk": [
+    {
+      id: "box",
+      type: "box",
+      socket: "bothHands",
+      layer: "front",
+      width: 64,
+      height: 84,
+      dx: 32,
+      dy: -32,
+      color: "#e5a33b",
+      enter: "fade",
+      enterAt: 0,
+      enterDuration: 0.05,
+      attachWindow: {
+        from: 0.12,
+        until: 0.79,
+        pinOnRelease: true
+      },
+      exit: "fade",
+      exitAt: 0.93,
+      exitDuration: 0.07
     }
   ],
   vault: [
@@ -1564,10 +1822,10 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       type: "box",
       socket: "stage",
       layer: "back",
-      x: 15,
+      x: 121,
       y: 0,
       width: 60,
-      height: 45,
+      height: 55,
       color: "#b78345",
       enter: "pop",
       enterAt: 0,
@@ -1583,7 +1841,7 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       type: "ball",
       socket: "stage",
       layer: "front",
-      x: 45,
+      x: 35,
       y: 0,
       width: 20,
       height: 20,
@@ -1593,15 +1851,15 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       enterAt: 0,
       enterDuration: 0.08,
       flight: {
-        from: 0.44,
-        to: 0.92,
-        target: { x: 225, y: 10 },
+        from: 0.419,
+        to: 0.78,
+        target: { x: 195, y: 12 },
         apex: 32,
         spin: 720
       },
       exit: "fade",
-      exitAt: 0.92,
-      exitDuration: 0.08
+      exitAt: 0.78,
+      exitDuration: 0.1
     }
   ],
   dodge: [
@@ -1610,8 +1868,8 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       type: "ball",
       socket: "stage",
       layer: "front",
-      x: 126,
-      y: 92,
+      x: 136,
+      y: 118,
       width: 18,
       height: 18,
       color: "#ffffff",
@@ -1620,13 +1878,15 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       enterAt: 0,
       enterDuration: 0.06,
       exit: "fade",
-      exitAt: 0.88,
-      exitDuration: 0.12,
+      exitAt: 0.36,
+      exitDuration: 0.1,
       keyframes: [
         { at: 0, x: 0, y: 0 },
-        { at: 0.14, x: -26, y: 0 },
-        { at: 0.43, x: -130, y: 0 },
-        { at: 1, x: -218, y: -8 }
+        { at: 0.137, x: -36, y: 0 },
+        { at: 0.294, x: -144, y: 0 },
+        { at: 0.373, x: -198, y: -1 },
+        { at: 0.46, x: -240, y: -2 },
+        { at: 1, x: -240, y: -2 }
       ]
     }
   ],
@@ -1636,7 +1896,7 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       type: "sand-pit",
       socket: "stage",
       layer: "back",
-      x: 118,
+      x: 144,
       y: 0,
       width: 104,
       height: 14,
@@ -1653,8 +1913,8 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       type: "sand-puff",
       socket: "stage",
       layer: "front",
-      x: 152,
-      y: 2,
+      x: 171,
+      y: 0,
       width: 32,
       height: 16,
       color: "#e8c872",
@@ -1668,14 +1928,14 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
   ],
   "open-laptop": [
     {
-      id: "desk",
-      type: "desk",
+      id: "platform",
+      type: "platform",
       socket: "stage",
       layer: "back",
-      x: 12,
+      x: 30,
       y: 0,
-      width: 96,
-      height: 82,
+      width: 62,
+      height: 68,
       color: "#202124",
       enter: "instant",
       exit: "fade",
@@ -1687,8 +1947,8 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       type: "laptop",
       socket: "stage",
       layer: "front",
-      x: 34,
-      y: 82,
+      x: 33,
+      y: 67,
       width: 48,
       height: 34,
       color: "#6675cc",
@@ -1698,8 +1958,9 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       exitDuration: 0.08,
       keyframes: [
         { at: 0, open: 0 },
-        { at: 0.25, open: 0 },
-        { at: 0.62, open: 1 },
+        { at: 0.246, open: 0 },
+        { at: 0.536, open: 0.78 },
+        { at: 0.67, open: 1 },
         { at: 1, open: 1 }
       ]
     }
@@ -1710,14 +1971,16 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       type: "tablet",
       socket: "lHand",
       layer: "front",
-      width: 22,
-      height: 30,
+      width: 34,
+      height: 44,
+      dx: 17,
+      dy: 22,
       color: "#259b91",
-      enter: "pop",
-      enterAt: 0,
+      enter: "fade",
+      enterAt: 0.04,
       enterDuration: 0.08,
       exit: "fade",
-      exitAt: 0.92,
+      exitAt: 0.88,
       exitDuration: 0.08
     }
   ],
@@ -1739,12 +2002,32 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       exitDuration: 0.08
     },
     {
+      id: "notebook",
+      type: "notebook",
+      socket: "lHand",
+      layer: "front",
+      width: 22,
+      height: 28,
+      dx: 11,
+      dy: 14,
+      color: "#cf647e",
+      enter: "fade",
+      enterAt: 0.04,
+      enterDuration: 0.08,
+      exit: "fade",
+      exitAt: 0.92,
+      exitDuration: 0.08
+    },
+    {
       id: "magnifier",
       type: "magnifier",
       socket: "rHand",
       layer: "front",
-      width: 24,
-      height: 34,
+      width: 28,
+      height: 40,
+      dx: -7.3,
+      dy: 13.2,
+      rotation: 10,
       color: "#e2a532",
       enter: "pop",
       enterAt: 0.04,
@@ -1760,19 +2043,21 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       type: "notebook",
       socket: "lHand",
       layer: "front",
-      width: 30,
-      height: 36,
+      width: 24,
+      height: 28,
+      dx: 12,
+      dy: 14,
       color: "#cf647e",
-      enter: "pop",
-      enterAt: 0,
+      enter: "fade",
+      enterAt: 0.04,
       enterDuration: 0.08,
       exit: "fade",
-      exitAt: 0.92,
+      exitAt: 0.9,
       exitDuration: 0.08,
       keyframes: [
         { at: 0, ink: 0 },
-        { at: 0.2, ink: 0 },
-        { at: 0.85, ink: 1 },
+        { at: 0.22, ink: 0 },
+        { at: 0.76, ink: 1 },
         { at: 1, ink: 1 }
       ]
     },
@@ -1782,13 +2067,16 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       socket: "rHand",
       layer: "front",
       width: 4,
-      height: 22,
+      height: 18,
+      dx: 0,
+      dy: 1.4,
+      rotation: 25,
       color: "#4169c1",
-      enter: "pop",
-      enterAt: 0,
+      enter: "fade",
+      enterAt: 0.04,
       enterDuration: 0.08,
       exit: "fade",
-      exitAt: 0.92,
+      exitAt: 0.9,
       exitDuration: 0.08
     }
   ],
@@ -1798,8 +2086,8 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       type: "socket",
       socket: "stage",
       layer: "back",
-      x: 58,
-      y: 74,
+      x: 44,
+      y: 89,
       width: 18,
       height: 22,
       color: "#7a8799",
@@ -1815,10 +2103,17 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       layer: "front",
       width: 64,
       height: 32,
+      dx: -26,
+      dy: -8.3,
       color: "#5278ad",
       enter: "fade",
       enterAt: 0,
       enterDuration: 0.08,
+      attachWindow: {
+        from: 0.179,
+        until: 0.737,
+        pinOnRelease: true
+      },
       exit: "fade",
       exitAt: 0.92,
       exitDuration: 0.08
@@ -1830,7 +2125,7 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       type: "server-rack",
       socket: "stage",
       layer: "back",
-      x: 42,
+      x: 38,
       y: 0,
       width: 64,
       height: 120,
@@ -1847,15 +2142,17 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       layer: "front",
       width: 52,
       height: 16,
+      dx: 19.5,
+      dy: 4.6,
       color: "#839bb8",
       enter: "pop",
       enterAt: 0,
       enterDuration: 0.08,
       attachWindow: {
-        from: 0,
-        until: 0.68,
+        from: 0.144,
+        until: 0.871,
         pinOnRelease: true,
-        pinnedPoint: { x: 74, y: 78 }
+        pinnedPoint: { x: 70, y: 97.6 }
       },
       exit: "fade",
       exitAt: 0.92,
@@ -1867,11 +2164,36 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       id: "window",
       type: "window",
       socket: "rHand",
-      layer: "front",
-      width: 80,
-      height: 54,
+      layer: "back",
+      width: 64,
+      height: 43.2,
+      dx: 5.12,
+      dy: -16.4,
       color: "#6675cc",
       enter: "pop",
+      enterAt: 0,
+      enterDuration: 0.08,
+      attachWindow: {
+        from: 0.354,
+        until: 0.69,
+        pinOnRelease: true,
+        pinnedPoint: { x: 53.5, y: 94.2 }
+      },
+      exit: "fade",
+      exitAt: 0.92,
+      exitDuration: 0.08
+    },
+    {
+      id: "cursor",
+      type: "cursor",
+      socket: "rHand",
+      layer: "front",
+      width: 10,
+      height: 15,
+      dx: 5,
+      dy: -7.5,
+      color: "#e2a532",
+      enter: "fade",
       enterAt: 0,
       enterDuration: 0.08,
       exit: "fade",
@@ -1915,6 +2237,8 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       type: "headphones",
       socket: "eyes",
       layer: "front",
+      dx: -7,
+      dy: 1,
       width: 42,
       height: 40,
       color: "#367ea8",
@@ -1960,7 +2284,8 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       type: "anger-mark",
       socket: "aboveHead",
       layer: "front",
-      x: 18,
+      dx: 24,
+      dy: -16,
       width: 28,
       height: 28,
       color: "#d74240",
@@ -2463,6 +2788,16 @@ export function sampleActionAddons(params: SampleActionAddonsParams): SampledAdd
         x = placed.x;
         y = placed.y;
         limbRot = placed.rot;
+      } else if (progress < attachFrom - 1e-9 && cfg.attachWindow?.pinOnRelease) {
+        if (params.poseAtProgress) {
+          const placed = placeOnSocket(params.poseAtProgress(attachFrom));
+          x = placed.x;
+          y = placed.y;
+        } else {
+          const placed = placeOnSocket(pose);
+          x = placed.x;
+          y = (cfg.dy ?? 0) < -8 ? pose.groundY - height : placed.y;
+        }
       } else if (progress > attachUntil && cfg.attachWindow?.pinOnRelease) {
         if (params.poseAtProgress) {
           const placed = placeOnSocket(params.poseAtProgress(attachUntil));
@@ -3054,7 +3389,7 @@ function renderAddonGeometrySvg(addon: SampledAddon, strokeWidth: number, stroke
     }
 
     case "stairs": {
-      const steps = 4;
+      const steps = h / Math.max(1, w) <= 0.4 ? 1 : 3;
       if (addon.hinge === "left") {
         // Descending left-to-right profile for stairs-down.
         const segs = Array.from(
