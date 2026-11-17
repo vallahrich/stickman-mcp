@@ -106,7 +106,7 @@
           "knee": 56
         },
         "rArm": {
-          "shoulder": -34,
+          "shoulder": -20,
           "elbow": 76,
           "spread": 14,
           "elbowSpread": 2
@@ -128,7 +128,7 @@
         "dx": -1.4,
         "facing": 0.18
       },
-      "ease": "out"
+      "ease": "inOut"
     },
     {
       "frame": 10,
@@ -146,7 +146,7 @@
           "knee": 26
         },
         "rArm": {
-          "shoulder": 54,
+          "shoulder": 40,
           "elbow": 82,
           "spread": 45,
           "elbowSpread": -14
@@ -168,7 +168,7 @@
         "dx": 0.35,
         "facing": 0.18
       },
-      "ease": "out"
+      "ease": "inOut"
     },
     {
       "frame": 14,
@@ -328,7 +328,7 @@
         "dx": 0.5,
         "facing": 0.18
       },
-      "ease": "linear"
+      "ease": "inOut"
     },
     {
       "frame": 29,
@@ -491,7 +491,7 @@
     }
   ],
   "gates": {
-    "maxJointStep": 20
+    "maxJointStep": 14
   },
   "review": {
     "prop": null

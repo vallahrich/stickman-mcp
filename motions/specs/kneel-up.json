@@ -251,8 +251,8 @@
         },
         "lLeg": {
           "hip": 18,
-          "knee": 62,
-          "lift": 14
+          "knee": 48,
+          "lift": 10
         },
         "rArm": {
           "shoulder": -24,
@@ -267,44 +267,80 @@
           "y": 0
         },
         "lFoot": {
-          "x": -16,
-          "y": 16
+          "x": -12,
+          "y": 10
+        }
+      },
+      "ease": "linear"
+    },
+    {
+      "frame": 27,
+      "pose": {
+        "anchor": "both",
+        "lean": 6,
+        "neck": -4,
+        "bob": -2,
+        "dx": 8,
+        "facing": 1,
+        "rLeg": {
+          "hip": 25,
+          "knee": 40
+        },
+        "lLeg": {
+          "hip": 4,
+          "knee": 32
+        },
+        "rArm": {
+          "shoulder": -12,
+          "elbow": 62
+        },
+        "lArm": {
+          "shoulder": -2,
+          "elbow": 60
+        },
+        "rFoot": {
+          "x": 36,
+          "y": 0
+        },
+        "lFoot": {
+          "x": -7,
+          "y": 0
         }
       },
       "ease": "inOut"
     },
     {
-      "frame": 30,
+      "frame": 31,
       "pose": {
         "anchor": "l",
-        "lean": 5,
+        "lean": 4,
         "neck": -3,
         "bob": -1,
-        "dx": 8,
+        "dx": 6,
         "facing": 1,
         "rLeg": {
-          "hip": 24,
-          "knee": 44,
-          "lift": 14
+          "hip": 22,
+          "knee": 42,
+          "lift": 12
         },
         "lLeg": {
-          "hip": 6,
-          "knee": 30
+          "hip": 2,
+          "knee": 26
         },
         "rArm": {
-          "shoulder": -2,
-          "elbow": 58
-        },
-        "lArm": {
-          "shoulder": 8,
+          "shoulder": -4,
           "elbow": 56
         },
+        "lArm": {
+          "shoulder": 6,
+          "elbow": 54
+        },
         "rFoot": {
-          "x": 34,
-          "y": 14
+          "x": 28,
+          "y": 12
         },
         "lFoot": {
-          "x": -4,
+          "x": -7,
           "y": 0
         }
       },

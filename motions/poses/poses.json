@@ -331,7 +331,7 @@
         "sourceSpec": "sit-floor",
         "sourceStatus": "candidate",
         "keyFrame": 65,
-        "specSha256": "05cd1707793d31d5f0ce06afee111703a4b460475a50f7353b4d80d48769e1f9"
+        "specSha256": "bedbb780c1398253374faf8226119b5e359c84519c87271810e1db059b794cd9"
       }
     },
     "lie-face-down": {
@@ -579,11 +579,11 @@
         },
         "rHand": {
           "x": 53,
-          "y": 90
+          "y": 88
         },
         "lHand": {
           "x": 55,
-          "y": 90
+          "y": 92
         }
       },
       "easing": "linear",
@@ -591,7 +591,7 @@
         "sourceSpec": "lift-carry",
         "sourceStatus": "candidate",
         "keyFrame": 98,
-        "specSha256": "5a3e1e8fc787f8e6b760348423bd6c20b898b9948b12907ba4fa6bd5bb0b5652"
+        "specSha256": "d77a32b5511a96e3a708798bda9c4ad259cdd527f423580da9361ea3c397adc3"
       }
     },
     "hands-on-hips": {

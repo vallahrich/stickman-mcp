@@ -92,7 +92,7 @@
           "y": 0
         }
       },
-      "ease": "out"
+      "ease": "inOut"
     },
     {
       "frame": 4,
@@ -158,8 +158,14 @@
           "elbow": 72
         },
         "dy": 18,
-        "rFoot": { "x": -150, "y": 8 },
-        "lFoot": { "x": -161, "y": 10 }
+        "rFoot": {
+          "x": -150,
+          "y": 8
+        },
+        "lFoot": {
+          "x": -161,
+          "y": 10
+        }
       },
       "ease": "linear"
     },
@@ -191,8 +197,14 @@
           "elbow": 80
         },
         "dy": 12,
-        "rFoot": { "x": -130, "y": 12 },
-        "lFoot": { "x": -165, "y": 26 }
+        "rFoot": {
+          "x": -130,
+          "y": 12
+        },
+        "lFoot": {
+          "x": -165,
+          "y": 26
+        }
       },
       "ease": "linear"
     },
@@ -226,7 +238,10 @@
           "x": -108,
           "y": 0
         },
-        "lFoot": { "x": -159, "y": 32 }
+        "lFoot": {
+          "x": -159,
+          "y": 32
+        }
       },
       "ease": "linear"
     },
@@ -294,8 +309,14 @@
           "shoulder": -48,
           "elbow": 84
         },
-        "rFoot": { "x": -126, "y": 27 },
-        "lFoot": { "x": -78, "y": 22 }
+        "rFoot": {
+          "x": -126,
+          "y": 27
+        },
+        "lFoot": {
+          "x": -78,
+          "y": 22
+        }
       },
       "ease": "linear"
     },
@@ -329,7 +350,10 @@
           "x": -61,
           "y": 0
         },
-        "rFoot": { "x": -113, "y": 32 }
+        "rFoot": {
+          "x": -113,
+          "y": 32
+        }
       },
       "ease": "linear"
     },
@@ -397,8 +421,14 @@
           "shoulder": 42,
           "elbow": 84
         },
-        "rFoot": { "x": -29, "y": 22 },
-        "lFoot": { "x": -80, "y": 27 }
+        "rFoot": {
+          "x": -29,
+          "y": 22
+        },
+        "lFoot": {
+          "x": -80,
+          "y": 27
+        }
       },
       "ease": "linear"
     },
@@ -432,7 +462,10 @@
           "x": -12,
           "y": 0
         },
-        "lFoot": { "x": -68, "y": 32 }
+        "lFoot": {
+          "x": -34,
+          "y": 22
+        }
       },
       "ease": "linear"
     },
@@ -443,7 +476,7 @@
         "lean": 10,
         "neck": -3,
         "bob": -1,
-        "dx": -16,
+        "dx": -13,
         "facing": 0.96,
         "rLeg": {
           "hip": 5,
@@ -467,11 +500,47 @@
           "y": 0
         },
         "lFoot": {
-          "x": 11,
-          "y": 12
+          "x": 6,
+          "y": 10
         }
       },
       "ease": "linear"
+    },
+    {
+      "frame": 41,
+      "ease": "linear",
+      "pose": {
+        "anchor": "both",
+        "lean": 7,
+        "neck": -3.5,
+        "bob": -1,
+        "dx": -2,
+        "facing": 0.96,
+        "rLeg": {
+          "hip": -6,
+          "knee": 32
+        },
+        "lLeg": {
+          "hip": 14,
+          "knee": 28
+        },
+        "rArm": {
+          "shoulder": -46,
+          "elbow": 73
+        },
+        "lArm": {
+          "shoulder": 56,
+          "elbow": 70
+        },
+        "rFoot": {
+          "x": -12,
+          "y": 0
+        },
+        "lFoot": {
+          "x": 30,
+          "y": 0
+        }
+      }
     },
     {
       "frame": 43,
@@ -500,8 +569,8 @@
           "elbow": 64
         },
         "rFoot": {
-          "x": 12,
-          "y": 10
+          "x": 0,
+          "y": 14
         },
         "lFoot": {
           "x": 30,
@@ -593,12 +662,31 @@
         "bob": 2,
         "dx": 8.5,
         "facing": 0.96,
-        "rLeg": { "hip": 18, "knee": 112, "lift": 24 },
-        "lLeg": { "hip": -7, "knee": 26 },
-        "rArm": { "shoulder": -83, "elbow": 69 },
-        "lArm": { "shoulder": 89, "elbow": 63 },
-        "rFoot": { "x": -12, "y": 28 },
-        "lFoot": { "x": 30, "y": 0 }
+        "rLeg": {
+          "hip": 18,
+          "knee": 112,
+          "lift": 24
+        },
+        "lLeg": {
+          "hip": -7,
+          "knee": 26
+        },
+        "rArm": {
+          "shoulder": -83,
+          "elbow": 69
+        },
+        "lArm": {
+          "shoulder": 89,
+          "elbow": 63
+        },
+        "rFoot": {
+          "x": -8,
+          "y": 25
+        },
+        "lFoot": {
+          "x": 30,
+          "y": 0
+        }
       },
       "ease": "linear"
     },
@@ -629,8 +717,8 @@
           "elbow": 62
         },
         "rFoot": {
-          "x": 9,
-          "y": 10.5
+          "x": 12,
+          "y": 11
         },
         "lFoot": {
           "x": 30,
@@ -648,12 +736,31 @@
         "bob": 2,
         "dx": 9,
         "facing": 0.96,
-        "rLeg": { "hip": 58, "knee": 58, "lift": 12 },
-        "lLeg": { "hip": -1, "knee": 13 },
-        "rArm": { "shoulder": -71, "elbow": 68 },
-        "lArm": { "shoulder": 84, "elbow": 62 },
-        "rFoot": { "x": 23.5, "y": 10.5 },
-        "lFoot": { "x": 30, "y": 0 }
+        "rLeg": {
+          "hip": 58,
+          "knee": 58,
+          "lift": 12
+        },
+        "lLeg": {
+          "hip": -1,
+          "knee": 13
+        },
+        "rArm": {
+          "shoulder": -71,
+          "elbow": 68
+        },
+        "lArm": {
+          "shoulder": 84,
+          "elbow": 62
+        },
+        "rFoot": {
+          "x": 26.5,
+          "y": 10.5
+        },
+        "lFoot": {
+          "x": 30,
+          "y": 0
+        }
       },
       "ease": "linear"
     },
@@ -721,7 +828,7 @@
           "elbow": 60
         },
         "rFoot": {
-          "x": 70,
+          "x": 66,
           "y": 17
         },
         "lFoot": {
@@ -1170,7 +1277,7 @@
     }
   ],
   "gates": {
-    "maxJointStep": 20
+    "maxJointStep": 14
   },
   "review": {
     "prop": null,
@@ -1233,63 +1340,63 @@
             "x": 100,
             "y": 12,
             "rot": 340,
-            "scale": 1.0
+            "scale": 1
           },
           {
             "frame": 61,
             "x": 160,
             "y": 18,
             "rot": 650,
-            "scale": 1.0
+            "scale": 1
           },
           {
             "frame": 64,
             "x": 164,
             "y": 8,
             "rot": 900,
-            "scale": 1.0
+            "scale": 1
           },
           {
             "frame": 67,
             "x": 164,
             "y": 0,
             "rot": 1100,
-            "scale": 1.0
+            "scale": 1
           },
           {
             "frame": 70,
             "x": 164,
             "y": 0,
             "rot": 1260,
-            "scale": 1.0
+            "scale": 1
           },
           {
             "frame": 72,
             "x": 164,
             "y": 0,
             "rot": 1360,
-            "scale": 1.0
+            "scale": 1
           },
           {
             "frame": 76,
             "x": 164,
             "y": 0,
             "rot": 1400,
-            "scale": 1.0
+            "scale": 1
           },
           {
             "frame": 82,
             "x": 164,
             "y": 0,
             "rot": 1420,
-            "scale": 1.0
+            "scale": 1
           },
           {
             "frame": 96,
             "x": 164,
             "y": 0,
             "rot": 1420,
-            "scale": 1.0
+            "scale": 1
           }
         ]
       },

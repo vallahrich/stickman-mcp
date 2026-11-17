@@ -151,6 +151,42 @@
       "ease": "inOut"
     },
     {
+      "frame": 43,
+      "pose": {
+        "anchor": "both",
+        "lean": 5,
+        "neck": -2,
+        "bob": -4,
+        "rLeg": {
+          "hip": 72,
+          "knee": 72
+        },
+        "lLeg": {
+          "hip": -10,
+          "knee": 25
+        },
+        "rArm": {
+          "shoulder": 24,
+          "elbow": 60
+        },
+        "lArm": {
+          "shoulder": 28,
+          "elbow": 58
+        },
+        "rFoot": {
+          "x": 36,
+          "y": 0
+        },
+        "lFoot": {
+          "x": -7,
+          "y": 0
+        },
+        "dx": 0,
+        "facing": 1
+      },
+      "ease": "inOut"
+    },
+    {
       "frame": 52,
       "pose": {
         "anchor": "r",

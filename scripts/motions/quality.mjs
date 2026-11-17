@@ -69,6 +69,9 @@ for (const [id, clip] of Object.entries(lib.clips ?? {}).sort(([a], [b]) => a.lo
   }
   if (Array.isArray(clip.poseKeys) && clip.poseKeys.length > 0) {
     keyPoseClipCount++;
+    if (clip.meta?.kind && clip.meta.kind !== "hold" && (clip.meta.kind === "loop") !== Boolean(clip.loop)) {
+      failures.push(`${id}: clip.loop (${Boolean(clip.loop)}) must match clip.meta.kind (${clip.meta.kind})`);
+    }
     const kp = await keyPoseGates(clip, spec);
     anatomyReport.keyPose[id] = kp;
     if (!kp.passed) failures.push(...keyPoseSummary(id, kp.failures));

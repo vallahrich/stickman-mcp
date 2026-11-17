@@ -481,16 +481,16 @@
           "knee": 17
         },
         "rArm": {
-          "shoulder": 45,
-          "elbow": 45,
-          "spread": 19,
-          "elbowSpread": -29
+          "shoulder": 36,
+          "elbow": 48,
+          "spread": 16,
+          "elbowSpread": -20
         },
         "lArm": {
-          "shoulder": 45,
-          "elbow": 45,
-          "spread": 19,
-          "elbowSpread": -29
+          "shoulder": 36,
+          "elbow": 48,
+          "spread": 16,
+          "elbowSpread": -20
         },
         "rFoot": {
           "x": 5,

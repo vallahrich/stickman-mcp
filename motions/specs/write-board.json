@@ -512,7 +512,7 @@
     }
   ],
   "gates": {
-    "maxJointStep": 22
+    "maxJointStep": 14
   },
   "review": {
     "prop": {

@@ -265,7 +265,7 @@
     {
       "from": "arms-crossed",
       "to": "jog",
-      "cost": 45.66
+      "cost": 35.66
     },
     {
       "from": "arms-crossed",
@@ -545,7 +545,7 @@
     {
       "from": "arms-crossed",
       "to": "walk-backwards",
-      "cost": 43.57
+      "cost": 44.11
     },
     {
       "from": "arms-crossed",
@@ -750,7 +750,7 @@
     {
       "from": "balance",
       "to": "jog",
-      "cost": 48.93
+      "cost": 47.56
     },
     {
       "from": "balance",
@@ -1030,7 +1030,7 @@
     {
       "from": "balance",
       "to": "walk-backwards",
-      "cost": 25.98
+      "cost": 26.28
     },
     {
       "from": "balance",
@@ -1235,7 +1235,7 @@
     {
       "from": "basketball-shot",
       "to": "jog",
-      "cost": 43.98
+      "cost": 38.4
     },
     {
       "from": "basketball-shot",
@@ -1515,7 +1515,7 @@
     {
       "from": "basketball-shot",
       "to": "walk-backwards",
-      "cost": 32.4
+      "cost": 32.77
     },
     {
       "from": "basketball-shot",
@@ -1720,7 +1720,7 @@
     {
       "from": "beckon",
       "to": "jog",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "beckon",
@@ -2000,7 +2000,7 @@
     {
       "from": "beckon",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "beckon",
@@ -2205,7 +2205,7 @@
     {
       "from": "bow",
       "to": "jog",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "bow",
@@ -2485,7 +2485,7 @@
     {
       "from": "bow",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "bow",
@@ -2690,7 +2690,7 @@
     {
       "from": "catch",
       "to": "jog",
-      "cost": 76.99
+      "cost": 78.77
     },
     {
       "from": "catch",
@@ -2970,7 +2970,7 @@
     {
       "from": "catch",
       "to": "walk-backwards",
-      "cost": 43.46
+      "cost": 43.98
     },
     {
       "from": "catch",
@@ -3175,7 +3175,7 @@
     {
       "from": "check-watch",
       "to": "jog",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "check-watch",
@@ -3455,7 +3455,7 @@
     {
       "from": "check-watch",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "check-watch",
@@ -3660,7 +3660,7 @@
     {
       "from": "cheer",
       "to": "jog",
-      "cost": 70.28
+      "cost": 72.03
     },
     {
       "from": "cheer",
@@ -3940,7 +3940,7 @@
     {
       "from": "cheer",
       "to": "walk-backwards",
-      "cost": 35.74
+      "cost": 36.25
     },
     {
       "from": "cheer",
@@ -4145,7 +4145,7 @@
     {
       "from": "clap",
       "to": "jog",
-      "cost": 70.28
+      "cost": 72.03
     },
     {
       "from": "clap",
@@ -4425,7 +4425,7 @@
     {
       "from": "clap",
       "to": "walk-backwards",
-      "cost": 35.74
+      "cost": 36.25
     },
     {
       "from": "clap",
@@ -4630,7 +4630,7 @@
     {
       "from": "climb-down",
       "to": "jog",
-      "cost": 61.2
+      "cost": 62.74
     },
     {
       "from": "climb-down",
@@ -4910,7 +4910,7 @@
     {
       "from": "climb-down",
       "to": "walk-backwards",
-      "cost": 22.39
+      "cost": 23
     },
     {
       "from": "climb-down",
@@ -5115,7 +5115,7 @@
     {
       "from": "climb-ladder",
       "to": "jog",
-      "cost": 83.51
+      "cost": 57.27
     },
     {
       "from": "climb-ladder",
@@ -5395,7 +5395,7 @@
     {
       "from": "climb-ladder",
       "to": "walk-backwards",
-      "cost": 50.39
+      "cost": 51
     },
     {
       "from": "climb-ladder",
@@ -5600,7 +5600,7 @@
     {
       "from": "climb-ledge",
       "to": "jog",
-      "cost": 60.53
+      "cost": 60.72
     },
     {
       "from": "climb-ledge",
@@ -5880,7 +5880,7 @@
     {
       "from": "climb-ledge",
       "to": "walk-backwards",
-      "cost": 52.77
+      "cost": 51.98
     },
     {
       "from": "climb-ledge",
@@ -6085,7 +6085,7 @@
     {
       "from": "crawl",
       "to": "jog",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "crawl",
@@ -6365,7 +6365,7 @@
     {
       "from": "crawl",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "crawl",
@@ -6570,7 +6570,7 @@
     {
       "from": "crouch",
       "to": "jog",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "crouch",
@@ -6850,7 +6850,7 @@
     {
       "from": "crouch",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "crouch",
@@ -7055,7 +7055,7 @@
     {
       "from": "dodge",
       "to": "jog",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "dodge",
@@ -7335,7 +7335,7 @@
     {
       "from": "dodge",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "dodge",
@@ -7540,7 +7540,7 @@
     {
       "from": "drag-object",
       "to": "jog",
-      "cost": 67.02
+      "cost": 52.93
     },
     {
       "from": "drag-object",
@@ -7820,7 +7820,7 @@
     {
       "from": "drag-object",
       "to": "walk-backwards",
-      "cost": 21.53
+      "cost": 22.86
     },
     {
       "from": "drag-object",
@@ -8025,7 +8025,7 @@
     {
       "from": "drag-window",
       "to": "jog",
-      "cost": 68.23
+      "cost": 69.87
     },
     {
       "from": "drag-window",
@@ -8305,7 +8305,7 @@
     {
       "from": "drag-window",
       "to": "walk-backwards",
-      "cost": 27.26
+      "cost": 27.99
     },
     {
       "from": "drag-window",
@@ -8510,7 +8510,7 @@
     {
       "from": "enter-door",
       "to": "jog",
-      "cost": 62.59
+      "cost": 43.39
     },
     {
       "from": "enter-door",
@@ -8790,7 +8790,7 @@
     {
       "from": "enter-door",
       "to": "walk-backwards",
-      "cost": 19.64
+      "cost": 20.94
     },
     {
       "from": "enter-door",
@@ -8995,7 +8995,7 @@
     {
       "from": "exit-door",
       "to": "jog",
-      "cost": 51.56
+      "cost": 43.81
     },
     {
       "from": "exit-door",
@@ -9275,7 +9275,7 @@
     {
       "from": "exit-door",
       "to": "walk-backwards",
-      "cost": 26.39
+      "cost": 27
     },
     {
       "from": "exit-door",
@@ -9480,7 +9480,7 @@
     {
       "from": "facepalm",
       "to": "jog",
-      "cost": 52.37
+      "cost": 35.41
     },
     {
       "from": "facepalm",
@@ -9760,7 +9760,7 @@
     {
       "from": "facepalm",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "facepalm",
@@ -9965,7 +9965,7 @@
     {
       "from": "fall-get-up",
       "to": "jog",
-      "cost": 48.36
+      "cost": 34.88
     },
     {
       "from": "fall-get-up",
@@ -10245,7 +10245,7 @@
     {
       "from": "fall-get-up",
       "to": "walk-backwards",
-      "cost": 26.69
+      "cost": 27
     },
     {
       "from": "fall-get-up",
@@ -10450,7 +10450,7 @@
     {
       "from": "fist-pump",
       "to": "jog",
-      "cost": 58.39
+      "cost": 60.08
     },
     {
       "from": "fist-pump",
@@ -10730,7 +10730,7 @@
     {
       "from": "fist-pump",
       "to": "walk-backwards",
-      "cost": 30.79
+      "cost": 31.14
     },
     {
       "from": "fist-pump",
@@ -10935,7 +10935,7 @@
     {
       "from": "frustrated-pc",
       "to": "jog",
-      "cost": 73.35
+      "cost": 66.89
     },
     {
       "from": "frustrated-pc",
@@ -11215,7 +11215,7 @@
     {
       "from": "frustrated-pc",
       "to": "walk-backwards",
-      "cost": 48.39
+      "cost": 49
     },
     {
       "from": "frustrated-pc",
@@ -11420,7 +11420,7 @@
     {
       "from": "get-up",
       "to": "jog",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "get-up",
@@ -11700,7 +11700,7 @@
     {
       "from": "get-up",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "get-up",
@@ -11905,7 +11905,7 @@
     {
       "from": "hand-over",
       "to": "jog",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "hand-over",
@@ -12185,7 +12185,7 @@
     {
       "from": "hand-over",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "hand-over",
@@ -12390,7 +12390,7 @@
     {
       "from": "hang-swing",
       "to": "jog",
-      "cost": 63.47
+      "cost": 39.06
     },
     {
       "from": "hang-swing",
@@ -12670,7 +12670,7 @@
     {
       "from": "hang-swing",
       "to": "walk-backwards",
-      "cost": 15.48
+      "cost": 16.77
     },
     {
       "from": "hang-swing",
@@ -12875,7 +12875,7 @@
     {
       "from": "head-shake",
       "to": "jog",
-      "cost": 64.76
+      "cost": 66.49
     },
     {
       "from": "head-shake",
@@ -13155,7 +13155,7 @@
     {
       "from": "head-shake",
       "to": "walk-backwards",
-      "cost": 31.62
+      "cost": 30.56
     },
     {
       "from": "head-shake",
@@ -13360,7 +13360,7 @@
     {
       "from": "hold-sign",
       "to": "jog",
-      "cost": 52.37
+      "cost": 36.32
     },
     {
       "from": "hold-sign",
@@ -13640,7 +13640,7 @@
     {
       "from": "hold-sign",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "hold-sign",
@@ -13845,7 +13845,7 @@
     {
       "from": "hop",
       "to": "jog",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "hop",
@@ -14125,7 +14125,7 @@
     {
       "from": "hop",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "hop",
@@ -14330,7 +14330,7 @@
     {
       "from": "hurdle",
       "to": "jog",
-      "cost": 56.55
+      "cost": 36.25
     },
     {
       "from": "hurdle",
@@ -14610,7 +14610,7 @@
     {
       "from": "hurdle",
       "to": "walk-backwards",
-      "cost": 20.39
+      "cost": 21
     },
     {
       "from": "hurdle",
@@ -14815,7 +14815,7 @@
     {
       "from": "idea",
       "to": "jog",
-      "cost": 52.37
+      "cost": 35.5
     },
     {
       "from": "idea",
@@ -15095,7 +15095,7 @@
     {
       "from": "idea",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "idea",
@@ -15300,7 +15300,7 @@
     {
       "from": "inspect-magnifier",
       "to": "jog",
-      "cost": 52.37
+      "cost": 44.12
     },
     {
       "from": "inspect-magnifier",
@@ -15580,7 +15580,7 @@
     {
       "from": "inspect-magnifier",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "inspect-magnifier",
@@ -15625,162 +15625,162 @@
     {
       "from": "jog",
       "to": "arms-crossed",
-      "cost": 60.61
+      "cost": 62.32
     },
     {
       "from": "jog",
       "to": "balance",
-      "cost": 48.93
+      "cost": 47.56
     },
     {
       "from": "jog",
       "to": "basketball-shot",
-      "cost": 43.98
+      "cost": 38.4
     },
     {
       "from": "jog",
       "to": "beckon",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "jog",
       "to": "bow",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "jog",
       "to": "catch",
-      "cost": 76.99
+      "cost": 78.77
     },
     {
       "from": "jog",
       "to": "check-watch",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "jog",
       "to": "cheer",
-      "cost": 60.61
+      "cost": 62.32
     },
     {
       "from": "jog",
       "to": "clap",
-      "cost": 60.61
+      "cost": 62.32
     },
     {
       "from": "jog",
       "to": "climb-down",
-      "cost": 110.16
+      "cost": 109.7
     },
     {
       "from": "jog",
       "to": "climb-ladder",
-      "cost": 83.51
+      "cost": 57.27
     },
     {
       "from": "jog",
       "to": "climb-ledge",
-      "cost": 61.23
+      "cost": 62.78
     },
     {
       "from": "jog",
       "to": "crawl",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "jog",
       "to": "crouch",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "jog",
       "to": "dodge",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "jog",
       "to": "drag-object",
-      "cost": 51.62
+      "cost": 52.93
     },
     {
       "from": "jog",
       "to": "drag-window",
-      "cost": 68.23
+      "cost": 69.87
     },
     {
       "from": "jog",
       "to": "enter-door",
-      "cost": 42.38
+      "cost": 34.51
     },
     {
       "from": "jog",
       "to": "exit-door",
-      "cost": 52.37
+      "cost": 43.39
     },
     {
       "from": "jog",
       "to": "facepalm",
-      "cost": 52.37
+      "cost": 35.41
     },
     {
       "from": "jog",
       "to": "fall-get-up",
-      "cost": 78.86
+      "cost": 52.77
     },
     {
       "from": "jog",
       "to": "fist-pump",
-      "cost": 58.39
+      "cost": 60.08
     },
     {
       "from": "jog",
       "to": "frustrated-pc",
-      "cost": 73.35
+      "cost": 47.51
     },
     {
       "from": "jog",
       "to": "get-up",
-      "cost": 108.17
+      "cost": 81.61
     },
     {
       "from": "jog",
       "to": "hand-over",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "jog",
       "to": "hang-swing",
-      "cost": 113.6
+      "cost": 113.19
     },
     {
       "from": "jog",
       "to": "head-shake",
-      "cost": 64.76
+      "cost": 66.49
     },
     {
       "from": "jog",
       "to": "hold-sign",
-      "cost": 52.37
+      "cost": 36.32
     },
     {
       "from": "jog",
       "to": "hop",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "jog",
       "to": "hurdle",
-      "cost": 19.47
+      "cost": 39.34
     },
     {
       "from": "jog",
       "to": "idea",
-      "cost": 52.37
+      "cost": 35.5
     },
     {
       "from": "jog",
       "to": "inspect-magnifier",
-      "cost": 52.37
+      "cost": 44.12
     },
     {
       "from": "jog",
@@ -15790,322 +15790,322 @@
     {
       "from": "jog",
       "to": "kick",
-      "cost": 52.6
+      "cost": 36.83
     },
     {
       "from": "jog",
       "to": "kneel-down",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "jog",
       "to": "kneel-up",
-      "cost": 49.22
+      "cost": 49.73
     },
     {
       "from": "jog",
       "to": "lie-down",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "jog",
       "to": "lift-carry",
-      "cost": 51.56
+      "cost": 40.18
     },
     {
       "from": "jog",
       "to": "long-jump",
-      "cost": 19.47
+      "cost": 39.34
     },
     {
       "from": "jog",
       "to": "look-around",
-      "cost": 52.37
+      "cost": 40.69
     },
     {
       "from": "jog",
       "to": "nod",
-      "cost": 57.78
+      "cost": 59.47
     },
     {
       "from": "jog",
       "to": "open-door",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "jog",
       "to": "open-laptop",
-      "cost": 64.04
+      "cost": 65.63
     },
     {
       "from": "jog",
       "to": "phone-call",
-      "cost": 70.28
+      "cost": 72.03
     },
     {
       "from": "jog",
       "to": "pick-up",
-      "cost": 52.37
+      "cost": 40.18
     },
     {
       "from": "jog",
       "to": "plug-cable",
-      "cost": 52.87
+      "cost": 54.32
     },
     {
       "from": "jog",
       "to": "present",
-      "cost": 57.89
+      "cost": 59.59
     },
     {
       "from": "jog",
       "to": "present-card",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "jog",
       "to": "pull",
-      "cost": 52.37
+      "cost": 40.18
     },
     {
       "from": "jog",
       "to": "pull-banner",
-      "cost": 52.37
+      "cost": 37.74
     },
     {
       "from": "jog",
       "to": "pull-banner-bottom",
-      "cost": 52.37
+      "cost": 37.74
     },
     {
       "from": "jog",
       "to": "pull-banner-left",
-      "cost": 72.46
+      "cost": 74.22
     },
     {
       "from": "jog",
       "to": "pull-banner-right",
-      "cost": 52.37
+      "cost": 40.18
     },
     {
       "from": "jog",
       "to": "punch",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "jog",
       "to": "push",
-      "cost": 51.63
+      "cost": 52.94
     },
     {
       "from": "jog",
       "to": "push-walk",
-      "cost": 51.64
+      "cost": 52.95
     },
     {
       "from": "jog",
       "to": "put-down",
-      "cost": 51.81
+      "cost": 36.03
     },
     {
       "from": "jog",
       "to": "rack-server",
-      "cost": 48.36
+      "cost": 43.79
     },
     {
       "from": "jog",
       "to": "reveal",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "jog",
       "to": "run",
-      "cost": 27.47
+      "cost": 8
     },
     {
       "from": "jog",
       "to": "run-start",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "jog",
       "to": "sad-slump",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "jog",
       "to": "scratch-head",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "jog",
       "to": "seated-idle",
-      "cost": 73.35
+      "cost": 60.92
     },
     {
       "from": "jog",
       "to": "shrug",
-      "cost": 60.61
+      "cost": 62.32
     },
     {
       "from": "jog",
       "to": "sidestep",
-      "cost": 52.78
+      "cost": 40.22
     },
     {
       "from": "jog",
       "to": "sit-down",
-      "cost": 59.11
+      "cost": 36.76
     },
     {
       "from": "jog",
       "to": "sit-floor",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "jog",
       "to": "skip",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "jog",
       "to": "stairs-down",
-      "cost": 63.07
+      "cost": 57.41
     },
     {
       "from": "jog",
       "to": "stairs-up",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "jog",
       "to": "stand-up",
-      "cost": 73.35
+      "cost": 53.85
     },
     {
       "from": "jog",
       "to": "step-up",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "jog",
       "to": "stop-hand",
-      "cost": 52.52
+      "cost": 54.16
     },
     {
       "from": "jog",
       "to": "surprised",
-      "cost": 55.48
+      "cost": 57.15
     },
     {
       "from": "jog",
       "to": "swipe-next",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "jog",
       "to": "tablet-tap",
-      "cost": 52.37
+      "cost": 46.61
     },
     {
       "from": "jog",
       "to": "tap-element",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "jog",
       "to": "think",
-      "cost": 52.37
+      "cost": 35.41
     },
     {
       "from": "jog",
       "to": "throw",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "jog",
       "to": "thumbs-up",
-      "cost": 52.09
+      "cost": 53.72
     },
     {
       "from": "jog",
       "to": "trip",
-      "cost": 42.38
+      "cost": 34.51
     },
     {
       "from": "jog",
       "to": "turn-90",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "jog",
       "to": "turn-around",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "jog",
       "to": "type-at-desk",
-      "cost": 73.35
+      "cost": 47.51
     },
     {
       "from": "jog",
       "to": "vault",
-      "cost": 19.47
+      "cost": 39.34
     },
     {
       "from": "jog",
       "to": "video-call",
-      "cost": 73.35
+      "cost": 47.51
     },
     {
       "from": "jog",
       "to": "walk",
-      "cost": 52.37
+      "cost": 43.39
     },
     {
       "from": "jog",
       "to": "walk-backwards",
-      "cost": 69.38
+      "cost": 47.31
     },
     {
       "from": "jog",
       "to": "walk-off",
-      "cost": 52.37
+      "cost": 43.39
     },
     {
       "from": "jog",
       "to": "walk-on",
-      "cost": 42.38
+      "cost": 34.51
     },
     {
       "from": "jog",
       "to": "walk-start",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "jog",
       "to": "walk-stop",
-      "cost": 23.39
+      "cost": 25.72
     },
     {
       "from": "jog",
       "to": "walk-turn",
-      "cost": 71.53
+      "cost": 45.79
     },
     {
       "from": "jog",
       "to": "wave",
-      "cost": 52.37
+      "cost": 36.32
     },
     {
       "from": "jog",
       "to": "write-board",
-      "cost": 53.2
+      "cost": 47.09
     },
     {
       "from": "jog",
       "to": "write-notes",
-      "cost": 52.37
+      "cost": 41.32
     },
     {
       "from": "kick",
@@ -16270,7 +16270,7 @@
     {
       "from": "kick",
       "to": "jog",
-      "cost": 50.26
+      "cost": 37.06
     },
     {
       "from": "kick",
@@ -16550,7 +16550,7 @@
     {
       "from": "kick",
       "to": "walk-backwards",
-      "cost": 24.33
+      "cost": 24.61
     },
     {
       "from": "kick",
@@ -16755,7 +16755,7 @@
     {
       "from": "kneel-down",
       "to": "jog",
-      "cost": 49.22
+      "cost": 49.73
     },
     {
       "from": "kneel-down",
@@ -17035,7 +17035,7 @@
     {
       "from": "kneel-down",
       "to": "walk-backwards",
-      "cost": 64.51
+      "cost": 65
     },
     {
       "from": "kneel-down",
@@ -17240,7 +17240,7 @@
     {
       "from": "kneel-up",
       "to": "jog",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "kneel-up",
@@ -17520,7 +17520,7 @@
     {
       "from": "kneel-up",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "kneel-up",
@@ -17725,7 +17725,7 @@
     {
       "from": "lie-down",
       "to": "jog",
-      "cost": 125.93
+      "cost": 126.37
     },
     {
       "from": "lie-down",
@@ -18005,7 +18005,7 @@
     {
       "from": "lie-down",
       "to": "walk-backwards",
-      "cost": 126.29
+      "cost": 127.01
     },
     {
       "from": "lie-down",
@@ -18210,7 +18210,7 @@
     {
       "from": "lift-carry",
       "to": "jog",
-      "cost": 64.35
+      "cost": 39.72
     },
     {
       "from": "lift-carry",
@@ -18490,7 +18490,7 @@
     {
       "from": "lift-carry",
       "to": "walk-backwards",
-      "cost": 11.02
+      "cost": 11.29
     },
     {
       "from": "lift-carry",
@@ -18695,7 +18695,7 @@
     {
       "from": "long-jump",
       "to": "jog",
-      "cost": 59.97
+      "cost": 36.18
     },
     {
       "from": "long-jump",
@@ -18975,7 +18975,7 @@
     {
       "from": "long-jump",
       "to": "walk-backwards",
-      "cost": 30.39
+      "cost": 31
     },
     {
       "from": "long-jump",
@@ -19180,7 +19180,7 @@
     {
       "from": "look-around",
       "to": "jog",
-      "cost": 52.37
+      "cost": 40.69
     },
     {
       "from": "look-around",
@@ -19460,7 +19460,7 @@
     {
       "from": "look-around",
       "to": "walk-backwards",
-      "cost": 39.73
+      "cost": 39.08
     },
     {
       "from": "look-around",
@@ -19665,7 +19665,7 @@
     {
       "from": "nod",
       "to": "jog",
-      "cost": 57.58
+      "cost": 59.27
     },
     {
       "from": "nod",
@@ -19945,7 +19945,7 @@
     {
       "from": "nod",
       "to": "walk-backwards",
-      "cost": 29.02
+      "cost": 29.35
     },
     {
       "from": "nod",
@@ -20150,7 +20150,7 @@
     {
       "from": "open-door",
       "to": "jog",
-      "cost": 48
+      "cost": 48.48
     },
     {
       "from": "open-door",
@@ -20430,7 +20430,7 @@
     {
       "from": "open-door",
       "to": "walk-backwards",
-      "cost": 60.27
+      "cost": 61.17
     },
     {
       "from": "open-door",
@@ -20635,7 +20635,7 @@
     {
       "from": "open-laptop",
       "to": "jog",
-      "cost": 64.04
+      "cost": 65.63
     },
     {
       "from": "open-laptop",
@@ -20915,7 +20915,7 @@
     {
       "from": "open-laptop",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22.18
     },
     {
       "from": "open-laptop",
@@ -21120,7 +21120,7 @@
     {
       "from": "phone-call",
       "to": "jog",
-      "cost": 70.28
+      "cost": 72.03
     },
     {
       "from": "phone-call",
@@ -21400,7 +21400,7 @@
     {
       "from": "phone-call",
       "to": "walk-backwards",
-      "cost": 35.74
+      "cost": 36.25
     },
     {
       "from": "phone-call",
@@ -21605,7 +21605,7 @@
     {
       "from": "pick-up",
       "to": "jog",
-      "cost": 51.56
+      "cost": 41.86
     },
     {
       "from": "pick-up",
@@ -21885,7 +21885,7 @@
     {
       "from": "pick-up",
       "to": "walk-backwards",
-      "cost": 22.74
+      "cost": 23
     },
     {
       "from": "pick-up",
@@ -22090,7 +22090,7 @@
     {
       "from": "plug-cable",
       "to": "jog",
-      "cost": 52.87
+      "cost": 54.32
     },
     {
       "from": "plug-cable",
@@ -22370,7 +22370,7 @@
     {
       "from": "plug-cable",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "plug-cable",
@@ -22575,7 +22575,7 @@
     {
       "from": "present",
       "to": "jog",
-      "cost": 57.89
+      "cost": 59.59
     },
     {
       "from": "present",
@@ -22855,7 +22855,7 @@
     {
       "from": "present",
       "to": "walk-backwards",
-      "cost": 29.18
+      "cost": 29.52
     },
     {
       "from": "present",
@@ -23060,7 +23060,7 @@
     {
       "from": "present-card",
       "to": "jog",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "present-card",
@@ -23340,7 +23340,7 @@
     {
       "from": "present-card",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "present-card",
@@ -23545,7 +23545,7 @@
     {
       "from": "pull",
       "to": "jog",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "pull",
@@ -23825,7 +23825,7 @@
     {
       "from": "pull",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "pull",
@@ -24030,7 +24030,7 @@
     {
       "from": "pull-banner",
       "to": "jog",
-      "cost": 57.29
+      "cost": 58.98
     },
     {
       "from": "pull-banner",
@@ -24310,7 +24310,7 @@
     {
       "from": "pull-banner",
       "to": "walk-backwards",
-      "cost": 28.67
+      "cost": 29
     },
     {
       "from": "pull-banner",
@@ -24515,7 +24515,7 @@
     {
       "from": "pull-banner-bottom",
       "to": "jog",
-      "cost": 57.29
+      "cost": 58.98
     },
     {
       "from": "pull-banner-bottom",
@@ -24795,7 +24795,7 @@
     {
       "from": "pull-banner-bottom",
       "to": "walk-backwards",
-      "cost": 25.34
+      "cost": 24.96
     },
     {
       "from": "pull-banner-bottom",
@@ -25000,7 +25000,7 @@
     {
       "from": "pull-banner-left",
       "to": "jog",
-      "cost": 74.39
+      "cost": 76.16
     },
     {
       "from": "pull-banner-left",
@@ -25280,7 +25280,7 @@
     {
       "from": "pull-banner-left",
       "to": "walk-backwards",
-      "cost": 40.27
+      "cost": 40.79
     },
     {
       "from": "pull-banner-left",
@@ -25485,7 +25485,7 @@
     {
       "from": "pull-banner-right",
       "to": "jog",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "pull-banner-right",
@@ -25765,7 +25765,7 @@
     {
       "from": "pull-banner-right",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "pull-banner-right",
@@ -25970,7 +25970,7 @@
     {
       "from": "punch",
       "to": "jog",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "punch",
@@ -26250,7 +26250,7 @@
     {
       "from": "punch",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "punch",
@@ -26455,7 +26455,7 @@
     {
       "from": "push",
       "to": "jog",
-      "cost": 61.71
+      "cost": 52.72
     },
     {
       "from": "push",
@@ -26735,7 +26735,7 @@
     {
       "from": "push",
       "to": "walk-backwards",
-      "cost": 32.39
+      "cost": 33
     },
     {
       "from": "push",
@@ -26940,7 +26940,7 @@
     {
       "from": "push-walk",
       "to": "jog",
-      "cost": 51.62
+      "cost": 52.92
     },
     {
       "from": "push-walk",
@@ -27220,7 +27220,7 @@
     {
       "from": "push-walk",
       "to": "walk-backwards",
-      "cost": 26.39
+      "cost": 27
     },
     {
       "from": "push-walk",
@@ -27425,7 +27425,7 @@
     {
       "from": "put-down",
       "to": "jog",
-      "cost": 51.81
+      "cost": 36.89
     },
     {
       "from": "put-down",
@@ -27705,7 +27705,7 @@
     {
       "from": "put-down",
       "to": "walk-backwards",
-      "cost": 22.44
+      "cost": 22.69
     },
     {
       "from": "put-down",
@@ -27910,7 +27910,7 @@
     {
       "from": "rack-server",
       "to": "jog",
-      "cost": 48.36
+      "cost": 43.79
     },
     {
       "from": "rack-server",
@@ -28190,7 +28190,7 @@
     {
       "from": "rack-server",
       "to": "walk-backwards",
-      "cost": 26.69
+      "cost": 27
     },
     {
       "from": "rack-server",
@@ -28395,7 +28395,7 @@
     {
       "from": "reveal",
       "to": "jog",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "reveal",
@@ -28675,7 +28675,7 @@
     {
       "from": "reveal",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "reveal",
@@ -28880,7 +28880,7 @@
     {
       "from": "run",
       "to": "jog",
-      "cost": 27.47
+      "cost": 8
     },
     {
       "from": "run",
@@ -29160,7 +29160,7 @@
     {
       "from": "run",
       "to": "walk-backwards",
-      "cost": 53.2
+      "cost": 52.18
     },
     {
       "from": "run",
@@ -29365,7 +29365,7 @@
     {
       "from": "run-start",
       "to": "jog",
-      "cost": 26.21
+      "cost": 46.1
     },
     {
       "from": "run-start",
@@ -29530,7 +29530,7 @@
     {
       "from": "run-start",
       "to": "sidestep",
-      "cost": 49.2
+      "cost": 48.96
     },
     {
       "from": "run-start",
@@ -29645,7 +29645,7 @@
     {
       "from": "run-start",
       "to": "walk-backwards",
-      "cost": 88.37
+      "cost": 91.2
     },
     {
       "from": "run-start",
@@ -29675,7 +29675,7 @@
     {
       "from": "run-start",
       "to": "wave",
-      "cost": 45.02
+      "cost": 44.76
     },
     {
       "from": "run-start",
@@ -29850,7 +29850,7 @@
     {
       "from": "sad-slump",
       "to": "jog",
-      "cost": 56.97
+      "cost": 45.67
     },
     {
       "from": "sad-slump",
@@ -30130,7 +30130,7 @@
     {
       "from": "sad-slump",
       "to": "walk-backwards",
-      "cost": 38.98
+      "cost": 39.28
     },
     {
       "from": "sad-slump",
@@ -30335,7 +30335,7 @@
     {
       "from": "scratch-head",
       "to": "jog",
-      "cost": 52.37
+      "cost": 36.35
     },
     {
       "from": "scratch-head",
@@ -30615,7 +30615,7 @@
     {
       "from": "scratch-head",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "scratch-head",
@@ -30820,7 +30820,7 @@
     {
       "from": "seated-idle",
       "to": "jog",
-      "cost": 73.35
+      "cost": 60.92
     },
     {
       "from": "seated-idle",
@@ -31100,7 +31100,7 @@
     {
       "from": "seated-idle",
       "to": "walk-backwards",
-      "cost": 48.39
+      "cost": 49
     },
     {
       "from": "seated-idle",
@@ -31305,7 +31305,7 @@
     {
       "from": "shrug",
       "to": "jog",
-      "cost": 70.28
+      "cost": 72.03
     },
     {
       "from": "shrug",
@@ -31585,7 +31585,7 @@
     {
       "from": "shrug",
       "to": "walk-backwards",
-      "cost": 35.74
+      "cost": 36.25
     },
     {
       "from": "shrug",
@@ -31790,7 +31790,7 @@
     {
       "from": "sidestep",
       "to": "jog",
-      "cost": 52.22
+      "cost": 40.05
     },
     {
       "from": "sidestep",
@@ -32070,7 +32070,7 @@
     {
       "from": "sidestep",
       "to": "walk-backwards",
-      "cost": 21.11
+      "cost": 16.88
     },
     {
       "from": "sidestep",
@@ -32275,7 +32275,7 @@
     {
       "from": "sit-down",
       "to": "jog",
-      "cost": 73.35
+      "cost": 47.51
     },
     {
       "from": "sit-down",
@@ -32555,7 +32555,7 @@
     {
       "from": "sit-down",
       "to": "walk-backwards",
-      "cost": 48.39
+      "cost": 49
     },
     {
       "from": "sit-down",
@@ -32760,7 +32760,7 @@
     {
       "from": "sit-floor",
       "to": "jog",
-      "cost": 108.17
+      "cost": 81.61
     },
     {
       "from": "sit-floor",
@@ -33040,7 +33040,7 @@
     {
       "from": "sit-floor",
       "to": "walk-backwards",
-      "cost": 70.39
+      "cost": 71
     },
     {
       "from": "sit-floor",
@@ -33245,7 +33245,7 @@
     {
       "from": "skip",
       "to": "jog",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "skip",
@@ -33525,7 +33525,7 @@
     {
       "from": "skip",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "skip",
@@ -33730,7 +33730,7 @@
     {
       "from": "stairs-down",
       "to": "jog",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "stairs-down",
@@ -34010,7 +34010,7 @@
     {
       "from": "stairs-down",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "stairs-down",
@@ -34215,7 +34215,7 @@
     {
       "from": "stairs-up",
       "to": "jog",
-      "cost": 59.06
+      "cost": 58.71
     },
     {
       "from": "stairs-up",
@@ -34495,7 +34495,7 @@
     {
       "from": "stairs-up",
       "to": "walk-backwards",
-      "cost": 61.5
+      "cost": 60.6
     },
     {
       "from": "stairs-up",
@@ -34700,7 +34700,7 @@
     {
       "from": "stand-up",
       "to": "jog",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "stand-up",
@@ -34980,7 +34980,7 @@
     {
       "from": "stand-up",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "stand-up",
@@ -35185,7 +35185,7 @@
     {
       "from": "step-up",
       "to": "jog",
-      "cost": 44.08
+      "cost": 24.96
     },
     {
       "from": "step-up",
@@ -35465,7 +35465,7 @@
     {
       "from": "step-up",
       "to": "walk-backwards",
-      "cost": 29.1
+      "cost": 29.73
     },
     {
       "from": "step-up",
@@ -35670,7 +35670,7 @@
     {
       "from": "stop-hand",
       "to": "jog",
-      "cost": 52.52
+      "cost": 54.16
     },
     {
       "from": "stop-hand",
@@ -35950,7 +35950,7 @@
     {
       "from": "stop-hand",
       "to": "walk-backwards",
-      "cost": 30.71
+      "cost": 31.06
     },
     {
       "from": "stop-hand",
@@ -36155,7 +36155,7 @@
     {
       "from": "surprised",
       "to": "jog",
-      "cost": 55.48
+      "cost": 57.15
     },
     {
       "from": "surprised",
@@ -36435,7 +36435,7 @@
     {
       "from": "surprised",
       "to": "walk-backwards",
-      "cost": 29.91
+      "cost": 30.25
     },
     {
       "from": "surprised",
@@ -36640,7 +36640,7 @@
     {
       "from": "swipe-next",
       "to": "jog",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "swipe-next",
@@ -36920,7 +36920,7 @@
     {
       "from": "swipe-next",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "swipe-next",
@@ -37125,7 +37125,7 @@
     {
       "from": "tablet-tap",
       "to": "jog",
-      "cost": 52.37
+      "cost": 46.61
     },
     {
       "from": "tablet-tap",
@@ -37405,7 +37405,7 @@
     {
       "from": "tablet-tap",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "tablet-tap",
@@ -37610,7 +37610,7 @@
     {
       "from": "tap-element",
       "to": "jog",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "tap-element",
@@ -37890,7 +37890,7 @@
     {
       "from": "tap-element",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "tap-element",
@@ -38095,7 +38095,7 @@
     {
       "from": "think",
       "to": "jog",
-      "cost": 52.37
+      "cost": 35.41
     },
     {
       "from": "think",
@@ -38375,7 +38375,7 @@
     {
       "from": "think",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "think",
@@ -38580,7 +38580,7 @@
     {
       "from": "throw",
       "to": "jog",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "throw",
@@ -38860,7 +38860,7 @@
     {
       "from": "throw",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "throw",
@@ -39065,7 +39065,7 @@
     {
       "from": "thumbs-up",
       "to": "jog",
-      "cost": 52.09
+      "cost": 53.72
     },
     {
       "from": "thumbs-up",
@@ -39345,7 +39345,7 @@
     {
       "from": "thumbs-up",
       "to": "walk-backwards",
-      "cost": 29.02
+      "cost": 29.35
     },
     {
       "from": "thumbs-up",
@@ -39550,7 +39550,7 @@
     {
       "from": "trip",
       "to": "jog",
-      "cost": 63.47
+      "cost": 43.34
     },
     {
       "from": "trip",
@@ -39830,7 +39830,7 @@
     {
       "from": "trip",
       "to": "walk-backwards",
-      "cost": 19.61
+      "cost": 20.92
     },
     {
       "from": "trip",
@@ -40035,7 +40035,7 @@
     {
       "from": "turn-90",
       "to": "jog",
-      "cost": 70.28
+      "cost": 72.03
     },
     {
       "from": "turn-90",
@@ -40315,7 +40315,7 @@
     {
       "from": "turn-90",
       "to": "walk-backwards",
-      "cost": 35.74
+      "cost": 36.25
     },
     {
       "from": "turn-90",
@@ -40520,7 +40520,7 @@
     {
       "from": "turn-around",
       "to": "jog",
-      "cost": 77.24
+      "cost": 79.01
     },
     {
       "from": "turn-around",
@@ -40800,7 +40800,7 @@
     {
       "from": "turn-around",
       "to": "walk-backwards",
-      "cost": 43.37
+      "cost": 43.9
     },
     {
       "from": "turn-around",
@@ -41005,7 +41005,7 @@
     {
       "from": "type-at-desk",
       "to": "jog",
-      "cost": 73.35
+      "cost": 47.51
     },
     {
       "from": "type-at-desk",
@@ -41285,7 +41285,7 @@
     {
       "from": "type-at-desk",
       "to": "walk-backwards",
-      "cost": 48.39
+      "cost": 49
     },
     {
       "from": "type-at-desk",
@@ -41490,7 +41490,7 @@
     {
       "from": "vault",
       "to": "jog",
-      "cost": 65.24
+      "cost": 40
     },
     {
       "from": "vault",
@@ -41770,7 +41770,7 @@
     {
       "from": "vault",
       "to": "walk-backwards",
-      "cost": 16.39
+      "cost": 17
     },
     {
       "from": "vault",
@@ -41975,7 +41975,7 @@
     {
       "from": "video-call",
       "to": "jog",
-      "cost": 73.35
+      "cost": 47.51
     },
     {
       "from": "video-call",
@@ -42255,7 +42255,7 @@
     {
       "from": "video-call",
       "to": "walk-backwards",
-      "cost": 48.39
+      "cost": 49
     },
     {
       "from": "video-call",
@@ -42460,7 +42460,7 @@
     {
       "from": "walk",
       "to": "jog",
-      "cost": 52.37
+      "cost": 43.39
     },
     {
       "from": "walk",
@@ -42740,7 +42740,7 @@
     {
       "from": "walk",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk",
@@ -42785,442 +42785,442 @@
     {
       "from": "walk-backwards",
       "to": "arms-crossed",
-      "cost": 31.59
+      "cost": 30.56
     },
     {
       "from": "walk-backwards",
       "to": "balance",
-      "cost": 25.98
+      "cost": 26.28
     },
     {
       "from": "walk-backwards",
       "to": "basketball-shot",
-      "cost": 32.4
+      "cost": 32.77
     },
     {
       "from": "walk-backwards",
       "to": "beckon",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "bow",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "catch",
-      "cost": 43.46
+      "cost": 43.98
     },
     {
       "from": "walk-backwards",
       "to": "check-watch",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "cheer",
-      "cost": 31.59
+      "cost": 30.56
     },
     {
       "from": "walk-backwards",
       "to": "clap",
-      "cost": 31.59
+      "cost": 30.56
     },
     {
       "from": "walk-backwards",
       "to": "climb-down",
-      "cost": 110.31
+      "cost": 109.45
     },
     {
       "from": "walk-backwards",
       "to": "climb-ladder",
-      "cost": 50.39
+      "cost": 51
     },
     {
       "from": "walk-backwards",
       "to": "climb-ledge",
-      "cost": 24.39
+      "cost": 25
     },
     {
       "from": "walk-backwards",
       "to": "crawl",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "crouch",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "dodge",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "drag-object",
-      "cost": 24.72
+      "cost": 25
     },
     {
       "from": "walk-backwards",
       "to": "drag-window",
-      "cost": 27.26
+      "cost": 27.99
     },
     {
       "from": "walk-backwards",
       "to": "enter-door",
-      "cost": 34.62
+      "cost": 35
     },
     {
       "from": "walk-backwards",
       "to": "exit-door",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "facepalm",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "fall-get-up",
-      "cost": 49.39
+      "cost": 50
     },
     {
       "from": "walk-backwards",
       "to": "fist-pump",
-      "cost": 30.79
+      "cost": 31.14
     },
     {
       "from": "walk-backwards",
       "to": "frustrated-pc",
-      "cost": 48.39
+      "cost": 49
     },
     {
       "from": "walk-backwards",
       "to": "get-up",
-      "cost": 70.39
+      "cost": 71
     },
     {
       "from": "walk-backwards",
       "to": "hand-over",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "hang-swing",
-      "cost": 120.1
+      "cost": 119.31
     },
     {
       "from": "walk-backwards",
       "to": "head-shake",
-      "cost": 31.62
+      "cost": 30.56
     },
     {
       "from": "walk-backwards",
       "to": "hold-sign",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "hop",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "hurdle",
-      "cost": 82.51
+      "cost": 85.12
     },
     {
       "from": "walk-backwards",
       "to": "idea",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "inspect-magnifier",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "jog",
-      "cost": 69.38
+      "cost": 47.31
     },
     {
       "from": "walk-backwards",
       "to": "kick",
-      "cost": 21.5
+      "cost": 21.73
     },
     {
       "from": "walk-backwards",
       "to": "kneel-down",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "kneel-up",
-      "cost": 64.51
+      "cost": 65
     },
     {
       "from": "walk-backwards",
       "to": "lie-down",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "lift-carry",
-      "cost": 22.74
+      "cost": 23
     },
     {
       "from": "walk-backwards",
       "to": "long-jump",
-      "cost": 82.51
+      "cost": 85.12
     },
     {
       "from": "walk-backwards",
       "to": "look-around",
-      "cost": 39.73
+      "cost": 39.08
     },
     {
       "from": "walk-backwards",
       "to": "nod",
-      "cost": 29.02
+      "cost": 29.35
     },
     {
       "from": "walk-backwards",
       "to": "open-door",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "open-laptop",
-      "cost": 21.76
+      "cost": 22.18
     },
     {
       "from": "walk-backwards",
       "to": "phone-call",
-      "cost": 35.74
+      "cost": 36.25
     },
     {
       "from": "walk-backwards",
       "to": "pick-up",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "plug-cable",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "present",
-      "cost": 29.18
+      "cost": 29.52
     },
     {
       "from": "walk-backwards",
       "to": "present-card",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "pull",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "pull-banner",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "pull-banner-bottom",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "pull-banner-left",
-      "cost": 44.06
+      "cost": 45.14
     },
     {
       "from": "walk-backwards",
       "to": "pull-banner-right",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "punch",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "push",
-      "cost": 36.61
+      "cost": 37
     },
     {
       "from": "walk-backwards",
       "to": "push-walk",
-      "cost": 36.61
+      "cost": 37
     },
     {
       "from": "walk-backwards",
       "to": "put-down",
-      "cost": 22.44
+      "cost": 22.69
     },
     {
       "from": "walk-backwards",
       "to": "rack-server",
-      "cost": 26.69
+      "cost": 27
     },
     {
       "from": "walk-backwards",
       "to": "reveal",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "run",
-      "cost": 53.2
+      "cost": 52.18
     },
     {
       "from": "walk-backwards",
       "to": "run-start",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "sad-slump",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "scratch-head",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "seated-idle",
-      "cost": 48.39
+      "cost": 49
     },
     {
       "from": "walk-backwards",
       "to": "shrug",
-      "cost": 31.59
+      "cost": 30.56
     },
     {
       "from": "walk-backwards",
       "to": "sidestep",
-      "cost": 21.27
+      "cost": 21.5
     },
     {
       "from": "walk-backwards",
       "to": "sit-down",
-      "cost": 26.39
+      "cost": 27
     },
     {
       "from": "walk-backwards",
       "to": "sit-floor",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "skip",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "stairs-down",
-      "cost": 64.02
+      "cost": 64.35
     },
     {
       "from": "walk-backwards",
       "to": "stairs-up",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "stand-up",
-      "cost": 48.39
+      "cost": 49
     },
     {
       "from": "walk-backwards",
       "to": "step-up",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "stop-hand",
-      "cost": 30.71
+      "cost": 31.06
     },
     {
       "from": "walk-backwards",
       "to": "surprised",
-      "cost": 29.91
+      "cost": 30.25
     },
     {
       "from": "walk-backwards",
       "to": "swipe-next",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "tablet-tap",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "tap-element",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "think",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "throw",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "thumbs-up",
-      "cost": 29.02
+      "cost": 29.35
     },
     {
       "from": "walk-backwards",
       "to": "trip",
-      "cost": 34.62
+      "cost": 35
     },
     {
       "from": "walk-backwards",
       "to": "turn-90",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "turn-around",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "type-at-desk",
-      "cost": 48.39
+      "cost": 49
     },
     {
       "from": "walk-backwards",
       "to": "vault",
-      "cost": 82.51
+      "cost": 85.12
     },
     {
       "from": "walk-backwards",
       "to": "video-call",
-      "cost": 48.39
+      "cost": 49
     },
     {
       "from": "walk-backwards",
       "to": "walk",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
@@ -43230,42 +43230,42 @@
     {
       "from": "walk-backwards",
       "to": "walk-off",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "walk-on",
-      "cost": 34.62
+      "cost": 35
     },
     {
       "from": "walk-backwards",
       "to": "walk-start",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "walk-stop",
-      "cost": 56.53
+      "cost": 57.56
     },
     {
       "from": "walk-backwards",
       "to": "walk-turn",
-      "cost": 22.66
+      "cost": 23.99
     },
     {
       "from": "walk-backwards",
       "to": "wave",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-backwards",
       "to": "write-board",
-      "cost": 30.06
+      "cost": 31.14
     },
     {
       "from": "walk-backwards",
       "to": "write-notes",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-off",
@@ -43430,7 +43430,7 @@
     {
       "from": "walk-off",
       "to": "jog",
-      "cost": 42.38
+      "cost": 34.51
     },
     {
       "from": "walk-off",
@@ -43710,7 +43710,7 @@
     {
       "from": "walk-off",
       "to": "walk-backwards",
-      "cost": 34.62
+      "cost": 35
     },
     {
       "from": "walk-off",
@@ -43915,7 +43915,7 @@
     {
       "from": "walk-on",
       "to": "jog",
-      "cost": 62.59
+      "cost": 43.39
     },
     {
       "from": "walk-on",
@@ -44195,7 +44195,7 @@
     {
       "from": "walk-on",
       "to": "walk-backwards",
-      "cost": 19.64
+      "cost": 20.94
     },
     {
       "from": "walk-on",
@@ -44240,462 +44240,462 @@
     {
       "from": "walk-start",
       "to": "arms-crossed",
-      "cost": 53.83
+      "cost": 53.95
     },
     {
       "from": "walk-start",
       "to": "balance",
-      "cost": 35.67
+      "cost": 35.85
     },
     {
       "from": "walk-start",
       "to": "basketball-shot",
-      "cost": 28.52
+      "cost": 27.53
     },
     {
       "from": "walk-start",
       "to": "beckon",
-      "cost": 39.2
-    },
-    {
-      "from": "walk-start",
-      "to": "bow",
-      "cost": 39.2
-    },
-    {
-      "from": "walk-start",
-      "to": "catch",
-      "cost": 72.47
-    },
-    {
-      "from": "walk-start",
-      "to": "check-watch",
-      "cost": 39.2
-    },
-    {
-      "from": "walk-start",
-      "to": "cheer",
-      "cost": 53.83
-    },
-    {
-      "from": "walk-start",
-      "to": "clap",
-      "cost": 53.83
-    },
-    {
-      "from": "walk-start",
-      "to": "climb-down",
-      "cost": 127.74
-    },
-    {
-      "from": "walk-start",
-      "to": "climb-ladder",
-      "cost": 74.11
-    },
-    {
-      "from": "walk-start",
-      "to": "climb-ledge",
-      "cost": 49.48
-    },
-    {
-      "from": "walk-start",
-      "to": "crawl",
-      "cost": 39.2
-    },
-    {
-      "from": "walk-start",
-      "to": "crouch",
-      "cost": 39.2
-    },
-    {
-      "from": "walk-start",
-      "to": "dodge",
-      "cost": 39.2
-    },
-    {
-      "from": "walk-start",
-      "to": "drag-object",
-      "cost": 36.22
-    },
-    {
-      "from": "walk-start",
-      "to": "drag-window",
-      "cost": 58.66
-    },
-    {
-      "from": "walk-start",
-      "to": "enter-door",
-      "cost": 26.31
-    },
-    {
-      "from": "walk-start",
-      "to": "exit-door",
-      "cost": 39.2
-    },
-    {
-      "from": "walk-start",
-      "to": "facepalm",
-      "cost": 39.2
-    },
-    {
-      "from": "walk-start",
-      "to": "fall-get-up",
-      "cost": 69.12
-    },
-    {
-      "from": "walk-start",
-      "to": "fist-pump",
-      "cost": 51.25
-    },
-    {
-      "from": "walk-start",
-      "to": "frustrated-pc",
-      "cost": 63.13
-    },
-    {
-      "from": "walk-start",
-      "to": "get-up",
-      "cost": 100.08
-    },
-    {
-      "from": "walk-start",
-      "to": "hand-over",
-      "cost": 39.2
-    },
-    {
-      "from": "walk-start",
-      "to": "hang-swing",
-      "cost": 130.5
-    },
-    {
-      "from": "walk-start",
-      "to": "head-shake",
-      "cost": 58.66
-    },
-    {
-      "from": "walk-start",
-      "to": "hold-sign",
-      "cost": 39.2
-    },
-    {
-      "from": "walk-start",
-      "to": "hop",
-      "cost": 39.2
-    },
-    {
-      "from": "walk-start",
-      "to": "hurdle",
-      "cost": 43.13
-    },
-    {
-      "from": "walk-start",
-      "to": "idea",
-      "cost": 39.2
-    },
-    {
-      "from": "walk-start",
-      "to": "inspect-magnifier",
-      "cost": 39.2
-    },
-    {
-      "from": "walk-start",
-      "to": "jog",
-      "cost": 26.3
-    },
-    {
-      "from": "walk-start",
-      "to": "kick",
-      "cost": 39.47
-    },
-    {
-      "from": "walk-start",
-      "to": "kneel-down",
-      "cost": 39.2
-    },
-    {
-      "from": "walk-start",
-      "to": "kneel-up",
-      "cost": 32.46
-    },
-    {
-      "from": "walk-start",
-      "to": "lie-down",
-      "cost": 39.2
-    },
-    {
-      "from": "walk-start",
-      "to": "lift-carry",
       "cost": 38.21
     },
     {
       "from": "walk-start",
+      "to": "bow",
+      "cost": 38.21
+    },
+    {
+      "from": "walk-start",
+      "to": "catch",
+      "cost": 72.55
+    },
+    {
+      "from": "walk-start",
+      "to": "check-watch",
+      "cost": 38.21
+    },
+    {
+      "from": "walk-start",
+      "to": "cheer",
+      "cost": 53.95
+    },
+    {
+      "from": "walk-start",
+      "to": "clap",
+      "cost": 53.95
+    },
+    {
+      "from": "walk-start",
+      "to": "climb-down",
+      "cost": 126.94
+    },
+    {
+      "from": "walk-start",
+      "to": "climb-ladder",
+      "cost": 73.11
+    },
+    {
+      "from": "walk-start",
+      "to": "climb-ledge",
+      "cost": 49.77
+    },
+    {
+      "from": "walk-start",
+      "to": "crawl",
+      "cost": 38.21
+    },
+    {
+      "from": "walk-start",
+      "to": "crouch",
+      "cost": 38.21
+    },
+    {
+      "from": "walk-start",
+      "to": "dodge",
+      "cost": 38.21
+    },
+    {
+      "from": "walk-start",
+      "to": "drag-object",
+      "cost": 35.87
+    },
+    {
+      "from": "walk-start",
+      "to": "drag-window",
+      "cost": 58.89
+    },
+    {
+      "from": "walk-start",
+      "to": "enter-door",
+      "cost": 25.32
+    },
+    {
+      "from": "walk-start",
+      "to": "exit-door",
+      "cost": 38.21
+    },
+    {
+      "from": "walk-start",
+      "to": "facepalm",
+      "cost": 38.21
+    },
+    {
+      "from": "walk-start",
+      "to": "fall-get-up",
+      "cost": 68.12
+    },
+    {
+      "from": "walk-start",
+      "to": "fist-pump",
+      "cost": 51.37
+    },
+    {
+      "from": "walk-start",
+      "to": "frustrated-pc",
+      "cost": 62.13
+    },
+    {
+      "from": "walk-start",
+      "to": "get-up",
+      "cost": 99.08
+    },
+    {
+      "from": "walk-start",
+      "to": "hand-over",
+      "cost": 38.21
+    },
+    {
+      "from": "walk-start",
+      "to": "hang-swing",
+      "cost": 129.69
+    },
+    {
+      "from": "walk-start",
+      "to": "head-shake",
+      "cost": 58.76
+    },
+    {
+      "from": "walk-start",
+      "to": "hold-sign",
+      "cost": 38.21
+    },
+    {
+      "from": "walk-start",
+      "to": "hop",
+      "cost": 38.21
+    },
+    {
+      "from": "walk-start",
+      "to": "hurdle",
+      "cost": 43.39
+    },
+    {
+      "from": "walk-start",
+      "to": "idea",
+      "cost": 38.21
+    },
+    {
+      "from": "walk-start",
+      "to": "inspect-magnifier",
+      "cost": 38.21
+    },
+    {
+      "from": "walk-start",
+      "to": "jog",
+      "cost": 30.18
+    },
+    {
+      "from": "walk-start",
+      "to": "kick",
+      "cost": 38.48
+    },
+    {
+      "from": "walk-start",
+      "to": "kneel-down",
+      "cost": 38.21
+    },
+    {
+      "from": "walk-start",
+      "to": "kneel-up",
+      "cost": 32.56
+    },
+    {
+      "from": "walk-start",
+      "to": "lie-down",
+      "cost": 38.21
+    },
+    {
+      "from": "walk-start",
+      "to": "lift-carry",
+      "cost": 37.22
+    },
+    {
+      "from": "walk-start",
       "to": "long-jump",
-      "cost": 43.13
+      "cost": 43.39
     },
     {
       "from": "walk-start",
       "to": "look-around",
-      "cost": 54.51
+      "cost": 53.78
     },
     {
       "from": "walk-start",
       "to": "nod",
-      "cost": 50.5
+      "cost": 50.62
     },
     {
       "from": "walk-start",
       "to": "open-door",
-      "cost": 39.2
+      "cost": 38.21
     },
     {
       "from": "walk-start",
       "to": "open-laptop",
-      "cost": 53.15
+      "cost": 53.42
     },
     {
       "from": "walk-start",
       "to": "phone-call",
-      "cost": 64.85
+      "cost": 64.94
     },
     {
       "from": "walk-start",
       "to": "pick-up",
-      "cost": 39.2
+      "cost": 38.21
     },
     {
       "from": "walk-start",
       "to": "plug-cable",
-      "cost": 39.44
+      "cost": 39.77
     },
     {
       "from": "walk-start",
       "to": "present",
-      "cost": 50.92
+      "cost": 51.03
     },
     {
       "from": "walk-start",
       "to": "present-card",
-      "cost": 39.2
+      "cost": 38.21
     },
     {
       "from": "walk-start",
       "to": "pull",
-      "cost": 39.2
+      "cost": 38.21
     },
     {
       "from": "walk-start",
       "to": "pull-banner",
-      "cost": 39.2
+      "cost": 38.21
     },
     {
       "from": "walk-start",
       "to": "pull-banner-bottom",
-      "cost": 39.2
+      "cost": 38.21
     },
     {
       "from": "walk-start",
       "to": "pull-banner-left",
-      "cost": 66.86
+      "cost": 66.97
     },
     {
       "from": "walk-start",
       "to": "pull-banner-right",
-      "cost": 39.2
+      "cost": 38.21
     },
     {
       "from": "walk-start",
       "to": "punch",
-      "cost": 39.2
+      "cost": 38.21
     },
     {
       "from": "walk-start",
       "to": "push",
-      "cost": 35.45
+      "cost": 35.88
     },
     {
       "from": "walk-start",
       "to": "push-walk",
-      "cost": 35.45
+      "cost": 35.88
     },
     {
       "from": "walk-start",
       "to": "put-down",
-      "cost": 38.52
+      "cost": 37.52
     },
     {
       "from": "walk-start",
       "to": "rack-server",
-      "cost": 34.23
+      "cost": 33.24
     },
     {
       "from": "walk-start",
       "to": "reveal",
-      "cost": 39.2
+      "cost": 38.21
     },
     {
       "from": "walk-start",
       "to": "run",
-      "cost": 35.61
+      "cost": 35
     },
     {
       "from": "walk-start",
       "to": "run-start",
-      "cost": 39.2
+      "cost": 38.21
     },
     {
       "from": "walk-start",
       "to": "sad-slump",
-      "cost": 39.2
+      "cost": 38.21
     },
     {
       "from": "walk-start",
       "to": "scratch-head",
-      "cost": 39.2
+      "cost": 38.21
     },
     {
       "from": "walk-start",
       "to": "seated-idle",
-      "cost": 63.13
+      "cost": 62.13
     },
     {
       "from": "walk-start",
       "to": "shrug",
-      "cost": 53.83
+      "cost": 53.95
     },
     {
       "from": "walk-start",
       "to": "sidestep",
-      "cost": 39.7
+      "cost": 38.71
     },
     {
       "from": "walk-start",
       "to": "sit-down",
-      "cost": 47.17
+      "cost": 46.17
     },
     {
       "from": "walk-start",
       "to": "sit-floor",
-      "cost": 39.2
+      "cost": 38.21
     },
     {
       "from": "walk-start",
       "to": "skip",
-      "cost": 39.2
+      "cost": 38.21
     },
     {
       "from": "walk-start",
       "to": "stairs-down",
-      "cost": 73.59
+      "cost": 72.86
     },
     {
       "from": "walk-start",
       "to": "stairs-up",
-      "cost": 39.2
+      "cost": 38.21
     },
     {
       "from": "walk-start",
       "to": "stand-up",
-      "cost": 63.13
+      "cost": 62.13
     },
     {
       "from": "walk-start",
       "to": "step-up",
-      "cost": 39.2
+      "cost": 38.21
     },
     {
       "from": "walk-start",
       "to": "stop-hand",
-      "cost": 44.17
+      "cost": 44.31
     },
     {
       "from": "walk-start",
       "to": "surprised",
-      "cost": 47.79
+      "cost": 47.92
     },
     {
       "from": "walk-start",
       "to": "swipe-next",
-      "cost": 39.2
+      "cost": 38.21
     },
     {
       "from": "walk-start",
       "to": "tablet-tap",
-      "cost": 39.2
+      "cost": 38.21
     },
     {
       "from": "walk-start",
       "to": "tap-element",
-      "cost": 39.2
+      "cost": 38.21
     },
     {
       "from": "walk-start",
       "to": "think",
-      "cost": 39.2
+      "cost": 38.21
     },
     {
       "from": "walk-start",
       "to": "throw",
-      "cost": 39.2
+      "cost": 38.21
     },
     {
       "from": "walk-start",
       "to": "thumbs-up",
-      "cost": 43.59
+      "cost": 43.73
     },
     {
       "from": "walk-start",
       "to": "trip",
-      "cost": 26.31
+      "cost": 25.32
     },
     {
       "from": "walk-start",
       "to": "turn-90",
-      "cost": 39.2
+      "cost": 38.21
     },
     {
       "from": "walk-start",
       "to": "turn-around",
-      "cost": 39.2
+      "cost": 38.21
     },
     {
       "from": "walk-start",
       "to": "type-at-desk",
-      "cost": 63.13
+      "cost": 62.13
     },
     {
       "from": "walk-start",
       "to": "vault",
-      "cost": 43.13
+      "cost": 43.39
     },
     {
       "from": "walk-start",
       "to": "video-call",
-      "cost": 63.13
+      "cost": 62.13
     },
     {
       "from": "walk-start",
       "to": "walk",
-      "cost": 39.2
+      "cost": 38.21
     },
     {
       "from": "walk-start",
       "to": "walk-backwards",
-      "cost": 60.39
+      "cost": 60.13
     },
     {
       "from": "walk-start",
       "to": "walk-off",
-      "cost": 39.2
+      "cost": 38.21
     },
     {
       "from": "walk-start",
       "to": "walk-on",
-      "cost": 26.31
+      "cost": 25.32
     },
     {
       "from": "walk-start",
       "to": "walk-start",
-      "cost": 39.2
+      "cost": 38.21
     },
     {
       "from": "walk-start",
@@ -44705,22 +44705,22 @@
     {
       "from": "walk-start",
       "to": "walk-turn",
-      "cost": 61.13
+      "cost": 60.13
     },
     {
       "from": "walk-start",
       "to": "wave",
-      "cost": 39.2
+      "cost": 38.21
     },
     {
       "from": "walk-start",
       "to": "write-board",
-      "cost": 40.2
+      "cost": 39.2
     },
     {
       "from": "walk-start",
       "to": "write-notes",
-      "cost": 39.2
+      "cost": 38.21
     },
     {
       "from": "walk-stop",
@@ -44885,7 +44885,7 @@
     {
       "from": "walk-stop",
       "to": "jog",
-      "cost": 52.37
+      "cost": 36.3
     },
     {
       "from": "walk-stop",
@@ -45165,7 +45165,7 @@
     {
       "from": "walk-stop",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "walk-stop",
@@ -45370,7 +45370,7 @@
     {
       "from": "walk-turn",
       "to": "jog",
-      "cost": 77.64
+      "cost": 79.41
     },
     {
       "from": "walk-turn",
@@ -45650,7 +45650,7 @@
     {
       "from": "walk-turn",
       "to": "walk-backwards",
-      "cost": 42.88
+      "cost": 43.44
     },
     {
       "from": "walk-turn",
@@ -45855,7 +45855,7 @@
     {
       "from": "wave",
       "to": "jog",
-      "cost": 52.37
+      "cost": 36.32
     },
     {
       "from": "wave",
@@ -46135,7 +46135,7 @@
     {
       "from": "wave",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "wave",
@@ -46340,7 +46340,7 @@
     {
       "from": "write-board",
       "to": "jog",
-      "cost": 53.2
+      "cost": 47.09
     },
     {
       "from": "write-board",
@@ -46620,7 +46620,7 @@
     {
       "from": "write-board",
       "to": "walk-backwards",
-      "cost": 20.78
+      "cost": 21
     },
     {
       "from": "write-board",
@@ -46825,7 +46825,7 @@
     {
       "from": "write-notes",
       "to": "jog",
-      "cost": 52.37
+      "cost": 41.32
     },
     {
       "from": "write-notes",
@@ -47105,7 +47105,7 @@
     {
       "from": "write-notes",
       "to": "walk-backwards",
-      "cost": 21.76
+      "cost": 22
     },
     {
       "from": "write-notes",
