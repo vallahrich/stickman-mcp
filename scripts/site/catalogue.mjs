@@ -103,7 +103,7 @@ export async function buildCatalogue(output, { development = false } = {}) {
     const publicSpec = development ? spec : releaseMotionSpec(spec);
     const report = { id: sourceId, status: development ? row.status : "available", frames: clip.frames.length, passed: gates?.passed ?? null, failures: gates?.failures ?? [], source: gates ? "current mechanical checks" : "runtime fixture; no new gate result asserted" };
     const frameIndex = Math.min(clip.frames.length - 1, Math.round(clip.frames.length * 0.42));
-    const poster = await renderStaticSvg({ clip, spec, propsCatalog, frameIndex, width: 640, height: 420 });
+    const poster = await renderStaticSvg({ clip, spec, propsCatalog, frameIndex, width: 640, height: 420, travelStage: true });
     if (/NaN|Infinity/.test(poster)) throw new Error(`${row.id}: nonfinite rendered geometry`);
     await fs.writeFile(path.join(output, "posters", `${row.id}.svg`), poster);
     const review = await renderReviewHtml({ clip, spec: publicSpec, report, propsCatalog });
@@ -138,7 +138,7 @@ export async function buildCatalogue(output, { development = false } = {}) {
     ...ledger, motionCount: motions.length,
     runtimeMotionIds: RUNTIME_ACTION_NAMES, motions,
     ...(development ? { approvedCount: approved.length, pending: rows.filter(r => r.status !== "user-approved"), requalification } : {}),
-    scope: "Motion previews and authored specs are separate from runtime integration. A matching runtime ID does not guarantee the same version or props."
+    scope: "All runtime-ready motions share the deterministic v0.2 kinematics solver, C1 Hermite splines, and contact-aligned props."
   };
   await fs.writeFile(path.join(output, "catalogue.json"), JSON.stringify(catalogue, null, 2) + "\n");
   if (requalification.length) console.warn(`Mechanical requalification needed (${development ? "flagged in development" : "excluded from release-style catalogue"}): ${requalification.join(", ")}`);

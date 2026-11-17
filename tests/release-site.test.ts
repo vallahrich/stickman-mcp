@@ -264,16 +264,16 @@ describe("native release presentation", () => {
         el.scrollTop = Math.round(max * 0.5);
         el.dispatchEvent(new Event("scroll"));
       });
-      await expect.poll(() => scrubStage.getAttribute("data-active-slice")).toBe("12");
+      await expect.poll(() => scrubStage.getAttribute("data-active-slice")).toBe("24");
       expect(await page.locator("#bp-scroll-stage [data-scrub-slice][data-active='true']").count()).toBe(1);
-      expect(await page.locator("#bp-scroll-stage [data-scrub-slice='12']").getAttribute("data-active")).toBe("true");
+      expect(await page.locator("#bp-scroll-stage [data-scrub-slice='24']").getAttribute("data-active")).toBe("true");
       expect(await scrubProgress.textContent()).toBe("50%");
       expect(await scrubTimecode.textContent()).not.toMatch(/^0\.00s \//);
 
       // Keyboard operability on focused scroll-scrub container (End -> 100%)
       await scrubScroller.focus();
       await scrubScroller.press("End");
-      await expect.poll(() => scrubStage.getAttribute("data-active-slice")).toBe("24");
+      await expect.poll(() => scrubStage.getAttribute("data-active-slice")).toBe("48");
       expect(await scrubProgress.textContent()).toBe("100%");
 
       // Mobile 390x844 containment check across all four blueprint views + reduced motion + dark theme

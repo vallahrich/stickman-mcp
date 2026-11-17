@@ -1,7 +1,9 @@
 const catalogue = JSON.parse(document.getElementById("catalogueData").textContent);
 const $ = id => document.getElementById(id);
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
-const theme = document.documentElement.getAttribute("data-theme");
+function currentTheme() {
+  return document.documentElement.getAttribute("data-theme") || "light";
+}
 let activePreview = null;
 let dialogVariants = [];
 const motionMode = $("motionMode");
@@ -14,7 +16,7 @@ function stopPreview() {
 }
 function previewUrl(motion, hover = false) {
   const mode = effectiveMotionMode();
-  const query = new URLSearchParams({ scoutTheme: theme, onion: "0" });
+  const query = new URLSearchParams({ scoutTheme: currentTheme(), onion: "0" });
   query.set("mode", motionMode.value);
   if (mode === "static") {
     query.set("frame", String(motion.frames - 1));
@@ -87,7 +89,7 @@ function renderCatalogue() {
     }
     const caption = document.createElement("p"); caption.textContent = `${motion.duration}s · ${motion.loop ? "Loop" : "One-shot"} · ${motion.id}`;
     const runtime = document.createElement("p"); runtime.className = "runtime";
-    runtime.textContent = motion.runtimeIdAvailable ? "Runtime ID available · version integration separate" : "Authored motion · runtime integration pending";
+    runtime.textContent = motion.runtimeIdAvailable ? "Runtime action ready · shipping engine" : "Authored motion · runtime integration pending";
     if (motion.mechanicalCheck === "needs-requalification") runtime.textContent += " · mechanical requalification needed";
     body.append(title, meta, caption, runtime); article.append(button, body); $("motionGrid").append(article);
   }
@@ -118,6 +120,11 @@ $("motionMode").addEventListener("change", () => {
 $("closeDialog").addEventListener("click", () => $("motionDialog").close());
 $("motionDialog").addEventListener("close", () => { $("fullPreview").removeAttribute("src"); });
 document.addEventListener("visibilitychange", () => { if (document.hidden) stopPreview(); });
+new MutationObserver(() => {
+  const nextTheme = currentTheme();
+  activePreview?.contentWindow?.postMessage({ type: "stickman:theme", theme: nextTheme }, "*");
+  $("fullPreview")?.contentWindow?.postMessage({ type: "stickman:theme", theme: nextTheme }, "*");
+}).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 reducedMotion.addEventListener("change", () => {
   $("motionMode").value = "auto";
   $("motionModeHelp").textContent = reducedMotion.matches

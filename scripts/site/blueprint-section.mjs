@@ -140,7 +140,7 @@ function buildIsometricRoomSvg() {
 }
 
 function buildScrollScrubStageSvg(program) {
-  const sliceCount = 25;
+  const sliceCount = 49;
   const { width, height } = program.spec.canvas;
   const durationMs = program.spec.durationMs;
   const v2Spec = program.contractVersion === "stickman.animation/v2" ? program.spec : undefined;
