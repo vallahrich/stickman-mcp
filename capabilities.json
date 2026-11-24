@@ -5,7 +5,8 @@
   "transport": "stdio",
   "contracts": [
     "stickman.animation/v1",
-    "stickman.animation/v2"
+    "stickman.animation/v2",
+    "stickman.movie/v1"
   ],
   "runtimeMotionIds": [
     "arms-crossed",
@@ -126,6 +127,8 @@
     "stickman_preview",
     "stickman_export",
     "stickman_story",
+    "stickman_movie",
+    "stickman_critique",
     "stickman_compose_film",
     "stickman_render_film",
     "stickman_list_film_assets",
@@ -137,16 +140,22 @@
     "stickman://catalog",
     "stickman://schema/v1",
     "stickman://schema/v2",
+    "stickman://schema/movie-v1",
     "stickman://anchors",
     "stickman://props",
+    "stickman://rubric/human-critique",
+    "ui://stickman/player",
     "stickman://templates/presentation-pitch",
     "stickman://templates/two-actor-dialogue",
     "stickman://templates/idea-reveal",
-    "stickman://templates/sports-action"
+    "stickman://templates/sports-action",
+    "stickman://templates/incident-warroom-movie",
+    "stickman://templates/two-actor-handoff"
   ],
   "prompts": [
     "choreograph-slide",
-    "two-actor-dialogue"
+    "two-actor-dialogue",
+    "create-and-critique-movie"
   ],
   "catalogue": "catalogue.json",
   "stories": "stories.json",
@@ -154,7 +163,8 @@
   "examples": [
     "cloud architecture explanation",
     "IT service workflow",
-    "cybersecurity briefing"
+    "cybersecurity briefing",
+    "incident war room recovery"
   ],
   "limitations": [
     "Catalogue previews are not runtime integration",

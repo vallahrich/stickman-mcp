@@ -75,10 +75,11 @@ const ENGINE_FRAME_GEOMETRY=function frameGeometry(frame) {
     if (!Number.isFinite(scale) || scale <= 0)
         throw new Error("Pose has an invalid torso length.");
     const headRadius = 11 * scale;
-    const strokeWidth = Math.max(2.5, headRadius * 2 * 0.09);
+    const strokeWidth = Math.max(1.25, 2.97 * Math.pow(scale / 1.5, 0.75));
     const torsoDirection = frame.facing ?? (torso.x2 - torso.x1);
     const kneeDirection = (leftThigh.x2 + rightThigh.x2) / 2 - torso.x1;
     const direction = Math.abs(torsoDirection) > 0.1 * scale ? torsoDirection : kneeDirection;
+    const dirSign = direction < 0 ? -1 : 1;
     const nearSide = direction < 0 ? "left" : "right";
     const farSide = nearSide === "left" ? "right" : "left";
     const frontView = frame.facing !== undefined && Math.abs(frame.facing) < 0.3;
@@ -89,7 +90,10 @@ const ENGINE_FRAME_GEOMETRY=function frameGeometry(frame) {
     const farArm = `${backArm}-arm`;
     const nearArm = `${frontArm}-arm`;
     const segmentOrder = frontView ? ["left-leg", "right-leg", "torso", "left-arm", "right-arm"] : [farArm, farLeg, "torso", nearLeg, nearArm];
-    const format = (value) => Number(value.toFixed(3)).toString();
+    const format = (value) => {
+        const rounded = Number(value.toFixed(3));
+        return (Math.abs(rounded) < 1e-6 ? 0 : rounded).toString();
+    };
     const path = (x1, y1, x2, y2) => `M${format(x1)} ${format(y1)}L${format(x2)} ${format(y2)}`;
     const curve = (root, joint, end) => {
         const dx = end.x - root.x;
@@ -127,13 +131,82 @@ const ENGINE_FRAME_GEOMETRY=function frameGeometry(frame) {
             ? jointed({ x: upper.x1, y: upper.y1 }, { x: upper.x2, y: upper.y2 }, { x: lower.x2, y: lower.y2 })
             : curve({ x: upper.x1, y: upper.y1 }, { x: upper.x2, y: upper.y2 }, { x: lower.x2, y: lower.y2 })
     });
+    const torsoDx = torso.x2 - torso.x1;
+    const torsoDy = torso.y2 - torso.y1;
+    const torsoLen = Math.hypot(torsoDx, torsoDy);
+    const tUnitX = torsoDx / torsoLen;
+    const tUnitY = torsoDy / torsoLen;
+    const forwardPerpX = -tUnitY * dirSign;
+    const forwardPerpY = tUnitX * dirSign;
+    const forwardCurveActions = new Set([
+        "run", "run-start", "jog", "crouch", "sit-down", "seated-idle",
+        "type-at-desk", "open-laptop", "video-call", "frustrated-pc",
+        "sad-slump", "bow", "sneak", "crawl", "push", "push-walk",
+        "pick-up", "put-down", "lift-carry", "write-notes", "tablet-tap",
+        "hurdle", "long-jump", "vault"
+    ]);
+    const openChestActions = new Set([
+        "cheer", "fist-pump", "idea", "present", "present-card", "reveal",
+        "surprised", "basketball-shot", "throw-ball", "jump", "hop"
+    ]);
+    const torsoLeanForward = (torsoDx * dirSign) / torsoLen;
+    const headLead = ((frame.head.x - torso.x2) * dirSign) / Math.max(1, headRadius);
+    const avgAnkleY = (leftShin.y2 + rightShin.y2) / 2;
+    const crouchRatio = Math.max(0, Math.min(1, 1 - (avgAnkleY - torso.y1) / (48 * scale)));
+    let spineBendRatio;
+    if (forwardCurveActions.has(frame.action)) {
+        spineBendRatio = -Math.min(0.11, Math.max(0.045, 0.055 + Math.max(0, torsoLeanForward) * 0.09 + crouchRatio * 0.05 + Math.max(0, headLead) * 0.015));
+    }
+    else if (openChestActions.has(frame.action)) {
+        spineBendRatio = Math.min(0.095, Math.max(0.035, 0.045 + Math.max(0, -torsoLeanForward) * 0.08 + Math.max(0, -headLead) * 0.015));
+    }
+    else if (torsoLeanForward >= 0) {
+        spineBendRatio = -Math.min(0.08, Math.max(0.018, 0.018 + torsoLeanForward * 0.12 + crouchRatio * 0.03));
+    }
+    else {
+        spineBendRatio = Math.min(0.07, Math.max(0.018, 0.018 + (-torsoLeanForward) * 0.12));
+    }
+    if (frontView) {
+        spineBendRatio *= 0.55;
+    }
+    const spineMidX = (torso.x1 + torso.x2) / 2 + forwardPerpX * (torsoLen * spineBendRatio);
+    const spineMidY = (torso.y1 + torso.y2) / 2 + forwardPerpY * (torsoLen * spineBendRatio);
+    const torsoPath = `M${format(torso.x1)} ${format(torso.y1)}Q${format(spineMidX)} ${format(spineMidY)} ${format(torso.x2)} ${format(torso.y2)}`;
     const headVectorLength = Math.hypot(frame.head.x - torso.x2, frame.head.y - torso.y2);
-    const head = headVectorLength > 1e-6
+    let head = headVectorLength > 1e-6
         ? {
             x: torso.x2 + (frame.head.x - torso.x2) / headVectorLength * headRadius,
             y: torso.y2 + (frame.head.y - torso.y2) / headVectorLength * headRadius
         }
         : frame.head;
+    if (headVectorLength > 1e-6) {
+        let pitchRad = 0;
+        if (frame.gazeDir && Number.isFinite(frame.gazeDir.x) && Number.isFinite(frame.gazeDir.y)) {
+            const gLen = Math.hypot(frame.gazeDir.x, frame.gazeDir.y);
+            if (gLen > 1e-6) {
+                const gy = frame.gazeDir.y / gLen;
+                pitchRad += Math.max(-0.09, Math.min(0.09, gy * 0.14)) * dirSign;
+            }
+        }
+        else if (frame.action === "jump" || frame.action === "hop" || frame.action === "long-jump" ||
+            frame.action === "hurdle" || frame.action === "vault") {
+            const clearance = Math.max(0, Math.min(frame.groundY - leftShin.y2, frame.groundY - rightShin.y2));
+            const airFactor = Math.min(1, clearance / (24 * scale));
+            pitchRad += (crouchRatio * 0.06 - airFactor * 0.04) * dirSign;
+        }
+        if (Math.abs(pitchRad) > 1e-5) {
+            const nx = (head.x - torso.x2) / headRadius;
+            const ny = (head.y - torso.y2) / headRadius;
+            const c = Math.cos(pitchRad);
+            const s = Math.sin(pitchRad);
+            const candX = torso.x2 + (nx * c - ny * s) * headRadius;
+            const candY = torso.y2 + (nx * s + ny * c) * headRadius;
+            const maxHeadY = frame.groundY - headRadius - strokeWidth / 2;
+            if (candY <= maxHeadY + 1e-6 && Math.hypot(candX - head.x, candY - head.y) <= 2.2 * scale) {
+                head = { x: candX, y: candY };
+            }
+        }
+    }
     const footPath = (shin) => {
         const halfLength = 5.5 * scale;
         const clearance = Math.max(0, frame.groundY - shin.y2);
@@ -155,7 +228,7 @@ const ENGINE_FRAME_GEOMETRY=function frameGeometry(frame) {
         rearSegments: [], segmentOrder, limbs,
         handlePath: frame.prop ? path(frame.prop.handleX, frame.prop.handleY - 5 * scale, frame.prop.handleX, frame.prop.handleY + 5 * scale) : null,
         paths: [
-            { id: "torso", d: path(torso.x1, torso.y1, torso.x2, torso.y2), near: true },
+            { id: "torso", d: torsoPath, near: true },
             { id: "left-foot", d: footPath(leftShin), near: nearSide === "left" },
             { id: "right-foot", d: footPath(rightShin), near: nearSide === "right" },
             {
