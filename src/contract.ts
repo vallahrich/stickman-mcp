@@ -6,6 +6,7 @@ export type ActionName = string;
 export type PlaybackMode = "normal" | "reduced" | "static";
 export type RenderStyle = "default" | "blueprint";
 export type ActorAccessory = "none" | "tie" | "hat" | "glasses" | "badge";
+export type GazeTarget = "forward" | "down" | "up" | "target" | Point2D;
 
 export type StageAnchorName =
   | "offstage-left"
@@ -249,6 +250,7 @@ export interface SampledActorFrame {
   head: Point2D;
   segments: Segment[];
   facing?: number;
+  gazeDir?: Point2D;
   articulated?: boolean;
   color: string;
   accessory?: ActorAccessory;
@@ -266,6 +268,7 @@ export interface SampledFrame {
   segments: Segment[];
   prop: null | { id: string; x: number; y: number; width: number; height: number; handleX: number; handleY: number };
   facing?: number;
+  gazeDir?: Point2D;
   /** Draw limbs through the actual knee/elbow (key-pose motions with deep bends). */
   articulated?: boolean;
   addons?: SampledAddon[];
@@ -295,6 +298,7 @@ export interface ChoreographAction {
   from?: ChoreographTargetInput;
   to?: ChoreographTargetInput;
   target?: string;
+  gaze?: GazeTarget;
   speed?: number;
   blendMs?: number;
   afterCue?: string;
@@ -315,6 +319,7 @@ export interface ActorChoreographySpec {
   scale?: number;
   zIndex?: number;
   facing?: -1 | 1 | "left" | "right";
+  gaze?: GazeTarget;
   actions: ChoreographAction[];
 }
 
@@ -329,11 +334,13 @@ export interface ChoreographActorInput {
   scale?: number;
   zIndex?: number;
   facing?: -1 | 1 | "left" | "right";
+  gaze?: GazeTarget;
 }
 
 export interface ResolvedActorAction extends AnimationAction {
   from?: Point2D;
   to?: Point2D;
+  gaze?: GazeTarget;
   afterCue?: string;
   emitCue?: string;
   emitCueAt?: "start" | "end" | string;
@@ -352,6 +359,7 @@ export interface CompiledActorSpec {
   scale: number;
   zIndex: number;
   facing: -1 | 1;
+  gaze?: GazeTarget;
   actions: ResolvedActorAction[];
 }
 
@@ -375,6 +383,7 @@ export interface AnimationSpecV2 {
     scale?: number;
     zIndex?: number;
     facing?: -1 | 1;
+    gaze?: GazeTarget;
   };
   prop?: PropSpec;
   actors: CompiledActorSpec[];

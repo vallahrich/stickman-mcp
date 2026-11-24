@@ -17,6 +17,7 @@ import {
   type CompiledActorSpec,
   type CompiledAnimation,
   type Diagnostic,
+  type GazeTarget,
   type PlaybackMode,
   type Point2D,
   type PropSpec,
@@ -89,6 +90,51 @@ const HOLD_OR_SEATED_FINAL_ACTIONS = new Set<string>([
   "think",
   "point",
   "present-card"
+]);
+const GAZE_MODES = new Set<string>(["forward", "down", "up", "target"]);
+const DOWN_GAZE_ACTIONS = new Set<string>([
+  "type-at-desk",
+  "open-laptop",
+  "video-call",
+  "frustrated-pc",
+  "tablet-tap",
+  "write-notes",
+  "check-watch",
+  "pick-up",
+  "put-down",
+  "sit-floor",
+  "sad-slump",
+  "inspect-magnifier"
+]);
+const UP_GAZE_ACTIONS = new Set<string>([
+  "idea",
+  "basketball-shot",
+  "climb-ladder",
+  "hang-swing",
+  "climb-ledge",
+  "cheer"
+]);
+const TARGET_GAZE_ACTIONS = new Set<string>([
+  "point",
+  "write-board",
+  "present",
+  "present-card",
+  "tap-element"
+]);
+const AIM_ADDON_PRIORITY = new Set<string>([
+  "board",
+  "card",
+  "target",
+  "window",
+  "cursor",
+  "sign",
+  "hoop",
+  "laptop",
+  "tablet",
+  "desk",
+  "notebook",
+  "magnifier",
+  "watch"
 ]);
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 
@@ -797,6 +843,97 @@ function normalizeActionAddon(
   };
 }
 
+function validateGazeTarget(raw: unknown, gazePath: string, diagnostics: Diagnostic[]): GazeTarget | undefined {
+  if (typeof raw === "string") {
+    if (!GAZE_MODES.has(raw)) {
+      diagnostics.push({
+        path: gazePath,
+        code: "invalid_gaze",
+        message: 'gaze must be "forward", "down", "up", "target", or a { x, y } point.'
+      });
+      return undefined;
+    }
+    return raw as GazeTarget;
+  }
+  if (isRecord(raw)) {
+    const startLen = diagnostics.length;
+    hasOnlyKeys(raw, ["x", "y"], gazePath, diagnostics);
+    if (!finiteNumber(raw.x)) {
+      diagnostics.push({ path: `${gazePath}.x`, code: "invalid_number", message: "gaze.x must be a finite number." });
+    }
+    if (!finiteNumber(raw.y)) {
+      diagnostics.push({ path: `${gazePath}.y`, code: "invalid_number", message: "gaze.y must be a finite number." });
+    }
+    if (diagnostics.length > startLen) return undefined;
+    return { x: raw.x as number, y: raw.y as number };
+  }
+  diagnostics.push({
+    path: gazePath,
+    code: "invalid_gaze",
+    message: 'gaze must be "forward", "down", "up", "target", or a { x, y } point.'
+  });
+  return undefined;
+}
+
+export function resolveActorGazeDir(
+  actionName: string,
+  explicitGaze: GazeTarget | undefined,
+  facing: number,
+  head: Point2D,
+  pointTarget?: Point2D,
+  addons?: readonly SampledAddon[]
+): Point2D {
+  const dirSign = facing < -0.05 ? -1 : 1;
+  const unitVec = (dx: number, dy: number): Point2D => {
+    const len = Math.hypot(dx, dy);
+    if (!Number.isFinite(len) || len <= 1e-6) return { x: dirSign, y: 0 };
+    return { x: dx / len, y: dy / len };
+  };
+  const findAimAddonCenter = (): Point2D | undefined => {
+    if (!addons || addons.length === 0) return undefined;
+    const preferred = addons.find((a) => AIM_ADDON_PRIORITY.has(a.type)) ?? addons[0];
+    if (!preferred) return undefined;
+    return { x: preferred.x + preferred.width / 2, y: preferred.y + preferred.height / 2 };
+  };
+
+  const downVec: Point2D = { x: dirSign * 0.866025, y: 0.5 };
+  const upVec: Point2D = { x: dirSign * 0.906308, y: -0.422618 };
+
+  if (explicitGaze !== undefined) {
+    if (typeof explicitGaze === "object") {
+      return unitVec(explicitGaze.x - head.x, explicitGaze.y - head.y);
+    }
+    if (explicitGaze === "down") return downVec;
+    if (explicitGaze === "up") return upVec;
+    if (explicitGaze === "target") {
+      const targetPt = pointTarget ?? findAimAddonCenter();
+      return targetPt ? unitVec(targetPt.x - head.x, targetPt.y - head.y) : { x: dirSign, y: 0 };
+    }
+    return { x: dirSign, y: 0 };
+  }
+
+  if (DOWN_GAZE_ACTIONS.has(actionName)) {
+    return downVec;
+  }
+  if (UP_GAZE_ACTIONS.has(actionName)) {
+    if (actionName === "basketball-shot" && addons) {
+      const hoop = addons.find((a) => a.type === "hoop");
+      if (hoop) {
+        const cx = hoop.x + hoop.width / 2;
+        const cy = hoop.y + hoop.height / 2;
+        const v = unitVec(cx - head.x, cy - head.y);
+        if (v.y < -0.15) return v;
+      }
+    }
+    return upVec;
+  }
+  if (TARGET_GAZE_ACTIONS.has(actionName)) {
+    const targetPt = pointTarget ?? findAimAddonCenter();
+    if (targetPt) return unitVec(targetPt.x - head.x, targetPt.y - head.y);
+  }
+  return { x: dirSign, y: 0 };
+}
+
 interface PendingActionNode {
   actorIdx: number;
   actionIdx: number;
@@ -808,6 +945,7 @@ interface PendingActionNode {
   from?: Point2D;
   to?: Point2D;
   target?: string;
+  gaze?: GazeTarget;
   speed?: number;
   blendMs?: number;
   afterCue?: string;
@@ -1109,6 +1247,7 @@ export function choreographAnimation(input: unknown): ChoreographResult {
     scale: number;
     zIndex: number;
     facing: -1 | 1;
+    gaze?: GazeTarget;
     nodes: PendingActionNode[];
   }> = [];
   const allNodes: PendingActionNode[] = [];
@@ -1123,7 +1262,7 @@ export function choreographAnimation(input: unknown): ChoreographResult {
 
     hasOnlyKeys(
       rawActor,
-      ["id", "label", "x", "groundY", "color", "accessory", "accentColor", "scale", "zIndex", "facing", "actions"],
+      ["id", "label", "x", "groundY", "color", "accessory", "accentColor", "scale", "zIndex", "facing", "gaze", "actions"],
       basePath === "$" ? "$.actor" : basePath,
       diagnostics
     );
@@ -1306,6 +1445,11 @@ export function choreographAnimation(input: unknown): ChoreographResult {
       initialFacing = 1;
     }
 
+    let actorGaze: GazeTarget | undefined;
+    if (rawActor.gaze !== undefined) {
+      actorGaze = validateGazeTarget(rawActor.gaze, `${basePath === "$" ? "$.actor" : basePath}.gaze`, diagnostics);
+    }
+
     let curX = initialX;
     let curFacing: -1 | 1 = initialFacing;
     const actorNodes: PendingActionNode[] = [];
@@ -1328,6 +1472,7 @@ export function choreographAnimation(input: unknown): ChoreographResult {
           "from",
           "to",
           "target",
+          "gaze",
           "speed",
           "blendMs",
           "afterCue",
@@ -1523,6 +1668,11 @@ export function choreographAnimation(input: unknown): ChoreographResult {
         }
       }
 
+      let actionGaze: GazeTarget | undefined;
+      if (rawAct.gaze !== undefined) {
+        actionGaze = validateGazeTarget(rawAct.gaze, `${actionPath}.gaze`, diagnostics);
+      }
+
       const cueOffsetMs = emitCue
         ? computeCueOffsetMs(actionName, durationMs, effectiveSpeed, emitCueAt, actionPath, diagnostics)
         : durationMs;
@@ -1538,6 +1688,7 @@ export function choreographAnimation(input: unknown): ChoreographResult {
         ...(resolvedFrom ? { from: resolvedFrom } : {}),
         ...(resolvedTo ? { to: resolvedTo } : {}),
         ...(targetLabel ? { target: targetLabel } : {}),
+        ...(actionGaze !== undefined ? { gaze: actionGaze } : {}),
         ...(speed !== undefined ? { speed } : {}),
         ...(blendMs !== undefined ? { blendMs } : {}),
         ...(afterCue !== undefined ? { afterCue } : {}),
@@ -1565,6 +1716,7 @@ export function choreographAnimation(input: unknown): ChoreographResult {
       scale: userScale,
       zIndex,
       facing: initialFacing,
+      ...(actorGaze !== undefined ? { gaze: actorGaze } : {}),
       nodes: actorNodes
     });
   }
@@ -1708,6 +1860,7 @@ export function choreographAnimation(input: unknown): ChoreographResult {
     scale: actorDraft.scale,
     zIndex: actorDraft.zIndex,
     facing: actorDraft.facing,
+    ...(actorDraft.gaze !== undefined ? { gaze: typeof actorDraft.gaze === "object" ? { ...actorDraft.gaze } : actorDraft.gaze } : {}),
     actions: actorDraft.nodes.map((node): ResolvedActorAction => ({
       action: node.action,
       startMs: node.startMs,
@@ -1715,6 +1868,7 @@ export function choreographAnimation(input: unknown): ChoreographResult {
       ...(node.from ? { from: { ...node.from } } : {}),
       ...(node.to ? { to: { ...node.to } } : {}),
       ...(node.target !== undefined ? { target: node.target } : {}),
+      ...(node.gaze !== undefined ? { gaze: typeof node.gaze === "object" ? { ...node.gaze } : node.gaze } : {}),
       ...(node.speed !== undefined ? { speed: node.speed } : {}),
       ...(node.blendMs !== undefined ? { blendMs: node.blendMs } : {}),
       ...(node.afterCue !== undefined ? { afterCue: node.afterCue } : {}),
@@ -1744,7 +1898,8 @@ export function choreographAnimation(input: unknown): ChoreographResult {
       ...(primary.accentColor !== undefined ? { accentColor: primary.accentColor } : {}),
       scale: primary.scale,
       zIndex: primary.zIndex,
-      facing: primary.facing
+      facing: primary.facing,
+      ...(primary.gaze !== undefined ? { gaze: typeof primary.gaze === "object" ? { ...primary.gaze } : primary.gaze } : {})
     },
     ...(isRecord(input.prop) ? { prop: structuredClone(input.prop as unknown as PropSpec) } : {}),
     actors: compiledActors,
@@ -2260,6 +2415,15 @@ export function sampleAnimationV2(
         }
       }
 
+      actorFrame.gazeDir = resolveActorGazeDir(
+        finalPose.action,
+        (summaryTraj && finalPose.action === summaryTraj.item.action ? summaryTraj.item.gaze : undefined) ?? actor.gaze,
+        finalPose.facing,
+        finalPose.head,
+        summaryTraj?.pointTarget,
+        finalAddons
+      );
+
       sampledByIndex.push({ actorIndex, zIndex: actor.zIndex, actorFrame, addons: finalAddons });
       continue;
     }
@@ -2442,6 +2606,16 @@ export function sampleAnimationV2(
       }
     }
 
+    const activeTraj = activeIdx >= 0 ? trajectories[activeIdx] : undefined;
+    actorFrame.gazeDir = resolveActorGazeDir(
+      actorFrame.action,
+      activeTraj?.item.gaze ?? actor.gaze,
+      actorFrame.facing ?? actor.facing,
+      actorFrame.head,
+      activeTraj?.pointTarget,
+      actorAddons
+    );
+
     sampledByIndex.push({ actorIndex, zIndex: actor.zIndex, actorFrame, addons: actorAddons });
   }
 
@@ -2459,6 +2633,7 @@ export function sampleAnimationV2(
     segments: primary.segments,
     prop: null,
     ...(primary.facing !== undefined ? { facing: primary.facing } : {}),
+    ...(primary.gazeDir !== undefined ? { gazeDir: primary.gazeDir } : {}),
     ...(primary.articulated ? { articulated: true } : {}),
     addons: allAddons,
     actors: sortedActors

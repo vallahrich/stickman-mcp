@@ -12,6 +12,7 @@ export {
   choreographAnimation,
   compileV2Animation,
   normalizeActionName,
+  resolveActorGazeDir,
   resolveStageAnchors,
   sampleAnimationV2,
   validateV2Animation

@@ -137,7 +137,8 @@ export const animationSchemaV2 = {
         accentColor: { type: "string", pattern: "^#[0-9a-fA-F]{6}$" },
         scale: { type: "number", minimum: 0.25, maximum: 2.5 },
         zIndex: { type: "number" },
-        facing: { enum: [-1, 1, "left", "right"] }
+        facing: { enum: [-1, 1, "left", "right"] },
+        gaze: { $ref: "#/$defs/gazeTarget" }
       }
     },
     prop: {
@@ -182,6 +183,12 @@ export const animationSchemaV2 = {
       oneOf: [
         { type: "string", minLength: 1 },
         { $ref: "#/$defs/partialPoint" }
+      ]
+    },
+    gazeTarget: {
+      oneOf: [
+        { enum: ["forward", "down", "up", "target"] },
+        { $ref: "#/$defs/point" }
       ]
     },
     addonConfig: {
@@ -295,6 +302,7 @@ export const animationSchemaV2 = {
         from: { $ref: "#/$defs/targetRef" },
         to: { $ref: "#/$defs/targetRef" },
         target: { type: "string", minLength: 1 },
+        gaze: { $ref: "#/$defs/gazeTarget" },
         speed: { type: "number", minimum: 0.5, maximum: 2 },
         blendMs: { type: "integer", minimum: 0, maximum: 5000 },
         afterCue: { type: "string", minLength: 1 },
@@ -326,6 +334,7 @@ export const animationSchemaV2 = {
         scale: { type: "number", minimum: 0.25, maximum: 2.5 },
         zIndex: { type: "number" },
         facing: { enum: [-1, 1, "left", "right"] },
+        gaze: { $ref: "#/$defs/gazeTarget" },
         actions: {
           type: "array",
           items: { $ref: "#/$defs/choreographAction" }

@@ -50,10 +50,11 @@ export function frameGeometry(frame: SampledFrame) {
   const scale = Math.hypot(torso.x2 - torso.x1, torso.y2 - torso.y1) / 30;
   if (!Number.isFinite(scale) || scale <= 0) throw new Error("Pose has an invalid torso length.");
   const headRadius = 11 * scale;
-  const strokeWidth = Math.max(2.5, headRadius * 2 * 0.09);
+  const strokeWidth = Math.max(1.25, 2.97 * Math.pow(scale / 1.5, 0.75));
   const torsoDirection = frame.facing ?? (torso.x2 - torso.x1);
   const kneeDirection = (leftThigh.x2 + rightThigh.x2) / 2 - torso.x1;
   const direction = Math.abs(torsoDirection) > 0.1 * scale ? torsoDirection : kneeDirection;
+  const dirSign = direction < 0 ? -1 : 1;
   const nearSide = direction < 0 ? "left" : "right";
   const farSide = nearSide === "left" ? "right" : "left";
   const frontView = frame.facing !== undefined && Math.abs(frame.facing) < 0.3;
@@ -64,7 +65,10 @@ export function frameGeometry(frame: SampledFrame) {
   const farArm = `${backArm}-arm`;
   const nearArm = `${frontArm}-arm`;
   const segmentOrder = frontView ? ["left-leg", "right-leg", "torso", "left-arm", "right-arm"] : [farArm, farLeg, "torso", nearLeg, nearArm];
-  const format = (value: number): string => Number(value.toFixed(3)).toString();
+  const format = (value: number): string => {
+    const rounded = Number(value.toFixed(3));
+    return (Math.abs(rounded) < 1e-6 ? 0 : rounded).toString();
+  };
   const path = (x1: number, y1: number, x2: number, y2: number): string =>
     `M${format(x1)} ${format(y1)}L${format(x2)} ${format(y2)}`;
   const curve = (
@@ -103,13 +107,86 @@ export function frameGeometry(frame: SampledFrame) {
       ? jointed({ x: upper.x1, y: upper.y1 }, { x: upper.x2, y: upper.y2 }, { x: lower.x2, y: lower.y2 })
       : curve({ x: upper.x1, y: upper.y1 }, { x: upper.x2, y: upper.y2 }, { x: lower.x2, y: lower.y2 })
   });
+  const torsoDx = torso.x2 - torso.x1;
+  const torsoDy = torso.y2 - torso.y1;
+  const torsoLen = Math.hypot(torsoDx, torsoDy);
+  const tUnitX = torsoDx / torsoLen;
+  const tUnitY = torsoDy / torsoLen;
+  const forwardPerpX = -tUnitY * dirSign;
+  const forwardPerpY = tUnitX * dirSign;
+  const forwardCurveActions = new Set([
+    "run", "run-start", "jog", "crouch", "sit-down", "seated-idle",
+    "type-at-desk", "open-laptop", "video-call", "frustrated-pc",
+    "sad-slump", "bow", "sneak", "crawl", "push", "push-walk",
+    "pick-up", "put-down", "lift-carry", "write-notes", "tablet-tap",
+    "hurdle", "long-jump", "vault"
+  ]);
+  const openChestActions = new Set([
+    "cheer", "fist-pump", "idea", "present", "present-card", "reveal",
+    "surprised", "basketball-shot", "throw-ball", "jump", "hop"
+  ]);
+  const torsoLeanForward = (torsoDx * dirSign) / torsoLen;
+  const headLead = ((frame.head.x - torso.x2) * dirSign) / Math.max(1, headRadius);
+  const avgAnkleY = (leftShin.y2 + rightShin.y2) / 2;
+  const crouchRatio = Math.max(0, Math.min(1, 1 - (avgAnkleY - torso.y1) / (48 * scale)));
+  let spineBendRatio: number;
+  if (forwardCurveActions.has(frame.action)) {
+    spineBendRatio = -Math.min(
+      0.11,
+      Math.max(0.045, 0.055 + Math.max(0, torsoLeanForward) * 0.09 + crouchRatio * 0.05 + Math.max(0, headLead) * 0.015)
+    );
+  } else if (openChestActions.has(frame.action)) {
+    spineBendRatio = Math.min(
+      0.095,
+      Math.max(0.035, 0.045 + Math.max(0, -torsoLeanForward) * 0.08 + Math.max(0, -headLead) * 0.015)
+    );
+  } else if (torsoLeanForward >= 0) {
+    spineBendRatio = -Math.min(0.08, Math.max(0.018, 0.018 + torsoLeanForward * 0.12 + crouchRatio * 0.03));
+  } else {
+    spineBendRatio = Math.min(0.07, Math.max(0.018, 0.018 + (-torsoLeanForward) * 0.12));
+  }
+  if (frontView) {
+    spineBendRatio *= 0.55;
+  }
+  const spineMidX = (torso.x1 + torso.x2) / 2 + forwardPerpX * (torsoLen * spineBendRatio);
+  const spineMidY = (torso.y1 + torso.y2) / 2 + forwardPerpY * (torsoLen * spineBendRatio);
+  const torsoPath = `M${format(torso.x1)} ${format(torso.y1)}Q${format(spineMidX)} ${format(spineMidY)} ${format(torso.x2)} ${format(torso.y2)}`;
   const headVectorLength = Math.hypot(frame.head.x - torso.x2, frame.head.y - torso.y2);
-  const head = headVectorLength > 1e-6
+  let head = headVectorLength > 1e-6
     ? {
         x: torso.x2 + (frame.head.x - torso.x2) / headVectorLength * headRadius,
         y: torso.y2 + (frame.head.y - torso.y2) / headVectorLength * headRadius
       }
     : frame.head;
+  if (headVectorLength > 1e-6) {
+    let pitchRad = 0;
+    if (frame.gazeDir && Number.isFinite(frame.gazeDir.x) && Number.isFinite(frame.gazeDir.y)) {
+      const gLen = Math.hypot(frame.gazeDir.x, frame.gazeDir.y);
+      if (gLen > 1e-6) {
+        const gy = frame.gazeDir.y / gLen;
+        pitchRad += Math.max(-0.09, Math.min(0.09, gy * 0.14)) * dirSign;
+      }
+    } else if (
+      frame.action === "jump" || frame.action === "hop" || frame.action === "long-jump" ||
+      frame.action === "hurdle" || frame.action === "vault"
+    ) {
+      const clearance = Math.max(0, Math.min(frame.groundY - leftShin.y2, frame.groundY - rightShin.y2));
+      const airFactor = Math.min(1, clearance / (24 * scale));
+      pitchRad += (crouchRatio * 0.06 - airFactor * 0.04) * dirSign;
+    }
+    if (Math.abs(pitchRad) > 1e-5) {
+      const nx = (head.x - torso.x2) / headRadius;
+      const ny = (head.y - torso.y2) / headRadius;
+      const c = Math.cos(pitchRad);
+      const s = Math.sin(pitchRad);
+      const candX = torso.x2 + (nx * c - ny * s) * headRadius;
+      const candY = torso.y2 + (nx * s + ny * c) * headRadius;
+      const maxHeadY = frame.groundY - headRadius - strokeWidth / 2;
+      if (candY <= maxHeadY + 1e-6 && Math.hypot(candX - head.x, candY - head.y) <= 2.2 * scale) {
+        head = { x: candX, y: candY };
+      }
+    }
+  }
   const footPath = (shin: typeof leftShin): string => {
     const halfLength = 5.5 * scale;
     const clearance = Math.max(0, frame.groundY - shin.y2);
@@ -131,7 +208,7 @@ export function frameGeometry(frame: SampledFrame) {
     rearSegments: [] as string[], segmentOrder, limbs,
     handlePath: frame.prop ? path(frame.prop.handleX, frame.prop.handleY - 5 * scale, frame.prop.handleX, frame.prop.handleY + 5 * scale) : null,
     paths: [
-      { id: "torso", d: path(torso.x1, torso.y1, torso.x2, torso.y2), near: true },
+      { id: "torso", d: torsoPath, near: true },
       { id: "left-foot", d: footPath(leftShin), near: nearSide === "left" },
       { id: "right-foot", d: footPath(rightShin), near: nearSide === "right" },
       {
@@ -195,6 +272,7 @@ export function actorToSampledFrame(actor: SampledActorFrame, timeMs = 0): Sampl
     segments: actor.segments,
     prop: null,
     ...(actor.facing !== undefined ? { facing: actor.facing } : {}),
+    ...(actor.gazeDir !== undefined ? { gazeDir: actor.gazeDir } : {}),
     ...(actor.articulated ? { articulated: true } : {})
   };
 }
@@ -335,6 +413,208 @@ export function renderActorAccessorySvg(
   return "";
 }
 
+export type HandGlyphKind = "thumbs-up" | "point" | "open" | "grip";
+
+const POINT_GLYPH_ACTIONS = new Set<string>(["point", "idea", "tap-element", "tablet-tap"]);
+const OPEN_GLYPH_ACTIONS = new Set<string>([
+  "wave", "stop-hand", "cheer", "surprised", "beckon", "shrug", "present", "reveal"
+]);
+const TWO_HAND_OPEN_ACTIONS = new Set<string>(["cheer", "surprised", "shrug", "reveal"]);
+const GRIP_GLYPH_ACTIONS = new Set<string>([
+  "hold-sign", "phone-call", "write-board", "write-notes", "open-door",
+  "pick-up", "lift-carry", "pull", "plug-cable", "rack-server",
+  "inspect-magnifier", "hand-over", "catch"
+]);
+const TWO_HAND_GRIP_ACTIONS = new Set<string>([
+  "hold-sign", "pick-up", "lift-carry", "pull", "rack-server", "hand-over", "catch"
+]);
+
+export function resolveHandGlyphKind(action: string): HandGlyphKind | null {
+  if (action === "thumbs-up") return "thumbs-up";
+  if (POINT_GLYPH_ACTIONS.has(action)) return "point";
+  if (OPEN_GLYPH_ACTIONS.has(action)) return "open";
+  if (GRIP_GLYPH_ACTIONS.has(action) || action.startsWith("pull-banner")) return "grip";
+  return null;
+}
+
+export function renderActorGazeSvg(
+  actor: SampledActorFrame,
+  geometry: ReturnType<typeof frameGeometry>,
+  decimals = 3
+): string {
+  const n = (value: number): string => number(value, decimals);
+  const hr = geometry.headRadius;
+  const hx = geometry.head.x;
+  const hy = geometry.head.y;
+  const facingVal =
+    actor.facing !== undefined
+      ? Math.max(-1, Math.min(1, actor.facing))
+      : geometry.nearSide === "left"
+        ? -1
+        : 1;
+  const absFacing = Math.abs(facingVal);
+  const dirSign = facingVal < 0 ? -1 : 1;
+
+  let gx = dirSign;
+  let gy = 0;
+  if (actor.gazeDir && Number.isFinite(actor.gazeDir.x) && Number.isFinite(actor.gazeDir.y)) {
+    const gLen = Math.hypot(actor.gazeDir.x, actor.gazeDir.y);
+    if (gLen > 1e-6) {
+      gx = actor.gazeDir.x / gLen;
+      gy = actor.gazeDir.y / gLen;
+    }
+  }
+
+  const eyeR = Math.max(0.85, hr * 0.105);
+  const maxOffset = Math.max(0.5, hr * 0.56);
+  const clampInside = (dx: number, dy: number): Point2D => {
+    const d = Math.hypot(dx, dy);
+    if (d <= maxOffset) return { x: hx + dx, y: hy + dy };
+    const k = maxOffset / d;
+    return { x: hx + dx * k, y: hy + dy * k };
+  };
+
+  const dyBase = Math.max(-hr * 0.46, Math.min(hr * 0.36, -hr * 0.1 + gy * hr * 0.34));
+  const fill = xml(actor.color);
+
+  if (absFacing >= 0.72) {
+    const dx = Math.max(-hr * 0.5, Math.min(hr * 0.5, dirSign * hr * 0.32 + gx * hr * 0.14));
+    const pt = clampInside(dx, dyBase);
+    return `<g data-part="gaze" fill="${fill}" stroke="none"><circle cx="${n(pt.x)}" cy="${n(pt.y)}" r="${n(eyeR)}"/></g>`;
+  }
+
+  const shiftX = Math.max(-hr * 0.3, Math.min(hr * 0.3, facingVal * hr * 0.22 + gx * hr * 0.14));
+  const sep = hr * (0.24 - absFacing * 0.08);
+  const leftEye = clampInside(shiftX - sep, dyBase);
+  const rightEye = clampInside(shiftX + sep, dyBase);
+  return (
+    `<g data-part="gaze" fill="${fill}" stroke="none">` +
+    `<circle cx="${n(leftEye.x)}" cy="${n(leftEye.y)}" r="${n(eyeR)}"/>` +
+    `<circle cx="${n(rightEye.x)}" cy="${n(rightEye.y)}" r="${n(eyeR)}"/>` +
+    `</g>`
+  );
+}
+
+export function renderActorHandGlyphsSvg(
+  actor: SampledActorFrame,
+  geometry: ReturnType<typeof frameGeometry>,
+  strokeWidth: number,
+  decimals = 3
+): string {
+  const kind = resolveHandGlyphKind(actor.action);
+  if (!kind) return "";
+
+  const leftForearm = actor.segments.find((s) => s.id === "left-forearm");
+  const rightForearm = actor.segments.find((s) => s.id === "right-forearm");
+  if (!leftForearm || !rightForearm) return "";
+
+  const n = (value: number): string => number(value, decimals);
+  const u = geometry.scale;
+  const facingVal =
+    actor.facing !== undefined
+      ? Math.max(-1, Math.min(1, actor.facing))
+      : geometry.nearSide === "left"
+        ? -1
+        : 1;
+  const dirSign = facingVal < 0 ? -1 : 1;
+  const color = xml(actor.color);
+
+  const pickHigherSide = (): "left" | "right" =>
+    rightForearm.y2 <= leftForearm.y2 + 1e-3 ? "right" : "left";
+
+  let sides: ReadonlyArray<"left" | "right">;
+  if (kind === "open" && TWO_HAND_OPEN_ACTIONS.has(actor.action)) {
+    sides = ["left", "right"];
+  } else if (kind === "grip" && (TWO_HAND_GRIP_ACTIONS.has(actor.action) || actor.action.startsWith("pull-banner"))) {
+    sides = ["left", "right"];
+  } else if (actor.action === "point") {
+    sides = ["right"];
+  } else {
+    sides = [pickHigherSide()];
+  }
+
+  const glyphPieces = sides.map((side) => {
+    const seg = side === "left" ? leftForearm : rightForearm;
+    const wx = seg.x2;
+    const wy = seg.y2;
+    const rawDx = seg.x2 - seg.x1;
+    const rawDy = seg.y2 - seg.y1;
+    const len = Math.hypot(rawDx, rawDy) || 1;
+    const ux = rawDx / len;
+    const uy = rawDy / len;
+    // Choose perpendicular pointing upward/inward relative to facing
+    let px = -uy;
+    let py = ux;
+    if (py > 0) {
+      px = -px;
+      py = -py;
+    }
+
+    if (kind === "thumbs-up") {
+      const fx = wx + ux * 1.1 * u;
+      const fy = wy + uy * 1.1 * u;
+      const fistR = Math.max(1.6, 2.25 * u);
+      const thumbSw = Math.max(1.1, strokeWidth * 0.78);
+      const tx0 = fx - dirSign * 0.55 * u;
+      const ty0 = fy - 1.2 * u;
+      const tcx = fx - dirSign * 0.95 * u;
+      const tcy = fy - 4.8 * u;
+      const tx1 = fx + dirSign * 0.55 * u;
+      const ty1 = fy - 6.1 * u;
+      return (
+        `<circle cx="${n(fx)}" cy="${n(fy)}" r="${n(fistR)}" fill="${color}" stroke="none"/>` +
+        `<path d="M${n(tx0)} ${n(ty0)}Q${n(tcx)} ${n(tcy)} ${n(tx1)} ${n(ty1)}" fill="none" stroke="${color}" stroke-width="${n(thumbSw)}" stroke-linecap="round"/>`
+      );
+    }
+
+    if (kind === "point") {
+      const tipX = wx + ux * 5.2 * u;
+      const tipY = wy + uy * 5.2 * u;
+      const tBaseX = wx + ux * 0.6 * u;
+      const tBaseY = wy + uy * 0.6 * u;
+      const tTipX = wx + ux * 2.1 * u + px * 1.7 * u;
+      const tTipY = wy + uy * 2.1 * u + py * 1.7 * u;
+      const fingerSw = Math.max(1.0, strokeWidth * 0.72);
+      return `<path d="M${n(wx)} ${n(wy)}L${n(tipX)} ${n(tipY)}M${n(tBaseX)} ${n(tBaseY)}L${n(tTipX)} ${n(tTipY)}" fill="none" stroke="${color}" stroke-width="${n(fingerSw)}" stroke-linecap="round"/>`;
+    }
+
+    if (kind === "open") {
+      const raySw = Math.max(0.95, strokeWidth * 0.62);
+      const baseAngle = Math.atan2(uy, ux);
+      const rays: Array<[number, number]> = [
+        [-0.56, 3.2 * u],
+        [0, 4.1 * u],
+        [0.56, 3.2 * u]
+      ];
+      const d = rays
+        .map(([da, rLen]) => {
+          const a = baseAngle + da;
+          return `M${n(wx)} ${n(wy)}L${n(wx + Math.cos(a) * rLen)} ${n(wy + Math.sin(a) * rLen)}`;
+        })
+        .join("");
+      return `<path d="${d}" fill="none" stroke="${color}" stroke-width="${n(raySw)}" stroke-linecap="round"/>`;
+    }
+
+    // "grip": compact C-grip arc + palm knot
+    const cx = wx + ux * 1.2 * u;
+    const cy = wy + uy * 1.2 * u;
+    const r = Math.max(1.4, 2.1 * u);
+    const gripSw = Math.max(1.0, strokeWidth * 0.7);
+    const a0x = cx - px * r;
+    const a0y = cy - py * r;
+    const ctrlX = cx + ux * (r * 1.45);
+    const ctrlY = cy + uy * (r * 1.45);
+    const a1x = cx + px * r;
+    const a1y = cy + py * r;
+    return (
+      `<path d="M${n(a0x)} ${n(a0y)}Q${n(ctrlX)} ${n(ctrlY)} ${n(a1x)} ${n(a1y)}" fill="none" stroke="${color}" stroke-width="${n(gripSw)}" stroke-linecap="round"/>` +
+      `<circle cx="${n(wx)}" cy="${n(wy)}" r="${n(Math.max(0.95, strokeWidth * 0.44))}" fill="${color}" stroke="none"/>`
+    );
+  });
+
+  return `<g data-part="hand-glyph" data-glyph="${kind}">${glyphPieces.join("")}</g>`;
+}
+
 export function renderActorFigureSvg(
   actor: SampledActorFrame,
   timeMs = 0,
@@ -374,6 +654,8 @@ export function renderActorFigureSvg(
     detailById.get("torso")?.d ??
       `M${n(effectiveActor.segments[0]!.x1)} ${n(effectiveActor.segments[0]!.y1)}L${n(effectiveActor.segments[0]!.x2)} ${n(effectiveActor.segments[0]!.y2)}`
   );
+  const rawGazeSvg = renderActorGazeSvg(effectiveActor, geometry, decimals);
+  const gazeSvg = compact ? compactAddonSvgNumbers(rawGazeSvg, decimals, true) : rawGazeSvg;
   const rawAccessorySvg = renderActorAccessorySvg(
     effectiveActor,
     geometry,
@@ -381,10 +663,8 @@ export function renderActorFigureSvg(
     decimals
   );
   const accessorySvg = compact ? compactAddonSvgNumbers(rawAccessorySvg, decimals, true) : rawAccessorySvg;
-  const finger =
-    effectiveActor.action === "point" && detailById.get("point-finger")
-      ? `<path${segAttr("point-finger")} d="${dFmt(detailById.get("point-finger")!.d)}"/>`
-      : "";
+  const rawHandGlyphsSvg = renderActorHandGlyphsSvg(effectiveActor, geometry, strokeWidth, decimals);
+  const handGlyphsSvg = compact ? compactAddonSvgNumbers(rawHandGlyphsSvg, decimals, true) : rawHandGlyphsSvg;
   const accessoryAttr =
     !compact && effectiveActor.accessory && effectiveActor.accessory !== "none"
       ? ` data-accessory-type="${xml(effectiveActor.accessory)}"`
@@ -398,9 +678,9 @@ export function renderActorFigureSvg(
     `${limb(geometry.segmentOrder[0]!)}${limb(geometry.segmentOrder[1]!)}` +
     `<path${segAttr("torso")} d="${torsoD}"/>` +
     `<circle${segAttr("head")} cx="${n(geometry.head.x)}" cy="${n(geometry.head.y)}" r="${n(geometry.headRadius)}" fill="${headFill}"${headStrokeAttrs}/>` +
-    `${accessorySvg}` +
+    `${gazeSvg}${accessorySvg}` +
     `${limb(geometry.segmentOrder[3]!)}${limb(geometry.segmentOrder[4]!)}` +
-    `${finger}</g>`
+    `${handGlyphsSvg}</g>`
   );
 }
 
@@ -421,7 +701,7 @@ export function renderSceneInnerSvg(frame: SampledFrame, options: SceneRenderOpt
       .filter((addon) => addon.layer === layer)
       .map((addon) => {
         const owner = addon.actorId !== undefined ? actorMap.get(addon.actorId) : undefined;
-        const baseSw = owner ? Math.max(2.5, 11 * (owner.scale * 1.5) * 2 * 0.09) : 2.5;
+        const baseSw = owner ? Math.max(1.25, 2.97 * Math.pow(owner.scale, 0.75)) : 2.5;
         const sw = Math.max(baseSw, options.minStrokeWidth ?? 0);
         const svg = renderAddonSvg(addon, {
           strokeWidth: sw,
@@ -451,6 +731,7 @@ export function renderSceneInnerSvg(frame: SampledFrame, options: SceneRenderOpt
       head: frame.head,
       segments: frame.segments,
       ...(frame.facing !== undefined ? { facing: frame.facing } : {}),
+      ...(frame.gazeDir !== undefined ? { gazeDir: frame.gazeDir } : {}),
       ...(frame.articulated ? { articulated: true } : {}),
       color: defaultColor,
       scale: 1,
