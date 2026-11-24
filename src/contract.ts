@@ -246,6 +246,64 @@ export interface SampledAddon {
   text?: string;
 }
 
+export type CameraFraming = "center" | "thirds-left" | "thirds-right";
+export type CameraEase = "inOut" | "linear" | "cut";
+
+export interface CameraKeyframe {
+  timeMs?: number;
+  atCue?: string;
+  x?: number;
+  y?: number;
+  zoom?: number;
+  followActor?: string;
+  framing?: CameraFraming;
+  holdMs?: number;
+  ease?: CameraEase;
+}
+
+export type CameraSpec = CameraKeyframe[] | "auto-director";
+
+export interface SampledCamera {
+  x: number;
+  y: number;
+  zoom: number;
+  viewBox: string;
+  activeActorId?: string;
+}
+
+export type CalloutKind = "speech" | "thought" | "status" | "caption";
+export type CalloutTone = "neutral" | "accent" | "success" | "warning" | "danger";
+export type CalloutIcon = "alert" | "check" | "info" | "spark" | "metric";
+
+export interface CalloutSpec {
+  id?: string;
+  kind?: CalloutKind;
+  text: string;
+  actorId?: string;
+  startMs?: number;
+  durationMs?: number;
+  atCue?: string;
+  tone?: CalloutTone;
+  icon?: CalloutIcon;
+}
+
+export interface SampledCallout {
+  id: string;
+  kind: CalloutKind;
+  text: string;
+  actorId?: string;
+  tone: CalloutTone;
+  icon?: CalloutIcon;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  opacity: number;
+  anchorX?: number;
+  anchorY?: number;
+  tailSide?: "bottom" | "top" | "left" | "right";
+}
+
 export interface SampledActorFrame {
   id: string;
   label?: string;
@@ -262,6 +320,8 @@ export interface SampledActorFrame {
   accentColor?: string;
   scale: number;
   zIndex: number;
+  depth?: number;
+  opacity?: number;
 }
 
 export interface SampledFrame {
@@ -278,6 +338,8 @@ export interface SampledFrame {
   articulated?: boolean;
   addons?: SampledAddon[];
   actors?: SampledActorFrame[];
+  camera?: SampledCamera;
+  callouts?: SampledCallout[];
 }
 
 export interface ChoreographTheme {
@@ -354,6 +416,9 @@ export interface ChoreographAction {
   persist?: boolean;
   handoffTo?: HandoffSpec;
   toGround?: boolean;
+  say?: string;
+  think?: string;
+  badge?: string;
 }
 
 export interface ActorChoreographySpec {
@@ -366,6 +431,7 @@ export interface ActorChoreographySpec {
   accentColor?: string;
   scale?: number;
   zIndex?: number;
+  depth?: number;
   facing?: -1 | 1 | "left" | "right";
   gaze?: GazeTarget;
   actions: ChoreographAction[];
@@ -381,6 +447,7 @@ export interface ChoreographActorInput {
   accentColor?: string;
   scale?: number;
   zIndex?: number;
+  depth?: number;
   facing?: -1 | 1 | "left" | "right";
   gaze?: GazeTarget;
 }
@@ -396,6 +463,9 @@ export interface ResolvedActorAction extends AnimationAction {
   persist?: boolean;
   handoffTo?: HandoffSpec;
   toGround?: boolean;
+  say?: string;
+  think?: string;
+  badge?: string;
 }
 
 export interface CompiledActorSpec {
@@ -408,6 +478,7 @@ export interface CompiledActorSpec {
   accentColor?: string;
   scale: number;
   zIndex: number;
+  depth?: number;
   facing: -1 | 1;
   gaze?: GazeTarget;
   actions: ResolvedActorAction[];
@@ -432,12 +503,16 @@ export interface AnimationSpecV2 {
     accentColor?: string;
     scale?: number;
     zIndex?: number;
+    depth?: number;
     facing?: -1 | 1;
     gaze?: GazeTarget;
   };
   prop?: PropSpec;
   stageProps?: StagePropSpec[];
   customMotions?: Record<string, CustomMotionClipSpec>;
+  camera?: CameraSpec;
+  spotlight?: boolean | "auto";
+  callouts?: CalloutSpec[];
   actors: CompiledActorSpec[];
   actions: ResolvedActorAction[];
 }
@@ -453,6 +528,9 @@ export interface ChoreographInput {
   targets?: Record<string, Point2D | { x: number; y?: number }>;
   stageProps?: StagePropSpec[];
   customMotions?: Record<string, CustomMotionClipSpec>;
+  camera?: CameraSpec;
+  spotlight?: boolean | "auto";
+  callouts?: CalloutSpec[];
   actors?: ActorChoreographySpec[];
   actor?: ChoreographActorInput;
   actions?: ChoreographAction[];

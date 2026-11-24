@@ -10,6 +10,8 @@ import {
   type SampledAddon,
   type SampledFrame
 } from "./contract.js";
+import { cameraSvgTransform } from "./camera.js";
+import { renderCalloutSvg } from "./callouts.js";
 import { resolveStageAnchors } from "./choreograph.js";
 import { sampleAnimation } from "./compiler.js";
 import { sampleClipMotion } from "./motion-clips.js";
@@ -669,12 +671,21 @@ export function renderActorFigureSvg(
     !compact && effectiveActor.accessory && effectiveActor.accessory !== "none"
       ? ` data-accessory-type="${xml(effectiveActor.accessory)}"`
       : "";
+  const opacityAttr =
+    effectiveActor.opacity !== undefined && effectiveActor.opacity < 0.999
+      ? ` opacity="${n(effectiveActor.opacity)}"`
+      : "";
+  const depthShadowSvg =
+    effectiveActor.depth !== undefined && effectiveActor.depth > 0.05
+      ? `<ellipse data-part="depth-shadow" cx="${n(effectiveActor.x)}" cy="${n(effectiveActor.groundY)}" rx="${n(Math.max(10, 18 * geometry.scale))}" ry="${n(Math.max(2.2, 3.4 * geometry.scale))}" fill="${isBlueprint ? "#1e3a5f" : "#0f172a"}" fill-opacity="${isBlueprint ? "0.12" : "0.1"}" stroke="${isBlueprint ? "#1e3a5f" : "none"}"${isBlueprint ? ' stroke-width="0.6" stroke-dasharray="2 2"' : ""}/>`
+      : "";
   const joinAttrs = compact ? "" : ` stroke-linecap="round" stroke-linejoin="round"`;
   const headFill = isBlueprint ? "#f8fafc" : "#fff";
   const headStrokeAttrs = compact ? "" : ` stroke="${xml(effectiveActor.color)}" stroke-width="${n(strokeWidth)}"`;
 
   return (
-    `<g data-actor="${xml(effectiveActor.id)}" data-action="${xml(effectiveActor.action)}"${accessoryAttr} fill="none" stroke="${xml(effectiveActor.color)}" stroke-width="${n(strokeWidth)}"${joinAttrs}>` +
+    `<g data-actor="${xml(effectiveActor.id)}" data-action="${xml(effectiveActor.action)}"${accessoryAttr}${opacityAttr} fill="none" stroke="${xml(effectiveActor.color)}" stroke-width="${n(strokeWidth)}"${joinAttrs}>` +
+    `${depthShadowSvg}` +
     `${limb(geometry.segmentOrder[0]!)}${limb(geometry.segmentOrder[1]!)}` +
     `<path${segAttr("torso")} d="${torsoD}"/>` +
     `<circle${segAttr("head")} cx="${n(geometry.head.x)}" cy="${n(geometry.head.y)}" r="${n(geometry.headRadius)}" fill="${headFill}"${headStrokeAttrs}/>` +
@@ -758,14 +769,22 @@ export function renderSceneInnerSvg(frame: SampledFrame, options: SceneRenderOpt
   }
 
   const frontAddons = renderLayerAddons("front");
-  return `${backAddons}${actorsMarkup}${propMarkup}${frontAddons}`;
+  const calloutsMarkup =
+    frame.callouts && frame.callouts.length > 0
+      ? `<g data-layer="callouts">${frame.callouts
+          .map((callout) => renderCalloutSvg(callout, { blueprint: isBlueprint, decimals }))
+          .join("")}</g>`
+      : "";
+  return `${backAddons}${actorsMarkup}${propMarkup}${frontAddons}${calloutsMarkup}`;
 }
 
 function isMultiSceneFrame(frame: SampledFrame, program?: CompiledAnimation): boolean {
   return (
     program?.contractVersion === CONTRACT_VERSION_V2 ||
     Boolean(frame.actors && frame.actors.length > 0) ||
-    Boolean(frame.addons && frame.addons.length > 0)
+    Boolean(frame.addons && frame.addons.length > 0) ||
+    Boolean(frame.camera) ||
+    Boolean(frame.callouts && frame.callouts.length > 0)
   );
 }
 
@@ -796,6 +815,19 @@ function v1FrameMarkup(frame: SampledFrame, color: string, width: number, height
 </svg>`;
 }
 
+function renderCameraGroupSvg(
+  frame: SampledFrame,
+  width: number,
+  height: number,
+  content: string,
+  decimals = 3
+): string {
+  if (!frame.camera) return content;
+  const camTransform = cameraSvgTransform(frame.camera, width, height, decimals);
+  const transformAttr = camTransform ? ` transform="${camTransform}"` : "";
+  return `<g data-camera="true" data-camera-zoom="${number(frame.camera.zoom, 3)}" data-camera-viewbox="${xml(frame.camera.viewBox)}"${transformAttr}>${content}</g>`;
+}
+
 function multiSceneFrameMarkup(
   frame: SampledFrame,
   width: number,
@@ -807,8 +839,17 @@ function multiSceneFrameMarkup(
     ...(options.defaultColor !== undefined ? { defaultColor: options.defaultColor } : {}),
     ...(options.themeAccentColor !== undefined ? { themeAccentColor: options.themeAccentColor } : {})
   });
+  const groundLine = `<path id="ground" d="M0 ${number(frame.groundY)}H${width}" stroke="#d8dbe0" stroke-width="1"/>`;
+  if (frame.camera) {
+    const camWrapped = renderCameraGroupSvg(frame, width, height, `${groundLine}${inner}`, 3);
+    return `<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Stick figure ${xml(frame.action)} at ${number(frame.timeMs)} milliseconds" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">
+<defs><clipPath id="sm-cam-clip"><rect width="${width}" height="${height}"/></clipPath></defs>
+<rect width="100%" height="100%" fill="${xml(background)}"/>
+<g id="scene" clip-path="url(#sm-cam-clip)">${camWrapped}</g>
+</svg>`;
+  }
   return `<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Stick figure ${xml(frame.action)} at ${number(frame.timeMs)} milliseconds" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">
-<rect width="100%" height="100%" fill="${xml(background)}"/><path id="ground" d="M0 ${number(frame.groundY)}H${width}" stroke="#d8dbe0" stroke-width="1"/>
+<rect width="100%" height="100%" fill="${xml(background)}"/>${groundLine}
 <g id="scene">${inner}</g>
 </svg>`;
 }
@@ -1046,9 +1087,19 @@ function renderMultiSceneAnimatedSvg(
     decimals: 2
   };
 
+  const hasCamera = samples.some((sample) => Boolean(sample.camera));
+  const firstGroundY = samples[0]?.groundY ?? canvas.height * 0.82;
+
+  const renderAnimatedFrameBody = (sample: SampledFrame): string => {
+    const inner = renderSceneInnerSvg(sample, renderOpts);
+    if (!hasCamera) return inner;
+    const groundLine = `<path d="M0 ${number(sample.groundY)}H${canvas.width}" stroke="#d8dbe0" stroke-width="1"/>`;
+    return renderCameraGroupSvg(sample, canvas.width, canvas.height, `${groundLine}${inner}`, 2);
+  };
+
   const frameGroups = samples
     .map((sample, idx) => {
-      const inner = renderSceneInnerSvg(sample, renderOpts);
+      const inner = renderAnimatedFrameBody(sample);
       if (idx === samples.length - 1) {
         return `<g class="sm-f sm-last" data-frame="${idx}" data-time-ms="${number(sample.timeMs, 1)}">${inner}</g>`;
       }
@@ -1058,8 +1109,7 @@ function renderMultiSceneAnimatedSvg(
     .join("");
 
   const reducedSample = sampleAnimation(program, durationMs, "reduced");
-  const reducedInner = renderSceneInnerSvg(reducedSample, renderOpts);
-  const firstGroundY = samples[0]?.groundY ?? canvas.height * 0.82;
+  const reducedInner = renderAnimatedFrameBody(reducedSample);
 
   const style =
     `.sm-f{visibility:hidden;animation:sm-slice ${durStr} steps(1,end) 0s 1 normal forwards}` +
@@ -1068,6 +1118,15 @@ function renderMultiSceneAnimatedSvg(
     `@keyframes sm-slice{0%{visibility:visible}${slicePercent}%{visibility:hidden}100%{visibility:hidden}}` +
     `@keyframes sm-final{0%{visibility:hidden}100%{visibility:visible}}` +
     `@media (prefers-reduced-motion:reduce){.sm-f{animation:none!important;visibility:hidden!important}.sm-reduced{display:inline}}`;
+
+  if (hasCamera) {
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${canvas.width} ${canvas.height}" width="${canvas.width}" height="${canvas.height}" role="img" aria-label="Deterministic stick figure animation">
+<defs><clipPath id="sm-cam-clip"><rect width="${canvas.width}" height="${canvas.height}"/></clipPath></defs>
+<style>${style}</style>
+<rect width="100%" height="100%" fill="${xml(background)}"/>
+<g clip-path="url(#sm-cam-clip)">${frameGroups}<g class="sm-reduced">${reducedInner}</g></g></svg>`;
+  }
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${canvas.width} ${canvas.height}" width="${canvas.width}" height="${canvas.height}" role="img" aria-label="Deterministic stick figure animation">
@@ -1254,10 +1313,17 @@ function renderBakedHtml(program: CompiledAnimation, style: RenderStyle): string
     ...(themeAccentColor !== undefined ? { themeAccentColor } : {}),
     decimals: 2
   };
-  const renderFrameMarkup = (frame: SampledFrame): string =>
-    style === "blueprint"
-      ? renderBlueprintFrameSceneSvg(frame, canvas.width, 2)
-      : renderSceneInnerSvg(frame, renderOpts);
+  const renderFrameMarkup = (frame: SampledFrame): string => {
+    const base =
+      style === "blueprint"
+        ? renderBlueprintFrameSceneSvg(frame, canvas.width, 2)
+        : renderSceneInnerSvg(frame, renderOpts);
+    if (style !== "blueprint" && frame.camera) {
+      const groundLine = `<path id="ground" d="M0 ${number(frame.groundY)}H${canvas.width}" stroke="#d8dbe0" stroke-width="1"/>`;
+      return renderCameraGroupSvg(frame, canvas.width, canvas.height, `${groundLine}${base}`, 2);
+    }
+    return base;
+  };
 
   const svg = renderSvgFrame(program, 0, "normal", { style });
   const controls = `<label>Motion mode <select id="mode"><option value="normal">Normal</option><option value="reduced">Reduced</option><option value="static">Static</option></select></label><label>Playhead <input id="seek" type="range" min="0" max="${durationMs}" step="1" value="0"></label><output id="timecode" class="cp-timecode" data-timecode="true" for="seek">0.00s / ${(durationMs / 1000).toFixed(2)}s</output><button id="toggle" type="button">Pause</button>`;

@@ -11,6 +11,7 @@ import {
   type SampledActorFrame,
   type SampledFrame
 } from "./contract.js";
+import { cameraSvgTransform } from "./camera.js";
 import { ENTRANCE_EXIT_ACTIONS, resolveStageAnchors } from "./choreograph.js";
 import { sampleAnimation } from "./compiler.js";
 import { getMotionMeta } from "./motion-library.js";
@@ -524,6 +525,11 @@ export function renderStoryboardSvg(program: CompiledAnimation, options: Storybo
         decimals: 0,
         compact: true
       });
+      const groundAndInner = `<path d="M0 ${num(frame.groundY, 0)}H${canvas.width}" stroke="#d8dbe0" stroke-width="${num(1 / scale, 1)}"/>${inner}`;
+      const camTransform = frame.camera ? cameraSvgTransform(frame.camera, canvas.width, canvas.height, 2) : "";
+      const panelWorld = frame.camera
+        ? `<g data-camera="true"${camTransform ? ` transform="${camTransform}"` : ""}>${groundAndInner}</g>`
+        : groundAndInner;
       const badgeText = `${(frame.timeMs / 1000).toFixed(2)}s`;
       const badgeW = Math.max(36, Math.round(badgeText.length * 6.4 + 10));
       const labelText = formatPanelLabel(frame, program.events, markerWindowMs);
@@ -534,8 +540,7 @@ export function renderStoryboardSvg(program: CompiledAnimation, options: Storybo
         `<g clip-path="url(#sm-sb-clip)">` +
         `<rect width="${panelW}" height="${sceneH}" fill="${escapeXml(stageBg)}"/>` +
         `<g class="sb-s" transform="scale(${num(scale, 3)})">` +
-        `<path d="M0 ${num(frame.groundY, 0)}H${canvas.width}" stroke="#d8dbe0" stroke-width="${num(1 / scale, 1)}"/>` +
-        `${inner}` +
+        `${panelWorld}` +
         `</g>` +
         `<rect x="6" y="6" width="${badgeW}" height="16" rx="4" fill="#0f172a" fill-opacity=".78"/>` +
         `<text class="sb-b" data-part="timestamp-badge" x="${num(6 + badgeW / 2, 1)}" y="14.5">${escapeXml(badgeText)}</text>` +

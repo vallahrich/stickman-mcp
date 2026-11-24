@@ -31,6 +31,8 @@ export {
   renderStoryboardSvg,
   selectStoryboardTimestamps
 } from "./storyboard.js";
+export * from "./camera.js";
+export * from "./callouts.js";
 export * from "./catalog.js";
 export * from "./choreograph.js";
 export * from "./compiler.js";

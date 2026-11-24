@@ -137,6 +137,7 @@ export const animationSchemaV2 = {
         accentColor: { type: "string", pattern: "^#[0-9a-fA-F]{6}$" },
         scale: { type: "number", minimum: 0.25, maximum: 2.5 },
         zIndex: { type: "number" },
+        depth: { type: "number", minimum: 0, maximum: 1 },
         facing: { enum: [-1, 1, "left", "right"] },
         gaze: { $ref: "#/$defs/gazeTarget" }
       }
@@ -162,6 +163,22 @@ export const animationSchemaV2 = {
     customMotions: {
       type: "object",
       additionalProperties: { $ref: "#/$defs/customMotion" }
+    },
+    camera: {
+      oneOf: [
+        { const: "auto-director" },
+        { type: "array", items: { $ref: "#/$defs/cameraKeyframe" } }
+      ]
+    },
+    spotlight: {
+      oneOf: [
+        { type: "boolean" },
+        { const: "auto" }
+      ]
+    },
+    callouts: {
+      type: "array",
+      items: { $ref: "#/$defs/calloutSpec" }
     },
     actors: {
       type: "array",
@@ -354,6 +371,37 @@ export const animationSchemaV2 = {
         poseKeys: { type: "array", minItems: 1 }
       }
     },
+    cameraKeyframe: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        timeMs: { type: "number", minimum: 0 },
+        atCue: { type: "string", minLength: 1 },
+        x: { type: "number" },
+        y: { type: "number" },
+        zoom: { type: "number", minimum: 0.5, maximum: 3 },
+        followActor: { type: "string", minLength: 1 },
+        framing: { enum: ["center", "thirds-left", "thirds-right"] },
+        holdMs: { type: "number", minimum: 0 },
+        ease: { enum: ["inOut", "linear", "cut"] }
+      }
+    },
+    calloutSpec: {
+      type: "object",
+      additionalProperties: false,
+      required: ["text"],
+      properties: {
+        id: { type: "string", minLength: 1 },
+        kind: { enum: ["speech", "thought", "status", "caption"] },
+        text: { type: "string", minLength: 1 },
+        actorId: { type: "string", minLength: 1 },
+        startMs: { type: "number", minimum: 0 },
+        durationMs: { type: "number", exclusiveMinimum: 0 },
+        atCue: { type: "string", minLength: 1 },
+        tone: { enum: ["neutral", "accent", "success", "warning", "danger"] },
+        icon: { enum: ["alert", "check", "info", "spark", "metric"] }
+      }
+    },
     choreographAction: {
       type: "object",
       additionalProperties: false,
@@ -387,7 +435,10 @@ export const animationSchemaV2 = {
         },
         persist: { type: "boolean" },
         handoffTo: { $ref: "#/$defs/handoffSpec" },
-        toGround: { type: "boolean" }
+        toGround: { type: "boolean" },
+        say: { type: "string", minLength: 1 },
+        think: { type: "string", minLength: 1 },
+        badge: { type: "string", minLength: 1 }
       }
     },
     actorSpec: {
@@ -404,6 +455,7 @@ export const animationSchemaV2 = {
         accentColor: { type: "string", pattern: "^#[0-9a-fA-F]{6}$" },
         scale: { type: "number", minimum: 0.25, maximum: 2.5 },
         zIndex: { type: "number" },
+        depth: { type: "number", minimum: 0, maximum: 1 },
         facing: { enum: [-1, 1, "left", "right"] },
         gaze: { $ref: "#/$defs/gazeTarget" },
         actions: {

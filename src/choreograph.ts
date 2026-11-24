@@ -7,6 +7,14 @@ import {
   type AddonSocket,
   type AddonType,
   type AnimationSpecV2,
+  type CalloutIcon,
+  type CalloutKind,
+  type CalloutSpec,
+  type CalloutTone,
+  type CameraEase,
+  type CameraFraming,
+  type CameraKeyframe,
+  type CameraSpec,
   type ChoreographAction,
   type ChoreographAddonInput,
   type ChoreographAddonItem,
@@ -34,6 +42,8 @@ import {
   type StagePropSpec,
   type ValidationResult
 } from "./contract.js";
+import { sampleCamera } from "./camera.js";
+import { MIN_CALLOUT_DURATION_MS, hasSceneCallouts, sampleCallouts } from "./callouts.js";
 import { markerEvents } from "./events.js";
 import {
   sampleClipMotion,
@@ -1244,9 +1254,18 @@ interface PendingActionNode {
   persist?: boolean;
   handoffTo?: HandoffSpec;
   toGround?: boolean;
+  say?: string;
+  think?: string;
+  badge?: string;
   startMs: number;
   endMs: number;
 }
+
+const CAMERA_FRAMING_SET = new Set<string>(["center", "thirds-left", "thirds-right"]);
+const CAMERA_EASE_SET = new Set<string>(["inOut", "linear", "cut"]);
+const CALLOUT_KIND_SET = new Set<string>(["speech", "thought", "status", "caption"]);
+const CALLOUT_TONE_SET = new Set<string>(["neutral", "accent", "success", "warning", "danger"]);
+const CALLOUT_ICON_SET = new Set<string>(["alert", "check", "info", "spark", "metric"]);
 
 export function choreographAnimation(input: unknown): ChoreographResult {
   const diagnostics: Diagnostic[] = [];
@@ -1270,6 +1289,9 @@ export function choreographAnimation(input: unknown): ChoreographResult {
       "targets",
       "stageProps",
       "customMotions",
+      "camera",
+      "spotlight",
+      "callouts",
       "actors",
       "actor",
       "actions",
@@ -1375,6 +1397,19 @@ export function choreographAnimation(input: unknown): ChoreographResult {
       });
     } else {
       sceneAddons = input.addons;
+    }
+  }
+
+  let spotlight: boolean | "auto" | undefined;
+  if (input.spotlight !== undefined) {
+    if (typeof input.spotlight === "boolean" || input.spotlight === "auto") {
+      spotlight = input.spotlight;
+    } else {
+      diagnostics.push({
+        path: "$.spotlight",
+        code: "invalid_type",
+        message: 'spotlight must be a boolean or "auto".'
+      });
     }
   }
 
@@ -1681,6 +1716,8 @@ export function choreographAnimation(input: unknown): ChoreographResult {
   };
 
   const seenActorIds = new Set<string>();
+  const anyActorUsesDepth = rawActors.some(({ spec: candidate }) => isRecord(candidate) && candidate.depth !== undefined);
+  const horizonSpanPx = Math.round(height * 0.14);
   const compiledActorsDraft: Array<{
     id: string;
     label?: string;
@@ -1691,6 +1728,7 @@ export function choreographAnimation(input: unknown): ChoreographResult {
     accentColor?: string;
     scale: number;
     zIndex: number;
+    depth?: number;
     facing: -1 | 1;
     gaze?: GazeTarget;
     nodes: PendingActionNode[];
@@ -1707,7 +1745,7 @@ export function choreographAnimation(input: unknown): ChoreographResult {
 
     hasOnlyKeys(
       rawActor,
-      ["id", "label", "x", "groundY", "color", "accessory", "accentColor", "scale", "zIndex", "facing", "gaze", "actions"],
+      ["id", "label", "x", "groundY", "color", "accessory", "accentColor", "scale", "zIndex", "depth", "facing", "gaze", "actions"],
       basePath === "$" ? "$.actor" : basePath,
       diagnostics
     );
@@ -1732,7 +1770,22 @@ export function choreographAnimation(input: unknown): ChoreographResult {
       diagnostics.push({ path: `${basePath}.label`, code: "invalid_type", message: "Actor label must be a string." });
     }
 
-    let actorGroundY = sceneGroundY;
+    let actorDepth: number | undefined;
+    if (rawActor.depth !== undefined) {
+      if (!finiteNumber(rawActor.depth) || rawActor.depth < 0 || rawActor.depth > 1) {
+        diagnostics.push({
+          path: `${basePath}.depth`,
+          code: "out_of_range",
+          message: "actor.depth must be a finite number from 0 to 1."
+        });
+      } else {
+        actorDepth = rawActor.depth;
+      }
+    }
+
+    let actorGroundY = actorDepth !== undefined
+      ? Math.round(sceneGroundY - actorDepth * horizonSpanPx)
+      : sceneGroundY;
     if (rawActor.groundY !== undefined) {
       if (!finiteNumber(rawActor.groundY)) {
         diagnostics.push({ path: `${basePath}.groundY`, code: "invalid_number", message: "actor.groundY must be a finite number." });
@@ -1782,7 +1835,7 @@ export function choreographAnimation(input: unknown): ChoreographResult {
       }
     }
 
-    let userScale = 1;
+    let userScale = actorDepth !== undefined ? Number((1 - actorDepth * 0.32).toFixed(3)) : 1;
     if (rawActor.scale !== undefined) {
       if (!finiteNumber(rawActor.scale) || rawActor.scale < 0.25 || rawActor.scale > 2.5) {
         diagnostics.push({
@@ -1795,7 +1848,11 @@ export function choreographAnimation(input: unknown): ChoreographResult {
       }
     }
 
-    let zIndex = 0;
+    let zIndex = actorDepth !== undefined
+      ? Math.round((1 - actorDepth) * 100)
+      : anyActorUsesDepth
+        ? 100
+        : 0;
     if (rawActor.zIndex !== undefined) {
       if (!finiteNumber(rawActor.zIndex)) {
         diagnostics.push({ path: `${basePath}.zIndex`, code: "invalid_number", message: "actor.zIndex must be a finite number." });
@@ -1926,7 +1983,10 @@ export function choreographAnimation(input: unknown): ChoreographResult {
           "addon",
           "persist",
           "handoffTo",
-          "toGround"
+          "toGround",
+          "say",
+          "think",
+          "badge"
         ],
         actionPath,
         diagnostics
@@ -2174,6 +2234,33 @@ export function choreographAnimation(input: unknown): ChoreographResult {
         actionGaze = validateGazeTarget(rawAct.gaze, `${actionPath}.gaze`, diagnostics);
       }
 
+      let sayText: string | undefined;
+      if (rawAct.say !== undefined) {
+        if (typeof rawAct.say !== "string" || !rawAct.say.trim()) {
+          diagnostics.push({ path: `${actionPath}.say`, code: "invalid_type", message: "action.say must be a non-empty string." });
+        } else {
+          sayText = rawAct.say.trim();
+        }
+      }
+
+      let thinkText: string | undefined;
+      if (rawAct.think !== undefined) {
+        if (typeof rawAct.think !== "string" || !rawAct.think.trim()) {
+          diagnostics.push({ path: `${actionPath}.think`, code: "invalid_type", message: "action.think must be a non-empty string." });
+        } else {
+          thinkText = rawAct.think.trim();
+        }
+      }
+
+      let badgeText: string | undefined;
+      if (rawAct.badge !== undefined) {
+        if (typeof rawAct.badge !== "string" || !rawAct.badge.trim()) {
+          diagnostics.push({ path: `${actionPath}.badge`, code: "invalid_type", message: "action.badge must be a non-empty string." });
+        } else {
+          badgeText = rawAct.badge.trim();
+        }
+      }
+
       const cueOffsetMs = emitCue
         ? computeCueOffsetMs(actionName, durationMs, effectiveSpeed, emitCueAt, actionPath, diagnostics, effectiveLibrary)
         : durationMs;
@@ -2200,6 +2287,9 @@ export function choreographAnimation(input: unknown): ChoreographResult {
         ...(addonRes.persist ? { persist: true } : {}),
         ...(handoffTo !== undefined ? { handoffTo } : {}),
         ...(rawAct.toGround === true ? { toGround: true } : {}),
+        ...(sayText !== undefined ? { say: sayText } : {}),
+        ...(thinkText !== undefined ? { think: thinkText } : {}),
+        ...(badgeText !== undefined ? { badge: badgeText } : {}),
         startMs: 0,
         endMs: 0
       };
@@ -2218,6 +2308,7 @@ export function choreographAnimation(input: unknown): ChoreographResult {
       ...(accentColor !== undefined ? { accentColor } : {}),
       scale: userScale,
       zIndex,
+      ...(actorDepth !== undefined ? { depth: actorDepth } : {}),
       facing: initialFacing,
       ...(actorGaze !== undefined ? { gaze: actorGaze } : {}),
       nodes: actorNodes
@@ -2328,6 +2419,181 @@ export function choreographAnimation(input: unknown): ChoreographResult {
     }
   }
 
+  // Validate optional camera track / auto-director
+  let resolvedCamera: CameraSpec | undefined;
+  if (input.camera !== undefined) {
+    if (input.camera === "auto-director") {
+      resolvedCamera = "auto-director";
+    } else if (Array.isArray(input.camera)) {
+      const kfs: CameraKeyframe[] = [];
+      for (let i = 0; i < input.camera.length; i++) {
+        const rawKf = input.camera[i];
+        const kfPath = `$.camera[${i}]`;
+        if (!isRecord(rawKf)) {
+          diagnostics.push({ path: kfPath, code: "invalid_type", message: "Each camera keyframe must be an object." });
+          continue;
+        }
+        hasOnlyKeys(
+          rawKf,
+          ["timeMs", "atCue", "x", "y", "zoom", "followActor", "framing", "holdMs", "ease"],
+          kfPath,
+          diagnostics
+        );
+        const startLen = diagnostics.length;
+        if (rawKf.timeMs !== undefined && (!finiteNumber(rawKf.timeMs) || rawKf.timeMs < 0)) {
+          diagnostics.push({ path: `${kfPath}.timeMs`, code: "invalid_time", message: "camera.timeMs must be a non-negative finite number." });
+        }
+        if (rawKf.atCue !== undefined) {
+          if (typeof rawKf.atCue !== "string" || !rawKf.atCue.trim()) {
+            diagnostics.push({ path: `${kfPath}.atCue`, code: "invalid_cue_reference", message: "camera.atCue must be a non-empty string." });
+          }
+        }
+        for (const coord of ["x", "y"] as const) {
+          if (rawKf[coord] !== undefined && !finiteNumber(rawKf[coord])) {
+            diagnostics.push({ path: `${kfPath}.${coord}`, code: "invalid_number", message: `camera.${coord} must be a finite number.` });
+          }
+        }
+        if (rawKf.zoom !== undefined && (!finiteNumber(rawKf.zoom) || rawKf.zoom < 0.5 || rawKf.zoom > 3.0)) {
+          diagnostics.push({ path: `${kfPath}.zoom`, code: "out_of_range", message: "camera.zoom must be a finite number from 0.5 to 3.0." });
+        }
+        if (rawKf.followActor !== undefined) {
+          if (typeof rawKf.followActor !== "string" || !rawKf.followActor.trim()) {
+            diagnostics.push({ path: `${kfPath}.followActor`, code: "invalid_id", message: "camera.followActor must be a non-empty actor id." });
+          } else if (!seenActorIds.has(rawKf.followActor.trim())) {
+            diagnostics.push({
+              path: `${kfPath}.followActor`,
+              code: "unknown_camera_actor",
+              message: `Unknown camera.followActor "${rawKf.followActor.trim()}".`
+            });
+          }
+        }
+        if (rawKf.framing !== undefined && (typeof rawKf.framing !== "string" || !CAMERA_FRAMING_SET.has(rawKf.framing))) {
+          diagnostics.push({
+            path: `${kfPath}.framing`,
+            code: "invalid_enum",
+            message: 'camera.framing must be "center", "thirds-left", or "thirds-right".'
+          });
+        }
+        if (rawKf.holdMs !== undefined && (!finiteNumber(rawKf.holdMs) || rawKf.holdMs < 0)) {
+          diagnostics.push({ path: `${kfPath}.holdMs`, code: "out_of_range", message: "camera.holdMs must be a non-negative finite number." });
+        }
+        if (rawKf.ease !== undefined && (typeof rawKf.ease !== "string" || !CAMERA_EASE_SET.has(rawKf.ease))) {
+          diagnostics.push({
+            path: `${kfPath}.ease`,
+            code: "invalid_enum",
+            message: 'camera.ease must be "inOut", "linear", or "cut".'
+          });
+        }
+        if (diagnostics.length === startLen) {
+          kfs.push({
+            ...(finiteNumber(rawKf.timeMs) ? { timeMs: rawKf.timeMs } : {}),
+            ...(typeof rawKf.atCue === "string" ? { atCue: rawKf.atCue.trim() } : {}),
+            ...(finiteNumber(rawKf.x) ? { x: rawKf.x } : {}),
+            ...(finiteNumber(rawKf.y) ? { y: rawKf.y } : {}),
+            ...(finiteNumber(rawKf.zoom) ? { zoom: rawKf.zoom } : {}),
+            ...(typeof rawKf.followActor === "string" ? { followActor: rawKf.followActor.trim() } : {}),
+            ...(typeof rawKf.framing === "string" ? { framing: rawKf.framing as CameraFraming } : {}),
+            ...(finiteNumber(rawKf.holdMs) ? { holdMs: rawKf.holdMs } : {}),
+            ...(typeof rawKf.ease === "string" ? { ease: rawKf.ease as CameraEase } : {})
+          });
+        }
+      }
+      resolvedCamera = kfs;
+    } else {
+      diagnostics.push({
+        path: "$.camera",
+        code: "invalid_type",
+        message: 'camera must be "auto-director" or an array of CameraKeyframe objects.'
+      });
+    }
+  }
+
+  // Validate optional top-level editorial callouts
+  let resolvedCallouts: CalloutSpec[] | undefined;
+  if (input.callouts !== undefined) {
+    if (!Array.isArray(input.callouts)) {
+      diagnostics.push({ path: "$.callouts", code: "invalid_type", message: "callouts must be an array of CalloutSpec objects." });
+    } else {
+      const items: CalloutSpec[] = [];
+      for (let i = 0; i < input.callouts.length; i++) {
+        const rawC = input.callouts[i];
+        const cPath = `$.callouts[${i}]`;
+        if (!isRecord(rawC)) {
+          diagnostics.push({ path: cPath, code: "invalid_type", message: "Each callout must be an object." });
+          continue;
+        }
+        hasOnlyKeys(
+          rawC,
+          ["id", "kind", "text", "actorId", "startMs", "durationMs", "atCue", "tone", "icon"],
+          cPath,
+          diagnostics
+        );
+        const startLen = diagnostics.length;
+        if (rawC.id !== undefined && (typeof rawC.id !== "string" || !rawC.id.trim())) {
+          diagnostics.push({ path: `${cPath}.id`, code: "invalid_id", message: "callout.id must be a non-empty string." });
+        }
+        if (rawC.kind !== undefined && (typeof rawC.kind !== "string" || !CALLOUT_KIND_SET.has(rawC.kind))) {
+          diagnostics.push({
+            path: `${cPath}.kind`,
+            code: "invalid_enum",
+            message: 'callout.kind must be "speech", "thought", "status", or "caption".'
+          });
+        }
+        if (typeof rawC.text !== "string" || !rawC.text.trim()) {
+          diagnostics.push({ path: `${cPath}.text`, code: "invalid_type", message: "callout.text must be a non-empty string." });
+        }
+        if (rawC.actorId !== undefined) {
+          if (typeof rawC.actorId !== "string" || !rawC.actorId.trim()) {
+            diagnostics.push({ path: `${cPath}.actorId`, code: "invalid_id", message: "callout.actorId must be a non-empty actor id." });
+          } else if (!seenActorIds.has(rawC.actorId.trim())) {
+            diagnostics.push({
+              path: `${cPath}.actorId`,
+              code: "unknown_callout_actor",
+              message: `Unknown callout.actorId "${rawC.actorId.trim()}".`
+            });
+          }
+        }
+        if (rawC.startMs !== undefined && (!finiteNumber(rawC.startMs) || rawC.startMs < 0)) {
+          diagnostics.push({ path: `${cPath}.startMs`, code: "invalid_time", message: "callout.startMs must be a non-negative finite number." });
+        }
+        if (rawC.durationMs !== undefined && (!finiteNumber(rawC.durationMs) || rawC.durationMs <= 0)) {
+          diagnostics.push({ path: `${cPath}.durationMs`, code: "invalid_duration", message: "callout.durationMs must be a positive finite number." });
+        }
+        if (rawC.atCue !== undefined && (typeof rawC.atCue !== "string" || !rawC.atCue.trim())) {
+          diagnostics.push({ path: `${cPath}.atCue`, code: "invalid_cue_reference", message: "callout.atCue must be a non-empty string." });
+        }
+        if (rawC.tone !== undefined && (typeof rawC.tone !== "string" || !CALLOUT_TONE_SET.has(rawC.tone))) {
+          diagnostics.push({
+            path: `${cPath}.tone`,
+            code: "invalid_enum",
+            message: 'callout.tone must be "neutral", "accent", "success", "warning", or "danger".'
+          });
+        }
+        if (rawC.icon !== undefined && (typeof rawC.icon !== "string" || !CALLOUT_ICON_SET.has(rawC.icon))) {
+          diagnostics.push({
+            path: `${cPath}.icon`,
+            code: "invalid_enum",
+            message: 'callout.icon must be "alert", "check", "info", "spark", or "metric".'
+          });
+        }
+        if (diagnostics.length === startLen) {
+          items.push({
+            ...(typeof rawC.id === "string" ? { id: rawC.id.trim() } : {}),
+            ...(typeof rawC.kind === "string" ? { kind: rawC.kind as CalloutKind } : {}),
+            text: (rawC.text as string).trim(),
+            ...(typeof rawC.actorId === "string" ? { actorId: rawC.actorId.trim() } : {}),
+            ...(finiteNumber(rawC.startMs) ? { startMs: rawC.startMs } : {}),
+            ...(finiteNumber(rawC.durationMs) ? { durationMs: rawC.durationMs } : {}),
+            ...(typeof rawC.atCue === "string" ? { atCue: rawC.atCue.trim() } : {}),
+            ...(typeof rawC.tone === "string" ? { tone: rawC.tone as CalloutTone } : {}),
+            ...(typeof rawC.icon === "string" ? { icon: rawC.icon as CalloutIcon } : {})
+          });
+        }
+      }
+      if (items.length > 0) resolvedCallouts = items;
+    }
+  }
+
   if (diagnostics.length > 0) {
     return { valid: false, diagnostics };
   }
@@ -2345,6 +2611,16 @@ export function choreographAnimation(input: unknown): ChoreographResult {
       }
       lastEnd = Math.max(lastEnd, node.endMs);
       maxTimelineEndMs = Math.max(maxTimelineEndMs, node.endMs);
+      if (node.say || node.think || node.badge) {
+        maxTimelineEndMs = Math.max(maxTimelineEndMs, node.startMs + Math.max(MIN_CALLOUT_DURATION_MS, node.durationMs));
+      }
+    }
+  }
+  if (resolvedCallouts && !finiteNumber(input.durationMs)) {
+    for (const c of resolvedCallouts) {
+      const cStart = c.startMs ?? (c.atCue && cueEmitters.has(c.atCue) ? cueEmitters.get(c.atCue)!.startMs + cueEmitters.get(c.atCue)!.cueOffsetMs : 0);
+      const cDur = Math.max(MIN_CALLOUT_DURATION_MS, c.durationMs ?? 1500);
+      maxTimelineEndMs = Math.max(maxTimelineEndMs, Math.round(cStart + cDur));
     }
   }
 
@@ -2378,6 +2654,7 @@ export function choreographAnimation(input: unknown): ChoreographResult {
     ...(actorDraft.accentColor !== undefined ? { accentColor: actorDraft.accentColor } : {}),
     scale: actorDraft.scale,
     zIndex: actorDraft.zIndex,
+    ...(actorDraft.depth !== undefined ? { depth: actorDraft.depth } : {}),
     facing: actorDraft.facing,
     ...(actorDraft.gaze !== undefined ? { gaze: typeof actorDraft.gaze === "object" ? { ...actorDraft.gaze } : actorDraft.gaze } : {}),
     actions: actorDraft.nodes.map((node): ResolvedActorAction => ({
@@ -2396,7 +2673,10 @@ export function choreographAnimation(input: unknown): ChoreographResult {
       ...(node.addon !== undefined ? { addon: node.addon } : {}),
       ...(node.persist ? { persist: true } : {}),
       ...(node.handoffTo !== undefined ? { handoffTo: { ...node.handoffTo } } : {}),
-      ...(node.toGround ? { toGround: true } : {})
+      ...(node.toGround ? { toGround: true } : {}),
+      ...(node.say !== undefined ? { say: node.say } : {}),
+      ...(node.think !== undefined ? { think: node.think } : {}),
+      ...(node.badge !== undefined ? { badge: node.badge } : {})
     }))
   }));
 
@@ -2419,12 +2699,18 @@ export function choreographAnimation(input: unknown): ChoreographResult {
       ...(primary.accentColor !== undefined ? { accentColor: primary.accentColor } : {}),
       scale: primary.scale,
       zIndex: primary.zIndex,
+      ...(primary.depth !== undefined ? { depth: primary.depth } : {}),
       facing: primary.facing,
       ...(primary.gaze !== undefined ? { gaze: typeof primary.gaze === "object" ? { ...primary.gaze } : primary.gaze } : {})
     },
     ...(isRecord(input.prop) ? { prop: structuredClone(input.prop as unknown as PropSpec) } : {}),
     ...(resolvedStageProps ? { stageProps: resolvedStageProps.map((sp) => ({ ...sp })) } : {}),
     ...(rawCustomMotions ? { customMotions: structuredClone(rawCustomMotions) } : {}),
+    ...(resolvedCamera !== undefined
+      ? { camera: typeof resolvedCamera === "string" ? resolvedCamera : resolvedCamera.map((kf) => ({ ...kf })) }
+      : {}),
+    ...(spotlight !== undefined ? { spotlight } : {}),
+    ...(resolvedCallouts ? { callouts: resolvedCallouts.map((c) => ({ ...c })) } : {}),
     actors: compiledActors,
     actions: primary.actions.map((act) => structuredClone(act))
   };
@@ -3408,7 +3694,8 @@ export function sampleAnimationV2(
         ...(actor.accessory !== undefined ? { accessory: actor.accessory } : {}),
         ...(themeAccentColor !== undefined ? { accentColor: themeAccentColor } : {}),
         scale: effectiveScale,
-        zIndex: actor.zIndex
+        zIndex: actor.zIndex,
+        ...(actor.depth !== undefined ? { depth: actor.depth } : {})
       };
 
       const finalAddons: SampledAddon[] = [];
@@ -3478,7 +3765,8 @@ export function sampleAnimationV2(
       ...(actor.accessory !== undefined ? { accessory: actor.accessory } : {}),
       ...(themeAccentColor !== undefined ? { accentColor: themeAccentColor } : {}),
       scale: effectiveScale,
-      zIndex: actor.zIndex
+      zIndex: actor.zIndex,
+      ...(actor.depth !== undefined ? { depth: actor.depth } : {})
     };
 
     const actorAddons: SampledAddon[] = [];
@@ -3812,7 +4100,7 @@ export function sampleAnimationV2(
   const sortedActors = sortedEntries.map((entry) => entry.actorFrame);
   const allAddons = [...sceneStage.addons, ...sortedEntries.flatMap((entry) => entry.addons), ...handoffAddons];
 
-  return {
+  const sampledFrame: SampledFrame = {
     timeMs: playheadT,
     action: primary.action,
     x: primary.x,
@@ -3826,4 +4114,85 @@ export function sampleAnimationV2(
     addons: allAddons,
     actors: sortedActors
   };
+
+  if (spec.camera !== undefined) {
+    sampledFrame.camera = sampleCamera(program, playheadT, sampledFrame);
+  }
+
+  if (hasSceneCallouts(program)) {
+    sampledFrame.callouts = sampleCallouts(program, playheadT, sampledFrame);
+  }
+
+  const spotlightEnabled =
+    spec.spotlight === true || (spec.spotlight === "auto" && spec.actors.length >= 3);
+  if (spotlightEnabled && sortedActors.length > 0) {
+    const SPOTLIGHT_DIM_OPACITY = 0.58;
+    const SPOTLIGHT_PASSIVE_ACTIONS = new Set<string>(["idle", "seated-idle", "static-pose"]);
+    const focalActorIds = new Set<string>();
+
+    for (const actorFrame of sortedActors) {
+      if (!SPOTLIGHT_PASSIVE_ACTIONS.has(actorFrame.action)) {
+        focalActorIds.add(actorFrame.id);
+      }
+    }
+    for (const callout of sampledFrame.callouts ?? []) {
+      if (callout.actorId) focalActorIds.add(callout.actorId);
+    }
+    if (sampledFrame.camera?.activeActorId) {
+      focalActorIds.add(sampledFrame.camera.activeActorId);
+    }
+    for (const ev of program.events ?? []) {
+      if (ev.actorId && Math.abs(ev.timeMs - playheadT) <= 120) {
+        const compiled = spec.actors.find((a) => a.id === ev.actorId);
+        const emitsNamedCue = compiled?.actions.some((a) => a.emitCue === ev.marker);
+        if (emitsNamedCue) focalActorIds.add(ev.actorId);
+      }
+    }
+
+    const shouldDim = focalActorIds.size > 0 && focalActorIds.size < sortedActors.length;
+    const actorOpacityMap = new Map<string, number>();
+
+    for (const actorFrame of sortedActors) {
+      if (!shouldDim || focalActorIds.has(actorFrame.id)) {
+        actorFrame.opacity = 1;
+        actorOpacityMap.set(actorFrame.id, 1);
+      } else {
+        // Compute smooth fade ramp near focal action transitions when in normal playback
+        let dimWeight = 1;
+        if (mode === "normal") {
+          const compiled = spec.actors.find((a) => a.id === actorFrame.id);
+          let nearestTransitionMs = Infinity;
+          for (const act of compiled?.actions ?? []) {
+            if (SPOTLIGHT_PASSIVE_ACTIONS.has(act.action)) continue;
+            nearestTransitionMs = Math.min(
+              nearestTransitionMs,
+              Math.abs(playheadT - act.startMs),
+              Math.abs(playheadT - (act.startMs + act.durationMs))
+            );
+          }
+          if (nearestTransitionMs < 140) {
+            const u = clamp01(nearestTransitionMs / 140);
+            dimWeight = u * u * (3 - 2 * u);
+          }
+        }
+        const opacity = Number((1 - (1 - SPOTLIGHT_DIM_OPACITY) * dimWeight).toFixed(3));
+        actorFrame.opacity = opacity;
+        actorOpacityMap.set(actorFrame.id, opacity);
+      }
+    }
+
+    if (shouldDim && sampledFrame.addons) {
+      sampledFrame.addons = sampledFrame.addons.map((addon) => {
+        if (!addon.actorId) return addon;
+        const ownerOpacity = actorOpacityMap.get(addon.actorId);
+        if (ownerOpacity === undefined || ownerOpacity >= 0.999) return addon;
+        return {
+          ...addon,
+          opacity: Number((addon.opacity * ownerOpacity).toFixed(3))
+        };
+      });
+    }
+  }
+
+  return sampledFrame;
 }
