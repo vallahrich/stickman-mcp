@@ -326,3 +326,27 @@ outside-checkout install/MCP/CLI tests in `tests/release.test.ts` via
 (**37 files / 567 tests passed**).
 Published as GitHub Release `v0.2.2` on `vallahrich/stickman-mcp` with live
 visualization on GitHub Pages (`https://vallahrich.github.io/stickman-mcp/`).
+
+## Verified release: 0.3.0 (2026-11-24)
+
+Built from clean committed source `9030b490e07d83fd30d435759d2877eb746b7a6f` and verified in `.release-local/0.3.0/` alongside `RELEASE-NOTES-0.3.0.md`:
+
+| Artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `vallahrich-stickman-mcp-0.3.0.tgz` | 706,256 | `a4f316ad58a85a254db1f06fecb0d636bdc2c99e93beef95d876789fccc71f84` |
+| `stickman-source-0.3.0.zip` | 7,704,664 | `f19ef20567f9685382afe3a703d98386594cea3b6d16118d28d1feb2071d62fc` |
+| `stickman-site-0.3.0.zip` | 55,898,472 | `d28b3d8c696f1a141e03eef6e78d877888e2a9bfd3527a7784619acc597f2575` |
+| `provenance.json` | 88,978 | `1dcbb54a917fc5788d77f9120bcccdf2a76595e43e2d67dff908a54f1a81bb73` |
+| `showcase/open-source.mp4` | 1,517,130 | `c4ad5bce1070c633865d1aff0a71b25fc22f72418f09f0529b14cc963cb32ed5` |
+| `showcase/julius-caesar.mp4` | 4,439,626 | `0907ae23cdf3a763799057d522f4e6245cceda06af238f10cd6631c4f928b942` |
+
+Verified with `node scripts/release/verify-candidate.mjs .release-local/0.3.0`
+(`archiveChecksums: "passed"`, `siteFiles: 337`, `motions: 97`, `runtimeIds: 106`,
+`nativePresentation: true`, `keyboardPreview: true`, `mobile: true`,
+`noExternalRequests: true`, `errors: []`, `failed: []`), live `#studio` interactive
+director section and `vallahrich-stickman-mcp-0.3.0.tgz` markers in the built site,
+`npm run build`, `npm run typecheck`, `npm run design:check`, `npm run motions:check`,
+`npm run release:check`, and all 6 outside-checkout install/MCP/CLI tests in
+`tests/release.test.ts` via `STICKMAN_CANDIDATE_TARBALL`.
+Published as GitHub Release `v0.3.0` on `vallahrich/stickman-mcp` with live
+visualization on GitHub Pages (`https://vallahrich.github.io/stickman-mcp/`).
