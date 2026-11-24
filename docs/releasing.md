@@ -350,3 +350,29 @@ director section and `vallahrich-stickman-mcp-0.3.0.tgz` markers in the built si
 `tests/release.test.ts` via `STICKMAN_CANDIDATE_TARBALL`.
 Published as GitHub Release `v0.3.0` on `vallahrich/stickman-mcp` with live
 visualization on GitHub Pages (`https://vallahrich.github.io/stickman-mcp/`).
+
+## Verified release: 0.3.1 (2026-11-24)
+
+Built from clean committed source `7e4e30d224c4c5ac741bff5d82a2e0de328a2caa` and verified in `.release-local/0.3.1/` alongside `RELEASE-NOTES-0.3.1.md`:
+
+| Artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `vallahrich-stickman-mcp-0.3.1.tgz` | 707,728 | `f8d454a36353c5a6595b6053b242f6c9ea08e1894d6803f82427215f9eeb5a53` |
+| `stickman-source-0.3.1.zip` | 7,772,407 | `2452640afe489cea9de3a97ab90200cdf5a8846898dfc272c37e7b26c6bea948` |
+| `stickman-site-0.3.1.zip` | 56,023,364 | `69d268dfe52a5ec3b3b89eb4d4181d26da8d07a08a20a82100e2b3a24452890b` |
+| `provenance.json` | 89,730 | `ada37acc17521bda412d240c2e5cf533472cafad0cb29e8651169b59973475d4` |
+| `showcase/open-source.mp4` | 1,517,130 | `c4ad5bce1070c633865d1aff0a71b25fc22f72418f09f0529b14cc963cb32ed5` |
+| `showcase/julius-caesar.mp4` | 4,439,626 | `0907ae23cdf3a763799057d522f4e6245cceda06af238f10cd6631c4f928b942` |
+
+Verified with `node scripts/release/verify-candidate.mjs .release-local/0.3.1`
+(`archiveChecksums: "passed"`, `siteFiles: 342`, `motions: 97`, `runtimeIds: 106`,
+`nativePresentation: true`, `keyboardPreview: true`, `mobile: true`,
+`noExternalRequests: true`, `errors: []`, `failed: []`), all 7 discovery and
+hero assets (`llms.txt`, `llms-full.txt`, `sitemap.xml`, `feed.xml`,
+`robots.txt`, `og-card.png`, `hero-stage.svg`), `npm run build`,
+`npm run site:build`, `npm run typecheck`, `npm run design:check`,
+`npm run motions:check`, `npm run release:check`, the full serial regression
+suite (**47 files / 630 tests passed**), and all 6 outside-checkout
+install/MCP/CLI tests in `tests/release.test.ts` via `STICKMAN_CANDIDATE_TARBALL`.
+Published as GitHub Release `v0.3.1` on `vallahrich/stickman-mcp` with live
+visualization on GitHub Pages (`https://vallahrich.github.io/stickman-mcp/`).
