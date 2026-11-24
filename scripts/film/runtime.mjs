@@ -11,6 +11,7 @@ import { loadEngineRenderer } from "../motions/review-renderer.mjs";
 import { RUNTIME_MOTION_LIBRARY } from "../../dist/motion-library.js";
 import { composePerformance, createPerformanceRenderer, performanceContinuity, renderExtra, walkSpec, FILM_SCALE } from "../site/performance.mjs";
 import { storyTimeline, renderStoryFrame, filmExtras } from "../site/story-films.mjs";
+import { computeBridgeFramesFromDistance, measurePoseJoinDistance } from "./joins.mjs";
 
 const fps = 30;
 const rasterOptions = { font: { loadSystemFonts: false } };
@@ -21,6 +22,136 @@ const throwIfAborted = signal => {
   throw error;
 };
 const progress = async (callback, event) => { await callback?.(event); };
+
+const STAND_POSE = {
+  anchor: "both", lean: 1, neck: 0, bob: 0, facing: 1,
+  rLeg: { hip: 4, knee: 12 }, lLeg: { hip: -5, knee: 12 },
+  rArm: { shoulder: -8, elbow: 42 }, lArm: { shoulder: 8, elbow: 42 }
+};
+
+function synthesizeBaselineSpec(id) {
+  if (id === "walk") {
+    const spec = walkSpec(240, 1, 18);
+    return { ...spec, id: "walk", kind: "oneshot", travel: "travel" };
+  }
+  if (id === "run") {
+    const spec = walkSpec(240, 1, 12);
+    return {
+      ...spec,
+      id: "run",
+      kind: "oneshot",
+      travel: "travel",
+      poseKeys: spec.poseKeys.map(k => ({
+        ...k,
+        pose: {
+          ...k.pose,
+          lean: Math.max(k.pose.lean ?? 3, 10),
+          neck: -3,
+          rArm: { shoulder: (k.pose.rArm?.shoulder ?? 0) * 1.45, elbow: 78 },
+          lArm: { shoulder: (k.pose.lArm?.shoulder ?? 0) * 1.45, elbow: 78 }
+        }
+      }))
+    };
+  }
+  if (id === "jump") {
+    const planted = { rFoot: { x: 5, y: 0 }, lFoot: { x: -7, y: 0 } };
+    const stand = { anchor: "both", lean: 2, neck: -1, bob: 0, facing: 1, rLeg: { hip: 6, knee: 14 }, lLeg: { hip: -8, knee: 14 }, rArm: { shoulder: -8, elbow: 45 }, lArm: { shoulder: 10, elbow: 45 }, ...planted };
+    const crouch = { anchor: "both", lean: -3, neck: 3, bob: -12, facing: 1, rLeg: { hip: 38, knee: 74 }, lLeg: { hip: 28, knee: 68 }, rArm: { shoulder: -26, elbow: 60 }, lArm: { shoulder: -18, elbow: 60 }, ...planted };
+    const take = { anchor: null, lean: 8, neck: -4, bob: 14, facing: 1, rLeg: { hip: -6, knee: 20, lift: 6 }, lLeg: { hip: 10, knee: 20, lift: 6 }, rArm: { shoulder: 64, elbow: 30 }, lArm: { shoulder: 52, elbow: 30 } };
+    const apex = { anchor: null, lean: 6, neck: -2, bob: 42, facing: 1, rLeg: { hip: 30, knee: 68, lift: 16 }, lLeg: { hip: 14, knee: 58, lift: 14 }, rArm: { shoulder: 56, elbow: 54 }, lArm: { shoulder: 42, elbow: 54 } };
+    const land = { anchor: "both", lean: 4, neck: -1, bob: -10, facing: 1, rLeg: { hip: 34, knee: 68 }, lLeg: { hip: 20, knee: 62 }, rArm: { shoulder: -14, elbow: 64 }, lArm: { shoulder: -4, elbow: 64 }, ...planted };
+    return {
+      id: "jump", frames: 74, loop: false, kind: "oneshot", travel: "in-place", prop: null, review: {},
+      poseKeys: [
+        { frame: 0, ease: "inOut", pose: stand },
+        { frame: 14, ease: "inOut", pose: crouch },
+        { frame: 25, ease: "inOut", pose: take },
+        { frame: 37, ease: "inOut", pose: apex },
+        { frame: 50, ease: "inOut", pose: land },
+        { frame: 62, ease: "inOut", pose: stand },
+        { frame: 73, ease: "inOut", pose: stand }
+      ]
+    };
+  }
+  if (id === "stop") {
+    const lean = { anchor: "both", lean: 10, neck: -3, bob: -2, facing: 1, rLeg: { hip: 22, knee: 26 }, lLeg: { hip: -20, knee: 28 }, rArm: { shoulder: -24, elbow: 70 }, lArm: { shoulder: 26, elbow: 70 } };
+    const brake = { anchor: "both", lean: -10, neck: 3, bob: -4, facing: 1, rLeg: { hip: 28, knee: 22 }, lLeg: { hip: -24, knee: 28 }, rArm: { shoulder: 24, elbow: 74 }, lArm: { shoulder: -20, elbow: 74 } };
+    const plant = { anchor: "both", lean: -6, neck: 2, bob: -2, facing: 1, rLeg: { hip: 16, knee: 16 }, lLeg: { hip: -14, knee: 20 }, rArm: { shoulder: 10, elbow: 60 }, lArm: { shoulder: -8, elbow: 60 } };
+    return {
+      id: "stop", frames: 60, loop: false, kind: "oneshot", travel: "in-place", prop: null, review: {},
+      poseKeys: [
+        { frame: 0, ease: "inOut", pose: lean },
+        { frame: 18, ease: "inOut", pose: brake },
+        { frame: 38, ease: "inOut", pose: plant },
+        { frame: 59, ease: "inOut", pose: STAND_POSE }
+      ]
+    };
+  }
+  if (id === "point") {
+    const ant = { anchor: "both", lean: -4, neck: 4, bob: 0, facing: 1, rLeg: { hip: 10, knee: 16 }, lLeg: { hip: -10, knee: 16 }, rArm: { shoulder: -24, elbow: 54 }, lArm: { shoulder: 10, elbow: 46 } };
+    const pt = { anchor: "both", lean: 6, neck: -5, bob: 0, facing: 1, rLeg: { hip: 8, knee: 14 }, lLeg: { hip: -10, knee: 14 }, rArm: { shoulder: 72, elbow: 4 }, lArm: { shoulder: -12, elbow: 48 } };
+    return {
+      id: "point", frames: 41, loop: false, kind: "oneshot", travel: "in-place", prop: null, review: {},
+      poseKeys: [
+        { frame: 0, ease: "inOut", pose: ant },
+        { frame: 18, ease: "inOut", pose: pt },
+        { frame: 40, ease: "inOut", pose: pt }
+      ]
+    };
+  }
+  if (id === "idle") {
+    const breath = { ...STAND_POSE, lean: 1.8, neck: -0.6, bob: 0.6, rArm: { shoulder: -6, elbow: 44 }, lArm: { shoulder: 10, elbow: 44 } };
+    return {
+      id: "idle", frames: 60, loop: true, kind: "loop", travel: "in-place", prop: null, review: {},
+      poseKeys: [
+        { frame: 0, ease: "inOut", pose: STAND_POSE },
+        { frame: 30, ease: "inOut", pose: breath }
+      ]
+    };
+  }
+  if (id === "static-pose") {
+    return {
+      id: "static-pose", frames: 12, loop: true, kind: "loop", travel: "in-place", prop: null, review: {},
+      poseKeys: [
+        { frame: 0, ease: "inOut", pose: STAND_POSE },
+        { frame: 6, ease: "inOut", pose: STAND_POSE }
+      ]
+    };
+  }
+  return {
+    id, frames: 12, loop: false, kind: "oneshot", travel: "in-place", prop: null, review: {},
+    poseKeys: [
+      { frame: 0, ease: "inOut", pose: STAND_POSE },
+      { frame: 11, ease: "inOut", pose: STAND_POSE }
+    ]
+  };
+}
+
+export async function resolveFilmMotion(id, approved, neutral, { allowRuntime = true } = {}) {
+  const isKnownRuntime = allowRuntime && Boolean(RUNTIME_MOTION_LIBRARY.clips[id]);
+  if (!approved.has(id) && !isKnownRuntime) throw new Error(`${id} is not user-approved.`);
+  let motion = null;
+  try {
+    motion = await readMotion(id);
+  } catch (error) {
+    if (!isKnownRuntime) throw error;
+  }
+  if (motion?.spec?.poseKeys?.length) {
+    if (!(await keyPoseGates(motion.clip, motion.spec)).passed) {
+      throw new Error(`${id} failed its mechanical motion gates.`);
+    }
+    return motion;
+  }
+  if (!allowRuntime) {
+    throw new Error(`${id} is a legacy fixture; films require current authored key-pose motions.`);
+  }
+  const spec = synthesizeBaselineSpec(id);
+  const clip = buildKeyPoseClip(spec, neutral);
+  if (!(await keyPoseGates(clip, spec)).passed) {
+    throw new Error(`${id} failed its mechanical motion gates.`);
+  }
+  return { sourceId: id, spec, clip };
+}
 
 // Release/replant only joins where the measured blend actually slides a planted foot.
 function addMeasuredSupportTransitions(items, performance, continuity) {
@@ -43,10 +174,17 @@ function addMeasuredSupportTransitions(items, performance, continuity) {
 }
 
 function composeWithMeasuredSupport(items, options, sampleClipMotion, bridge, label) {
-  const initial = composeWithAutomaticBridges(items, options, sampleClipMotion, bridge, label);
+  const initial = composeWithAutomaticBridges(items, options, sampleClipMotion, bridge, label, { deferBridgeFootSlideCheck: true });
   if (!bridge) return initial;
   const supportedItems = addMeasuredSupportTransitions(items, initial.performance, initial.continuity);
-  if (supportedItems.every((item, index) => !item._supportTransition || items[index]._supportTransition)) return initial;
+  const hadNewSupport = !supportedItems.every((item, index) => !item._supportTransition || items[index]._supportTransition);
+  if (!hadNewSupport) {
+    for (const record of initial.bridgeRecords) {
+      const footSlides = initial.continuity.footSlides.filter(slide => slide.frame >= record.startFrame && slide.frame <= record.endFrame);
+      if (footSlides.length) throw new Error(`${label}: generated bridge ${record.from} -> ${record.to} slides a planted foot.`);
+    }
+    return initial;
+  }
   return composeWithAutomaticBridges(supportedItems, options, sampleClipMotion, bridge, label);
 }
 
@@ -114,55 +252,72 @@ export async function loadShowcaseResources() {
   return { propsCatalog, approved, colors, themeMotion, fonts, sampleClipMotion, frameGeometry };
 }
 
-function composeWithAutomaticBridges(items, options, sampleClipMotion, enabled, label) {
+function composeWithAutomaticBridges(items, options, sampleClipMotion, enabled, label, { deferBridgeFootSlideCheck = false } = {}) {
   const adjusted = items.map(item => ({ ...item }));
   const original = composePerformance(adjusted, options);
   const before = performanceContinuity(original, sampleClipMotion, { signal: options.signal });
   if (!enabled || before.maxJointStep <= 14) return { performance: original, continuity: before, bridgeRecords: [] };
   const bridgeByItem = new Map();
   let performance = original, continuity = before;
-  for (let attempt = 0; attempt < 32 && continuity.maxJointStep > 14; attempt++) {
+  for (let attempt = 0; attempt < 40 && continuity.maxJointStep > 14; attempt++) {
     const frame = continuity.worstFrame;
-    const segment = performance.segments.find(seg => frame <= seg.end && frame >= seg.start - 1);
+    const segment = performance.segments.find(seg => frame <= seg.end && frame >= seg.gapStart);
     if (!segment || segment.relocated) break;
+    const segIndex = performance.segments.indexOf(segment);
     const item = adjusted[segment.itemIndex];
     if (!item || item.relocate !== undefined) break;
-    const record = bridgeByItem.get(segment.itemIndex) ?? { from: performance.segments[performance.segments.indexOf(segment) - 1]?.id ?? null,
-      to: segment.id, costBefore: before.maxJointStep, trimStart: 0, frames: 0 };
+    const record = bridgeByItem.get(segment.itemIndex) ?? {
+      from: performance.segments[segIndex - 1]?.id ?? null,
+      to: segment.id,
+      costBefore: continuity.maxJointStep,
+      trimStart: 0,
+      frames: 0
+    };
+    let trackBridge = segIndex > 0;
     if (frame < segment.start) {
       const current = segment.start - segment.gapStart + 1;
-      if (current >= 25) break;
-      item.gap = Math.min(25, current + 1);
+      if (current >= 49) break;
+      const maxJointDist = measurePoseJoinDistance(performance, segment, sampleClipMotion);
+      const scaledFrames = computeBridgeFramesFromDistance(maxJointDist);
+      item.gap = Math.min(49, Math.max(current + 1, scaledFrames + 1));
       record.frames = Math.max(record.frames, item.gap - 1);
     } else if (segment.kind === "motion") {
       const motion = options.motions.get(item.motion);
       const sourceFrame = (item._trimStart ?? 0) + Math.max(0, frame - segment.start);
       const nextKey = motion?.spec.poseKeys?.find(key => key.frame > sourceFrame && key.frame <= (item._trimStart ?? 0) + 48);
-      if (!nextKey) break;
-      item._trimStart = nextKey.frame;
-      const current = segment.start - segment.gapStart + 1;
-      const desired = Math.max(6, Math.min(24, Math.ceil(before.maxJointStep / 14 * 6)));
-      item.gap = Math.max(current, Math.min(25, desired + 1));
-      record.trimStart = item._trimStart;
-      record.frames = Math.max(6, item.gap - 1);
+      if (segIndex > 0 && nextKey && !motion?.clip?.loop) {
+        item._trimStart = nextKey.frame;
+        const current = segment.start - segment.gapStart + 1;
+        const desired = Math.max(6, Math.min(24, Math.ceil(before.maxJointStep / 14 * 6)));
+        item.gap = Math.max(current, Math.min(25, desired + 1));
+        record.trimStart = item._trimStart;
+        record.frames = Math.max(6, item.gap - 1);
+      } else {
+        const nextScale = Number(((item._timeScale ?? 1) + 0.15).toFixed(2));
+        if (nextScale > 2.2) break;
+        item._timeScale = nextScale;
+        trackBridge = false;
+      }
     } else break;
-    record.frames = Math.max(6, Math.min(24, record.frames || Math.ceil(before.maxJointStep / 14 * 6)));
-    record.costAfter = continuity.maxJointStep;
-    bridgeByItem.set(segment.itemIndex, record);
-    item._bridge = record;
+    if (trackBridge) {
+      record.frames = Math.max(6, Math.min(48, record.frames || Math.ceil(before.maxJointStep / 14 * 6)));
+      record.costAfter = continuity.maxJointStep;
+      bridgeByItem.set(segment.itemIndex, record);
+      item._bridge = record;
+    }
     performance = composePerformance(adjusted, options);
     continuity = performanceContinuity(performance, sampleClipMotion, { signal: options.signal });
-    record.costAfter = continuity.maxJointStep;
+    if (trackBridge) record.costAfter = continuity.maxJointStep;
   }
   if (continuity.maxJointStep > 14) {
-    throw new Error(`${label}: automatic bridge could not reduce continuity ${continuity.maxJointStep} below limit 14 (maximum bridge 24 frames).`);
+    throw new Error(`${label}: automatic bridge could not reduce continuity ${continuity.maxJointStep} below limit 14 (maximum bridge 48 frames).`);
   }
   const bridgeRecords = [...bridgeByItem].map(([itemIndex, record]) => {
     const segment = performance.segments.find(seg => seg.itemIndex === itemIndex);
     const startFrame = segment.gapStart, endFrame = segment.start - 1;
     const footSlides = continuity.footSlides.filter(slide => slide.frame >= startFrame && slide.frame <= endFrame);
-    if (footSlides.length) throw new Error(`${label}: generated bridge ${record.from} -> ${record.to} slides a planted foot.`);
-    return { ...record, itemIndex, startFrame, endFrame, frames: endFrame - startFrame + 1, feetLocked: true, kind: "generated-bridge" };
+    if (!deferBridgeFootSlideCheck && footSlides.length) throw new Error(`${label}: generated bridge ${record.from} -> ${record.to} slides a planted foot.`);
+    return { ...record, itemIndex, startFrame, endFrame, frames: endFrame - startFrame + 1, feetLocked: footSlides.length === 0, kind: "generated-bridge" };
   });
   return { performance, continuity, bridgeRecords };
 }
@@ -170,16 +325,13 @@ function composeWithAutomaticBridges(items, options, sampleClipMotion, enabled, 
 export async function composeFilm(recipe, resources, { signal } = {}) {
   const { approved, sampleClipMotion } = resources;
   const ids = new Set([...recipe.performance.map(item => item.motion), ...(recipe.set ?? []).map(item => item.motion), ...(recipe.extras ?? []).flatMap(item => [item.motion, ...(item.actor ?? []).map(entry => entry.motion)])].filter(Boolean));
+  const neutral = RUNTIME_MOTION_LIBRARY.clips.idle.frames[0];
+  const allowRuntime = Boolean(recipe.declarative);
   const motions = new Map();
   for (const id of ids) {
     throwIfAborted(signal);
-    if (!approved.has(id)) throw new Error(`${id} is not user-approved.`);
-    const motion = await readMotion(id);
-    if (!motion.spec.poseKeys?.length) throw new Error(`${id} is a legacy fixture; films require current authored key-pose motions.`);
-    if (!(await keyPoseGates(motion.clip, motion.spec)).passed) throw new Error(`${id} failed its mechanical motion gates.`);
-    motions.set(id, motion);
+    motions.set(id, await resolveFilmMotion(id, approved, neutral, { allowRuntime }));
   }
-  const neutral = RUNTIME_MOTION_LIBRARY.clips.idle.frames[0];
   const lead = composeWithMeasuredSupport(recipe.performance, { motions, sampleClipMotion, neutral, signal },
     sampleClipMotion, recipe.bridge !== "off", `${recipe.id}/lead`);
   const performance = lead.performance;

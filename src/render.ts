@@ -1428,3 +1428,4 @@ draw();schedule();})();`;
 }
 
 export const renderHtmlPreview = renderHtml;
+export { HTML_SHELL_STYLE };

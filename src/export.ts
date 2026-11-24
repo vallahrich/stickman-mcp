@@ -8,11 +8,21 @@ import {
   CONTRACT_VERSION_V2,
   type AnimationSpecV2,
   type CompiledAnimation,
+  type CompiledMovie,
   type PlaybackMode,
   type RenderStyle
 } from "./contract.js";
+import {
+  isCompiledMovie,
+  renderMovieAnimatedSvg,
+  renderMovieHtml,
+  renderMovieStoryboardSvg,
+  renderMovieSvgFrame
+} from "./movie.js";
 import { renderAnimatedSvg, renderHtml, renderSvgFrame } from "./render.js";
 import { renderStoryboardSvg, type StoryboardTheme } from "./storyboard.js";
+
+export type ExportableProgram = CompiledAnimation | CompiledMovie;
 
 export type ExportFormat = "svg-frame" | "svg" | "html" | "gif" | "mp4" | "storyboard-svg";
 
@@ -58,8 +68,9 @@ function throwIfAborted(signal?: AbortSignal): void {
 async function reportProgress(callback: ExportOptions["onProgress"], progress: ExportProgress): Promise<void> {
   await callback?.(progress);
 }
-export function estimateExportWork(program: CompiledAnimation): ExportResult["estimatedWork"] {
-  const frameCount = Math.max(2, Math.ceil(program.spec.durationMs * program.spec.canvas.fps / 1000));
+export function estimateExportWork(program: ExportableProgram): ExportResult["estimatedWork"] {
+  const durationMs = isCompiledMovie(program) ? program.durationMs : program.spec.durationMs;
+  const frameCount = Math.max(2, Math.ceil(durationMs * program.spec.canvas.fps / 1000));
   const pixelsPerFrame = program.spec.canvas.width * program.spec.canvas.height;
   return { frameCount, pixelsPerFrame, totalRasterPixels: frameCount * pixelsPerFrame };
 }
@@ -71,13 +82,13 @@ function exportWarnings(format: ExportFormat, work: ExportResult["estimatedWork"
   }
   return warnings;
 }
-export function planAnimationExport(program: CompiledAnimation, format: ExportFormat): ExportPlan {
+export function planAnimationExport(program: ExportableProgram, format: ExportFormat): ExportPlan {
   const estimatedWork = estimateExportWork(program);
   return { estimatedWork, warnings: exportWarnings(format, estimatedWork) };
 }
 
 export function renderArtifact(
-  program: CompiledAnimation,
+  program: ExportableProgram,
   format: "svg-frame" | "svg" | "html" | "storyboard-svg",
   options: {
     timeMs?: number;
@@ -88,6 +99,26 @@ export function renderArtifact(
     theme?: StoryboardTheme;
   } = {}
 ): string {
+  const styleOptions = options.style !== undefined ? { style: options.style } : undefined;
+  if (isCompiledMovie(program)) {
+    if (format === "storyboard-svg") {
+      const effectiveTheme = options.theme ?? options.style ?? program.spec.theme?.style;
+      return renderMovieStoryboardSvg(program, {
+        ...(options.maxPanels !== undefined ? { maxPanels: options.maxPanels } : {}),
+        ...(options.columns !== undefined ? { columns: options.columns } : {}),
+        ...(options.mode !== undefined ? { mode: options.mode } : {}),
+        ...(effectiveTheme !== undefined ? { theme: effectiveTheme } : {})
+      });
+    }
+    if (format === "svg-frame") {
+      return renderMovieSvgFrame(program, options.timeMs ?? 0, options.mode ?? "normal", styleOptions);
+    }
+    return format === "svg"
+      ? (options.timeMs === undefined && options.mode === undefined
+          ? renderMovieAnimatedSvg(program, styleOptions)
+          : renderMovieSvgFrame(program, options.timeMs ?? 0, options.mode ?? "normal", styleOptions))
+      : renderMovieHtml(program, styleOptions);
+  }
   if (format === "storyboard-svg") {
     const v2Spec = program.contractVersion === CONTRACT_VERSION_V2 ? (program.spec as AnimationSpecV2) : undefined;
     const effectiveTheme = options.theme ?? options.style ?? v2Spec?.theme?.style;
@@ -98,7 +129,6 @@ export function renderArtifact(
       ...(effectiveTheme !== undefined ? { theme: effectiveTheme } : {})
     });
   }
-  const styleOptions = options.style !== undefined ? { style: options.style } : undefined;
   if (format === "svg-frame") {
     return renderSvgFrame(program, options.timeMs ?? 0, options.mode ?? "normal", styleOptions);
   }
@@ -209,7 +239,7 @@ async function runFfmpeg(args: string[], signal?: AbortSignal): Promise<void> {
   }
 }
 
-async function writeVideo(program: CompiledAnimation, destination: string, format: "gif" | "mp4", options: ExportOptions, onCreate: () => void): Promise<number> {
+async function writeVideo(program: ExportableProgram, destination: string, format: "gif" | "mp4", options: ExportOptions, onCreate: () => void): Promise<number> {
   let rasterize: VideoRasterizer;
   try {
     rasterize = options.loadResvg
@@ -225,16 +255,15 @@ async function writeVideo(program: CompiledAnimation, destination: string, forma
   await mkdir(framesDirectory, { recursive: false });
   try {
     const fps = program.spec.canvas.fps;
-    const frameCount = Math.max(2, Math.ceil(program.spec.durationMs * fps / 1000));
+    const durationMs = isCompiledMovie(program) ? program.durationMs : program.spec.durationMs;
+    const frameCount = Math.max(2, Math.ceil(durationMs * fps / 1000));
     for (let index = 0; index < frameCount; index++) {
       throwIfAborted(options.signal);
-      const time = Math.min(program.spec.durationMs, index * 1000 / fps);
-      const svg = renderSvgFrame(
-        program,
-        time,
-        "normal",
-        options.style !== undefined ? { style: options.style } : undefined
-      );
+      const time = Math.min(durationMs, index * 1000 / fps);
+      const styleOptions = options.style !== undefined ? { style: options.style } : undefined;
+      const svg = isCompiledMovie(program)
+        ? renderMovieSvgFrame(program, time, "normal", styleOptions)
+        : renderSvgFrame(program, time, "normal", styleOptions);
       const file = resolve(framesDirectory, `frame${String(index).padStart(6, "0")}.png`);
       // Pure stickman frames contain no text; load system fonts only when a prop renders <text>.
       const png = new rasterize(svg, { font: { loadSystemFonts: svg.includes("<text") } }).render().asPng();
@@ -261,7 +290,7 @@ async function writeVideo(program: CompiledAnimation, destination: string, forma
 }
 
 export async function exportAnimation(
-  program: CompiledAnimation,
+  program: ExportableProgram,
   outputRoot: string,
   outputPath: string,
   format: ExportFormat,

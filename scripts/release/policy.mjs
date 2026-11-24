@@ -3,7 +3,7 @@ export const sourceFiles = Object.freeze([
   "src/index.ts", "src/camera.ts", "src/callouts.ts", "src/catalog.ts", "src/choreograph.ts", "src/compiler.ts", "src/contract.ts",
   "src/contract-schema.ts", "src/events.ts", "src/export.ts",
   "src/motion-clips.ts", "src/motion-library.ts", "src/generated/motion-library.ts",
-  "src/playback.ts", "src/props.ts", "src/render.ts", "src/stories.ts", "src/storyboard.ts", "src/cli.ts",
+  "src/movie.ts", "src/playback.ts", "src/props.ts", "src/render.ts", "src/stories.ts", "src/storyboard.ts", "src/cli.ts",
   "src/browser.ts", "src/room.ts", "src/keyboard.ts", "src/world-motion.ts",
   "src/mcp.ts", "src/film.ts", "src/film-schema.ts", "src/motion-authoring.ts"
 ]);

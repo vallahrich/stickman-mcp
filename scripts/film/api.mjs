@@ -4,14 +4,13 @@ import { createHash } from "node:crypto";
 import { Resvg } from "@resvg/resvg-js";
 import { AjvJsonSchemaValidator } from "@modelcontextprotocol/sdk/validation/ajv";
 import { filmRecipeSchema } from "../../dist/film-schema.js";
-import { composeFilm, createStoryRenderer, loadShowcaseResources, encodeVideo, continuityJoin } from "./runtime.mjs";
+import { composeFilm, createStoryRenderer, loadShowcaseResources, encodeVideo, continuityJoin, resolveFilmMotion } from "./runtime.mjs";
 import { composePerformance, performanceContinuity, FILM_SCALE } from "../site/performance.mjs";
 import { places } from "../site/story-films.mjs";
-import { readMotion } from "../site/catalogue.mjs";
-import { keyPoseGates } from "../motions/keypose.mjs";
 import { overlayTypes } from "./overlays.mjs";
 import { readJoinMatrix, checkJoin } from "./joins.mjs";
-import { RUNTIME_MOTION_LIBRARY } from "../../dist/motion-library.js";
+import { RUNTIME_ACTION_NAMES, RUNTIME_MOTION_LIBRARY } from "../../dist/motion-library.js";
+import { ADDON_TYPES } from "../../dist/props.js";
 
 const validate = new AjvJsonSchemaValidator().getValidator(filmRecipeSchema);
 export function normalizeRecipe(input) {
@@ -72,20 +71,26 @@ export function normalizeRecipe(input) {
 
 export async function listFilmAssets() {
   const resources = await loadShowcaseResources();
+  const neutral = RUNTIME_MOTION_LIBRARY.clips.idle.frames[0];
+  const allMotionIds = [...new Set([...resources.approved, ...RUNTIME_ACTION_NAMES])].sort();
   const motions = [];
-  for (const id of [...resources.approved].sort()) {
-    const motion = await readMotion(id);
-    if (!motion.spec.poseKeys?.length || !(await keyPoseGates(motion.clip, motion.spec)).passed) continue;
-    motions.push({ id, frames: motion.clip.frames.length, kind: motion.clip.loop ? "loop" : motion.spec.kind === "travel" || (motion.spec.travel && motion.spec.travel !== "in-place") ? "travel" : "oneshot" });
+  for (const id of allMotionIds) {
+    try {
+      const motion = await resolveFilmMotion(id, resources.approved, neutral);
+      motions.push({ id, frames: motion.clip.frames.length, kind: motion.clip.loop ? "loop" : motion.spec.kind === "travel" || (motion.spec.travel && motion.spec.travel !== "in-place") ? "travel" : "oneshot" });
+    } catch {
+      // Skip any unapproved/non-qualifying id gracefully.
+    }
   }
   const joinMatrix = await readJoinMatrix();
+  const setTypes = [...new Set([...resources.propsCatalog.props.map(prop => prop.type), ...ADDON_TYPES])];
   return { motions, kits: ["legionary", "standard", "dagger"], headwear: ["none", "laurel"], places: Object.keys(places), overlays: overlayTypes,
-    setTypes: resources.propsCatalog.props.map(prop => prop.type), fps: 30, showcaseMaxFrames: 1800, continuityLimit: 14,
+    setTypes, fps: 30, showcaseMaxFrames: 1800, continuityLimit: 14,
     joinCount: joinMatrix.joins.length, recipeSchema: filmRecipeSchema };
 }
 
 function validateMotionOptions(recipe, composed, resources) {
-  const propTypes = new Set(resources.propsCatalog.props.map(prop => prop.type));
+  const propTypes = new Set([...resources.propsCatalog.props.map(prop => prop.type), ...ADDON_TYPES]);
   const checkItems = (items, label) => items.forEach((item, index) => {
     if (item.motion && item.cycles !== undefined && !composed.motions.get(item.motion).clip.loop) throw new Error(`${label}/${index}: cycles requires a loop motion.`);
     for (const type of item.keep ?? []) if (!propTypes.has(type)) throw new Error(`${label}/${index}: unknown keep prop type ${type}.`);
@@ -143,12 +148,13 @@ function summarize(recipe, composed, resources, signal) {
     actors.push({ extraIndex, kind: "motion", frames: cast.frames, items: ranges(cast, [{ motion: extra.motion }]), continuity });
   }
   actors.sort((a, b) => a.extraIndex - b.extraIndex);
+  const legacyOverlayFields = {
+    text: ["text", "size"], label: ["text", "size"], bubble: ["text", "second", "width"],
+    scroll: ["text", "width"], card: ["text", "width"], tick: [], "package-box": ["text"], "rect-plate": ["width", "height"]
+  };
   for (const scene of timeline.scenes) {
     for (const [i, o] of (scene.overlays ?? []).entries()) {
-      const fields = {
-        text: ["text", "size"], label: ["text", "size"], bubble: ["text", "second", "width"],
-        scroll: ["text", "width"], card: ["text", "width"], tick: [], "package-box": ["text"], "rect-plate": ["width", "height"]
-      }[o.type];
+      const fields = legacyOverlayFields[o.type] ?? ["width", "height", "text", "color", "rotation"];
       const allowed = new Set(["type", "x", "y", "from", "to", "fade", "scale", "tween", ...fields]);
       for (const key of Object.keys(o)) if (!allowed.has(key)) throw new Error(`${scene.id}/overlays/${i}: ${key} is not supported on ${o.type}.`);
       if (["text", "label", "bubble", "scroll", "card"].includes(o.type) && !o.text) throw new Error(`${scene.id}/overlays/${i}: ${o.type} requires text.`);

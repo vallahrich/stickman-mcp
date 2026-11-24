@@ -1,5 +1,5 @@
 import { actionCatalog } from "./catalog.js";
-import { CONTRACT_VERSION, CONTRACT_VERSION_V2 } from "./contract.js";
+import { CONTRACT_VERSION, CONTRACT_VERSION_MOVIE, CONTRACT_VERSION_V2 } from "./contract.js";
 import { RUNTIME_ACTION_NAMES } from "./motion-library.js";
 import { ADDON_TYPES } from "./props.js";
 
@@ -466,3 +466,99 @@ export const animationSchemaV2 = {
     }
   }
 } as const;
+
+export const BACKDROP_PRESETS = Object.freeze([
+  "none",
+  "office",
+  "datacenter",
+  "war-room",
+  "classroom",
+  "court",
+  "outdoor"
+] as const);
+
+export const SCENE_TRANSITION_KINDS = Object.freeze([
+  "cut",
+  "fade",
+  "wipe"
+] as const);
+
+export const movieSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://stickman-mcp.dev/schemas/movie-v1.json",
+  title: "Stickman multi-scene movie",
+  type: "object",
+  additionalProperties: false,
+  required: ["scenes"],
+  properties: {
+    version: { const: CONTRACT_VERSION_MOVIE },
+    title: { type: "string", minLength: 1 },
+    canvas: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        width: { type: "integer", minimum: 64, maximum: 4096 },
+        height: { type: "integer", minimum: 64, maximum: 4096 },
+        fps: { type: "integer", minimum: 1, maximum: 60 }
+      }
+    },
+    theme: animationSchemaV2.properties.theme,
+    trimIdleTails: { type: "boolean" },
+    scenes: {
+      type: "array",
+      minItems: 1,
+      maxItems: 16,
+      items: { $ref: "#/$defs/movieScene" }
+    }
+  },
+  $defs: {
+    ...animationSchemaV2.$defs,
+    sceneTransition: {
+      oneOf: [
+        { enum: SCENE_TRANSITION_KINDS },
+        {
+          type: "object",
+          additionalProperties: false,
+          required: ["kind"],
+          properties: {
+            kind: { enum: SCENE_TRANSITION_KINDS },
+            durationMs: { type: "integer", minimum: 0, maximum: 5000 }
+          }
+        }
+      ]
+    },
+    movieScene: {
+      type: "object",
+      additionalProperties: false,
+      required: ["id"],
+      anyOf: [
+        { required: ["actors"] },
+        { required: ["actions"] }
+      ],
+      properties: {
+        id: { type: "string", minLength: 1 },
+        title: { type: "string" },
+        caption: { type: "string" },
+        backdrop: { enum: BACKDROP_PRESETS },
+        transition: { $ref: "#/$defs/sceneTransition" },
+        trimIdleTails: { type: "boolean" },
+        maxIdleTailMs: { type: "integer", minimum: 0, maximum: 30000 },
+        durationMs: animationSchemaV2.properties.durationMs,
+        groundY: animationSchemaV2.properties.groundY,
+        theme: animationSchemaV2.properties.theme,
+        addons: animationSchemaV2.properties.addons,
+        anchors: animationSchemaV2.properties.anchors,
+        targets: animationSchemaV2.properties.targets,
+        actor: animationSchemaV2.properties.actor,
+        stageProps: animationSchemaV2.properties.stageProps,
+        customMotions: animationSchemaV2.properties.customMotions,
+        camera: animationSchemaV2.properties.camera,
+        spotlight: animationSchemaV2.properties.spotlight,
+        callouts: animationSchemaV2.properties.callouts,
+        actors: animationSchemaV2.properties.actors,
+        actions: animationSchemaV2.properties.actions
+      }
+    }
+  }
+} as const;
+

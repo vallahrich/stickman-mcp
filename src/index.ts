@@ -19,11 +19,15 @@ export {
 } from "./choreograph.js";
 export {
   CONTRACT_VERSION,
+  CONTRACT_VERSION_MOVIE,
   CONTRACT_VERSION_V2
 } from "./contract.js";
 export {
+  BACKDROP_PRESETS,
+  SCENE_TRANSITION_KINDS,
   animationSchema,
-  animationSchemaV2
+  animationSchemaV2,
+  movieSchema
 } from "./contract-schema.js";
 export {
   analyzeStoryboard,
@@ -42,6 +46,7 @@ export * from "./events.js";
 export * from "./export.js";
 export * from "./motion-clips.js";
 export * from "./motion-library.js";
+export * from "./movie.js";
 export * from "./playback.js";
 export * from "./props.js";
 export * from "./render.js";

@@ -2,7 +2,8 @@ import type { MotionClip, PoseKeyFrame } from "./motion-clips.js";
 
 export const CONTRACT_VERSION = "stickman.animation/v1" as const;
 export const CONTRACT_VERSION_V2 = "stickman.animation/v2" as const;
-export type ContractVersion = typeof CONTRACT_VERSION | typeof CONTRACT_VERSION_V2;
+export const CONTRACT_VERSION_MOVIE = "stickman.movie/v1" as const;
+export type ContractVersion = typeof CONTRACT_VERSION | typeof CONTRACT_VERSION_V2 | typeof CONTRACT_VERSION_MOVIE;
 
 export type ActionName = string;
 export type PlaybackMode = "normal" | "reduced" | "static";
@@ -545,3 +546,96 @@ export interface ChoreographResult extends ValidationResult {
 export interface CompileResult extends ValidationResult {
   program?: CompiledAnimation;
 }
+
+export type BackdropPreset =
+  | "none"
+  | "office"
+  | "datacenter"
+  | "war-room"
+  | "classroom"
+  | "court"
+  | "outdoor";
+
+export type SceneTransitionKind = "cut" | "fade" | "wipe";
+
+export interface SceneTransitionConfig {
+  kind: SceneTransitionKind;
+  durationMs?: number;
+}
+
+export type SceneTransitionInput = SceneTransitionKind | SceneTransitionConfig;
+
+export interface MovieSceneInput extends Omit<ChoreographInput, "version" | "canvas"> {
+  id: string;
+  title?: string;
+  caption?: string;
+  backdrop?: BackdropPreset;
+  transition?: SceneTransitionInput;
+  trimIdleTails?: boolean;
+  maxIdleTailMs?: number;
+}
+
+export interface MovieSpecInput {
+  version?: typeof CONTRACT_VERSION_MOVIE;
+  title?: string;
+  canvas?: { width?: number; height?: number; fps?: number };
+  theme?: AnimationSpecV2["theme"];
+  trimIdleTails?: boolean;
+  scenes: MovieSceneInput[];
+}
+
+export interface MovieMarkerEvent extends MarkerEvent {
+  sceneId: string;
+}
+
+export interface CompiledMovieScene {
+  id: string;
+  index: number;
+  title?: string;
+  caption?: string;
+  backdrop: BackdropPreset;
+  transition: { kind: SceneTransitionKind; durationMs: number };
+  startMs: number;
+  endMs: number;
+  durationMs: number;
+  trimmedIdleMs: number;
+  program: CompiledAnimation;
+}
+
+export interface CompiledMovieSpec {
+  version: typeof CONTRACT_VERSION_MOVIE;
+  title?: string;
+  canvas: { width: number; height: number; fps: number };
+  durationMs: number;
+  theme?: ChoreographTheme;
+  trimIdleTails: boolean;
+  scenes: MovieSceneInput[];
+}
+
+export interface CompiledMovie {
+  contractVersion: typeof CONTRACT_VERSION_MOVIE;
+  spec: CompiledMovieSpec;
+  scenes: CompiledMovieScene[];
+  durationMs: number;
+  events: MovieMarkerEvent[];
+}
+
+export interface TransitionOverlay {
+  kind: Exclude<SceneTransitionKind, "cut">;
+  progress: number;
+  opacity: number;
+  nextSceneId: string;
+}
+
+export interface SampledMovieFrame extends SampledFrame {
+  sceneId: string;
+  sceneIndex: number;
+  sceneTitle?: string;
+  backdrop: BackdropPreset;
+  transitionOverlay?: TransitionOverlay;
+}
+
+export interface ComposeMovieResult extends ValidationResult {
+  movie?: CompiledMovie;
+}
+

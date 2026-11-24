@@ -1,6 +1,8 @@
 import { xml, scroll, tick, packageBox, bubble } from "../site/story-films.mjs";
+import { ADDON_TYPES, PROP_DEFINITIONS, renderAddonSvg } from "../../dist/props.js";
 
-export const overlayTypes = ["text", "bubble", "scroll", "card", "tick", "package-box", "rect-plate", "label"];
+export const legacyOverlayTypes = ["text", "bubble", "scroll", "card", "tick", "package-box", "rect-plate", "label"];
+export const overlayTypes = [...new Set([...legacyOverlayTypes, ...ADDON_TYPES])];
 const ease = t => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
 export function renderOverlays(overlays, frame, colors) {
   return overlays.map(o => {
@@ -20,7 +22,27 @@ export function renderOverlays(overlays, frame, colors) {
       case "tick": body = tick(0, 0, colors); break;
       case "package-box": body = packageBox(0, 0, colors, o.text ?? "v1.1"); break;
       case "rect-plate": body = `<rect width="${o.width ?? 300}" height="${o.height ?? 100}" rx="8" fill="${colors.surface}" stroke="${colors.accent}" stroke-width="3"/>`; break;
-      default: throw new Error(`Unknown overlay type: ${o.type}`);
+      default: {
+        const def = PROP_DEFINITIONS[o.type];
+        if (!def) throw new Error(`Unknown overlay type: ${o.type}`);
+        const width = o.width ?? def.defaultSize.w;
+        const height = o.height ?? def.defaultSize.h;
+        body = renderAddonSvg({
+          id: `overlay-${o.type}`,
+          type: o.type,
+          layer: "front",
+          x: 0,
+          y: 0,
+          width,
+          height,
+          rotation: o.rotation ?? 0,
+          scale: 1,
+          opacity: 1,
+          color: o.color ?? def.defaultColor ?? colors.accent,
+          ...(o.text !== undefined ? { text: o.text } : {})
+        }, { strokeWidth: 2.5, themeColor: colors.text });
+        break;
+      }
     }
     return `<g opacity="${opacity.toFixed(3)}" transform="translate(${x.toFixed(2)} ${y.toFixed(2)}) scale(${scale.toFixed(3)})">${body}</g>`;
   }).join("");

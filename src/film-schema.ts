@@ -1,4 +1,8 @@
 import type { JsonSchemaType } from "@modelcontextprotocol/sdk/validation";
+import { ADDON_TYPES } from "./props.js";
+
+const LEGACY_OVERLAY_TYPES = ["text", "bubble", "scroll", "card", "tick", "package-box", "rect-plate", "label"] as const;
+const FILM_OVERLAY_TYPES = [...new Set<string>([...LEGACY_OVERLAY_TYPES, ...ADDON_TYPES])];
 
 const number = { type: "number", minimum: -2000, maximum: 3000 };
 const frame = { type: "integer", minimum: 0 };
@@ -26,8 +30,10 @@ export const filmRecipeSchema: JsonSchemaType & { type: "object" } = {
       id, title: text, state: text, place: { type: "string", enum: ["office", "city", "senate", "gaul", "rubicon"] },
       cues: { type: "array", minItems: 1, maxItems: 24, items: object({ frame, text }, ["frame", "text"]) },
       overlays: { type: "array", maxItems: 50, items: object({
-        type: { type: "string", enum: ["text", "bubble", "scroll", "card", "tick", "package-box", "rect-plate", "label"] },
+        type: { type: "string", enum: FILM_OVERLAY_TYPES },
         x: number, y: number, from: frame, to: frame, fade: frame, text, second: text,
+        color: { type: "string", minLength: 1, maxLength: 40 },
+        rotation: { type: "number", minimum: -360, maximum: 360 },
         width: { type: "number", minimum: 1, maximum: 1280 }, height: { type: "number", minimum: 1, maximum: 720 },
         size: { type: "number", minimum: 8, maximum: 100 }, scale: { type: "number", minimum: 0.1, maximum: 4 },
         tween: object({ x: number, y: number, scale: { type: "number", minimum: 0.1, maximum: 4 } })
