@@ -1,21 +1,28 @@
 # Stickman MCP roadmap
 
 From the `0.1.0` MVP baseline (one geometric actor, six versioned actions, shared
-playhead, SVG/HTML export, and rightward prop push), `0.2.0` expands the engine
-and local MCP surface with:
+playhead, SVG/HTML export, and rightward prop push), `0.2.0`–`0.3.0` expand the
+engine and local MCP surface with:
 
 - **106 runtime actions** (104 self-contained assembled clips: 98 user-approved
-  key-pose motions + 6 mocap baselines, plus static/hold/turn actions) and **53
-  geometric runtime props/add-ons** with appear, socket attachment, ballistic
-  flight, and exit lifecycles.
-- **`stickman.animation/v2` & `stickman_choreograph`:** multi-actor scenes (`2+`
-  stickmen with `tie`/`hat`/`glasses`/`badge` accessories), cross-actor
-  `emitCue`/`afterCue` synchronization, semantic stage anchors, C1 Hermite
-  transition blending, bilateral `push`, and zero-math auto-sequencing.
-- **`stickman_storyboard`:** multi-panel SVG + PNG `ImageContent` contact sheet
-  and spatial/bounds/seam lint.
-- **16 MCP tools, 9 MCP resources (`stickman://*`), 2 MCP prompts**, and the
-  `<stickman-player>` custom element (`@vallahrich/stickman-mcp/browser`).
+  key-pose motions + 6 mocap baselines, plus static/hold/turn actions) and **55
+  geometric runtime props/add-ons** (including `coffee-mug` and `mug`) with
+  appear, socket attachment, ballistic flight, mirrored facing, shared
+  multi-actor `handoffTo`, and exit lifecycles.
+- **`stickman.animation/v2`, `stickman.movie/v1`, `stickman_choreograph` &
+  `stickman_movie`:** multi-actor scenes (`2+` stickmen with `tie`/`hat`/
+  `glasses`/`badge` accessories), 2.5D `depth` planes, `spotlight: "auto"`,
+  virtual `camera: "auto-director"`, editorial `say`/`think`/`badge` callouts,
+  curved Bezier spines, gaze cues, hand glyphs, inline `customMotions`,
+  multi-scene movie composition with contextual backdrops (`war-room`,
+  `datacenter`, `office`, `stage`) and `fade`/`wipe` transitions.
+- **`stickman_critique`, `stickman_storyboard` & `ui://stickman/player`:**
+  6-axis perceptual quality scoring (`Prop Integrity`, `Spatial Continuity`,
+  `Staging & Eye-Trace`, `Pacing & Readability`, `Kinematic Appeal`,
+  `Cinematography`), annotated SVG/PNG contact sheets, compact HTML players,
+  parallel MP4, transparent VP9 WebM overlays, and the live MCP App player.
+- **18 MCP tools, 14 MCP resources (`stickman://*` + `ui://stickman/player`),
+  3 MCP prompts**, and `<stickman-player>` (`@vallahrich/stickman-mcp/browser`).
 
 The roadmap below records completed phases and remaining research/qualification
 intent; it is not a promise of universal motion generation or blanket visual

@@ -32,13 +32,15 @@ import { compileAnimation, choreographAnimation } from "@vallahrich/stickman-mcp
 Node-only `/film` and `/motion-authoring` entries expose the same packaged
 composer/render and draft/preview APIs used by the MCP server.
 
-Use `stickman discover`, `stickman schema --version v1|v2`, or MCP resources
+Use `stickman discover`, `stickman schema --version v1|v2|movie-v1`, or MCP resources
 (`stickman://catalog`, `stickman://anchors`, `stickman://props`,
-`stickman://schema/v1`, `stickman://schema/v2`, and `stickman://templates/*`) to
-inspect the runtime contracts. The runtime exposes 106 deterministic actions and
-53 geometric vector props/add-ons across single-actor `stickman.animation/v1` and
-multi-actor `stickman.animation/v2`, while the offline showcase gallery includes
-97 mechanically qualified film/preview cards (from the 100-entry ledger; `sneak`,
+`stickman://schema/v1`, `stickman://schema/v2`, `stickman://schema/movie-v1`,
+`stickman://rubric/human-critique`, `ui://stickman/player`, and
+`stickman://templates/*`) to inspect the runtime contracts. The runtime exposes
+106 deterministic actions and 55 geometric vector props/add-ons across
+single-actor `stickman.animation/v1`, multi-actor `stickman.animation/v2`, and
+multi-scene `stickman.movie/v1`, while the offline showcase gallery includes 97
+mechanically qualified film/preview cards (from the 100-entry ledger; `sneak`,
 `roll` and `dance` are excluded from the gallery).
 
 ## Connect the local MCP
@@ -62,11 +64,13 @@ Resolve relative paths against the client's launch directory; absolute paths
 are more reliable. There is no public HTTP endpoint or required credential.
 File-writing tools stay under the launch-time `--root`; review destinations.
 
-Discover → choreograph / validate → storyboard → compile → preview → export.
-Server surface: 16 MCP tools (including `stickman_choreograph` for multi-actor
-`v2` scenes and `stickman_storyboard` for SVG/PNG contact sheets and spatial/seam
-lint), 9 `stickman://*` resources, and 2 MCP prompts (`choreograph-slide`,
-`two-actor-dialogue`). Film tools: `stickman_list_film_assets`,
+Discover → choreograph / movie → critique / storyboard → compile → preview → export.
+Server surface: 18 MCP tools (including `stickman_choreograph` for multi-actor
+`v2` scenes, `stickman_movie` for multi-scene `stickman.movie/v1`, `stickman_critique`
+for 6-axis perceptual quality scoring, and `stickman_storyboard` for SVG/PNG
+contact sheets and spatial/seam lint), 14 resources (including `ui://stickman/player`),
+and 3 MCP prompts (`choreograph-slide`, `two-actor-dialogue`,
+`create-and-critique-movie`). Film tools: `stickman_list_film_assets`,
 `stickman_compose_film`, `stickman_render_film`, `stickman_check_join`. Examples
 ship in `examples/` and `examples/films/`.
 Author with `stickman_author_motion`: the JSON draft and PNG strip go into a

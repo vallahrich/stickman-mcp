@@ -503,7 +503,6 @@ export const ASYMMETRIC_FLIP_TYPES: ReadonlySet<AddonType> = new Set<AddonType>(
   "server-module",
   "cable",
   "socket",
-  "board",
   "phone",
   "magnifier",
   "coffee-mug",
@@ -956,7 +955,7 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       type: "door",
       socket: "stage",
       layer: "back",
-      x: 42,
+      x: 72,
       y: 0,
       width: 67,
       height: 185,
@@ -973,7 +972,7 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       type: "door",
       socket: "stage",
       layer: "front",
-      x: 42,
+      x: 72,
       y: 0,
       width: 67,
       height: 185,
@@ -2395,6 +2394,39 @@ export function defaultAddonsForAction(actionName: ActionName): AddonConfig[] {
   return [];
 }
 
+export function defaultAddonForPropType(propType: AddonType): AddonConfig {
+  const def = PROP_DEFINITIONS[propType];
+  if (propType === "coffee-mug" || propType === "mug") {
+    return {
+      id: propType,
+      type: propType,
+      socket: def.socket,
+      layer: "front",
+      width: def.defaultSize.w,
+      height: def.defaultSize.h,
+      color: def.defaultColor,
+      enter: "instant",
+      enterAt: 0,
+      exit: "persist"
+    };
+  }
+  return {
+    id: propType,
+    type: propType,
+    socket: def.socket,
+    layer: def.socket === "stage" ? "back" : "front",
+    width: def.defaultSize.w,
+    height: def.defaultSize.h,
+    color: def.defaultColor,
+    enter: "fade",
+    enterAt: 0,
+    enterDuration: 0.08,
+    exit: "fade",
+    exitAt: 0.92,
+    exitDuration: 0.08
+  };
+}
+
 export interface AddonPoseSnapshot {
   x: number;
   groundY: number;
@@ -3005,6 +3037,8 @@ export function sampleActionAddons(params: SampleActionAddonsParams): SampledAdd
       ...(life.puff ? { puff: true } : {}),
       ...(openVal !== undefined ? { open: round3(clamp01(openVal)) } : {}),
       ...(effectiveHinge !== undefined ? { hinge: effectiveHinge } : {}),
+      ...(cfg.doubleSided ? { doubleSided: true } : {}),
+      ...(cfg.topLandingWidth !== undefined ? { topLandingWidth: round3(cfg.topLandingWidth * unit) } : {}),
       ...(flipX ? { flipX: true } : {}),
       ...(inkVal !== undefined ? { ink: round3(clamp01(inkVal)) } : {}),
       ...(netBulgeVal !== undefined ? { netBulge: round3(Math.max(0, netBulgeVal)) } : {}),
@@ -3148,7 +3182,7 @@ function renderCenteredLabelSvg(
   return `<text x="${formatSvgNumber(cx)}" y="${formatSvgNumber(cy)}" text-anchor="middle" dominant-baseline="middle" font-family="Segoe UI, Arial, sans-serif" font-weight="700" font-size="${formatSvgNumber(fontSize)}" fill="${escapeXml(fillColor)}" stroke="none">${escapeXml(trimmed)}</text>`;
 }
 
-function renderAddonLabelSvg(addon: SampledAddon, strokeColor: string): string {
+function renderAddonLabelSvg(addon: SampledAddon, strokeColor: string, strokeWidth = 2.5): string {
   const x = addon.x;
   const y = addon.y;
   const w = addon.width;
@@ -3160,9 +3194,12 @@ function renderAddonLabelSvg(addon: SampledAddon, strokeColor: string): string {
     case "board": {
       const bh = h * 0.62;
       const inkColor = addon.secondaryColor ?? strokeColor;
-      return addon.text && (addon.ink ?? 1) > 0.1
-        ? renderCenteredLabelSvg(addon.text, cx, y + bh * 0.45, w * 0.82, bh * 0.5, inkColor)
-        : "";
+      const inkMarkup = renderBoardInkSvg(addon, strokeWidth, inkColor);
+      const textLabel =
+        addon.text && (addon.ink ?? 1) > 0.1
+          ? renderCenteredLabelSvg(addon.text, cx, y + bh * 0.45, w * 0.82, bh * 0.5, inkColor)
+          : "";
+      return inkMarkup + textLabel;
     }
     case "sign":
       return renderCenteredLabelSvg(addon.text, cx, y + h * 0.52, w * 0.84, h * 0.72, strokeColor);
@@ -3231,7 +3268,7 @@ function renderAddonGeometrySvg(addon: SampledAddon, strokeWidth: number, stroke
     case "board": {
       const bh = h * 0.62;
       const inkColor = addon.secondaryColor ?? strokeColor;
-      const inkMarkup = renderBoardInkSvg(addon, strokeWidth, inkColor);
+      const inkMarkup = !omitText ? renderBoardInkSvg(addon, strokeWidth, inkColor) : "";
       const textLabel =
         !omitText && addon.text && (addon.ink ?? 1) > 0.1
           ? renderCenteredLabelSvg(addon.text, cx, y + bh * 0.45, w * 0.82, bh * 0.5, inkColor)
@@ -3507,6 +3544,23 @@ function renderAddonGeometrySvg(addon: SampledAddon, strokeWidth: number, stroke
     }
 
     case "stairs": {
+      if (addon.doubleSided) {
+        const steps = 3;
+        const lowerSteps = steps - 1;
+        const topW = Math.max(w * 0.15, Math.min(w * 0.7, addon.topLandingWidth ?? w * 0.3));
+        const sideW = (w - topW) / 2;
+        const stepW = sideW / lowerSteps;
+        const upSegs = Array.from(
+          { length: lowerSteps },
+          (_, i) => `V${n(y + h * (1 - (i + 1) / steps))}H${n(x + stepW * (i + 1))}`
+        ).join("");
+        const topSeg = `V${n(y)}H${n(x + sideW + topW)}`;
+        const downSegs = Array.from(
+          { length: lowerSteps },
+          (_, i) => `V${n(y + h * ((i + 1) / steps))}H${n(x + sideW + topW + stepW * (i + 1))}`
+        ).join("");
+        return `<path data-part="stairs-platform" d="M${n(x)} ${n(y + h)}${upSegs}${topSeg}${downSegs}V${n(y + h)}Z" fill="#ffffff"/>`;
+      }
       const steps = h / Math.max(1, w) <= 0.4 ? 1 : 3;
       if (addon.hinge === "left") {
         // Descending left-to-right profile for stairs-down.
@@ -3886,7 +3940,7 @@ export function renderAddonSvg(addon: SampledAddon, options: RenderAddonSvgOptio
   const rawInner = renderAddonGeometrySvg(effectiveAddon, strokeWidth, strokeColor, shouldMirrorSvg);
   if (!rawInner) return "";
   const geomInner = isBlueprint ? toBlueprintAddonGeometrySvg(rawInner, hatchPatternId) : rawInner;
-  const rawLabel = shouldMirrorSvg ? renderAddonLabelSvg(effectiveAddon, strokeColor) : "";
+  const rawLabel = shouldMirrorSvg ? renderAddonLabelSvg(effectiveAddon, strokeColor, strokeWidth) : "";
   const labelInner = rawLabel && isBlueprint ? toBlueprintAddonGeometrySvg(rawLabel, hatchPatternId) : rawLabel;
   const cx = addon.x + addon.width / 2;
   const inner = shouldMirrorSvg

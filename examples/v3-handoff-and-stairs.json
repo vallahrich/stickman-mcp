@@ -1,0 +1,88 @@
+{
+  "version": "stickman.animation/v2",
+  "canvas": {
+    "width": 800,
+    "height": 450,
+    "fps": 30
+  },
+  "theme": {
+    "accentColor": "#0f766e",
+    "background": "#ffffff"
+  },
+  "camera": "auto-director",
+  "actors": [
+    {
+      "id": "sender",
+      "label": "Deployment Engineer",
+      "x": "left",
+      "facing": "right",
+      "color": "#0f172a",
+      "accessory": "tie",
+      "zIndex": 2,
+      "actions": [
+        {
+          "action": "walk",
+          "to": "center-left",
+          "emitCue": "arrivedToPass"
+        },
+        {
+          "action": "hand-over",
+          "afterCue": "arrivedToPass",
+          "handoffTo": {
+            "actorId": "receiver",
+            "propType": "card",
+            "propId": "deployment-card"
+          },
+          "say": "Deployment card",
+          "emitCue": "cardPassed"
+        },
+        {
+          "action": "thumbs-up",
+          "afterCue": "liveCelebration"
+        }
+      ]
+    },
+    {
+      "id": "receiver",
+      "label": "Release Lead",
+      "x": "center",
+      "facing": "left",
+      "color": "#334155",
+      "accessory": "glasses",
+      "zIndex": 1,
+      "actions": [
+        {
+          "action": "catch",
+          "afterCue": "cardPassed",
+          "emitCue": "cardCaught"
+        },
+        {
+          "action": "present-card",
+          "afterCue": "cardCaught",
+          "say": "Taking it up!",
+          "emitCue": "cardPresented"
+        },
+        {
+          "action": "turn-around",
+          "afterCue": "cardPresented",
+          "emitCue": "turnedToStairs"
+        },
+        {
+          "action": "stairs-up",
+          "afterCue": "turnedToStairs",
+          "emitCue": "reachedTop"
+        },
+        {
+          "action": "cheer",
+          "afterCue": "reachedTop",
+          "badge": "✓ Live!",
+          "emitCue": "liveCelebration"
+        },
+        {
+          "action": "stairs-down",
+          "afterCue": "liveCelebration"
+        }
+      ]
+    }
+  ]
+}

@@ -178,12 +178,56 @@ describe("native release presentation", () => {
       expect(await page.locator(".badge").textContent()).toBe(`v${pkg.version} · Local MCP`);
       expect(await page.locator("#connect").textContent()).toContain(`vallahrich-stickman-mcp-${pkg.version}.tgz`);
       expect(await page.locator("main").textContent()).toContain("106 runtime actions");
-      expect(await page.locator("main").textContent()).toContain("53 geometric");
+      expect(await page.locator("main").textContent()).toContain("55 geometric");
       expect(await page.locator("main").textContent()).toContain("stickman.animation/v2");
+      expect(await page.locator("main").textContent()).toContain("stickman.movie/v1");
       expect(await page.locator(".score").count()).toBe(0);
 
       // Strict video-count invariant: exactly 2 <video> elements across the entire page
       expect(await page.locator("video").count()).toBe(2);
+
+      // #studio live interactive vector player + 6-axis stickman_critique card
+      const studio = page.locator("#studio");
+      await expect(studio.isVisible()).resolves.toBe(true);
+      const studioMovieBtn = page.locator("[data-studio-preset='warroom-movie']");
+      const studioHandoffBtn = page.locator("[data-studio-preset='handoff-stairs']");
+      const studioSportsBtn = page.locator("[data-studio-preset='ballistic-sports']");
+      const studioBpBtn = page.locator("[data-studio-style='blueprint']");
+      const studioStdBtn = page.locator("[data-studio-style='default']");
+      const studioBadge = page.locator("#studioOverallBadge");
+
+      expect(await studioMovieBtn.getAttribute("aria-pressed")).toBe("true");
+      expect(await studioHandoffBtn.getAttribute("aria-pressed")).toBe("false");
+      expect(await studioSportsBtn.getAttribute("aria-pressed")).toBe("false");
+      expect(await page.locator("#studioStage svg [data-actor]").count()).toBeGreaterThanOrEqual(3);
+      expect(await page.locator("#studioAxes .studio-axis-row").count()).toBe(6);
+      expect(await page.locator("#studioChapters .studio-chapter-btn").count()).toBe(3);
+
+      const parseCritiqueScore = (text: string | null): number => {
+        const m = /(\d+(?:\.\d+)?)\s*\/\s*10/.exec(text ?? "");
+        return m ? Number(m[1]) : 0;
+      };
+      expect(parseCritiqueScore(await studioBadge.textContent())).toBeGreaterThanOrEqual(8.5);
+      expect(await studioBadge.textContent()).toContain("PASS");
+
+      await studioHandoffBtn.click();
+      expect(await studioHandoffBtn.getAttribute("aria-pressed")).toBe("true");
+      expect(await studioMovieBtn.getAttribute("aria-pressed")).toBe("false");
+      expect(parseCritiqueScore(await studioBadge.textContent())).toBeGreaterThanOrEqual(8.5);
+      expect(await page.locator("#studioStage").getAttribute("data-active-preset")).toBe("handoff-stairs");
+      expect(await page.locator("#studioStage svg [data-actor]").count()).toBe(2);
+
+      await studioBpBtn.click();
+      expect(await studioBpBtn.getAttribute("aria-pressed")).toBe("true");
+      expect(await studioStdBtn.getAttribute("aria-pressed")).toBe("false");
+      expect(await page.locator("#studioStage").getAttribute("data-active-style")).toBe("blueprint");
+      expect(await page.locator("#studioStage [data-part='rig-height-label']").count()).toBeGreaterThan(0);
+
+      await studioSportsBtn.click();
+      expect(await studioSportsBtn.getAttribute("aria-pressed")).toBe("true");
+      expect(parseCritiqueScore(await studioBadge.textContent())).toBeGreaterThanOrEqual(8.5);
+      await studioStdBtn.click();
+      await studioMovieBtn.click();
 
       // #blueprint live scriptless animated SVGs & spatial lint badges
       const blueprint = page.locator("#blueprint");
@@ -276,10 +320,10 @@ describe("native release presentation", () => {
       await expect.poll(() => scrubStage.getAttribute("data-active-slice")).toBe("48");
       expect(await scrubProgress.textContent()).toBe("100%");
 
-      // Mobile 390x844 containment check across all four blueprint views + reduced motion + dark theme
+      // Mobile 390x844 containment check across all studio presets + four blueprint views + reduced motion + dark theme
       await page.emulateMedia({ reducedMotion: "reduce" });
       await page.setViewportSize({ width: 390, height: 844 });
-      for (const btn of [cadBtn, stdBtn, roomBtn, stageBtn]) {
+      for (const btn of [studioMovieBtn, studioHandoffBtn, studioSportsBtn, cadBtn, stdBtn, roomBtn, stageBtn]) {
         await btn.click();
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
       }

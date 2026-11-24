@@ -167,4 +167,272 @@
 
     syncFromScroll();
   }
+
+  // Interactive v0.3.0 Movie, Camera & Critique Studio
+  const studioSection = document.getElementById("studio");
+  const studioDataEl = document.getElementById("studioData");
+  if (studioSection && studioDataEl && typeof mountStickmanCompactPlayer === "function") {
+    const studioData = JSON.parse(studioDataEl.textContent || "{}");
+    const presets = Array.isArray(studioData.presets) ? studioData.presets : [];
+    const axes = Array.isArray(studioData.axes) ? studioData.axes : [];
+    const bpDefsMarkup = typeof studioData.bpDefsMarkup === "string" ? studioData.bpDefsMarkup : "";
+
+    const presetButtons = [...studioSection.querySelectorAll("[data-studio-preset]")];
+    const styleButtons = [...studioSection.querySelectorAll("[data-studio-style]")];
+    const summaryEl = document.getElementById("studioPresetSummary");
+    const stageEl = document.getElementById("studioStage");
+    const chaptersEl = document.getElementById("studioChapters");
+    const toggleBtn = document.getElementById("studioToggle");
+    const seekEl = document.getElementById("studioSeek");
+    const timecodeEl = document.getElementById("studioTimecode");
+    const overallBadgeEl = document.getElementById("studioOverallBadge");
+    const contractPillEl = document.getElementById("studioContractPill");
+    const sizePillEl = document.getElementById("studioSizePill");
+    const oobPillEl = document.getElementById("studioOobPill");
+    const axesEl = document.getElementById("studioAxes");
+
+    let activePresetId = presets[0] ? presets[0].id : "";
+    let activeStyle = "default";
+    let activePayload = null;
+    let studioPlayer = null;
+    let playing = false;
+    let curMs = 0;
+    let rafId = null;
+    let lastTs = 0;
+
+    const getPreset = (id) => presets.find((p) => p.id === id) || presets[0] || null;
+
+    const stopStudioLoop = () => {
+      playing = false;
+      lastTs = 0;
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      if (toggleBtn) {
+        toggleBtn.textContent = "Play";
+        toggleBtn.setAttribute("aria-pressed", "false");
+      }
+    };
+
+    const syncStudioTimeUi = () => {
+      const dur = activePayload ? activePayload.dur : 0;
+      if (seekEl) {
+        seekEl.max = String(dur);
+        seekEl.value = String(Math.round(curMs));
+      }
+      if (timecodeEl) {
+        timecodeEl.textContent = `${(curMs / 1000).toFixed(2)}s / ${(dur / 1000).toFixed(2)}s`;
+      }
+      if (chaptersEl && activePayload && activePayload.kind === "movie") {
+        const scenes = activePayload.sc || [];
+        let activeSceneId = scenes[0] ? scenes[0].id : "";
+        for (let i = 0; i < scenes.length; i++) {
+          if (curMs < scenes[i].e || i === scenes.length - 1) {
+            activeSceneId = scenes[i].id;
+            break;
+          }
+        }
+        for (const btn of chaptersEl.querySelectorAll("[data-scene-id]")) {
+          btn.setAttribute("aria-current", btn.getAttribute("data-scene-id") === activeSceneId ? "true" : "false");
+        }
+      }
+    };
+
+    const stepStudioLoop = (now) => {
+      rafId = null;
+      if (!playing || !studioPlayer || !activePayload) return;
+      if (lastTs) {
+        curMs += Math.max(0, now - lastTs);
+      }
+      lastTs = now;
+      if (curMs >= activePayload.dur) {
+        curMs = activePayload.dur;
+        studioPlayer.seek(curMs);
+        syncStudioTimeUi();
+        stopStudioLoop();
+        return;
+      }
+      studioPlayer.seek(curMs);
+      syncStudioTimeUi();
+      rafId = requestAnimationFrame(stepStudioLoop);
+    };
+
+    const startStudioLoop = () => {
+      if (!studioPlayer || !activePayload) return;
+      if (curMs >= activePayload.dur) curMs = 0;
+      playing = true;
+      lastTs = 0;
+      if (toggleBtn) {
+        toggleBtn.textContent = "Pause";
+        toggleBtn.setAttribute("aria-pressed", "true");
+      }
+      studioPlayer.seek(curMs);
+      syncStudioTimeUi();
+      rafId = requestAnimationFrame(stepStudioLoop);
+    };
+
+    const renderCritiqueCard = (preset) => {
+      if (!preset || !preset.critique) return;
+      const c = preset.critique;
+      if (overallBadgeEl) {
+        overallBadgeEl.textContent = `${Number(c.overallScore).toFixed(1)} / 10 · ${c.passed ? "PASS" : "POLISH"}`;
+        overallBadgeEl.className = `studio-overall-badge ${c.passed ? "studio-pass" : "studio-warn"}`;
+      }
+      if (contractPillEl) contractPillEl.textContent = preset.contractTag;
+      if (sizePillEl) sizePillEl.textContent = `${(preset.htmlBytes / 1024).toFixed(1)} KB HTML`;
+      if (oobPillEl) oobPillEl.textContent = `${c.outOfBoundsCount} out-of-bounds`;
+      if (axesEl) {
+        axesEl.replaceChildren();
+        for (const axis of axes) {
+          const val = Number(c.dimensions[axis.key] || 0);
+          const pct = Math.max(0, Math.min(100, Math.round((val / 10) * 100)));
+          const li = document.createElement("li");
+          li.className = "studio-axis-row";
+          li.dataset.studioAxis = axis.key;
+
+          const head = document.createElement("div");
+          head.className = "studio-axis-head";
+          const labelSpan = document.createElement("span");
+          labelSpan.textContent = axis.label;
+          const valStrong = document.createElement("strong");
+          valStrong.className = "studio-axis-val";
+          valStrong.textContent = `${val.toFixed(1)} / 10`;
+          head.append(labelSpan, valStrong);
+
+          const track = document.createElement("div");
+          track.className = "studio-axis-track";
+          track.setAttribute("role", "progressbar");
+          track.setAttribute("aria-label", axis.label);
+          track.setAttribute("aria-valuemin", "0");
+          track.setAttribute("aria-valuemax", "10");
+          track.setAttribute("aria-valuenow", val.toFixed(1));
+          const fill = document.createElement("div");
+          fill.className = "studio-axis-fill";
+          fill.style.width = `${pct}%`;
+          track.append(fill);
+
+          li.append(head, track);
+          axesEl.append(li);
+        }
+      }
+    };
+
+    const mountStudioPreset = (presetId, style, preserveTime = false) => {
+      stopStudioLoop();
+      const preset = getPreset(presetId);
+      if (!preset || !stageEl) return;
+      activePresetId = preset.id;
+      activeStyle = style === "blueprint" ? "blueprint" : "default";
+      activePayload = preset.payloads[activeStyle] || preset.payloads.default;
+
+      for (const btn of presetButtons) {
+        btn.setAttribute("aria-pressed", btn.dataset.studioPreset === activePresetId ? "true" : "false");
+      }
+      for (const btn of styleButtons) {
+        btn.setAttribute("aria-pressed", btn.dataset.studioStyle === activeStyle ? "true" : "false");
+      }
+      if (summaryEl) summaryEl.textContent = preset.summary;
+
+      const isBp = activeStyle === "blueprint";
+      const w = activePayload.w || 800;
+      const h = activePayload.h || 450;
+      const firstSc = activePayload.sc[0] || { bg: "#ffffff", gy: Math.round(h * 0.82) };
+      const defsHtml = isBp ? `<defs>${bpDefsMarkup}</defs>` : "";
+      const bgMarkup = isBp
+        ? `<rect width="100%" height="100%" fill="#f8fafc"/><rect width="100%" height="100%" fill="url(#sm-bp-grid)"/><rect x="1.5" y="1.5" width="${Math.max(1, w - 3)}" height="${Math.max(1, h - 3)}" fill="none" stroke="#cbd5e1" stroke-width="1"/><path id="studioGround" d="M0 ${firstSc.gy}H${w}" fill="none" stroke="#1e3a5f" stroke-width="1" stroke-dasharray="4 3"/>`
+        : `<rect width="100%" height="100%" fill="${firstSc.bg || "#ffffff"}"/><path id="studioGround" d="M0 ${firstSc.gy}H${w}" stroke="#d8dbe0" stroke-width="1"/>`;
+
+      stageEl.setAttribute("data-active-preset", activePresetId);
+      stageEl.setAttribute("data-active-style", activeStyle);
+      stageEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${preset.label} interactive vector stage" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">${defsHtml}${bgMarkup}<g id="studioScene"></g></svg>`;
+
+      if (chaptersEl) {
+        chaptersEl.replaceChildren();
+        if (activePayload.kind === "movie" && activePayload.sc.length > 1) {
+          chaptersEl.hidden = false;
+          for (let i = 0; i < activePayload.sc.length; i++) {
+            const sc = activePayload.sc[i];
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "studio-chapter-btn";
+            btn.dataset.sceneId = sc.id;
+            btn.dataset.sceneJump = String(sc.s || 0);
+            btn.textContent = `S${i + 1} · ${sc.ti || sc.id}`;
+            btn.addEventListener("click", () => {
+              curMs = Number(sc.s || 0);
+              if (studioPlayer) studioPlayer.seek(curMs);
+              syncStudioTimeUi();
+            });
+            chaptersEl.append(btn);
+          }
+        } else {
+          chaptersEl.hidden = true;
+        }
+      }
+
+      const svgNode = stageEl.querySelector("svg");
+      const sceneNode = stageEl.querySelector("#studioScene");
+      const groundNode = stageEl.querySelector("#studioGround");
+      studioPlayer = mountStickmanCompactPlayer(activePayload, {
+        svg: svgNode,
+        sceneEl: sceneNode,
+        groundEl: groundNode,
+        seek: null,
+        toggle: null,
+        modeSelect: null,
+        timecode: null
+      });
+      studioPlayer.stop();
+      curMs = preserveTime
+        ? Math.max(0, Math.min(activePayload.dur, curMs))
+        : Math.max(0, Math.min(activePayload.dur, Number(preset.initialMs) || 0));
+      studioPlayer.seek(curMs);
+      renderCritiqueCard(preset);
+      syncStudioTimeUi();
+    };
+
+    for (let i = 0; i < presetButtons.length; i++) {
+      const btn = presetButtons[i];
+      btn.addEventListener("click", () => mountStudioPreset(btn.dataset.studioPreset, activeStyle, false));
+      btn.addEventListener("keydown", (event) => {
+        let next = -1;
+        if (event.key === "ArrowRight") next = (i + 1) % presetButtons.length;
+        else if (event.key === "ArrowLeft") next = (i - 1 + presetButtons.length) % presetButtons.length;
+        if (next >= 0) {
+          event.preventDefault();
+          presetButtons[next].focus();
+          mountStudioPreset(presetButtons[next].dataset.studioPreset, activeStyle, false);
+        }
+      });
+    }
+
+    for (const btn of styleButtons) {
+      btn.addEventListener("click", () => mountStudioPreset(activePresetId, btn.dataset.studioStyle, true));
+    }
+
+    if (toggleBtn) {
+      toggleBtn.addEventListener("click", () => {
+        if (playing) stopStudioLoop();
+        else startStudioLoop();
+      });
+    }
+
+    if (seekEl) {
+      seekEl.addEventListener("input", () => {
+        stopStudioLoop();
+        curMs = Math.max(0, Math.min(activePayload ? activePayload.dur : 0, Number(seekEl.value) || 0));
+        if (studioPlayer) studioPlayer.seek(curMs);
+        syncStudioTimeUi();
+      });
+    }
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) stopStudioLoop();
+    });
+
+    if (presets.length > 0) {
+      mountStudioPreset(presets[0].id, "default", false);
+    }
+  }
 })();

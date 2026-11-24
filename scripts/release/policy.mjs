@@ -13,7 +13,7 @@ export const runtimeScripts = Object.freeze([
   "scripts/site/catalogue.mjs", "scripts/site/performance.mjs", "scripts/site/story-films.mjs"
 ]);
 export const siteInputs = Object.freeze([
-  "scripts/site/build.mjs", "scripts/site/blueprint-section.mjs", "scripts/site/stories.mjs", "scripts/site/showcase-section.mjs",
+  "scripts/site/build.mjs", "scripts/site/blueprint-section.mjs", "scripts/site/studio-section.mjs", "scripts/site/stories.mjs", "scripts/site/showcase-section.mjs",
   "scripts/site/retired-presentations.mjs", "scripts/release/native-showcase.mjs",
   "site/index.html", "site/styles.css", "site/catalogue.js", "site/app.js", "site/scene-player.html",
   "docs/mcp-setup.md", "docs/agent-integration.md", "docs/showcase-sources.md"
@@ -42,6 +42,7 @@ export const supportFiles = Object.freeze([
   "motions/poses/poses.json", "motions/review-props.json", "motions/props-catalog.json", "motions/join-matrix.json",
   "docs/motion-catalog-plan.md", "examples/wave.json", "examples/v2-presentation-story.json",
   "examples/v2-two-actors-collab.json", "examples/v2-sports-addons.json",
+  "examples/v3-incident-warroom-movie.json", "examples/v3-handoff-and-stairs.json",
   "examples/films/team-handoff.json", "examples/films/bridge-demo.json",
   "scripts/release/README.md", "tsconfig.json", "package.json"
 ]);

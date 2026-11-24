@@ -326,7 +326,17 @@ describe("v03-r3: 2.5D depth horizon & active-actor spotlight", () => {
 describe("v03-r3: editorial speech, thought, status & caption callouts", () => {
   it("supports inline say, think, badge shorthands with tone/icon auto-inference and >= 900ms readable hold", () => {
     expect(inferStatusCalloutStyle("! Alert: latency spike")).toEqual({ tone: "danger", icon: "alert" });
+    expect(inferStatusCalloutStyle("! P1")).toEqual({ tone: "danger", icon: "alert" });
+    expect(inferStatusCalloutStyle("Error!")).toEqual({ tone: "danger", icon: "alert" });
+    expect(inferStatusCalloutStyle("Build failed!")).toEqual({ tone: "danger", icon: "alert" });
     expect(inferStatusCalloutStyle("✓ Verified")).toEqual({ tone: "success", icon: "check" });
+    expect(inferStatusCalloutStyle("✓ Top!")).toEqual({ tone: "success", icon: "check" });
+    expect(inferStatusCalloutStyle("✓ Live!")).toEqual({ tone: "success", icon: "check" });
+    expect(inferStatusCalloutStyle("Live!")).toEqual({ tone: "success", icon: "check" });
+    expect(inferStatusCalloutStyle("Top!")).toEqual({ tone: "success", icon: "check" });
+    expect(inferStatusCalloutStyle("Done!")).toEqual({ tone: "success", icon: "check" });
+    expect(inferStatusCalloutStyle("All green!")).toEqual({ tone: "success", icon: "check" });
+    expect(inferStatusCalloutStyle("Passed!")).toEqual({ tone: "success", icon: "check" });
     expect(inferStatusCalloutStyle("99.98%")).toEqual({ tone: "accent", icon: "metric" });
 
     const res = choreographAnimation({

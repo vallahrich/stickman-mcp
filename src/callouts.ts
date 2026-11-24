@@ -62,16 +62,17 @@ function fmt(value: number, decimals = 2): string {
 
 export function inferStatusCalloutStyle(text: string): { tone: CalloutTone; icon: CalloutIcon } {
   const lower = text.trim().toLowerCase();
+  if (lower.includes("✓") || lower.includes("✔")) {
+    return { tone: "success", icon: "check" };
+  }
   if (
-    lower.includes("!") ||
+    /^\s*!/.test(lower) ||
     /\b(alert|error|fail|failed|failure|critical|down|incident|outage|blocked|crash)\b/.test(lower)
   ) {
     return { tone: "danger", icon: "alert" };
   }
   if (
-    lower.includes("✓") ||
-    lower.includes("✔") ||
-    /\b(ok|green|verified|pass|passed|done|ready|healthy|resolved|shipped|complete)\b/.test(lower)
+    /\b(ok|green|verified|pass|passed|done|ready|healthy|resolved|shipped|complete|live|top)\b/.test(lower)
   ) {
     return { tone: "success", icon: "check" };
   }

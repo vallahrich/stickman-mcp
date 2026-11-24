@@ -3,11 +3,13 @@
 The browser adapter mounts original stickman scenes as a **transparent SVG
 overlay** (`mountBrowserAnimation`) or a **standalone `<stickman-player>` custom
 element** (`registerStickmanPlayerElement`) in an explicitly approved host. Both
-consume the same compiled `stickman.animation/v1` and multi-actor
-`stickman.animation/v2` programs (including accessories, cue markers, and 53
-geometric runtime props/add-ons) and canonical sampler as MCP, SVG/HTML preview
-and video export. It is not a second animation engine or a browser-accessible
-stdio transport.
+consume the same compiled `stickman.animation/v1`, multi-actor
+`stickman.animation/v2` (including accessories, 2.5D depth planes, virtual
+camera, editorial callouts, cue markers, and 55 geometric runtime props/add-ons),
+and multi-scene `stickman.movie/v1` programs and canonical sampler as MCP,
+compact HTML (`COMPACT_CLIENT_RENDERER_JS`), MCP App (`ui://stickman/player`),
+SVG preview, and MP4/WebM video export. It is not a second animation engine or a
+browser-accessible stdio transport.
 
 The intended request is: "Run from here to there, jump at the arrival point,
 then point at that card." The client agent resolves that intent to the supported

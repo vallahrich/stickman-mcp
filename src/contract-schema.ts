@@ -238,6 +238,8 @@ export const animationSchemaV2 = {
         secondaryColor: { type: "string" },
         text: { type: "string" },
         hinge: { enum: ["left", "right"] },
+        doubleSided: { type: "boolean" },
+        topLandingWidth: { type: "number", exclusiveMinimum: 0 },
         open: { type: "number", minimum: 0, maximum: 1 },
         ink: { type: "number", minimum: 0, maximum: 1 },
         netBulge: { type: "number", minimum: 0 },

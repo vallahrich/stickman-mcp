@@ -207,6 +207,8 @@ export interface AddonConfig {
   secondaryColor?: string;
   text?: string;
   hinge?: "left" | "right";
+  doubleSided?: boolean;
+  topLandingWidth?: number;
   open?: number;
   ink?: number;
   netBulge?: number;
@@ -241,6 +243,8 @@ export interface SampledAddon {
   puff?: boolean;
   open?: number;
   hinge?: "left" | "right";
+  doubleSided?: boolean;
+  topLandingWidth?: number;
   flipX?: boolean;
   ink?: number;
   netBulge?: number;

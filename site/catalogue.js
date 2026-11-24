@@ -100,7 +100,7 @@ for (const family of [...new Set(catalogue.motions.map(m => m.family))]) {
   const option = document.createElement("option"); option.value = family; option.textContent = family; $("category").append(option);
 }
 $("category").value = "IT";
-$("heroStatus").textContent = `106 runtime actions · 53 geometric props · 16 MCP tools · 9 resources · 2 prompts · ${catalogue.motionCount} gallery cards${catalogue.development ? " · development review mode" : ""}`;
+$("heroStatus").textContent = `106 runtime actions · 55 geometric props · 18 MCP tools · 14 resources incl. ui://stickman/player · 3 prompts · ${catalogue.motionCount} gallery cards${catalogue.development ? " · development review mode" : ""}`;
 $("search").addEventListener("input", renderCatalogue);
 $("category").addEventListener("change", renderCatalogue);
 $("runtimeOnly").addEventListener("change", renderCatalogue);
@@ -144,7 +144,7 @@ function updateCommand() {
   const script = checkout.replace(/[\\/]+$/, "") + "\\dist\\mcp.js";
   const executable = `node ${quotePowerShell(script)} --root ${quotePowerShell(root)}`;
   $("connectCommand").textContent = ({
-    copilot: `copilot mcp add stickman --tools 'stickman_discover,stickman_describe,stickman_schema,stickman_validate,stickman_compile,stickman_choreograph,stickman_storyboard,stickman_preview,stickman_story,stickman_list_film_assets,stickman_check_join,stickman_compose_film' -- ${executable}`,
+    copilot: `copilot mcp add stickman --tools 'stickman_discover,stickman_describe,stickman_schema,stickman_validate,stickman_compile,stickman_choreograph,stickman_storyboard,stickman_preview,stickman_story,stickman_movie,stickman_critique,stickman_list_film_assets,stickman_check_join,stickman_compose_film' -- ${executable}`,
     claude: `claude mcp add --transport stdio stickman -- ${executable}`,
     codex: `codex mcp add stickman -- ${executable}`
   })[$("agent").value];

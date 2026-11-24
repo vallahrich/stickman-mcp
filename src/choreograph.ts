@@ -61,6 +61,7 @@ import {
   PROP_DEFINITIONS,
   addonLifecycleState,
   computeAddonFlightPoint,
+  defaultAddonForPropType,
   defaultAddonsForAction,
   sampleActionAddons,
   type AddonPoseSnapshot,
@@ -525,25 +526,7 @@ function clipDefaultPropFallbackAddons(
   if (defaultAddonsForAction(actionName).length > 0) return undefined;
   const propName = getMetaFromLibrary(library, actionName)?.prop;
   if (!propName || !ADDON_TYPE_SET.has(propName)) return undefined;
-  const propType = propName as AddonType;
-  const def = PROP_DEFINITIONS[propType];
-  return [
-    {
-      id: propType,
-      type: propType,
-      socket: def.socket,
-      layer: def.socket === "stage" ? "back" : "front",
-      width: def.defaultSize.w,
-      height: def.defaultSize.h,
-      color: def.defaultColor,
-      enter: "fade",
-      enterAt: 0,
-      enterDuration: 0.08,
-      exit: "fade",
-      exitAt: 0.92,
-      exitDuration: 0.08
-    }
-  ];
+  return [defaultAddonForPropType(propName as AddonType)];
 }
 
 function isTravelActionName(actionName: string, library: MotionClipLibrary = RUNTIME_MOTION_LIBRARY): boolean {
@@ -695,6 +678,8 @@ const ADDON_CONFIG_KEYS = [
   "secondaryColor",
   "text",
   "hinge",
+  "doubleSided",
+  "topLandingWidth",
   "open",
   "ink",
   "netBulge",
@@ -820,6 +805,14 @@ function validateAddonConfigFields(item: Record<string, unknown>, itemPath: stri
     });
   }
 
+  if (item.doubleSided !== undefined && typeof item.doubleSided !== "boolean") {
+    diagnostics.push({
+      path: `${itemPath}.doubleSided`,
+      code: "invalid_type",
+      message: "addon.doubleSided must be a boolean."
+    });
+  }
+
   for (const numKey of ["x", "y", "dx", "dy", "rotation"] as const) {
     const val = item[numKey];
     if (val !== undefined && !finiteNumber(val)) {
@@ -831,7 +824,7 @@ function validateAddonConfigFields(item: Record<string, unknown>, itemPath: stri
     }
   }
 
-  for (const posKey of ["width", "height", "scale"] as const) {
+  for (const posKey of ["width", "height", "scale", "topLandingWidth"] as const) {
     const val = item[posKey];
     if (val !== undefined) {
       if (!finiteNumber(val)) {
@@ -2774,6 +2767,10 @@ interface ElevationPropSpan {
   persistsAfterEnd: boolean;
   propId: string;
   propType: AddonType;
+  doubleSided?: boolean;
+  doubleSidedX?: number;
+  doubleSidedWidth?: number;
+  topLandingWidth?: number;
 }
 
 interface ResolvedHandoff {
@@ -3211,7 +3208,8 @@ function resolveSceneStageProps(
 function resolveActorElevationSpans(
   trajectories: readonly ActorActionTrajectory[],
   sceneStagePropTypes: ReadonlySet<AddonType>,
-  sceneStagePropIds: ReadonlySet<string>
+  sceneStagePropIds: ReadonlySet<string>,
+  effectiveScale: number
 ): ElevationPropSpan[] {
   const spans: ElevationPropSpan[] = [];
   for (let i = 0; i < trajectories.length; i++) {
@@ -3231,16 +3229,66 @@ function resolveActorElevationSpans(
       if (next.endElevationY <= 0) break;
     }
     if (throughIdx > i) {
+      const endTraj = trajectories[throughIdx]!;
+      const hasExplicitStairsWidth = Boolean(
+        traj.addonOverrides?.some((ov) => (ov.id === propId || ov.type === "stairs") && ov.width !== undefined)
+      );
+      const isSameDirPlatform =
+        stageProp.type === "stairs" &&
+        traj.item.action === "stairs-up" &&
+        endTraj.item.action === "stairs-down" &&
+        endTraj.direction === traj.direction &&
+        !hasExplicitStairsWidth;
+      let doubleSidedFields: Pick<ElevationPropSpan, "doubleSided" | "doubleSidedX" | "doubleSidedWidth" | "topLandingWidth"> = {};
+      if (isSameDirPlatform) {
+        const spanDistLocal = Math.abs(endTraj.startX - traj.startX) / Math.max(0.2, effectiveScale);
+        const sideW = 66;
+        const doubleSidedX = 46;
+        const topLandingWidth = Math.max(36, Math.round(spanDistLocal + 41 - (doubleSidedX + sideW)));
+        doubleSidedFields = {
+          doubleSided: true,
+          doubleSidedX,
+          topLandingWidth,
+          doubleSidedWidth: sideW * 2 + topLandingWidth
+        };
+      }
       spans.push({
         sourceIdx: i,
         throughIdx,
-        persistsAfterEnd: trajectories[throughIdx]!.endElevationY > 0,
+        persistsAfterEnd: endTraj.endElevationY > 0,
         propId,
-        propType: stageProp.type
+        propType: stageProp.type,
+        ...doubleSidedFields
       });
     }
   }
   return spans;
+}
+
+function withDoubleSidedStairsOverride(
+  overrides: readonly AddonConfig[] | undefined,
+  span: ElevationPropSpan | undefined
+): AddonConfig[] | undefined {
+  if (!span?.doubleSided) return overrides ? [...overrides] : undefined;
+  const patch: AddonConfig = {
+    id: span.propId,
+    type: "stairs",
+    ...(span.doubleSidedX !== undefined ? { x: span.doubleSidedX } : {}),
+    ...(span.doubleSidedWidth !== undefined ? { width: span.doubleSidedWidth } : {}),
+    doubleSided: true,
+    ...(span.topLandingWidth !== undefined ? { topLandingWidth: span.topLandingWidth } : {})
+  };
+  if (!overrides || overrides.length === 0) return [patch];
+  let replaced = false;
+  const merged = overrides.map((ov) => {
+    if (!replaced && (ov.id === span.propId || (ov.id === undefined && ov.type === "stairs"))) {
+      replaced = true;
+      return { ...patch, ...ov, doubleSided: ov.doubleSided ?? true };
+    }
+    return ov;
+  });
+  if (!replaced) merged.push(patch);
+  return merged;
 }
 
 function handPointForPose(pose: RawActorPose, socket: AddonSocket): Point2D {
@@ -3254,6 +3302,27 @@ function handPointForPose(pose: RawActorPose, socket: AddonSocket): Point2D {
   if (rFore) return { x: rFore.x2, y: rFore.y2 };
   if (lFore) return { x: lFore.x2, y: lFore.y2 };
   return { x: pose.x, y: pose.groundY - 70 };
+}
+
+function handoffPropCenterForPose(
+  pose: RawActorPose,
+  socket: AddonSocket,
+  propType: AddonType,
+  width: number,
+  height: number,
+  unit: number
+): Point2D {
+  const pt = handPointForPose(pose, socket);
+  if (propType !== "card") return pt;
+  const facing = pose.facing < 0 ? -1 : 1;
+  const headR = 16.5 * unit;
+  const cx = pt.x + facing * Math.max(4 * unit, width * 0.32);
+  let cy = pt.y + 3 * unit;
+  if (Math.abs(cx - pose.head.x) < headR + width / 2 + 6 * unit) {
+    const minCardCenterY = pose.head.y + headR + height / 2 + 4 * unit;
+    if (cy < minCardCenterY) cy = minCardCenterY;
+  }
+  return { x: cx, y: cy };
 }
 
 const RECEIVING_CHAIN_ACTIONS = new Set<string>(["catch", "present-card", "reveal", "hold-sign", "hand-over"]);
@@ -3412,7 +3481,7 @@ export function sampleAnimationV2(
     const effectiveScale = Math.max(0.2, baseRigScale * actor.scale);
     const trajectories = buildActorTrajectories(actor, sceneAddonsMode, effectiveLibrary, effectiveScale, spec.canvas.width);
     const themeAccentColor = actor.accentColor ?? spec.theme?.accentColor;
-    const elevationSpans = resolveActorElevationSpans(trajectories, sceneStage.types, sceneStage.ids);
+    const elevationSpans = resolveActorElevationSpans(trajectories, sceneStage.types, sceneStage.ids, effectiveScale);
 
     const sampleIdleClip = (rootX: number, facing: -1 | 1, progress: number, elevationY: number): RawActorPose => {
       const effGroundY = actor.groundY - Math.max(0, elevationY);
@@ -3447,6 +3516,14 @@ export function sampleAnimationV2(
         const dropT = clamp01((p - 0.25) / 0.4);
         effGroundY = actor.groundY - traj.startElevationY * (1 - dropT * dropT);
       }
+      // `catch` is authored facing left (`poseKeys[0].pose.facing = -1`); normalize request.facing so
+      // `actor.facing: "left"` (-1) faces left toward the sender rather than double-negating to +1.
+      const clipDef = getClipFromLibrary(effectiveLibrary, traj.item.action);
+      const clipStartFacing = clipDef?.poseKeys?.[0]?.pose.facing;
+      const clipRequestFacing: -1 | 1 =
+        traj.item.action === "catch" && clipStartFacing !== undefined && clipStartFacing < -0.5
+          ? (-traj.direction as -1 | 1)
+          : traj.direction;
       const clip = sampleClipMotion(effectiveLibrary, {
         action: traj.item.action,
         clipId: traj.item.action,
@@ -3455,7 +3532,7 @@ export function sampleAnimationV2(
         startX: traj.startX,
         endX: traj.endX,
         groundY: effGroundY,
-        facing: traj.direction,
+        facing: clipRequestFacing,
         scale: effectiveScale,
         ...(traj.pointTarget ? { pointTarget: traj.pointTarget } : {}),
         ...(traj.item.speed !== undefined ? { speed: traj.item.speed } : {})
@@ -3794,6 +3871,7 @@ export function sampleAnimationV2(
       activeSpanSuppressIds.add(span.propId);
 
       const srcTraj = trajectories[span.sourceIdx]!;
+      const spanAddonsOverride = withDoubleSidedStairsOverride(srcTraj.addonOverrides, span);
       const sampledSrc = sampleActionAddons({
         action: srcTraj.item.action,
         progress: 1,
@@ -3802,7 +3880,7 @@ export function sampleAnimationV2(
         poseAtProgress: ctx.poseAtTrajectoryProgress(srcTraj),
         actorId: actor.id,
         canvas: spec.canvas,
-        ...(srcTraj.addonOverrides !== undefined ? { addons: srcTraj.addonOverrides } : {}),
+        ...(spanAddonsOverride !== undefined ? { addons: spanAddonsOverride } : {}),
         mergeDefaults: srcTraj.addonMergeDefaults,
         ...(themeAccentColor !== undefined ? { themeAccentColor } : {}),
         persist: true
@@ -3841,6 +3919,9 @@ export function sampleAnimationV2(
           scale: effectiveScale
         };
 
+        const sourceSpan = elevationSpans.find((sp) => sp.sourceIdx === activeIdx);
+        const activeAddonsOverride = withDoubleSidedStairsOverride(traj.addonOverrides, sourceSpan);
+
         const sampled = filterActorAddons(
           actorIndex,
           activeIdx,
@@ -3853,7 +3934,7 @@ export function sampleAnimationV2(
             poseAtProgress: ctx.poseAtTrajectoryProgress(traj),
             actorId: actor.id,
             canvas: spec.canvas,
-            ...(traj.addonOverrides !== undefined ? { addons: traj.addonOverrides } : {}),
+            ...(activeAddonsOverride !== undefined ? { addons: activeAddonsOverride } : {}),
             ...(traj.fallbackDefaultAddons !== undefined ? { fallbackDefaultAddons: traj.fallbackDefaultAddons } : {}),
             ...(sceneStage.targets.size > 0 ? { externalStageTargets: sceneStage.targets } : {}),
             mergeDefaults: traj.addonMergeDefaults,
@@ -3983,7 +4064,7 @@ export function sampleAnimationV2(
       const keepSummary = hf.persist || HOLD_OR_SEATED_FINAL_ACTIONS.has(recvLastTraj.item.action);
       if (!keepSummary) continue;
       const rPose = receiverCtx.sampleTrajectoryClip(recvLastTraj, 1);
-      const pt = handPointForPose(rPose, defaultSocket);
+      const pt = handoffPropCenterForPose(rPose, defaultSocket, hf.propType, width, height, receiverCtx.effectiveScale);
       const flipX = (rPose.facing ?? 1) < 0 && ASYMMETRIC_FLIP_TYPES.has(hf.propType);
       handoffAddons.push({
         id: hf.propId,
@@ -4018,7 +4099,7 @@ export function sampleAnimationV2(
 
     if (playheadT < hf.releaseMs) {
       const sPose = senderCtx.sampleBlendedAt(playheadT, 0);
-      const pt = handPointForPose(sPose, defaultSocket);
+      const pt = handoffPropCenterForPose(sPose, defaultSocket, hf.propType, width, height, senderCtx.effectiveScale);
       cx = pt.x;
       cy = pt.y;
       ownerId = senderCtx.actor.id;
@@ -4028,9 +4109,9 @@ export function sampleAnimationV2(
     } else if (playheadT < hf.catchMs) {
       const sReleasePose = senderCtx.sampleBlendedAt(hf.releaseMs, 0);
       const rCatchPose = receiverCtx.sampleBlendedAt(hf.catchMs, 0);
-      const startPt = handPointForPose(sReleasePose, defaultSocket);
+      const startPt = handoffPropCenterForPose(sReleasePose, defaultSocket, hf.propType, width, height, senderCtx.effectiveScale);
       const catchSocket: AddonSocket = recvFirstTraj.item.action === "catch" ? "bothHands" : defaultSocket;
-      const endPt = handPointForPose(rCatchPose, catchSocket);
+      const endPt = handoffPropCenterForPose(rCatchPose, catchSocket, hf.propType, width, height, receiverCtx.effectiveScale);
       const span = Math.max(1e-6, hf.catchMs - hf.releaseMs);
       const flightT = clamp01((playheadT - hf.releaseMs) / span);
       const dist = Math.hypot(endPt.x - startPt.x, endPt.y - startPt.y);
@@ -4048,14 +4129,14 @@ export function sampleAnimationV2(
           ? receiverCtx.trajectories[rPose.activeIndex]!
           : recvLastTraj;
       const curSocket: AddonSocket = activeRecvTraj.item.action === "catch" ? "bothHands" : defaultSocket;
-      const pt = handPointForPose(rPose, curSocket);
+      const pt = handoffPropCenterForPose(rPose, curSocket, hf.propType, width, height, receiverCtx.effectiveScale);
       // Smooth short socket blend when transitioning from catch (bothHands) -> present-card (rHand)
       if (
         rPose.activeIndex > hf.recvStartIdx &&
         receiverCtx.trajectories[rPose.activeIndex - 1]?.item.action === "catch" &&
         evalT - activeRecvTraj.item.startMs < 120
       ) {
-        const bothPt = handPointForPose(rPose, "bothHands");
+        const bothPt = handoffPropCenterForPose(rPose, "bothHands", hf.propType, width, height, receiverCtx.effectiveScale);
         const bt = clamp01((evalT - activeRecvTraj.item.startMs) / 120);
         cx = bothPt.x + (pt.x - bothPt.x) * bt;
         cy = bothPt.y + (pt.y - bothPt.y) * bt;

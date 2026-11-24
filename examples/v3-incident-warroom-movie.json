@@ -1,0 +1,221 @@
+{
+  "version": "stickman.movie/v1",
+  "title": "Incident War Room Recovery",
+  "canvas": {
+    "width": 1280,
+    "height": 720,
+    "fps": 30
+  },
+  "theme": {
+    "accentColor": "#b11f4b",
+    "background": "#ffffff"
+  },
+  "trimIdleTails": true,
+  "scenes": [
+    {
+      "id": "war-room-triage",
+      "title": "War Room Triage",
+      "backdrop": "war-room",
+      "camera": "auto-director",
+      "spotlight": "auto",
+      "transition": {
+        "kind": "fade",
+        "durationMs": 400
+      },
+      "actors": [
+        {
+          "id": "lead",
+          "label": "Incident Lead",
+          "x": 270,
+          "depth": 0,
+          "facing": "right",
+          "color": "#0f172a",
+          "accessory": "tie",
+          "zIndex": 3,
+          "actions": [
+            {
+              "action": "frustrated-pc",
+              "badge": "! Alert",
+              "emitCue": "alertRaised"
+            },
+            {
+              "action": "nod",
+              "afterCue": "rootCauseFound"
+            }
+          ]
+        },
+        {
+          "id": "sre",
+          "label": "On-Call SRE",
+          "x": 650,
+          "depth": 0.35,
+          "facing": "left",
+          "color": "#1e293b",
+          "accessory": "glasses",
+          "zIndex": 2,
+          "actions": [
+            {
+              "action": "think",
+              "afterCue": "alertRaised",
+              "emitCue": "triageDone"
+            },
+            {
+              "action": "idea",
+              "afterCue": "triageDone",
+              "say": "Found root cause!",
+              "emitCue": "rootCauseFound"
+            }
+          ]
+        },
+        {
+          "id": "ops",
+          "label": "Operations Engineer",
+          "x": 1000,
+          "depth": 0.65,
+          "facing": "left",
+          "color": "#334155",
+          "accessory": "badge",
+          "zIndex": 1,
+          "actions": [
+            {
+              "action": "check-watch",
+              "emitCue": "statusChecked"
+            },
+            {
+              "action": "thumbs-up",
+              "afterCue": "rootCauseFound"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "datacenter-patch",
+      "title": "Datacenter Patch",
+      "backdrop": "datacenter",
+      "camera": "auto-director",
+      "spotlight": "auto",
+      "transition": {
+        "kind": "wipe",
+        "durationMs": 400
+      },
+      "actors": [
+        {
+          "id": "sre",
+          "label": "On-Call SRE",
+          "x": 380,
+          "depth": 0,
+          "facing": "right",
+          "color": "#0f172a",
+          "accessory": "glasses",
+          "zIndex": 2,
+          "actions": [
+            {
+              "action": "rack-server",
+              "emitCue": "rackOpened"
+            },
+            {
+              "action": "plug-cable",
+              "afterCue": "rackOpened",
+              "say": "Patching node 3",
+              "emitCue": "nodePatched"
+            }
+          ]
+        },
+        {
+          "id": "lead",
+          "label": "Incident Lead",
+          "x": 860,
+          "depth": 0.3,
+          "facing": "left",
+          "color": "#1e293b",
+          "accessory": "tie",
+          "zIndex": 1,
+          "actions": [
+            {
+              "action": "check-watch",
+              "emitCue": "sloChecked"
+            },
+            {
+              "action": "nod",
+              "afterCue": "nodePatched",
+              "badge": "99.98%"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "all-clear",
+      "title": "All Systems Green",
+      "backdrop": "office",
+      "camera": "auto-director",
+      "spotlight": "auto",
+      "transition": "cut",
+      "actors": [
+        {
+          "id": "lead",
+          "label": "Incident Lead",
+          "x": 300,
+          "depth": 0,
+          "facing": "right",
+          "color": "#0f172a",
+          "accessory": "tie",
+          "zIndex": 3,
+          "actions": [
+            {
+              "action": "thumbs-up",
+              "say": "All systems green!",
+              "emitCue": "greenConfirmed"
+            },
+            {
+              "action": "cheer",
+              "afterCue": "greenConfirmed"
+            }
+          ]
+        },
+        {
+          "id": "sre",
+          "label": "On-Call SRE",
+          "x": 640,
+          "depth": 0.25,
+          "facing": "right",
+          "color": "#1e293b",
+          "accessory": "glasses",
+          "zIndex": 2,
+          "actions": [
+            {
+              "action": "cheer",
+              "badge": "✓ Verified green",
+              "emitCue": "sreCheered"
+            },
+            {
+              "action": "fist-pump",
+              "afterCue": "greenConfirmed"
+            }
+          ]
+        },
+        {
+          "id": "ops",
+          "label": "Operations Engineer",
+          "x": 960,
+          "depth": 0.45,
+          "facing": "left",
+          "color": "#334155",
+          "accessory": "badge",
+          "zIndex": 1,
+          "actions": [
+            {
+              "action": "fist-pump",
+              "emitCue": "opsPumped"
+            },
+            {
+              "action": "thumbs-up",
+              "afterCue": "greenConfirmed"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

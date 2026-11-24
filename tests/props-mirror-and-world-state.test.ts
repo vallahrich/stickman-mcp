@@ -149,10 +149,13 @@ describe("v03-r2: bilateral prop mirroring, persistent elevation, stageProps, ha
       actions: [{ action: "open-door" }]
     });
     expect(doorRes.valid).toBe(true);
-    const doorMid = sampleAnimation(doorRes.program!, doorRes.spec!.durationMs * 0.6);
+    const doorMid = sampleAnimation(doorRes.program!, doorRes.spec!.durationMs * 0.55);
     const doorBack = doorMid.addons!.find((a) => a.type === "door" && a.layer === "back")!;
     expect(doorBack.hinge).toBe("left");
     expect(doorBack.flipX).toBe(true);
+    // Actor's head stays cleanly outside the doorway post (no frame overlap) when facing left
+    const doorRightPost = doorBack.x + doorBack.width;
+    expect(doorMid.head.x - 16.5 * (doorMid.actors?.[0]?.scale ?? 1)).toBeGreaterThanOrEqual(doorRightPost - 1);
     const geom = doorGeometry(doorBack);
     expect(geom.hingeLeft).toBe(true);
     const doorSvg = renderAddonSvg(doorBack);
@@ -161,6 +164,21 @@ describe("v03-r2: bilateral prop mirroring, persistent elevation, stageProps, ha
     expect(doorSvg).toContain('fill="#cbd5e1"');
     expect(doorSvg).toContain('opacity="0.65"');
     expect(doorSvg).not.toContain("#4a4f57");
+
+    // 3b. Left-facing write-board keeps "AI" ink unmirrored left-to-right (no scale(-1 1))
+    const boardLeftRes = choreographAnimation({
+      actor: { x: "center", facing: "left" },
+      actions: [{ action: "write-board" }]
+    });
+    expect(boardLeftRes.valid).toBe(true);
+    const boardLeft = sampleAnimation(boardLeftRes.program!, boardLeftRes.spec!.durationMs * 0.7).addons!.find(
+      (a) => a.type === "board"
+    )!;
+    expect(boardLeft.flipX).toBeUndefined();
+    const boardLeftSvg = renderAddonSvg(boardLeft);
+    expect(boardLeftSvg).toContain('data-part="board-ink"');
+    expect(boardLeftSvg).not.toContain('data-part="flip-x"');
+    expect(boardLeftSvg).not.toContain("scale(-1 1)");
 
     // Explicit hinge override is respected even when facing left
     const doorOverrideRes = choreographAnimation({
@@ -223,6 +241,10 @@ describe("v03-r2: bilateral prop mirroring, persistent elevation, stageProps, ha
       const flipCloseIdx = svg.indexOf("</g>");
       const textIdx = svg.indexOf("<text ");
       expect(textIdx, `${type} <text> must sit outside flip-x group`).toBeGreaterThan(flipCloseIdx);
+      if (type === "board") {
+        const inkIdx = svg.indexOf('data-part="board-ink"');
+        expect(inkIdx, "board ink must sit outside flip-x group even when manually flipped").toBeGreaterThan(flipCloseIdx);
+      }
     }
 
     // 7. video-call default props fade in smoothly (not instant pop-in)
@@ -268,11 +290,22 @@ describe("v03-r2: bilateral prop mirroring, persistent elevation, stageProps, ha
     expect(stairsUp).toBeDefined();
     expect(stairsCheer).toBeDefined();
     expect(stairsDown).toBeDefined();
-    // Staircase world X stays 100% stationary (zero 73px jump!)
+    // Same-direction stairs-up -> cheer -> stairs-down renders a symmetric double-sided step platform
+    expect(stairsUp.doubleSided).toBe(true);
+    expect(stairsCheer.doubleSided).toBe(true);
+    expect(stairsDown.doubleSided).toBe(true);
+    expect(renderAddonSvg(stairsDown)).toContain('data-part="stairs-platform"');
+    // Staircase world X and width stay 100% stationary (zero jump!)
     expect(stairsCheer.x).toBe(stairsUp.x);
     expect(stairsDown.x).toBe(stairsUp.x);
     expect(stairsCheer.y).toBe(stairsUp.y);
     expect(stairsDown.y).toBe(stairsUp.y);
+    expect(stairsDown.width).toBe(stairsUp.width);
+    // Descending feet during stairs-down mid-descent rest on real descending treads within platform X bounds
+    const downMidLeftFootX = fDownMid.segments.find((s) => s.id === "left-shin")!.x2;
+    const downMidRightFootX = fDownMid.segments.find((s) => s.id === "right-shin")!.x2;
+    expect(Math.min(downMidLeftFootX, downMidRightFootX)).toBeGreaterThanOrEqual(stairsDown.x);
+    expect(Math.max(downMidLeftFootX, downMidRightFootX)).toBeLessThanOrEqual(stairsDown.x + stairsDown.width);
 
     // Climber's feet stay elevated on top of the stairs (~groundY - 54) throughout cheer (0px drop through stairs!)
     const lowestFootY = (frame: ReturnType<typeof sampleAnimation>) => {
@@ -362,6 +395,11 @@ describe("v03-r2: bilateral prop mirroring, persistent elevation, stageProps, ha
     for (let t = 0; t <= durationMs; t += 40) {
       const frame = sampleAnimation(program, t);
       const addons = frame.addons ?? [];
+      // Receiver must stay facing left (-1) toward sender throughout catch!
+      const receiverFrame = frame.actors?.find((a) => a.id === "receiver")!;
+      if (receiverFrame.action === "catch") {
+        expect(receiverFrame.facing, `receiver facing during catch@${t}`).toBeLessThan(-0.5);
+      }
       // Catch must NEVER spawn a phantom ball while receiving a handed-off card!
       expect(addons.filter((a) => a.type === "ball"), `t=${t}`).toEqual([]);
       const cards = addons.filter((a) => a.type === "card");
@@ -372,7 +410,17 @@ describe("v03-r2: bilateral prop mirroring, persistent elevation, stageProps, ha
         expect(card.text).toBe("OK");
         expect(card.color).toBe("#2563eb");
         if (card.actorId === "sender") sawSenderHold = true;
-        if (card.actorId === "receiver") sawReceiverHold = true;
+        if (card.actorId === "receiver") {
+          sawReceiverHold = true;
+          // Card held by receiver must stay clear of receiver's head/glasses
+          const hr = 16.5 * receiverFrame.scale;
+          const overlapsHead =
+            card.x < receiverFrame.head.x + hr &&
+            card.x + card.width > receiverFrame.head.x - hr &&
+            card.y < receiverFrame.head.y + hr &&
+            card.y + card.height > receiverFrame.head.y - hr;
+          expect(overlapsHead, `card@${t} must not clip receiver head`).toBe(false);
+        }
         if (prevCardX !== undefined) {
           maxCardStep = Math.max(maxCardStep, Math.abs(card.x - prevCardX));
         }
@@ -431,6 +479,12 @@ describe("v03-r2: bilateral prop mirroring, persistent elevation, stageProps, ha
     expect(compiled.program!.events?.some((e) => e.action === "coffee-sip" && e.marker === "sip")).toBe(true);
 
     const midTime = choreo.spec!.durationMs * 0.5;
+    for (const sampleT of [0, midTime, choreo.spec!.durationMs]) {
+      const sampleF = sampleAnimation(compiled.program!, sampleT);
+      const sampleMug = sampleF.addons?.find((a) => a.type === "coffee-mug");
+      expect(sampleMug, `coffee-mug visible@${sampleT}`).toBeDefined();
+      expect(sampleMug!.opacity, `coffee-mug opacity@${sampleT}`).toBeGreaterThan(0.95);
+    }
     const frame = sampleAnimation(compiled.program!, midTime);
     expect(frame.action).toBe("coffee-sip");
     const mug = frame.addons?.find((a) => a.type === "coffee-mug");

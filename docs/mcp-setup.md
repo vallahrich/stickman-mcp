@@ -50,13 +50,13 @@ command or modify your settings.
 Start with the read-only tools:
 
 ```powershell
-copilot mcp add stickman --tools 'stickman_discover,stickman_describe,stickman_schema,stickman_validate,stickman_compile,stickman_choreograph,stickman_storyboard,stickman_preview,stickman_story,stickman_list_film_assets,stickman_check_join,stickman_compose_film' -- node 'C:\Projects\stickman-mcp\dist\mcp.js' --root 'C:\Projects\MyPresentation\stickman-output'
+copilot mcp add stickman --tools 'stickman_discover,stickman_describe,stickman_schema,stickman_validate,stickman_compile,stickman_choreograph,stickman_storyboard,stickman_preview,stickman_story,stickman_movie,stickman_critique,stickman_list_film_assets,stickman_check_join,stickman_compose_film' -- node 'C:\Projects\stickman-mcp\dist\mcp.js' --root 'C:\Projects\MyPresentation\stickman-output'
 copilot mcp get stickman
 ```
 
 The interactive alternative is `/mcp add`, selecting **STDIO**, the same command
 and arguments, and the tool names above. Use `/mcp show stickman` to inspect the
-server, its 16 tools, 9 `stickman://*` resources, and 2 prompts (`choreograph-slide`, `two-actor-dialogue`). Enable `stickman_export`, `stickman_render_film`, `stickman_author_motion`, or `stickman_preview_motion` only when you intend to write
+server, its 18 tools, 14 resources (including `ui://stickman/player`), and 3 prompts (`choreograph-slide`, `two-actor-dialogue`, `create-and-critique-movie`). Enable `stickman_export`, `stickman_render_film`, `stickman_author_motion`, or `stickman_preview_motion` only when you intend to write
 artifacts in the approved root; enabling a tool is not authorization to overwrite
 or write outside that root.
 
@@ -118,29 +118,38 @@ No invented `--type`/`--command` Codex flags or `/mcp/metadata` endpoint are use
 
 ## Tool, resource, and prompt contracts
 
-All sixteen tools enforce their advertised JSON input schemas at runtime. Missing
+All eighteen tools enforce their advertised JSON input schemas at runtime. Missing
 required fields, unknown fields (including attempted root overrides), wrong
 types, and invalid enums are rejected without coercion. For example, preview
 `timeMs` must be a number, not `"500"` or `null`. Animation validation supports
-both strict `stickman.animation/v1` (single-actor explicit timeline) and
+strict `stickman.animation/v1` (single-actor explicit timeline),
 `stickman.animation/v2` (multi-actor choreography, semantic stage anchors,
 `tie`/`hat`/`glasses`/`badge` accessories, `emitCue`/`afterCue` synchronization,
-and 53 geometric vector props/add-ons); call `stickman_schema` with `version:
-"v1"` or `"v2"`.
+2.5D `depth`, `camera`, `spotlight`, editorial callouts, shared prop handoffs,
+inline `customMotions`, and 55 geometric vector props/add-ons), and
+`stickman.movie/v1` (multi-scene movies with backdrops and transitions); call
+`stickman_schema` with `version: "v1"`, `"v2"`, or `"movie-v1"`.
 
 `stickman_choreograph` converts declarative single- or multi-actor beat lists
 into canonical `v2` specs and compiled programs with zero manual timestamp math.
+`stickman_movie` composes multi-scene `stickman.movie/v1` programs with
+contextual backdrops (`war-room`, `datacenter`, `office`, `stage`), `fade`/`wipe`
+transitions, and idle-tail trimming. `stickman_critique` runs 6-axis perceptual
+scoring plus annotated SVG/PNG contact sheets against `stickman://rubric/human-critique`.
 `stickman_storyboard` renders a compact multi-panel contact sheet SVG, returns
 spatial/bounds/seam lint (`outOfBoundsCount`, `actorOverlapWarnings`,
 `maxSeamStepPx`), and attaches a PNG `ImageContent` block when `@resvg/resvg-js`
-is installed.
+is installed. `stickman_export` supports `svg-frame`, `svg`, `html`,
+`storyboard-svg`, `gif`, `mp4`, and `webm` (with optional `transparent: true`).
 
-The server also advertises **9 read-only MCP resources** (`stickman://catalog`,
-`stickman://schema/v1`, `stickman://schema/v2`, `stickman://anchors`,
-`stickman://props`, `stickman://templates/presentation-pitch`,
+The server also advertises **14 read-only MCP resources** (`stickman://catalog`,
+`stickman://schema/v1`, `stickman://schema/v2`, `stickman://schema/movie-v1`,
+`stickman://anchors`, `stickman://props`, `stickman://rubric/human-critique`,
+`ui://stickman/player`, `stickman://templates/presentation-pitch`,
 `stickman://templates/two-actor-dialogue`, `stickman://templates/idea-reveal`,
-and `stickman://templates/sports-action`) and **2 MCP prompts**
-(`choreograph-slide` and `two-actor-dialogue`).
+`stickman://templates/sports-action`, `stickman://templates/incident-warroom-movie`,
+and `stickman://templates/two-actor-handoff`) and **3 MCP prompts**
+(`choreograph-slide`, `two-actor-dialogue`, and `create-and-critique-movie`).
 
 Successful results preserve the existing pretty-printed JSON text payload.
 They additionally provide `structuredContent: { "result": <payload> }` and an

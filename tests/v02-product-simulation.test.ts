@@ -10,6 +10,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { runCli } from "../src/cli.js";
 import {
   CONTRACT_VERSION,
+  CONTRACT_VERSION_MOVIE,
   CONTRACT_VERSION_V2,
   RUNTIME_MOTION_LIBRARY,
   STAGE_ANCHOR_NAMES,
@@ -18,6 +19,7 @@ import {
   animationSchemaV2,
   choreographAnimation,
   compileAnimation,
+  composeMovie,
   queryActionCatalog,
   rasterizeStoryboardPng,
   registerStickmanPlayerElement,
@@ -108,8 +110,8 @@ async function runCliCaptured(argv: string[]): Promise<{ code: number; stdout: s
   }
 }
 
-describe("v0.2.2 End-to-End Product Simulation Suite", () => {
-  it("exports all public v0.2.2 symbols and keeps package.json at 0.2.2", async () => {
+describe("v0.3.0 End-to-End Product Simulation Suite", () => {
+  it("exports all public v0.3.0 symbols and keeps package.json at 0.3.0", async () => {
     const pkg = JSON.parse(await readFile(resolve(process.cwd(), "package.json"), "utf8")) as {
       version: string;
     };
@@ -117,9 +119,9 @@ describe("v0.2.2 End-to-End Product Simulation Suite", () => {
       version: string;
       packages: Record<string, { version?: string }>;
     };
-    expect(pkg.version).toBe("0.2.2");
-    expect(lock.version).toBe("0.2.2");
-    expect(lock.packages[""]?.version).toBe("0.2.2");
+    expect(pkg.version).toBe("0.3.0");
+    expect(lock.version).toBe("0.3.0");
+    expect(lock.packages[""]?.version).toBe("0.3.0");
 
     expect(CONTRACT_VERSION_V2).toBe("stickman.animation/v2");
     expect(typeof choreographAnimation).toBe("function");
@@ -486,7 +488,7 @@ describe("v0.2.2 End-to-End Product Simulation Suite", () => {
     expect(collabFrameSvg).toContain('data-accessory="glasses"');
     expect(collabFrameSvg).toContain('data-addon="board"');
 
-    // Enumerate & validate all 6 JSON files in examples/
+    // Enumerate & validate all 8 JSON files in examples/
     const examplesDir = resolve(process.cwd(), "examples");
     const jsonFiles = (await readdir(examplesDir))
       .filter((name) => name.endsWith(".json"))
@@ -497,6 +499,8 @@ describe("v0.2.2 End-to-End Product Simulation Suite", () => {
       "v2-presentation-story.json",
       "v2-sports-addons.json",
       "v2-two-actors-collab.json",
+      "v3-handoff-and-stairs.json",
+      "v3-incident-warroom-movie.json",
       "walk-and-wave.json",
       "wave.json"
     ]);
@@ -504,15 +508,21 @@ describe("v0.2.2 End-to-End Product Simulation Suite", () => {
     for (const fileName of jsonFiles) {
       const fullPath = resolve(examplesDir, fileName);
       const parsed = JSON.parse(await readFile(fullPath, "utf8")) as { version: string };
-      if (fileName.startsWith("v2-")) {
-        expect(parsed.version, fileName).toBe(CONTRACT_VERSION_V2);
+      if (fileName === "v3-incident-warroom-movie.json") {
+        expect(parsed.version, fileName).toBe(CONTRACT_VERSION_MOVIE);
+        const composed = composeMovie(parsed);
+        expect(composed.valid, `compose ${fileName}`).toBe(true);
+        expect(composed.diagnostics, `diagnostics ${fileName}`).toEqual([]);
       } else {
-        expect(parsed.version, fileName).toBe(CONTRACT_VERSION);
+        if (fileName.startsWith("v2-") || fileName.startsWith("v3-")) {
+          expect(parsed.version, fileName).toBe(CONTRACT_VERSION_V2);
+        } else {
+          expect(parsed.version, fileName).toBe(CONTRACT_VERSION);
+        }
+        const comp = compileAnimation(parsed);
+        expect(comp.valid, `compile ${fileName}`).toBe(true);
+        expect(comp.diagnostics, `diagnostics ${fileName}`).toEqual([]);
       }
-
-      const comp = compileAnimation(parsed);
-      expect(comp.valid, `compile ${fileName}`).toBe(true);
-      expect(comp.diagnostics, `diagnostics ${fileName}`).toEqual([]);
 
       const cliValidate = await runCliCaptured(["validate", "--input", fullPath]);
       expect(cliValidate.code, `CLI validate ${fileName}`).toBe(0);
@@ -525,10 +535,10 @@ describe("v0.2.2 End-to-End Product Simulation Suite", () => {
     }
   });
 
-  it("Scenario E (MCP v0.2.0 End-to-End Workflow): connects Client to createMcpServer, discovers, reads resources, choreographs, critiques storyboard, and exports artifacts", async () => {
+  it("Scenario E (MCP v0.3.0 End-to-End Workflow): connects Client to createMcpServer, discovers, reads resources, choreographs, critiques storyboard, and exports artifacts", async () => {
     const outputRoot = await createWorkspaceTempRoot("v02-sim-mcp-out");
     const server = createMcpServer(outputRoot);
-    const client = new Client({ name: "v02-simulation-client", version: "0.2.0" });
+    const client = new Client({ name: "v02-simulation-client", version: "0.3.0" });
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
     activeClosers.push(async () => {
       await client.close();
@@ -537,7 +547,7 @@ describe("v0.2.2 End-to-End Product Simulation Suite", () => {
 
     await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
 
-    expect(client.getServerVersion()).toEqual({ name: "stickman-mcp", version: "0.2.2" });
+    expect(client.getServerVersion()).toEqual({ name: "stickman-mcp", version: "0.3.0" });
     const toolsList = await client.listTools();
     expect(toolsList.tools).toHaveLength(18);
     const resourcesList = await client.listResources();
