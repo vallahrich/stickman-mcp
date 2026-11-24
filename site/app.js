@@ -1,4 +1,24 @@
 (() => {
+  const themeToggle = document.getElementById("themeToggle");
+  if (themeToggle) {
+    const syncThemeToggle = () => {
+      const isDark = document.documentElement.dataset.theme === "dark";
+      themeToggle.setAttribute("aria-pressed", isDark ? "true" : "false");
+      themeToggle.setAttribute("aria-label", isDark ? "Switch to light theme" : "Switch to dark theme");
+      themeToggle.textContent = isDark ? "Light" : "Dark";
+    };
+    themeToggle.addEventListener("click", () => {
+      document.documentElement.dataset.theme =
+        document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+      syncThemeToggle();
+    });
+    new MutationObserver(syncThemeToggle).observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"]
+    });
+    syncThemeToggle();
+  }
+
   const section = document.getElementById("blueprint");
   const motionSelect = document.getElementById("motionMode");
 

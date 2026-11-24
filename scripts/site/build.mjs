@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { COMPACT_CLIENT_RENDERER_JS } from "../../dist/index.js";
+import { COMPACT_CLIENT_RENDERER_JS, composeMovie, renderMovieSvgFrame } from "../../dist/index.js";
 import { blueprintSection } from "./blueprint-section.mjs";
 import { buildCatalogue, repo } from "./catalogue.mjs";
 import { buildHeadMetadata, generateDiscoveryFiles } from "./discovery.mjs";
@@ -56,6 +56,12 @@ html = html.replace("<!-- DISCOVERY_HEAD -->", discoveryHead)
   .replace("__BLUEPRINT_SECTION__", blueprint)
   .replace("</body>", `<script>${js}\n${COMPACT_CLIENT_RENDERER_JS}\n${appJs}</script></body>`);
 await fs.writeFile(path.join(output, "index.html"), html);
+const heroMovieRaw = JSON.parse(await fs.readFile(path.join(repo, "examples", "v3-incident-warroom-movie.json"), "utf8"));
+const heroMovie = composeMovie(heroMovieRaw);
+if (!heroMovie.valid || !heroMovie.movie) {
+  throw new Error(`Failed to compose hero stage movie: ${JSON.stringify(heroMovie.diagnostics)}`);
+}
+await fs.writeFile(path.join(output, "hero-stage.svg"), renderMovieSvgFrame(heroMovie.movie, 28000, "normal"), "utf8");
 await generateDiscoveryFiles(output, { version, releaseCandidate: candidate, repoRoot: repo, catalogue });
 await fs.copyFile(path.join(repo, "docs", "mcp-setup.md"), path.join(output, "connection-guide.md"));
 await fs.copyFile(path.join(repo, "docs", "showcase-sources.md"), path.join(output, "source-notices.md"));

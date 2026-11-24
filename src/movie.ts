@@ -205,6 +205,11 @@ export function renderBackdropSvg(
       const wallDisplayH = wallH * 0.42;
       const splitX = wallX + wallW * 0.56;
       const midY = wallTop + wallDisplayH * 0.58;
+      const warStrokeMain = options.blueprint ? "#64748b" : "#94a3b8";
+      const warStrokeSoft = options.blueprint ? "#94a3b8" : "#cbd5e1";
+      const warSparkline = options.blueprint ? "#475569" : "#64748b";
+      const warSw = sw * 1.15;
+      const warSwThin = swThin * 1.1;
 
       // Subtle uptime sparkline inside left display zone
       const spLeft = wallX + 18 * scale;
@@ -227,22 +232,22 @@ export function renderBackdropSvg(
       const gridCols = 6;
       const gridLines = Array.from({ length: gridCols }, (_, i) => {
         const gx = wallX + ((i + 1) / (gridCols + 1)) * wallW;
-        return `<line x1="${n(gx)}" y1="${n(wallTop + 10 * scale)}" x2="${n(gx)}" y2="${n(wallTop + wallDisplayH - 10 * scale)}" stroke="${strokeSoft}" stroke-width="${n(swThin)}" stroke-dasharray="${n(3 * scale)} ${n(4 * scale)}"/>`;
+        return `<line x1="${n(gx)}" y1="${n(wallTop + 10 * scale)}" x2="${n(gx)}" y2="${n(wallTop + wallDisplayH - 10 * scale)}" stroke="${warStrokeSoft}" stroke-width="${n(warSwThin)}" stroke-dasharray="${n(3 * scale)} ${n(4 * scale)}"/>`;
       }).join("");
 
       const timelineY = wallTop + wallDisplayH * 0.78;
       const timelineNodes = [0.64, 0.74, 0.85, 0.93]
-        .map((fx) => `<circle cx="${n(wallX + wallW * fx)}" cy="${n(timelineY)}" r="${n(2.8 * scale)}" fill="${fillWhisper}" stroke="${strokeMain}" stroke-width="${n(swThin)}"/>`)
+        .map((fx) => `<circle cx="${n(wallX + wallW * fx)}" cy="${n(timelineY)}" r="${n(3.1 * scale)}" fill="${fillWhisper}" stroke="${warStrokeMain}" stroke-width="${n(warSwThin)}"/>`)
         .join("");
 
       return (
         `<g data-backdrop="war-room" fill="none">` +
-        `<rect x="${n(wallX)}" y="${n(wallTop)}" width="${n(wallW)}" height="${n(wallDisplayH)}" rx="${n(5 * scale)}" fill="${fillWhisper}" stroke="${strokeMain}" stroke-width="${n(sw)}"/>` +
+        `<rect x="${n(wallX)}" y="${n(wallTop)}" width="${n(wallW)}" height="${n(wallDisplayH)}" rx="${n(5 * scale)}" fill="${fillWhisper}" stroke="${warStrokeMain}" stroke-width="${n(warSw)}"/>` +
         `${gridLines}` +
-        `<line x1="${n(splitX)}" y1="${n(wallTop + 12 * scale)}" x2="${n(splitX)}" y2="${n(wallTop + wallDisplayH - 12 * scale)}" stroke="${strokeSoft}" stroke-width="${n(swThin)}"/>` +
-        `<line x1="${n(wallX + 12 * scale)}" y1="${n(midY)}" x2="${n(wallX + wallW - 12 * scale)}" y2="${n(midY)}" stroke="${strokeSoft}" stroke-width="${n(swThin)}"/>` +
-        `<polyline points="${spPoints}" stroke="${dotMuted}" stroke-width="${n(sw)}" stroke-linecap="round" stroke-linejoin="round"/>` +
-        `<line x1="${n(splitX + 16 * scale)}" y1="${n(timelineY)}" x2="${n(wallX + wallW - 16 * scale)}" y2="${n(timelineY)}" stroke="${strokeMain}" stroke-width="${n(swThin)}"/>` +
+        `<line x1="${n(splitX)}" y1="${n(wallTop + 12 * scale)}" x2="${n(splitX)}" y2="${n(wallTop + wallDisplayH - 12 * scale)}" stroke="${warStrokeSoft}" stroke-width="${n(warSwThin)}"/>` +
+        `<line x1="${n(wallX + 12 * scale)}" y1="${n(midY)}" x2="${n(wallX + wallW - 12 * scale)}" y2="${n(midY)}" stroke="${warStrokeSoft}" stroke-width="${n(warSwThin)}"/>` +
+        `<polyline points="${spPoints}" stroke="${warSparkline}" stroke-width="${n(sw * 1.35)}" stroke-linecap="round" stroke-linejoin="round"/>` +
+        `<line x1="${n(splitX + 16 * scale)}" y1="${n(timelineY)}" x2="${n(wallX + wallW - 16 * scale)}" y2="${n(timelineY)}" stroke="${warStrokeMain}" stroke-width="${n(warSwThin)}"/>` +
         `${timelineNodes}` +
         `</g>`
       );

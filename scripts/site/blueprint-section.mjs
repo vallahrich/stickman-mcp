@@ -240,33 +240,33 @@ export async function blueprintSection(repoRoot) {
     <article class="blueprint-card" data-scene="two-actors-collab">
       <div class="blueprint-card-head">
         <h3>2-Actor Whiteboard Collaboration</h3>
-        <p class="quiet">Lead presenter (<code>tie</code>) and design reviewer (<code>glasses</code>) synchronized via <code>emitCue</code> / <code>afterCue</code> on an 800×450 stage.</p>
-        <div class="blueprint-metrics" aria-label="2-actor spatial lint metrics">
-          <span class="metric-pill metric-pass">${collab.analysis.outOfBoundsCount} out-of-bounds</span>
-          <span class="metric-pill">maxSeamStepPx ${escapeHtml(collabSeam)}px</span>
-          <span class="metric-pill">${collab.analysis.actorIds.length} actors · ${escapeHtml(collabSec)}s</span>
-          <span class="metric-pill">prop: ${escapeHtml(collab.analysis.addonTypes.join(", "))}</span>
+        <p class="quiet">Lead presenter (tie) and design reviewer (glasses) cue-synced across an 800×450 stage.</p>
+        <div class="blueprint-spec-strip" aria-label="2-actor spatial lint metrics">
+          <span class="spec-pass">${collab.analysis.outOfBoundsCount} out-of-bounds</span>
+          <span class="spec-item">maxSeamStepPx ${escapeHtml(collabSeam)}px</span>
+          <span class="spec-item">${collab.analysis.actorIds.length} actors · ${escapeHtml(collabSec)}s</span>
+          <span class="spec-item">${escapeHtml(collab.analysis.addonTypes.join(", "))}</span>
         </div>
       </div>
       <figure class="blueprint-figure">
         ${collabAnimSvg}
-        <figcaption class="quiet">Scriptless animated SVG · cues: <code>boardWritten</code> → <code>reacted</code> → <code>approved</code></figcaption>
+        <figcaption class="quiet">Scriptless animated SVG · cues: boardWritten → reacted → approved</figcaption>
       </figure>
     </article>
     <article class="blueprint-card" data-scene="sports-addons">
       <div class="blueprint-card-head">
         <h3>Ballistic Add-ons &amp; Socket Props</h3>
-        <p class="quiet">Athlete (<code>badge</code>) chains <code>hurdle</code> → <code>basketball-shot</code> → <code>cheer</code> with parabolic arc flight and hoop reaction.</p>
-        <div class="blueprint-metrics" aria-label="Ballistic add-ons spatial lint metrics">
-          <span class="metric-pill metric-pass">${sports.analysis.outOfBoundsCount} out-of-bounds</span>
-          <span class="metric-pill">maxSeamStepPx ${escapeHtml(sportsSeam)}px</span>
-          <span class="metric-pill">${sports.analysis.addonTypes.length} props · ${escapeHtml(sportsSec)}s</span>
-          <span class="metric-pill">${escapeHtml(sports.analysis.addonTypes.join(" · "))}</span>
+        <p class="quiet">Athlete (badge) chains hurdle, parabolic basketball shot, and celebration.</p>
+        <div class="blueprint-spec-strip" aria-label="Ballistic add-ons spatial lint metrics">
+          <span class="spec-pass">${sports.analysis.outOfBoundsCount} out-of-bounds</span>
+          <span class="spec-item">maxSeamStepPx ${escapeHtml(sportsSeam)}px</span>
+          <span class="spec-item">${escapeHtml(sportsSec)}s</span>
+          <span class="spec-item">${escapeHtml(sports.analysis.addonTypes.join(", "))}</span>
         </div>
       </div>
       <figure class="blueprint-figure">
         ${sportsAnimSvg}
-        <figcaption class="quiet">Scriptless animated SVG · lifecycle: appear → socket → parabolic flight → target reaction</figcaption>
+        <figcaption class="quiet">Scriptless animated SVG · appear → socket → parabolic flight → target reaction</figcaption>
       </figure>
     </article>
   </div>
@@ -298,22 +298,22 @@ export async function blueprintSection(repoRoot) {
     </div>
     <div id="blueprintPanelRoom" class="blueprint-panel" data-blueprint-panel="room" hidden>
       <div class="blueprint-sheet-stack">
-        <div class="blueprint-metrics" aria-label="2.5D room blueprint metrics">
-          <span class="metric-pill metric-pass">occupiable: ${room.occupiable ? "true" : "false"}</span>
-          <span class="metric-pill">floor ${escapeHtml(room.dimensions)}</span>
-          <span class="metric-pill">${room.obstacleCount} W×D×H obstacles</span>
-          <span class="metric-pill">datum (108, 220, h=0)</span>
+        <div class="blueprint-spec-strip" aria-label="2.5D room blueprint metrics">
+          <span class="spec-pass">occupiable: ${room.occupiable ? "true" : "false"}</span>
+          <span class="spec-item">floor ${escapeHtml(room.dimensions)}</span>
+          <span class="spec-item">${room.obstacleCount} W×D×H obstacles</span>
+          <span class="spec-item">datum (108, 220, h=0)</span>
         </div>
         <figure class="blueprint-sheet">${room.svg}</figure>
       </div>
     </div>
     <div id="blueprintPanelStage" class="blueprint-panel" data-blueprint-panel="stage" hidden>
       <div class="blueprint-sheet-stack">
-        <div class="blueprint-metrics" aria-label="Full-stage CAD blueprint metrics">
-          <span class="metric-pill metric-pass">style: blueprint</span>
-          <span class="metric-pill">hatched props: ${escapeHtml(sports.analysis.addonTypes.join(" · "))}</span>
-          <span class="metric-pill">rig datum: 144u + x-track</span>
-          <span class="metric-pill">anchors: L · CL · C · CR · R</span>
+        <div class="blueprint-spec-strip" aria-label="Full-stage CAD blueprint metrics">
+          <span class="spec-pass">style: blueprint</span>
+          <span class="spec-item">hatched props: ${escapeHtml(sports.analysis.addonTypes.join(" · "))}</span>
+          <span class="spec-item">rig datum: 144u + x-track</span>
+          <span class="spec-item">anchors: L · CL · C · CR · R</span>
         </div>
         <figure class="blueprint-sheet">${sportsBlueprintStageSvg}</figure>
       </div>
