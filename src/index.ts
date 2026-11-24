@@ -48,6 +48,7 @@ export * from "./motion-clips.js";
 export * from "./motion-library.js";
 export * from "./movie.js";
 export * from "./playback.js";
+export * from "./player-runtime.js";
 export * from "./props.js";
 export * from "./render.js";
 export * from "./stories.js";

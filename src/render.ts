@@ -1,13 +1,11 @@
 import {
   CONTRACT_VERSION_V2,
-  type AnimationSpec,
   type AnimationSpecV2,
   type CompiledAnimation,
   type PlaybackMode,
   type Point2D,
   type RenderStyle,
   type SampledActorFrame,
-  type SampledAddon,
   type SampledFrame
 } from "./contract.js";
 import { cameraSvgTransform } from "./camera.js";
@@ -17,6 +15,7 @@ import { sampleAnimation } from "./compiler.js";
 import { sampleClipMotion } from "./motion-clips.js";
 import { RUNTIME_MOTION_LIBRARY } from "./motion-library.js";
 import { renderAddonSvg, renderBlueprintDefsSvg } from "./props.js";
+import { buildCompactPlayerPayload, renderCompactPlayerScript } from "./player-runtime.js";
 
 function xml(value: string): string {
   return value
@@ -231,6 +230,7 @@ export function frameGeometry(frame: SampledFrame) {
 
 export interface RenderStyleOptions {
   style?: RenderStyle;
+  transparent?: boolean;
 }
 
 export interface SceneRenderOptions {
@@ -788,7 +788,7 @@ function isMultiSceneFrame(frame: SampledFrame, program?: CompiledAnimation): bo
   );
 }
 
-function v1FrameMarkup(frame: SampledFrame, color: string, width: number, height: number): string {
+function v1FrameMarkup(frame: SampledFrame, color: string, width: number, height: number, transparent = false): string {
   const geometry = frameGeometry(frame);
   const limbById = new Map(geometry.limbs.map(limb => [limb.id, limb]));
   const detailById = new Map(geometry.paths.map(item => [item.id, item]));
@@ -809,8 +809,9 @@ function v1FrameMarkup(frame: SampledFrame, color: string, width: number, height
   const prop = frame.prop
     ? `<g id="prop"><rect x="${number(frame.prop.x)}" y="${number(frame.prop.y)}" width="${number(frame.prop.width)}" height="${number(frame.prop.height)}" rx="3" fill="#fff" stroke="${xml(color)}" stroke-width="${number(geometry.strokeWidth)}"/><path id="handle" d="${geometry.handlePath}" fill="none" stroke="${xml(color)}" stroke-width="${number(1.4 * geometry.scale)}" stroke-linecap="round"/></g>`
     : "";
+  const bgRect = transparent ? "" : `<rect width="100%" height="100%" fill="#ffffff"/>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Stick figure ${xml(frame.action)} at ${number(frame.timeMs)} milliseconds" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">
-<rect width="100%" height="100%" fill="#ffffff"/><path id="ground" d="M0 ${number(frame.groundY)}H${width}" stroke="#d8dbe0" stroke-width="1"/>
+${bgRect}<path id="ground" d="M0 ${number(frame.groundY)}H${width}" stroke="#d8dbe0" stroke-width="1"/>
 <g fill="none" stroke="${xml(color)}" stroke-width="${number(geometry.strokeWidth)}" stroke-linecap="round" stroke-linejoin="round">${figure}</g>${prop}
 </svg>`;
 }
@@ -832,9 +833,10 @@ function multiSceneFrameMarkup(
   frame: SampledFrame,
   width: number,
   height: number,
-  options: { defaultColor?: string; themeAccentColor?: string; background?: string } = {}
+  options: { defaultColor?: string; themeAccentColor?: string; background?: string; transparent?: boolean } = {}
 ): string {
   const background = options.background ?? "#ffffff";
+  const bgRect = options.transparent ? "" : `<rect width="100%" height="100%" fill="${xml(background)}"/>`;
   const inner = renderSceneInnerSvg(frame, {
     ...(options.defaultColor !== undefined ? { defaultColor: options.defaultColor } : {}),
     ...(options.themeAccentColor !== undefined ? { themeAccentColor: options.themeAccentColor } : {})
@@ -844,12 +846,12 @@ function multiSceneFrameMarkup(
     const camWrapped = renderCameraGroupSvg(frame, width, height, `${groundLine}${inner}`, 3);
     return `<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Stick figure ${xml(frame.action)} at ${number(frame.timeMs)} milliseconds" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">
 <defs><clipPath id="sm-cam-clip"><rect width="${width}" height="${height}"/></clipPath></defs>
-<rect width="100%" height="100%" fill="${xml(background)}"/>
+${bgRect}
 <g id="scene" clip-path="url(#sm-cam-clip)">${camWrapped}</g>
 </svg>`;
   }
   return `<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Stick figure ${xml(frame.action)} at ${number(frame.timeMs)} milliseconds" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">
-<rect width="100%" height="100%" fill="${xml(background)}"/>${groundLine}
+${bgRect}${groundLine}
 <g id="scene">${inner}</g>
 </svg>`;
 }
@@ -880,7 +882,8 @@ export function renderBlueprintStageBackdropSvg(
   height: number,
   groundY: number,
   customAnchors?: Record<string, Point2D>,
-  decimals = 2
+  decimals = 2,
+  transparent = false
 ): string {
   const n = (v: number): string => number(v, decimals);
   const clampVal = (v: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, v));
@@ -922,9 +925,15 @@ export function renderBlueprintStageBackdropSvg(
   const gyInt = Math.round(groundY) || 0;
   const datumLabelY = n(Math.max(16, groundY - 6));
 
-  return (
+  const opaqueStageBg =
     `<rect width="100%" height="100%" fill="#f8fafc"/>` +
-    `<rect width="100%" height="100%" fill="url(#sm-bp-grid)"/>` +
+    `<rect width="100%" height="100%" fill="url(#sm-bp-grid)"/>`;
+  const stageBg = transparent
+    ? `<rect width="100%" height="100%" fill="url(#sm-bp-grid)"/>`
+    : opaqueStageBg;
+
+  return (
+    stageBg +
     `<rect x="1.5" y="1.5" width="${n(Math.max(1, width - 3))}" height="${n(Math.max(1, height - 3))}" fill="none" stroke="#cbd5e1" stroke-width="1"/>` +
     `<g data-part="registration-marks">${regMarks}</g>` +
     `<path id="ground" data-part="ground-datum" d="M0 ${n(groundY)}H${width}" fill="none" stroke="#1e3a5f" stroke-width="1" stroke-dasharray="4 3"/>` +
@@ -985,9 +994,10 @@ function blueprintFrameMarkup(
   frame: SampledFrame,
   width: number,
   height: number,
-  customAnchors?: Record<string, Point2D>
+  customAnchors?: Record<string, Point2D>,
+  transparent = false
 ): string {
-  const backdrop = renderBlueprintStageBackdropSvg(width, height, frame.groundY, customAnchors, 3);
+  const backdrop = renderBlueprintStageBackdropSvg(width, height, frame.groundY, customAnchors, 3, transparent);
   const sceneInner = renderBlueprintFrameSceneSvg(frame, width, 3);
   return `<svg xmlns="http://www.w3.org/2000/svg" data-style="blueprint" role="img" aria-label="Stick figure ${xml(frame.action)} at ${number(frame.timeMs)} milliseconds" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">
 ${renderBlueprintDefsSvg()}<style>${BLUEPRINT_STAGE_STYLE}</style>
@@ -1003,18 +1013,20 @@ export function renderSvgFrame(
   options?: RenderStyleOptions
 ): string {
   const style = resolveRenderStyle(program, options);
+  const transparent = options?.transparent === true;
   const frame = sampleAnimation(program, timeMs, mode);
   const { width, height } = program.spec.canvas;
   const v2Spec = program.contractVersion === CONTRACT_VERSION_V2 ? (program.spec as AnimationSpecV2) : undefined;
   if (style === "blueprint") {
-    return blueprintFrameMarkup(frame, width, height, v2Spec?.anchors);
+    return blueprintFrameMarkup(frame, width, height, v2Spec?.anchors, transparent);
   }
   const defaultColor = program.spec.actor?.color ?? "#202124";
   if (!isMultiSceneFrame(frame, program)) {
-    return v1FrameMarkup(frame, defaultColor, width, height);
+    return v1FrameMarkup(frame, defaultColor, width, height, transparent);
   }
   return multiSceneFrameMarkup(frame, width, height, {
     defaultColor,
+    transparent,
     ...(v2Spec?.theme?.accentColor !== undefined ? { themeAccentColor: v2Spec.theme.accentColor } : {}),
     ...(v2Spec?.theme?.background !== undefined ? { background: v2Spec.theme.background } : {})
   });
@@ -1022,6 +1034,71 @@ export function renderSvgFrame(
 
 function animateAttribute(attribute: string, values: number[], durationSeconds: number, keyTimes: string): string {
   return `<animate attributeName="${attribute}" dur="${number(durationSeconds)}s" values="${values.map((v) => number(v)).join(";")}" keyTimes="${keyTimes}" fill="freeze" calcMode="discrete"/>`;
+}
+
+export interface CoalescedSvgSlices {
+  frameGroups: string;
+  extraKeyframes: string;
+  hasHoldFinal: boolean;
+}
+
+export function buildCoalescedSvgSlices<T extends { timeMs: number }>(
+  samples: readonly T[],
+  renderInner: (sample: T, idx: number) => string,
+  seconds: number,
+  extraAttrs?: (sample: T) => string,
+  sameBucket?: (a: T, b: T) => boolean
+): CoalescedSvgSlices {
+  const intervals = Math.max(1, samples.length - 1);
+  const runs: Array<{ sample: T; firstIdx: number; count: number; inner: string; isLast: boolean }> = [];
+
+  for (let idx = 0; idx < samples.length; idx++) {
+    const sample = samples[idx]!;
+    const inner = renderInner(sample, idx);
+    const prev = runs[runs.length - 1];
+    if (prev && prev.inner === inner && (!sameBucket || sameBucket(prev.sample, sample))) {
+      prev.count++;
+    } else {
+      runs.push({ sample, firstIdx: idx, count: 1, inner, isLast: false });
+    }
+  }
+  if (runs.length > 0) {
+    runs[runs.length - 1]!.isLast = true;
+  }
+
+  const extraCounts = new Set<number>();
+  let hasHoldFinal = false;
+  const groups = runs.map((run) => {
+    const attrs = extraAttrs ? extraAttrs(run.sample) : "";
+    const delaySec = (seconds * run.firstIdx) / intervals;
+    if (run.isLast) {
+      if (run.count === 1) {
+        return `<g class="sm-f sm-last" data-frame="${run.firstIdx}"${attrs} data-time-ms="${number(run.sample.timeMs, 1)}">${run.inner}</g>`;
+      }
+      hasHoldFinal = true;
+      const delayStyle = run.firstIdx > 0 ? ` style="animation-delay:${number(delaySec, 4)}s"` : "";
+      return `<g class="sm-f sm-hold" data-frame="${run.firstIdx}"${attrs} data-time-ms="${number(run.sample.timeMs, 1)}"${delayStyle}>${run.inner}</g>`;
+    }
+    if (run.count === 1) {
+      return `<g class="sm-f" data-frame="${run.firstIdx}"${attrs} data-time-ms="${number(run.sample.timeMs, 1)}" style="animation-delay:${number(delaySec, 4)}s">${run.inner}</g>`;
+    }
+    extraCounts.add(run.count);
+    return `<g class="sm-f" data-frame="${run.firstIdx}"${attrs} data-time-ms="${number(run.sample.timeMs, 1)}" style="animation-name:sm-s${run.count};animation-delay:${number(delaySec, 4)}s">${run.inner}</g>`;
+  });
+
+  const extraKeyframes = [...extraCounts]
+    .sort((a, b) => a - b)
+    .map((count) => {
+      const pct = number(Math.min(100, (count * 100) / intervals), 4);
+      return `@keyframes sm-s${count}{0%{visibility:visible}${pct}%{visibility:hidden}100%{visibility:hidden}}`;
+    })
+    .join("");
+
+  return {
+    frameGroups: groups.join(""),
+    extraKeyframes,
+    hasHoldFinal
+  };
 }
 
 function renderBlueprintAnimatedSvg(
@@ -1037,16 +1114,11 @@ function renderBlueprintAnimatedSvg(
   const firstGroundY = samples[0]?.groundY ?? canvas.height * 0.82;
   const backdrop = renderBlueprintStageBackdropSvg(canvas.width, canvas.height, firstGroundY, v2Spec?.anchors, 2);
 
-  const frameGroups = samples
-    .map((sample, idx) => {
-      const inner = renderBlueprintFrameSceneSvg(sample, canvas.width, 2);
-      if (idx === samples.length - 1) {
-        return `<g class="sm-f sm-last" data-frame="${idx}" data-time-ms="${number(sample.timeMs, 1)}">${inner}</g>`;
-      }
-      const delaySec = (seconds * idx) / intervals;
-      return `<g class="sm-f" data-frame="${idx}" data-time-ms="${number(sample.timeMs, 1)}" style="animation-delay:${number(delaySec, 4)}s">${inner}</g>`;
-    })
-    .join("");
+  const { frameGroups, extraKeyframes, hasHoldFinal } = buildCoalescedSvgSlices(
+    samples,
+    (sample) => renderBlueprintFrameSceneSvg(sample, canvas.width, 2),
+    seconds
+  );
 
   const reducedSample = sampleAnimation(program, durationMs, "reduced");
   const reducedInner = renderBlueprintFrameSceneSvg(reducedSample, canvas.width, 2);
@@ -1055,9 +1127,12 @@ function renderBlueprintAnimatedSvg(
     `${BLUEPRINT_STAGE_STYLE}` +
     `.sm-f{visibility:hidden;animation:sm-slice ${durStr} steps(1,end) 0s 1 normal forwards}` +
     `.sm-f.sm-last{animation-name:sm-final}` +
+    (hasHoldFinal ? `.sm-f.sm-hold{animation-name:sm-hold}` : "") +
     `.sm-reduced{display:none}` +
     `@keyframes sm-slice{0%{visibility:visible}${slicePercent}%{visibility:hidden}100%{visibility:hidden}}` +
+    `${extraKeyframes}` +
     `@keyframes sm-final{0%{visibility:hidden}100%{visibility:visible}}` +
+    (hasHoldFinal ? `@keyframes sm-hold{0%{visibility:visible}100%{visibility:visible}}` : "") +
     `@media (prefers-reduced-motion:reduce){.sm-f{animation:none!important;visibility:hidden!important}.sm-reduced{display:inline}}`;
 
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -1097,16 +1172,11 @@ function renderMultiSceneAnimatedSvg(
     return renderCameraGroupSvg(sample, canvas.width, canvas.height, `${groundLine}${inner}`, 2);
   };
 
-  const frameGroups = samples
-    .map((sample, idx) => {
-      const inner = renderAnimatedFrameBody(sample);
-      if (idx === samples.length - 1) {
-        return `<g class="sm-f sm-last" data-frame="${idx}" data-time-ms="${number(sample.timeMs, 1)}">${inner}</g>`;
-      }
-      const delaySec = (seconds * idx) / intervals;
-      return `<g class="sm-f" data-frame="${idx}" data-time-ms="${number(sample.timeMs, 1)}" style="animation-delay:${number(delaySec, 4)}s">${inner}</g>`;
-    })
-    .join("");
+  const { frameGroups, extraKeyframes, hasHoldFinal } = buildCoalescedSvgSlices(
+    samples,
+    (sample) => renderAnimatedFrameBody(sample),
+    seconds
+  );
 
   const reducedSample = sampleAnimation(program, durationMs, "reduced");
   const reducedInner = renderAnimatedFrameBody(reducedSample);
@@ -1114,9 +1184,12 @@ function renderMultiSceneAnimatedSvg(
   const style =
     `.sm-f{visibility:hidden;animation:sm-slice ${durStr} steps(1,end) 0s 1 normal forwards}` +
     `.sm-f.sm-last{animation-name:sm-final}` +
+    (hasHoldFinal ? `.sm-f.sm-hold{animation-name:sm-hold}` : "") +
     `.sm-reduced{display:none}` +
     `@keyframes sm-slice{0%{visibility:visible}${slicePercent}%{visibility:hidden}100%{visibility:hidden}}` +
+    `${extraKeyframes}` +
     `@keyframes sm-final{0%{visibility:hidden}100%{visibility:visible}}` +
+    (hasHoldFinal ? `@keyframes sm-hold{0%{visibility:visible}100%{visibility:visible}}` : "") +
     `@media (prefers-reduced-motion:reduce){.sm-f{animation:none!important;visibility:hidden!important}.sm-reduced{display:inline}}`;
 
   if (hasCamera) {
@@ -1255,124 +1328,12 @@ button{cursor:pointer}button:hover,select:hover{border-color:var(--cp-accent)}bu
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 `;
 
-function collectBakedTimestamps(program: CompiledAnimation): number[] {
-  const { durationMs, canvas } = program.spec;
-  const raw = new Set<number>([0, durationMs]);
-  const steps = Math.max(1, Math.ceil((durationMs * canvas.fps) / 1000));
-  for (let i = 0; i <= steps; i++) {
-    raw.add(Math.min(durationMs, Number(((i * 1000) / canvas.fps).toFixed(3))));
-  }
-  for (const event of program.events ?? []) {
-    if (Number.isFinite(event.timeMs)) {
-      raw.add(Math.max(0, Math.min(durationMs, Number(event.timeMs.toFixed(3)))));
-    }
-  }
-  if (program.contractVersion === CONTRACT_VERSION_V2) {
-    const v2 = program.spec as AnimationSpecV2;
-    for (const actor of v2.actors) {
-      for (const act of actor.actions) {
-        raw.add(Math.max(0, Math.min(durationMs, act.startMs)));
-        raw.add(Math.max(0, Math.min(durationMs, act.startMs + act.durationMs)));
-      }
-    }
-  } else {
-    const v1 = program.spec as AnimationSpec;
-    for (const act of v1.actions) {
-      raw.add(Math.max(0, Math.min(durationMs, act.startMs)));
-      raw.add(Math.max(0, Math.min(durationMs, act.startMs + act.durationMs)));
-    }
-  }
-  const sorted = [...raw].sort((a, b) => a - b);
-  const deduped: number[] = [];
-  for (const t of sorted) {
-    if (deduped.length === 0 || t - deduped[deduped.length - 1]! >= 0.5 || t === durationMs) {
-      if (deduped.length > 0 && t === durationMs && durationMs - deduped[deduped.length - 1]! < 0.5) {
-        deduped[deduped.length - 1] = durationMs;
-      } else {
-        deduped.push(t);
-      }
-    }
-  }
-  return deduped;
-}
-
-interface BakedHtmlFrame {
-  timeMs: number;
-  action: string;
-  groundY: number;
-  markup: string;
-}
-
 function renderBakedHtml(program: CompiledAnimation, style: RenderStyle): string {
-  const { canvas, durationMs } = program.spec;
-  const v2Spec = program.contractVersion === CONTRACT_VERSION_V2 ? (program.spec as AnimationSpecV2) : undefined;
-  const defaultColor = program.spec.actor?.color ?? "#202124";
-  const themeAccentColor = v2Spec?.theme?.accentColor;
-  const renderOpts: SceneRenderOptions = {
-    defaultColor,
-    ...(themeAccentColor !== undefined ? { themeAccentColor } : {}),
-    decimals: 2
-  };
-  const renderFrameMarkup = (frame: SampledFrame): string => {
-    const base =
-      style === "blueprint"
-        ? renderBlueprintFrameSceneSvg(frame, canvas.width, 2)
-        : renderSceneInnerSvg(frame, renderOpts);
-    if (style !== "blueprint" && frame.camera) {
-      const groundLine = `<path id="ground" d="M0 ${number(frame.groundY)}H${canvas.width}" stroke="#d8dbe0" stroke-width="1"/>`;
-      return renderCameraGroupSvg(frame, canvas.width, canvas.height, `${groundLine}${base}`, 2);
-    }
-    return base;
-  };
-
+  const { durationMs } = program.spec;
   const svg = renderSvgFrame(program, 0, "normal", { style });
   const controls = `<label>Motion mode <select id="mode"><option value="normal">Normal</option><option value="reduced">Reduced</option><option value="static">Static</option></select></label><label>Playhead <input id="seek" type="range" min="0" max="${durationMs}" step="1" value="0"></label><output id="timecode" class="cp-timecode" data-timecode="true" for="seek">0.00s / ${(durationMs / 1000).toFixed(2)}s</output><button id="toggle" type="button">Pause</button>`;
-
-  const timestamps = collectBakedTimestamps(program);
-  const bakedFrames: BakedHtmlFrame[] = timestamps.map((t) => {
-    const frame = sampleAnimation(program, t, "normal");
-    return {
-      timeMs: Number(frame.timeMs.toFixed(3)),
-      action: frame.action,
-      groundY: Number(frame.groundY.toFixed(3)),
-      markup: renderFrameMarkup(frame)
-    };
-  });
-
-  const reducedSample = sampleAnimation(program, durationMs, "reduced");
-  const bakedReduced: BakedHtmlFrame = {
-    timeMs: Number(reducedSample.timeMs.toFixed(3)),
-    action: reducedSample.action,
-    groundY: Number(reducedSample.groundY.toFixed(3)),
-    markup: renderFrameMarkup(reducedSample)
-  };
-
-  const script = `(()=>{"use strict";const program=${scriptJson(program)};const frames=${scriptJson(bakedFrames)};const reducedFrame=${scriptJson(bakedReduced)};const lookup=(timeMs,mode)=>{if(mode!=="normal")return reducedFrame;const clamped=Math.max(0,Math.min(program.spec.durationMs,timeMs));let lo=0,hi=frames.length-1;while(lo<hi){const mid=(lo+hi+1)>>1;if(frames[mid].timeMs<=clamped+1e-6)lo=mid;else hi=mid-1;}return frames[lo];};const svg=document.querySelector("#stage svg");const sceneEl=document.getElementById("scene")||(document.querySelector?document.querySelector("#scene"):null);const groundEl=document.getElementById("ground")||(document.querySelector?document.querySelector("#ground"):null);
-const modeSelect=document.querySelector("#mode"),seek=document.querySelector("#seek"),toggle=document.querySelector("#toggle"),timecode=document.getElementById?document.getElementById("timecode"):null;
-const duration=program.spec.durationMs;
-let mode=matchMedia("(prefers-reduced-motion: reduce)").matches?"reduced":"normal";
-modeSelect.value=mode;let time=0;let playing=mode==="normal";let previous=0;let requestId=null;
-toggle.textContent=playing?"Pause":"Play";
-function draw(){
-const frameDuration=1000/program.spec.canvas.fps;
-const sampleTime=mode==="normal"?Math.min(duration,Math.floor(time/frameDuration+1e-9)*frameDuration):duration;
-const frame=lookup(mode==="normal"?time:sampleTime,mode);
-if(sceneEl){sceneEl.innerHTML=frame.markup;if(sceneEl.setAttribute){sceneEl.setAttribute("data-time-ms",String(frame.timeMs));sceneEl.setAttribute("data-action",frame.action);}}
-if(groundEl)groundEl.setAttribute("d","M0 "+frame.groundY+"H"+program.spec.canvas.width);
-if(svg)svg.setAttribute("aria-label","Stick figure "+frame.action+" at "+frame.timeMs+" milliseconds");
-const shownMs=mode==="normal"?frame.timeMs:duration;
-seek.value=String(Math.round(shownMs));
-if(timecode)timecode.textContent=(shownMs/1000).toFixed(2)+"s / "+(duration/1000).toFixed(2)+"s";
-}
-function stop(){playing=false;previous=0;if(requestId!==null){cancelAnimationFrame(requestId);requestId=null;}toggle.textContent="Play";}
-function schedule(){if(playing&&requestId===null)requestId=requestAnimationFrame(tick);}
-const events=program.events||[];let emitted=-1;function emit(from,to){for(const e of events){if(e.timeMs>from&&e.timeMs<=to){const detail={...e};if(document.dispatchEvent)document.dispatchEvent(new CustomEvent("stickman:marker",{detail}));if(typeof window!=="undefined"&&window.parent&&window.parent!==window)window.parent.postMessage({type:"stickman:marker",...detail},"*");}}}
-function tick(now){requestId=null;if(!playing)return;if(previous)time+=now-previous;previous=now;if(time>=duration){time=duration;stop();}const before=emitted;emitted=time;emit(before,time);draw();schedule();}
-function start(){if(mode!=="normal"){mode="normal";modeSelect.value=mode;}if(time>=duration)time=0;emitted=time>0?time:-1;playing=true;previous=0;toggle.textContent="Pause";draw();schedule();}
-modeSelect.addEventListener("change",()=>{stop();mode=modeSelect.value;if(mode==="normal"){time=0;start();}else{time=duration;draw();}});
-seek.addEventListener("input",()=>{time=Number(seek.value);emitted=time;previous=0;draw();});
-toggle.addEventListener("click",()=>{if(playing)stop();else start();});
-draw();schedule();})();`;
+  const payload = buildCompactPlayerPayload(program, { style });
+  const script = renderCompactPlayerScript(payload);
 
   return `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Stickman animation</title>
 <script>(()=>{const param=new URLSearchParams(window.location.search).get("scoutTheme");const theme=param||(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.setAttribute("data-theme",theme);})();</script>

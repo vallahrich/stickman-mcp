@@ -30,12 +30,14 @@ import { escapeXml, renderBlueprintDefsSvg, renderBlueprintPatternsSvg } from ".
 import {
   BLUEPRINT_STAGE_STYLE,
   HTML_SHELL_STYLE,
+  buildCoalescedSvgSlices,
   renderBlueprintFrameSceneSvg,
   renderBlueprintStageBackdropSvg,
   renderSceneInnerSvg,
   type RenderStyleOptions,
   type SceneRenderOptions
 } from "./render.js";
+import { buildCompactPlayerPayload, renderCompactPlayerScript } from "./player-runtime.js";
 import {
   selectStoryboardTimestamps,
   type StoryboardOptions,
@@ -94,15 +96,6 @@ function num(value: number, decimals = 2): string {
 function hermite(t: number): number {
   const u = clamp01(t);
   return u * u * (3 - 2 * u);
-}
-
-function scriptJson(value: unknown): string {
-  return JSON.stringify(value)
-    .replaceAll("<", "\\u003c")
-    .replaceAll(">", "\\u003e")
-    .replaceAll("&", "\\u0026")
-    .replaceAll("\u2028", "\\u2028")
-    .replaceAll("\u2029", "\\u2029");
 }
 
 export function isCompiledMovie(value: unknown): value is CompiledMovie {
@@ -804,20 +797,24 @@ function renderSingleMovieSceneWorld(
   frame: SampledMovieFrame,
   style: RenderStyle,
   decimals: number,
-  compact = false
+  compact = false,
+  transparent = false,
+  hoistBackdrop?: (markup: string) => string
 ): string {
   const { width, height } = movie.spec.canvas;
   const theme = sceneThemeFor(movie, scene);
   const v2 = scene.program.contractVersion === CONTRACT_VERSION_V2 ? (scene.program.spec as AnimationSpecV2) : undefined;
   const defaultColor = scene.program.spec.actor?.color ?? "#202124";
-  const backdropMarkup = renderBackdropSvg(frame.backdrop, width, height, frame.groundY, {
+  const rawBackdrop = renderBackdropSvg(frame.backdrop, width, height, frame.groundY, {
     blueprint: style === "blueprint",
     ...(theme.accentColor !== undefined ? { accentColor: theme.accentColor } : {}),
     decimals
   });
+  const backdropMarkup = rawBackdrop && hoistBackdrop ? hoistBackdrop(rawBackdrop) : rawBackdrop;
 
   if (style === "blueprint") {
-    const bpStage = renderBlueprintStageBackdropSvg(width, height, frame.groundY, v2?.anchors, decimals);
+    const rawBpStage = renderBlueprintStageBackdropSvg(width, height, frame.groundY, v2?.anchors, decimals, transparent);
+    const bpStage = hoistBackdrop ? hoistBackdrop(rawBpStage) : rawBpStage;
     const bpInner = renderBlueprintFrameSceneSvg(frame, width, decimals);
     return `${bpStage}${backdropMarkup}${bpInner}`;
   }
@@ -845,7 +842,9 @@ function renderTransitionOverlaySvg(
   frame: SampledMovieFrame,
   style: RenderStyle,
   decimals: number,
-  clipPrefix: string
+  clipPrefix: string,
+  transparent = false,
+  hoistBackdrop?: (markup: string) => string
 ): { defs: string; overlay: string } {
   const tr = frame.transitionOverlay;
   if (!tr || tr.progress <= 0.001) return { defs: "", overlay: "" };
@@ -857,9 +856,10 @@ function renderTransitionOverlaySvg(
   const nextTheme = sceneThemeFor(movie, nextScene);
   const nextBg = style === "blueprint" ? "#f8fafc" : (nextTheme.background ?? "#ffffff");
   const nextFrame = sampleMovie(movie, nextScene.startMs, "normal");
+  const nextBgRect = transparent ? "" : `<rect width="${width}" height="${height}" fill="${escapeXml(nextBg)}"/>`;
   const nextWorld =
-    `<rect width="${width}" height="${height}" fill="${escapeXml(nextBg)}"/>` +
-    renderSingleMovieSceneWorld(movie, nextScene, nextFrame, style, decimals, false);
+    nextBgRect +
+    renderSingleMovieSceneWorld(movie, nextScene, nextFrame, style, decimals, false, transparent, hoistBackdrop);
 
   if (tr.kind === "fade") {
     return {
@@ -891,14 +891,15 @@ export function renderMovieSvgFrame(
   options?: RenderStyleOptions
 ): string {
   const style = resolveMovieRenderStyle(movie, options);
+  const transparent = options?.transparent === true;
   const frame = sampleMovie(movie, timeMs, mode);
   const scene = movie.scenes[frame.sceneIndex]!;
   const { width, height } = movie.spec.canvas;
   const theme = sceneThemeFor(movie, scene);
   const background = style === "blueprint" ? "#f8fafc" : (theme.background ?? "#ffffff");
 
-  const world = renderSingleMovieSceneWorld(movie, scene, frame, style, 3, false);
-  const trans = renderTransitionOverlaySvg(movie, frame, style, 3, "sm-mv-frame");
+  const world = renderSingleMovieSceneWorld(movie, scene, frame, style, 3, false, transparent);
+  const trans = renderTransitionOverlaySvg(movie, frame, style, 3, "sm-mv-frame", transparent);
   const styleAttr = style === "blueprint" ? ' data-style="blueprint"' : "";
   const extraDefs =
     style === "blueprint"
@@ -906,11 +907,12 @@ export function renderMovieSvgFrame(
       : `<defs><clipPath id="sm-cam-clip"><rect width="${width}" height="${height}"/></clipPath>${trans.defs}</defs>`;
   const sceneClip = style === "blueprint" ? "" : ' clip-path="url(#sm-cam-clip)"';
   const ariaLabel = `Stickman movie scene ${frame.sceneId} (${frame.action}) at ${num(frame.timeMs, 1)} milliseconds`;
+  const bgRect = transparent ? "" : `<rect width="100%" height="100%" fill="${escapeXml(background)}"/>`;
 
   return (
     `<svg xmlns="http://www.w3.org/2000/svg"${styleAttr} data-movie-scene="${escapeXml(frame.sceneId)}" data-scene-index="${frame.sceneIndex}" role="img" aria-label="${escapeXml(ariaLabel)}" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">` +
     `${extraDefs}` +
-    `<rect width="100%" height="100%" fill="${escapeXml(background)}"/>` +
+    `${bgRect}` +
     `<g id="scene"${sceneClip}>${world}${trans.overlay}</g>` +
     `</svg>`
   );
@@ -933,27 +935,43 @@ export function renderMovieAnimatedSvg(
   const slicePercent = num(100 / intervals, 4);
   const durStr = `${num(seconds, 4)}s`;
   const wipeDefs: string[] = [];
+  const hoistedDefs: string[] = [];
+  const hoistedMap = new Map<string, string>();
+  const hoistBackdrop = (markup: string): string => {
+    let id = hoistedMap.get(markup);
+    if (!id) {
+      id = `sm-bd-${hoistedDefs.length}`;
+      hoistedMap.set(markup, id);
+      hoistedDefs.push(`<g id="${id}">${markup}</g>`);
+    }
+    return `<use href="#${id}"/>`;
+  };
+
+  const sceneBgs = new Set(
+    movie.scenes.map((scene) =>
+      style === "blueprint" ? "#f8fafc" : (sceneThemeFor(movie, scene).background ?? "#ffffff")
+    )
+  );
+  const sharedBg = sceneBgs.size === 1 ? [...sceneBgs][0]! : undefined;
 
   const renderFrameBody = (sample: SampledMovieFrame, clipKey: string): string => {
     const scene = movie.scenes[sample.sceneIndex]!;
     const theme = sceneThemeFor(movie, scene);
     const bg = style === "blueprint" ? "#f8fafc" : (theme.background ?? "#ffffff");
-    const world = renderSingleMovieSceneWorld(movie, scene, sample, style, 2, false);
-    const trans = renderTransitionOverlaySvg(movie, sample, style, 2, clipKey);
+    const world = renderSingleMovieSceneWorld(movie, scene, sample, style, 2, false, false, hoistBackdrop);
+    const trans = renderTransitionOverlaySvg(movie, sample, style, 2, clipKey, false, hoistBackdrop);
     if (trans.defs) wipeDefs.push(trans.defs);
-    return `<rect width="${width}" height="${height}" fill="${escapeXml(bg)}"/>${world}${trans.overlay}`;
+    const bgRect = sharedBg !== undefined ? "" : `<rect width="${width}" height="${height}" fill="${escapeXml(bg)}"/>`;
+    return `${bgRect}${world}${trans.overlay}`;
   };
 
-  const frameGroups = samples
-    .map((sample, idx) => {
-      const inner = renderFrameBody(sample, `sm-mv-f${idx}`);
-      if (idx === samples.length - 1) {
-        return `<g class="sm-f sm-last" data-frame="${idx}" data-scene="${escapeXml(sample.sceneId)}" data-time-ms="${num(sample.timeMs, 1)}">${inner}</g>`;
-      }
-      const delaySec = (seconds * idx) / intervals;
-      return `<g class="sm-f" data-frame="${idx}" data-scene="${escapeXml(sample.sceneId)}" data-time-ms="${num(sample.timeMs, 1)}" style="animation-delay:${num(delaySec, 4)}s">${inner}</g>`;
-    })
-    .join("");
+  const { frameGroups, extraKeyframes, hasHoldFinal } = buildCoalescedSvgSlices(
+    samples,
+    (sample, idx) => renderFrameBody(sample, `sm-mv-f${idx}`),
+    seconds,
+    (sample) => ` data-scene="${escapeXml(sample.sceneId)}"`,
+    (a, b) => a.sceneId === b.sceneId
+  );
 
   const reducedSample = sampleMovie(movie, durationMs, "reduced");
   const reducedInner = renderFrameBody(reducedSample, "sm-mv-reduced");
@@ -962,66 +980,31 @@ export function renderMovieAnimatedSvg(
     `${style === "blueprint" ? BLUEPRINT_STAGE_STYLE : ""}` +
     `.sm-f{visibility:hidden;animation:sm-slice ${durStr} steps(1,end) 0s 1 normal forwards}` +
     `.sm-f.sm-last{animation-name:sm-final}` +
+    (hasHoldFinal ? `.sm-f.sm-hold{animation-name:sm-hold}` : "") +
     `.sm-reduced{display:none}` +
     `@keyframes sm-slice{0%{visibility:visible}${slicePercent}%{visibility:hidden}100%{visibility:hidden}}` +
+    `${extraKeyframes}` +
     `@keyframes sm-final{0%{visibility:hidden}100%{visibility:visible}}` +
+    (hasHoldFinal ? `@keyframes sm-hold{0%{visibility:visible}100%{visibility:visible}}` : "") +
     `@media (prefers-reduced-motion:reduce){.sm-f{animation:none!important;visibility:hidden!important}.sm-reduced{display:inline}}`;
 
   const defs =
     `<defs><clipPath id="sm-cam-clip"><rect width="${width}" height="${height}"/></clipPath>` +
     `${style === "blueprint" ? renderBlueprintPatternsSvg() : ""}` +
+    `${hoistedDefs.join("")}` +
     `${wipeDefs.join("")}</defs>`;
   const styleAttr = style === "blueprint" ? ' data-style="blueprint"' : "";
   const ariaLabel = movie.spec.title
     ? `Deterministic stickman movie: ${movie.spec.title}`
     : "Deterministic stickman movie";
+  const sharedBgRect = sharedBg !== undefined ? `<rect width="100%" height="100%" fill="${escapeXml(sharedBg)}"/>` : "";
 
   return (
     `<?xml version="1.0" encoding="UTF-8"?>\n` +
     `<svg xmlns="http://www.w3.org/2000/svg"${styleAttr} viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="img" aria-label="${escapeXml(ariaLabel)}">\n` +
     `${defs}<style>${css}</style>\n` +
-    `<g clip-path="url(#sm-cam-clip)">${frameGroups}<g class="sm-reduced">${reducedInner}</g></g></svg>`
+    `${sharedBgRect}<g clip-path="url(#sm-cam-clip)">${frameGroups}<g class="sm-reduced">${reducedInner}</g></g></svg>`
   );
-}
-
-interface BakedMovieHtmlFrame {
-  timeMs: number;
-  sceneId: string;
-  sceneIndex: number;
-  action: string;
-  markup: string;
-  defs: string;
-}
-
-function collectMovieBakedTimestamps(movie: CompiledMovie): number[] {
-  const { fps } = movie.spec.canvas;
-  const durationMs = movie.durationMs;
-  const raw = new Set<number>([0, durationMs]);
-  const steps = Math.max(1, Math.ceil((durationMs * fps) / 1000));
-  for (let i = 0; i <= steps; i++) {
-    raw.add(Math.min(durationMs, Number(((i * 1000) / fps).toFixed(3))));
-  }
-  for (const scene of movie.scenes) {
-    raw.add(scene.startMs);
-    raw.add(scene.endMs);
-  }
-  for (const ev of movie.events) {
-    if (Number.isFinite(ev.timeMs)) {
-      raw.add(clamp(Number(ev.timeMs.toFixed(3)), 0, durationMs));
-    }
-  }
-  const sorted = [...raw].sort((a, b) => a - b);
-  const deduped: number[] = [];
-  for (const t of sorted) {
-    if (deduped.length === 0 || t - deduped[deduped.length - 1]! >= 0.5 || t === durationMs) {
-      if (deduped.length > 0 && t === durationMs && durationMs - deduped[deduped.length - 1]! < 0.5) {
-        deduped[deduped.length - 1] = durationMs;
-      } else {
-        deduped.push(t);
-      }
-    }
-  }
-  return deduped;
 }
 
 export function renderMovieHtml(
@@ -1029,31 +1012,7 @@ export function renderMovieHtml(
   options?: RenderStyleOptions
 ): string {
   const style = resolveMovieRenderStyle(movie, options);
-  const { width, height, fps } = movie.spec.canvas;
   const durationMs = movie.durationMs;
-  const timestamps = collectMovieBakedTimestamps(movie);
-
-  const bakeFrame = (frame: SampledMovieFrame, clipPrefix: string): BakedMovieHtmlFrame => {
-    const scene = movie.scenes[frame.sceneIndex]!;
-    const theme = sceneThemeFor(movie, scene);
-    const bg = style === "blueprint" ? "#f8fafc" : (theme.background ?? "#ffffff");
-    const world = renderSingleMovieSceneWorld(movie, scene, frame, style, 2, false);
-    const trans = renderTransitionOverlaySvg(movie, frame, style, 2, clipPrefix);
-    return {
-      timeMs: Number(frame.timeMs.toFixed(3)),
-      sceneId: frame.sceneId,
-      sceneIndex: frame.sceneIndex,
-      action: frame.action,
-      markup: `<rect width="${width}" height="${height}" fill="${escapeXml(bg)}"/>${world}${trans.overlay}`,
-      defs: trans.defs
-    };
-  };
-
-  const bakedFrames = timestamps.map((t, idx) =>
-    bakeFrame(sampleMovie(movie, t, "normal"), `sm-mv-h${idx}`)
-  );
-  const reducedFrame = bakeFrame(sampleMovie(movie, durationMs, "reduced"), "sm-mv-hr");
-
   const initialSvg = renderMovieSvgFrame(movie, 0, "normal", { style });
   const scenesMeta = movie.scenes.map((scene) => ({
     id: scene.id,
@@ -1077,20 +1036,12 @@ export function renderMovieHtml(
     `<output id="timecode" class="cp-timecode" data-timecode="true" for="seek">0.00s / ${(durationMs / 1000).toFixed(2)}s</output>` +
     `<button id="toggle" type="button">Pause</button>`;
 
-  const movieMeta = {
-    contractVersion: movie.contractVersion,
-    title: movie.spec.title ?? "Stickman movie",
-    durationMs,
-    fps,
-    scenes: scenesMeta,
-    events: movie.events
-  };
-
   const extraCss =
     `.cp-chapters{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem}` +
     `.cp-chapter[aria-current="true"]{border-color:var(--cp-accent);background:var(--cp-accent-soft);color:var(--cp-text);font-weight:600}`;
 
-  const script = `(()=>{"use strict";const movie=${scriptJson(movieMeta)};const frames=${scriptJson(bakedFrames)};const reducedFrame=${scriptJson(reducedFrame)};const lookup=(timeMs,mode)=>{if(mode!=="normal")return reducedFrame;const clamped=Math.max(0,Math.min(movie.durationMs,timeMs));let lo=0,hi=frames.length-1;while(lo<hi){const mid=(lo+hi+1)>>1;if(frames[mid].timeMs<=clamped+1e-6)lo=mid;else hi=mid-1;}return frames[lo];};const svg=document.querySelector("#stage svg");const sceneEl=document.getElementById("scene")||(document.querySelector?document.querySelector("#scene"):null);const modeSelect=document.querySelector("#mode"),seek=document.querySelector("#seek"),toggle=document.querySelector("#toggle"),timecode=document.getElementById?document.getElementById("timecode"):null;const chapters=Array.from(document.querySelectorAll?document.querySelectorAll(".cp-chapter"):[]);const duration=movie.durationMs;let mode=matchMedia("(prefers-reduced-motion: reduce)").matches?"reduced":"normal";modeSelect.value=mode;let time=0;let playing=mode==="normal";let previous=0;let requestId=null;toggle.textContent=playing?"Pause":"Play";const dynDefsId="sm-mv-dyn-defs";function ensureDefs(defsMarkup){if(!svg)return;let defs=svg.querySelector("#"+dynDefsId);if(!defs&&defsMarkup){defs=document.createElementNS("http://www.w3.org/2000/svg","defs");defs.setAttribute("id",dynDefsId);svg.insertBefore(defs,svg.firstChild);}if(defs)defs.innerHTML=defsMarkup||"";}function draw(){const frame=lookup(time,mode);ensureDefs(frame.defs);if(sceneEl){sceneEl.innerHTML=frame.markup;if(sceneEl.setAttribute){sceneEl.setAttribute("data-time-ms",String(frame.timeMs));sceneEl.setAttribute("data-scene",frame.sceneId);sceneEl.setAttribute("data-action",frame.action);}}if(svg){svg.setAttribute("data-movie-scene",frame.sceneId);svg.setAttribute("data-scene-index",String(frame.sceneIndex));svg.setAttribute("aria-label","Stickman movie scene "+frame.sceneId+" ("+frame.action+") at "+frame.timeMs+" milliseconds");}for(const btn of chapters){btn.setAttribute("aria-current",btn.getAttribute("data-scene-id")===frame.sceneId?"true":"false");}const shownMs=mode==="normal"?frame.timeMs:duration;seek.value=String(Math.round(shownMs));if(timecode)timecode.textContent=(shownMs/1000).toFixed(2)+"s / "+(duration/1000).toFixed(2)+"s";}function stop(){playing=false;previous=0;if(requestId!==null){cancelAnimationFrame(requestId);requestId=null;}toggle.textContent="Play";}function schedule(){if(playing&&requestId===null)requestId=requestAnimationFrame(tick);}const events=movie.events||[];let emitted=-1;function emit(from,to){for(const e of events){if(e.timeMs>from&&e.timeMs<=to){const detail={...e};if(document.dispatchEvent)document.dispatchEvent(new CustomEvent("stickman:marker",{detail}));if(typeof window!=="undefined"&&window.parent&&window.parent!==window)window.parent.postMessage({type:"stickman:marker",...detail},"*");}}}function tick(now){requestId=null;if(!playing)return;if(previous)time+=now-previous;previous=now;if(time>=duration){time=duration;stop();}const before=emitted;emitted=time;emit(before,time);draw();schedule();}function start(){if(mode!=="normal"){mode="normal";modeSelect.value=mode;}if(time>=duration)time=0;emitted=time>0?time:-1;playing=true;previous=0;toggle.textContent="Pause";draw();schedule();}modeSelect.addEventListener("change",()=>{stop();mode=modeSelect.value;if(mode==="normal"){time=0;start();}else{time=duration;draw();}});seek.addEventListener("input",()=>{time=Number(seek.value);emitted=time;previous=0;draw();});toggle.addEventListener("click",()=>{if(playing)stop();else start();});for(const btn of chapters){btn.addEventListener("click",()=>{time=Number(btn.getAttribute("data-scene-jump")||"0");emitted=time;previous=0;draw();});}draw();schedule();})();`;
+  const payload = buildCompactPlayerPayload(movie, { style });
+  const script = renderCompactPlayerScript(payload);
 
   const title = movie.spec.title ?? "Stickman movie";
   return (
