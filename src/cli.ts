@@ -2,7 +2,9 @@
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 import {
+  CONTRACT_VERSION_MOVIE,
   CONTRACT_VERSION_V2,
+  DECK_EMBED_TARGETS,
   actionCatalog,
   analyzeStoryboard,
   animationSchema,
@@ -10,10 +12,18 @@ import {
   choreographAnimation,
   compileAnimation,
   compileV2Animation,
+  composeMovie,
   describeAction,
+  evaluateAnimationQuality,
   exportAnimation,
+  generateDeckEmbed,
+  isCompiledMovie,
+  isDeckEmbedTarget,
+  movieSchema,
   queryActionCatalog,
   renderArtifact,
+  renderCritiqueSheetSvg,
+  renderMovieStoryboardSvg,
   renderStoryboardSvg,
   validateAnimation,
   validateV2Animation,
@@ -22,17 +32,29 @@ import {
   type AnimationSpecV2,
   type CompileResult,
   type CompiledAnimation,
+  type Diagnostic,
   type ExportFormat,
+  type ExportableProgram,
+  type MovieSpecInput,
   type PlaybackMode,
   type RenderStyle,
+  type StoryboardAnalysis,
   type StoryboardTheme,
   type ValidationResult
 } from "./index.js";
 
-const BOOLEAN_FLAGS = new Set(["lint-only", "blueprint"]);
+const BOOLEAN_FLAGS = new Set([
+  "lint-only",
+  "blueprint",
+  "json",
+  "critique",
+  "controls",
+  "scroll-scrub",
+  "transparent"
+]);
 type PreviewFormat = "svg-frame" | "svg" | "html" | "storyboard-svg";
 const PREVIEW_FORMATS: readonly PreviewFormat[] = ["svg-frame", "svg", "html", "storyboard-svg"];
-const EXPORT_FORMATS: readonly ExportFormat[] = ["svg-frame", "svg", "html", "storyboard-svg", "gif", "mp4"];
+const EXPORT_FORMATS: readonly ExportFormat[] = ["svg-frame", "svg", "html", "storyboard-svg", "gif", "mp4", "webm"];
 
 function parseArgs(args: string[]): { command: string; values: Map<string, string>; flags: Set<string> } {
   const [command = "help", ...rest] = args;
@@ -108,7 +130,19 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isMovieInput(value: unknown): value is MovieSpecInput {
+  return (
+    isRecord(value) &&
+    (value.version === CONTRACT_VERSION_MOVIE ||
+      (Array.isArray(value.scenes) && value.version === undefined))
+  );
+}
+
 function validateAnyAnimation(input: unknown): ValidationResult {
+  if (isMovieInput(input)) {
+    const composed = composeMovie(input);
+    return { valid: composed.valid, diagnostics: composed.diagnostics };
+  }
   if (isRecord(input) && input.version === undefined) {
     return validateV2Animation(input);
   }
@@ -120,6 +154,75 @@ function compileAnyAnimation(input: unknown): CompileResult {
     return compileV2Animation(input);
   }
   return compileAnimation(input);
+}
+
+function compileOrComposeInput(
+  input: unknown
+): { valid: true; diagnostics: Diagnostic[]; target: ExportableProgram } | { valid: false; diagnostics: Diagnostic[] } {
+  if (isMovieInput(input)) {
+    const composed = composeMovie(input);
+    if (!composed.valid || !composed.movie) {
+      return { valid: false, diagnostics: composed.diagnostics };
+    }
+    return { valid: true, diagnostics: [], target: composed.movie };
+  }
+  const compiled = compileAnyAnimation(input);
+  if (!compiled.valid || !compiled.program) {
+    return { valid: false, diagnostics: compiled.diagnostics };
+  }
+  return { valid: true, diagnostics: [], target: compiled.program };
+}
+
+function analyzeProgramOrMovieStoryboard(target: ExportableProgram): StoryboardAnalysis {
+  if (!isCompiledMovie(target)) {
+    return analyzeStoryboard(target);
+  }
+  const timestampsMs: number[] = [];
+  const actorIds = new Set<string>();
+  const addonTypes = new Set<StoryboardAnalysis["addonTypes"][number]>();
+  const outOfBoundsFrames: StoryboardAnalysis["outOfBoundsFrames"] = [];
+  const seamStepByActorPx: Record<string, number> = {};
+  const actorOverlapWarnings: StoryboardAnalysis["actorOverlapWarnings"] = [];
+  const beatSummary: string[] = [];
+  let maxSeamStepPx = 0;
+
+  for (const scene of target.scenes) {
+    const sub = analyzeStoryboard(scene.program);
+    for (const t of sub.timestampsMs) timestampsMs.push(Math.round(scene.startMs + t));
+    for (const id of sub.actorIds) actorIds.add(id);
+    for (const ad of sub.addonTypes) addonTypes.add(ad);
+    for (const oob of sub.outOfBoundsFrames) {
+      outOfBoundsFrames.push({ ...oob, timeMs: Math.round(scene.startMs + oob.timeMs) });
+    }
+    if (sub.maxSeamStepPx > maxSeamStepPx) maxSeamStepPx = sub.maxSeamStepPx;
+    for (const [actorId, step] of Object.entries(sub.seamStepByActorPx)) {
+      seamStepByActorPx[actorId] = Math.max(seamStepByActorPx[actorId] ?? 0, step);
+    }
+    for (const warn of sub.actorOverlapWarnings) {
+      actorOverlapWarnings.push({
+        ...warn,
+        startMs: Math.round(scene.startMs + warn.startMs),
+        endMs: Math.round(scene.startMs + warn.endMs)
+      });
+    }
+    for (const beat of sub.beatSummary) {
+      beatSummary.push(`[${scene.id}] ${beat}`);
+    }
+  }
+
+  return {
+    panelCount: Math.max(1, timestampsMs.length),
+    timestampsMs,
+    durationMs: target.durationMs,
+    actorIds: [...actorIds],
+    addonTypes: [...addonTypes],
+    outOfBoundsCount: outOfBoundsFrames.length,
+    outOfBoundsFrames,
+    maxSeamStepPx,
+    seamStepByActorPx,
+    actorOverlapWarnings,
+    beatSummary
+  };
 }
 
 function summarizeChoreography(program: CompiledAnimation): string {
@@ -153,13 +256,19 @@ function printHelp(): void {
 Commands:
   discover [--category CAT] [--tag TAG] [--prop PROP] [--kind loop|oneshot|hold] [--travel travel|in-place] [--search TEXT]
   describe --id idea|idea@1.1.0    Describe one action and its bindings
-  schema [--version v1|v2]         Print the strict JSON Schema (default v1)
-  validate --input scene.json      Validate v1, v2, or choreography scene
-  compile --input scene.json       Compile a canonical program as JSON
+  schema [--version v1|v2|movie-v1] Print the strict JSON Schema (default v1)
+  validate --input scene.json      Validate v1, v2, choreography, or movie/v1 scene
+  compile --input scene.json       Compile a canonical program or movie as JSON
   choreograph --input scene.json   Auto-choreograph a v2 scene to JSON
+  movie --input movie.json [--critique]
+                                   Compose a stickman.movie/v1 document (optional quality report)
+  critique --input scene.json [--json] [--blueprint] [--theme default|blueprint] [--columns N] [--max-panels N]
+                                   Run 6-axis perceptual critique (JSON report or annotated SVG sheet)
+  embed --input scene.json --target reveal|slidev|marp|html|pptx-notes [--controls] [--scroll-scrub] [--blueprint] [--title TEXT] [--asset-path PATH]
+                                   Generate a slide-deck or HTML embed snippet
   storyboard --input scene.json [--columns N] [--max-panels N] [--mode normal|reduced|static] [--theme default|blueprint] [--blueprint] [--lint-only]
   preview --input scene.json [--time MS] [--mode normal|reduced|static] [--style default|blueprint] [--blueprint] [--format svg-frame|svg|html|storyboard-svg]
-  export --input scene.json --root DIR --output FILE --format svg-frame|svg|html|storyboard-svg|gif|mp4 [--style default|blueprint] [--blueprint]
+  export --input scene.json --root DIR --output FILE --format svg-frame|svg|html|storyboard-svg|gif|mp4|webm [--style default|blueprint] [--blueprint] [--transparent]
 
 All export paths are relative to --root. Existing files and paths escaping that root are rejected.
 `);
@@ -191,8 +300,16 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<nu
   }
   if (command === "schema") {
     const version = values.get("version") ?? "v1";
-    if (version !== "v1" && version !== "v2") throw new Error('Schema --version must be "v1" or "v2".');
-    console.log(JSON.stringify(version === "v2" ? animationSchemaV2 : animationSchema, null, 2));
+    if (version !== "v1" && version !== "v2" && version !== "movie-v1") {
+      throw new Error('Schema --version must be "v1", "v2", or "movie-v1".');
+    }
+    const schemaDoc =
+      version === "movie-v1"
+        ? movieSchema
+        : version === "v2"
+          ? animationSchemaV2
+          : animationSchema;
+    console.log(JSON.stringify(schemaDoc, null, 2));
     return 0;
   }
   if (command === "validate") {
@@ -201,7 +318,17 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<nu
     return result.valid ? 0 : 1;
   }
   if (command === "compile") {
-    const result = compileAnyAnimation(await loadSpec(required(values, "input")));
+    const loaded = await loadSpec(required(values, "input"));
+    if (isMovieInput(loaded)) {
+      const composed = composeMovie(loaded);
+      if (!composed.valid || !composed.movie) {
+        console.log(JSON.stringify({ valid: false, diagnostics: composed.diagnostics }, null, 2));
+        return 1;
+      }
+      console.log(JSON.stringify({ valid: true, diagnostics: [], program: composed.movie }, null, 2));
+      return 0;
+    }
+    const result = compileAnyAnimation(loaded);
     console.log(JSON.stringify(result, null, 2));
     return result.valid ? 0 : 1;
   }
@@ -226,10 +353,96 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<nu
     );
     return 0;
   }
+  if (command === "movie") {
+    const composed = composeMovie((await loadSpec(required(values, "input"))) as MovieSpecInput);
+    if (!composed.valid || !composed.movie) {
+      console.log(JSON.stringify({ valid: false, diagnostics: composed.diagnostics }, null, 2));
+      return 1;
+    }
+    const movie = composed.movie;
+    const report = flags.has("critique") ? evaluateAnimationQuality(movie) : undefined;
+    console.log(
+      JSON.stringify(
+        {
+          valid: true,
+          diagnostics: [],
+          spec: movie.spec,
+          durationMs: movie.durationMs,
+          sceneCount: movie.scenes.length,
+          scenes: movie.scenes.map((scene) => ({
+            id: scene.id,
+            index: scene.index,
+            ...(scene.title !== undefined ? { title: scene.title } : {}),
+            ...(scene.caption !== undefined ? { caption: scene.caption } : {}),
+            backdrop: scene.backdrop,
+            transition: scene.transition,
+            startMs: scene.startMs,
+            endMs: scene.endMs,
+            durationMs: scene.durationMs,
+            trimmedIdleMs: scene.trimmedIdleMs
+          })),
+          events: movie.events,
+          ...(report !== undefined ? { report } : {})
+        },
+        null,
+        2
+      )
+    );
+    return 0;
+  }
+  if (command === "critique") {
+    const resolvedInput = compileOrComposeInput(await loadSpec(required(values, "input")));
+    if (!resolvedInput.valid) {
+      console.error(JSON.stringify(resolvedInput.diagnostics, null, 2));
+      return 1;
+    }
+    const columns = parseIntOption(values, "columns", 1, 8);
+    const maxPanels = parseIntOption(values, "max-panels", 2, 16);
+    const theme = parseStoryboardTheme(values, flags) ?? "default";
+    const report = evaluateAnimationQuality(resolvedInput.target);
+    if (flags.has("json")) {
+      console.log(JSON.stringify(report, null, 2));
+      return 0;
+    }
+    process.stdout.write(
+      renderCritiqueSheetSvg(resolvedInput.target, report, {
+        ...(columns !== undefined ? { columns } : {}),
+        ...(maxPanels !== undefined ? { maxPanels } : {}),
+        theme
+      })
+    );
+    return 0;
+  }
+  if (command === "embed") {
+    const resolvedInput = compileOrComposeInput(await loadSpec(required(values, "input")));
+    if (!resolvedInput.valid) {
+      console.error(JSON.stringify(resolvedInput.diagnostics, null, 2));
+      return 1;
+    }
+    const target = required(values, "target");
+    if (!isDeckEmbedTarget(target)) {
+      throw new Error(`Embed --target must be one of: ${DECK_EMBED_TARGETS.join(", ")}.`);
+    }
+    const title = values.get("title");
+    const assetPath = values.get("asset-path");
+    const controls = flags.has("controls") ? true : undefined;
+    const scrollScrub = flags.has("scroll-scrub") ? true : undefined;
+    const blueprint = flags.has("blueprint") ? true : undefined;
+    process.stdout.write(
+      generateDeckEmbed(resolvedInput.target, target, {
+        ...(title !== undefined ? { title } : {}),
+        ...(assetPath !== undefined ? { assetPath } : {}),
+        ...(controls !== undefined ? { controls } : {}),
+        ...(scrollScrub !== undefined ? { scrollScrub } : {}),
+        ...(blueprint !== undefined ? { blueprint } : {})
+      })
+    );
+    return 0;
+  }
   if (command === "storyboard") {
-    const compiled = compileAnyAnimation(await loadSpec(required(values, "input")));
-    if (!compiled.valid || !compiled.program) {
-      console.error(JSON.stringify(compiled.diagnostics, null, 2));
+    const resolvedInput = compileOrComposeInput(await loadSpec(required(values, "input")));
+    if (!resolvedInput.valid) {
+      console.error(JSON.stringify(resolvedInput.diagnostics, null, 2));
       return 1;
     }
     const columns = parseIntOption(values, "columns", 1, 8);
@@ -238,23 +451,26 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<nu
     if (!["normal", "reduced", "static"].includes(mode)) throw new Error("Mode must be normal, reduced, or static.");
     const theme = parseStoryboardTheme(values, flags) ?? "default";
     if (flags.has("lint-only")) {
-      console.log(JSON.stringify(analyzeStoryboard(compiled.program), null, 2));
+      console.log(JSON.stringify(analyzeProgramOrMovieStoryboard(resolvedInput.target), null, 2));
       return 0;
     }
+    const sbOptions = {
+      ...(columns !== undefined ? { columns } : {}),
+      ...(maxPanels !== undefined ? { maxPanels } : {}),
+      mode,
+      theme
+    };
     process.stdout.write(
-      renderStoryboardSvg(compiled.program, {
-        ...(columns !== undefined ? { columns } : {}),
-        ...(maxPanels !== undefined ? { maxPanels } : {}),
-        mode,
-        theme
-      })
+      isCompiledMovie(resolvedInput.target)
+        ? renderMovieStoryboardSvg(resolvedInput.target, sbOptions)
+        : renderStoryboardSvg(resolvedInput.target, sbOptions)
     );
     return 0;
   }
   if (command === "preview") {
-    const result = compileAnyAnimation(await loadSpec(required(values, "input")));
-    if (!result.valid || !result.program) {
-      console.error(JSON.stringify(result.diagnostics, null, 2));
+    const resolvedInput = compileOrComposeInput(await loadSpec(required(values, "input")));
+    if (!resolvedInput.valid) {
+      console.error(JSON.stringify(resolvedInput.diagnostics, null, 2));
       return 1;
     }
     const format = (values.get("format") ?? "svg") as PreviewFormat;
@@ -272,7 +488,7 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<nu
     const theme = parseStoryboardTheme(values, flags);
     const style = parseRenderStyle(values, flags);
     process.stdout.write(
-      renderArtifact(result.program, format, {
+      renderArtifact(resolvedInput.target, format, {
         ...(timeMs !== undefined ? { timeMs } : {}),
         ...(mode !== undefined ? { mode } : {}),
         ...(style !== undefined ? { style } : {}),
@@ -284,14 +500,14 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<nu
     return 0;
   }
   if (command === "export") {
-    const result = compileAnyAnimation(await loadSpec(required(values, "input")));
-    if (!result.valid || !result.program) {
-      console.error(JSON.stringify(result.diagnostics, null, 2));
+    const resolvedInput = compileOrComposeInput(await loadSpec(required(values, "input")));
+    if (!resolvedInput.valid) {
+      console.error(JSON.stringify(resolvedInput.diagnostics, null, 2));
       return 1;
     }
     const format = required(values, "format") as ExportFormat;
     if (!(EXPORT_FORMATS as readonly string[]).includes(format)) {
-      throw new Error("Format must be svg-frame, svg, html, storyboard-svg, gif, or mp4.");
+      throw new Error("Format must be svg-frame, svg, html, storyboard-svg, gif, mp4, or webm.");
     }
     const mode = values.has("mode") ? (values.get("mode") as PlaybackMode) : undefined;
     if (mode !== undefined && !["normal", "reduced", "static"].includes(mode)) {
@@ -303,10 +519,12 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<nu
     const maxPanels = parseIntOption(values, "max-panels", 2, 16);
     const theme = parseStoryboardTheme(values, flags);
     const style = parseRenderStyle(values, flags);
-    const outcome = await exportAnimation(result.program, required(values, "root"), required(values, "output"), format, {
+    const transparent = flags.has("transparent") ? true : undefined;
+    const outcome = await exportAnimation(resolvedInput.target, required(values, "root"), required(values, "output"), format, {
       ...(timeMs !== undefined ? { timeMs } : {}),
       ...(mode !== undefined ? { mode } : {}),
       ...(style !== undefined ? { style } : {}),
+      ...(transparent !== undefined ? { transparent } : {}),
       ...(columns !== undefined ? { columns } : {}),
       ...(maxPanels !== undefined ? { maxPanels } : {}),
       ...(theme !== undefined ? { theme } : {})

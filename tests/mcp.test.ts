@@ -71,7 +71,7 @@ const scene = {
 } satisfies AnimationSpec;
 
 describe("stdio MCP protocol", () => {
-  it("negotiates v0.2.2 capabilities (tools, resources, prompts) and advertises sixteen strict, annotated tools with output schemas", async () => {
+  it("negotiates v0.2.2 capabilities (tools, resources, prompts) and advertises eighteen strict, annotated tools with output schemas", async () => {
     const { client, listed, stderr, transportErrors } = await connect();
     expect(client.getServerVersion()).toEqual({ name: "stickman-mcp", version: "0.2.2" });
     expect(client.getServerCapabilities()).toMatchObject({
@@ -82,7 +82,8 @@ describe("stdio MCP protocol", () => {
     expect(listed.tools.map((tool) => tool.name)).toEqual([
       "stickman_compose_film", "stickman_render_film", "stickman_list_film_assets", "stickman_author_motion", "stickman_preview_motion", "stickman_check_join",
       "stickman_discover", "stickman_describe", "stickman_schema", "stickman_validate",
-      "stickman_compile", "stickman_choreograph", "stickman_storyboard", "stickman_preview", "stickman_export", "stickman_story"
+      "stickman_compile", "stickman_choreograph", "stickman_storyboard", "stickman_preview", "stickman_export", "stickman_story",
+      "stickman_movie", "stickman_critique"
     ]);
     for (const tool of listed.tools) {
       expect(tool.inputSchema.additionalProperties).toBe(false);
@@ -367,7 +368,7 @@ describe("stdio MCP protocol", () => {
     expect(v2BpSvg).toContain('fill="url(#sm-bp-hatch)"');
     expect(v2BpSvg).toContain('stroke-dasharray="4 3"');
 
-    // Resources (9 total)
+    // Resources (14 total)
     const { resources } = await client.listResources();
     const uris = resources.map((r) => r.uri);
     expect(uris).toEqual([
@@ -379,7 +380,12 @@ describe("stdio MCP protocol", () => {
       "stickman://templates/presentation-pitch",
       "stickman://templates/two-actor-dialogue",
       "stickman://templates/idea-reveal",
-      "stickman://templates/sports-action"
+      "stickman://templates/sports-action",
+      "ui://stickman/player",
+      "stickman://schema/movie-v1",
+      "stickman://rubric/human-critique",
+      "stickman://templates/incident-warroom-movie",
+      "stickman://templates/two-actor-handoff"
     ]);
     const catalogRes = await client.readResource({ uri: "stickman://catalog" });
     expect(JSON.parse((catalogRes.contents[0] as { text: string }).text)).toMatchObject({
@@ -387,9 +393,13 @@ describe("stdio MCP protocol", () => {
       propSummary: { totalProps: ADDON_TYPES.length }
     });
 
-    // Prompts (2 total)
+    // Prompts (3 total)
     const { prompts } = await client.listPrompts();
-    expect(prompts.map((p) => p.name)).toEqual(["choreograph-slide", "two-actor-dialogue"]);
+    expect(prompts.map((p) => p.name)).toEqual([
+      "choreograph-slide",
+      "two-actor-dialogue",
+      "create-and-critique-movie"
+    ]);
     const promptRes = await client.getPrompt({ name: "choreograph-slide", arguments: { topic: "Cloud migration" } });
     expect(promptRes.messages[0]?.content.type).toBe("text");
 

@@ -26,8 +26,12 @@ import {
   ACTOR_ACCESSORIES,
   ADDON_TYPES,
   AUTO_MAPPED_ACTIONS,
+  CONTRACT_VERSION_MOVIE,
   CONTRACT_VERSION_V2,
   ENTRANCE_EXIT_ACTIONS,
+  HUMAN_CRITIQUE_RUBRIC,
+  MCP_APP_MIME_TYPE,
+  MCP_APP_PLAYER_URI,
   PROP_CATALOG_VERSION,
   PROP_DEFINITIONS,
   STAGE_ANCHOR_NAMES,
@@ -35,17 +39,25 @@ import {
   analyzeStoryboard,
   animationSchema,
   animationSchemaV2,
+  buildCompactPlayerPayload,
   choreographAnimation,
   compileAnimation,
   compileV2Animation,
+  composeMovie,
+  critiqueAnimation,
   defaultAddonsForAction,
   describeAction,
+  evaluateAnimationQuality,
   exportAnimation,
   getMotionClip,
   getMotionMeta,
+  isCompiledMovie,
+  movieSchema,
   queryActionCatalog,
   rasterizeStoryboardPng,
   renderArtifact,
+  renderMcpAppPlayerHtml,
+  renderMovieStoryboardSvg,
   renderStoryboardSvg,
   resolveStageAnchors,
   validateAnimation,
@@ -55,9 +67,14 @@ import {
   type ChoreographInput,
   type CompileResult,
   type CompiledAnimation,
+  type CompiledMovie,
+  type Diagnostic,
   type ExportFormat,
+  type ExportableProgram,
+  type MovieSpecInput,
   type PlaybackMode,
-  type RenderStyle
+  type RenderStyle,
+  type StoryboardAnalysis
 } from "./index.js";
 import { getStory, storyCatalog } from "./stories.js";
 import { filmRecipeSchema } from "./film-schema.js";
@@ -72,7 +89,7 @@ type DefinedTool = Omit<Tool, "inputSchema" | "outputSchema"> & {
 type PreviewFormat = "svg-frame" | "svg" | "html" | "storyboard-svg";
 
 const PREVIEW_FORMATS: readonly PreviewFormat[] = ["svg-frame", "svg", "html", "storyboard-svg"];
-const EXPORT_FORMATS: readonly ExportFormat[] = ["svg-frame", "svg", "html", "storyboard-svg", "gif", "mp4"];
+const EXPORT_FORMATS: readonly ExportFormat[] = ["svg-frame", "svg", "html", "storyboard-svg", "gif", "mp4", "webm"];
 
 const point2DSchema: ObjectSchema = {
   type: "object",
@@ -144,6 +161,21 @@ const markerEventSchema: ObjectSchema = {
   }
 };
 
+const movieMarkerEventSchema: ObjectSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["timeMs", "actionIndex", "action", "marker", "frame", "sceneId"],
+  properties: {
+    timeMs: { type: "number" },
+    actionIndex: { type: "integer" },
+    action: { type: "string" },
+    marker: { type: "string" },
+    frame: { type: "number" },
+    actorId: { type: "string" },
+    sceneId: { type: "string" }
+  }
+};
+
 const programSchema: ObjectSchema = {
   type: "object",
   additionalProperties: false,
@@ -159,18 +191,34 @@ const programSchema: ObjectSchema = {
   }
 };
 
+const compiledMovieSchema: ObjectSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["contractVersion", "spec", "scenes", "durationMs", "events"],
+  properties: {
+    contractVersion: { const: CONTRACT_VERSION_MOVIE },
+    spec: { type: "object" },
+    scenes: { type: "array", items: { type: "object" } },
+    durationMs: { type: "number" },
+    events: {
+      type: "array",
+      items: movieMarkerEventSchema
+    }
+  }
+};
+
 const compileSchema: ObjectSchema = {
   ...validationSchema,
   properties: {
     ...validationSchema.properties,
-    program: programSchema
+    program: { oneOf: [programSchema, compiledMovieSchema] }
   }
 };
 
 const choreographPayloadSchema: ObjectSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["valid", "diagnostics", "spec", "program", "anchors", "summary"],
+  required: ["valid", "diagnostics", "spec", "program", "anchors", "summary", "playerPayload"],
   properties: {
     valid: { const: true },
     diagnostics: diagnosticsSchema,
@@ -180,7 +228,171 @@ const choreographPayloadSchema: ObjectSchema = {
       type: "object",
       additionalProperties: point2DSchema
     },
-    summary: { type: "string" }
+    summary: { type: "string" },
+    playerPayload: { type: "object" }
+  }
+};
+
+const critiqueDimensionScoresSchema: ObjectSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: [
+    "propIntegrity",
+    "spatialContinuity",
+    "stagingAndEyeTrace",
+    "pacingAndReadability",
+    "kinematicAppeal",
+    "cinematography"
+  ],
+  properties: {
+    propIntegrity: { type: "number" },
+    spatialContinuity: { type: "number" },
+    stagingAndEyeTrace: { type: "number" },
+    pacingAndReadability: { type: "number" },
+    kinematicAppeal: { type: "number" },
+    cinematography: { type: "number" }
+  }
+};
+
+const critiqueIssueSchema: ObjectSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["code", "dimension", "severity", "timeMs", "message"],
+  properties: {
+    code: { type: "string" },
+    dimension: {
+      type: "string",
+      enum: [
+        "propIntegrity",
+        "spatialContinuity",
+        "stagingAndEyeTrace",
+        "pacingAndReadability",
+        "kinematicAppeal",
+        "cinematography"
+      ]
+    },
+    severity: { type: "string", enum: ["error", "warning", "info"] },
+    timeMs: { type: "number" },
+    sceneId: { type: "string" },
+    actorId: { type: "string" },
+    message: { type: "string" },
+    suggestedPatch: { type: "object" }
+  }
+};
+
+const critiqueMetricsSchema: ObjectSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: [
+    "deadAirMs",
+    "outOfBoundsCount",
+    "maxSeamStepPx",
+    "maxGravityDropPx",
+    "clutterDurationMs",
+    "calloutCollisionCount",
+    "giantsVsToddlersDetected",
+    "minStrokeHeadRatio",
+    "maxStrokeHeadRatio",
+    "sceneCount"
+  ],
+  properties: {
+    deadAirMs: { type: "number" },
+    outOfBoundsCount: { type: "integer", minimum: 0 },
+    maxSeamStepPx: { type: "number" },
+    maxGravityDropPx: { type: "number" },
+    clutterDurationMs: { type: "number" },
+    calloutCollisionCount: { type: "integer", minimum: 0 },
+    giantsVsToddlersDetected: { type: "boolean" },
+    minStrokeHeadRatio: { type: "number" },
+    maxStrokeHeadRatio: { type: "number" },
+    sceneCount: { type: "integer", minimum: 1 }
+  }
+};
+
+const critiqueReportSchema: ObjectSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: [
+    "version",
+    "overallScore",
+    "grade",
+    "passed",
+    "dimensions",
+    "weights",
+    "metrics",
+    "issues",
+    "suggestions",
+    "sampledTimestampsMs"
+  ],
+  properties: {
+    version: { const: "1.0.0" },
+    overallScore: { type: "number" },
+    grade: { type: "string", enum: ["excellent", "good", "needs-polish", "poor"] },
+    passed: { type: "boolean" },
+    dimensions: critiqueDimensionScoresSchema,
+    weights: critiqueDimensionScoresSchema,
+    metrics: critiqueMetricsSchema,
+    issues: { type: "array", items: critiqueIssueSchema },
+    suggestions: { type: "array", items: { type: "string" } },
+    sampledTimestampsMs: { type: "array", items: { type: "number" } }
+  }
+};
+
+const critiquePayloadSchema: ObjectSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["valid", "diagnostics", "report", "svg", "rubric", "rasterizerAvailable", "playerPayload"],
+  properties: {
+    valid: { const: true },
+    diagnostics: diagnosticsSchema,
+    report: critiqueReportSchema,
+    svg: { type: "string" },
+    rubric: { type: "object" },
+    rasterizerAvailable: { type: "boolean" },
+    playerPayload: { type: "object" }
+  }
+};
+
+const movieSceneSummarySchema: ObjectSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["id", "index", "backdrop", "transition", "startMs", "endMs", "durationMs", "trimmedIdleMs"],
+  properties: {
+    id: { type: "string" },
+    index: { type: "integer", minimum: 0 },
+    title: { type: "string" },
+    caption: { type: "string" },
+    backdrop: { type: "string" },
+    transition: {
+      type: "object",
+      additionalProperties: false,
+      required: ["kind", "durationMs"],
+      properties: {
+        kind: { type: "string", enum: ["cut", "fade", "wipe"] },
+        durationMs: { type: "number" }
+      }
+    },
+    startMs: { type: "number" },
+    endMs: { type: "number" },
+    durationMs: { type: "number" },
+    trimmedIdleMs: { type: "number" }
+  }
+};
+
+const moviePayloadSchema: ObjectSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["valid", "diagnostics", "spec", "durationMs", "sceneCount", "scenes", "events", "playerPayload"],
+  properties: {
+    valid: { const: true },
+    diagnostics: diagnosticsSchema,
+    spec: { type: "object" },
+    durationMs: { type: "number" },
+    sceneCount: { type: "integer", minimum: 1 },
+    scenes: { type: "array", items: movieSceneSummarySchema },
+    events: { type: "array", items: movieMarkerEventSchema },
+    playerPayload: { type: "object" },
+    report: critiqueReportSchema
   }
 };
 
@@ -312,7 +524,7 @@ function defineTool(
   description: string,
   inputSchema: ObjectSchema,
   payloadSchema: JsonSchemaType,
-  options: { writes?: boolean; validationErrors?: boolean } = {}
+  options: { writes?: boolean; validationErrors?: boolean; uiResourceUri?: string } = {}
 ): DefinedTool {
   return {
     name,
@@ -340,7 +552,8 @@ function defineTool(
       destructiveHint: false,
       idempotentHint: !options.writes,
       openWorldHint: false
-    }
+    },
+    ...(options.uiResourceUri ? { _meta: { ui: { resourceUri: options.uiResourceUri } } } : {})
   };
 }
 
@@ -587,29 +800,29 @@ const toolDefinitions: DefinedTool[] = [
   ),
   defineTool(
     "stickman_schema",
-    "Get the strict JSON Schema for stickman.animation/v1 (default) or stickman.animation/v2.",
+    "Get the strict JSON Schema for stickman.animation/v1 (default), stickman.animation/v2, or stickman.movie/v1.",
     {
       type: "object",
       additionalProperties: false,
-      properties: { version: { type: "string", enum: ["v1", "v2"] } }
+      properties: { version: { type: "string", enum: ["v1", "v2", "movie-v1"] } }
     },
     schemaContractOutputSchema
   ),
   defineTool(
     "stickman_validate",
-    "Validate a stickman.animation/v1 or stickman.animation/v2 document and return actionable diagnostics.",
+    "Validate a stickman.animation/v1, stickman.animation/v2, or stickman.movie/v1 document and return actionable diagnostics.",
     animationInput,
     validationSchema
   ),
   defineTool(
     "stickman_compile",
-    "Validate and compile a stickman.animation/v1 or stickman.animation/v2 document to the canonical deterministic program.",
+    "Validate and compile a stickman.animation/v1, stickman.animation/v2, or stickman.movie/v1 document to the canonical deterministic program.",
     animationInput,
     compileSchema
   ),
   defineTool(
     "stickman_choreograph",
-    "Auto-choreograph a concise v2 single-actor or multi-actor beat list using semantic stage anchors, natural clip timing, auto-props, and cues.",
+    "Auto-choreograph a concise v2 single-actor or multi-actor beat list using semantic stage anchors, natural clip timing, auto-props, and cues (returns a compact playerPayload for live MCP App rendering).",
     {
       type: "object",
       additionalProperties: false,
@@ -617,11 +830,11 @@ const toolDefinitions: DefinedTool[] = [
       properties: { scene: { type: "object" } }
     },
     choreographPayloadSchema,
-    { validationErrors: true }
+    { validationErrors: true, uiResourceUri: MCP_APP_PLAYER_URI }
   ),
   defineTool(
     "stickman_storyboard",
-    "Render a multi-panel storyboard contact sheet (default or orthographic CAD blueprint theme) and run automated stage/seam/overlap self-review lint (plus PNG image when available).",
+    "Render a multi-panel storyboard contact sheet (default or orthographic CAD blueprint theme) from v1, v2, choreography, or movie/v1 input and run automated stage/seam/overlap self-review lint (plus PNG image when available).",
     {
       type: "object",
       additionalProperties: false,
@@ -640,7 +853,7 @@ const toolDefinitions: DefinedTool[] = [
   ),
   defineTool(
     "stickman_preview",
-    "Render a single SVG frame, animated SVG, storyboard SVG, or self-contained HTML preview from v1, v2, or shorthand choreography input.",
+    "Render a single SVG frame, animated SVG, storyboard SVG, or self-contained HTML preview from v1, v2, shorthand choreography, or stickman.movie/v1 input.",
     {
       ...animationInput,
       properties: {
@@ -660,11 +873,11 @@ const toolDefinitions: DefinedTool[] = [
         content: { type: "string" }
       }
     },
-    { validationErrors: true }
+    { validationErrors: true, uiResourceUri: MCP_APP_PLAYER_URI }
   ),
   defineTool(
     "stickman_export",
-    "Export svg-frame, svg, html, storyboard-svg, gif, or mp4 to a relative file strictly inside the server's launch-time output root.",
+    "Export svg-frame, svg, html, storyboard-svg, gif, mp4, or webm (with optional transparent background) from v1, v2, choreography, or movie/v1 input to a relative file strictly inside the server's launch-time output root.",
     {
       ...animationInput,
       required: ["animation", "path", "format"],
@@ -674,7 +887,8 @@ const toolDefinitions: DefinedTool[] = [
         format: { type: "string", enum: [...EXPORT_FORMATS] },
         timeMs: { type: "number" },
         mode: { type: "string", enum: ["normal", "reduced", "static"] },
-        style: { type: "string", enum: ["default", "blueprint"] }
+        style: { type: "string", enum: ["default", "blueprint"] },
+        transparent: { type: "boolean" }
       }
     },
     {
@@ -746,6 +960,39 @@ const toolDefinitions: DefinedTool[] = [
         }
       ]
     }
+  ),
+  defineTool(
+    "stickman_movie",
+    "Compose a multi-scene stickman.movie/v1 document with contextual backdrops, fade/wipe transitions, idle-tail trimming, compact playerPayload for live MCP App playback, and optional perceptual critique report.",
+    {
+      type: "object",
+      additionalProperties: false,
+      required: ["movie"],
+      properties: {
+        movie: { type: "object" },
+        includeCritique: { type: "boolean" }
+      }
+    },
+    moviePayloadSchema,
+    { validationErrors: true, uiResourceUri: MCP_APP_PLAYER_URI }
+  ),
+  defineTool(
+    "stickman_critique",
+    "Run perceptual quality critique (Tier A 6-axis score + Tier B annotated SVG/PNG contact sheet + human rubric + compact playerPayload) on any v1, v2, choreography, or stickman.movie/v1 input.",
+    {
+      type: "object",
+      additionalProperties: false,
+      required: ["animation"],
+      properties: {
+        animation: { type: "object" },
+        maxPanels: { type: "integer", minimum: 2, maximum: 16 },
+        columns: { type: "integer", minimum: 1, maximum: 8 },
+        theme: { type: "string", enum: ["default", "blueprint"] },
+        includePng: { type: "boolean" }
+      }
+    },
+    critiquePayloadSchema,
+    { validationErrors: true, uiResourceUri: MCP_APP_PLAYER_URI }
   )
 ];
 
@@ -761,11 +1008,88 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isMovieInput(input: unknown): input is MovieSpecInput {
+  return (
+    isRecord(input) &&
+    (input.version === CONTRACT_VERSION_MOVIE ||
+      (Array.isArray(input.scenes) && input.version === undefined))
+  );
+}
+
 function compileAnyAnimation(input: unknown): CompileResult {
   if (isRecord(input) && input.version === undefined) {
     return compileV2Animation(input);
   }
   return compileAnimation(input);
+}
+
+function compileOrComposeInput(
+  input: unknown
+): { valid: true; diagnostics: Diagnostic[]; target: ExportableProgram } | { valid: false; diagnostics: Diagnostic[] } {
+  if (isMovieInput(input)) {
+    const composed = composeMovie(input);
+    if (!composed.valid || !composed.movie) {
+      return { valid: false, diagnostics: composed.diagnostics };
+    }
+    return { valid: true, diagnostics: [], target: composed.movie };
+  }
+  const compiled = compileAnyAnimation(input);
+  if (!compiled.valid || !compiled.program) {
+    return { valid: false, diagnostics: compiled.diagnostics };
+  }
+  return { valid: true, diagnostics: [], target: compiled.program };
+}
+
+function analyzeProgramOrMovieStoryboard(target: ExportableProgram): StoryboardAnalysis {
+  if (!isCompiledMovie(target)) {
+    return analyzeStoryboard(target);
+  }
+  const timestampsMs: number[] = [];
+  const actorIds = new Set<string>();
+  const addonTypes = new Set<StoryboardAnalysis["addonTypes"][number]>();
+  const outOfBoundsFrames: StoryboardAnalysis["outOfBoundsFrames"] = [];
+  const seamStepByActorPx: Record<string, number> = {};
+  const actorOverlapWarnings: StoryboardAnalysis["actorOverlapWarnings"] = [];
+  const beatSummary: string[] = [];
+  let maxSeamStepPx = 0;
+
+  for (const scene of target.scenes) {
+    const sub = analyzeStoryboard(scene.program);
+    for (const t of sub.timestampsMs) timestampsMs.push(Math.round(scene.startMs + t));
+    for (const id of sub.actorIds) actorIds.add(id);
+    for (const ad of sub.addonTypes) addonTypes.add(ad);
+    for (const oob of sub.outOfBoundsFrames) {
+      outOfBoundsFrames.push({ ...oob, timeMs: Math.round(scene.startMs + oob.timeMs) });
+    }
+    if (sub.maxSeamStepPx > maxSeamStepPx) maxSeamStepPx = sub.maxSeamStepPx;
+    for (const [actorId, step] of Object.entries(sub.seamStepByActorPx)) {
+      seamStepByActorPx[actorId] = Math.max(seamStepByActorPx[actorId] ?? 0, step);
+    }
+    for (const warn of sub.actorOverlapWarnings) {
+      actorOverlapWarnings.push({
+        ...warn,
+        startMs: Math.round(scene.startMs + warn.startMs),
+        endMs: Math.round(scene.startMs + warn.endMs)
+      });
+    }
+    for (const beat of sub.beatSummary) {
+      beatSummary.push(`[${scene.id}] ${beat}`);
+    }
+  }
+
+  return {
+    panelCount: Math.max(1, timestampsMs.length),
+    timestampsMs,
+    durationMs: target.durationMs,
+    actorIds: [...actorIds],
+    addonTypes: [...addonTypes],
+    outOfBoundsCount: outOfBoundsFrames.length,
+    outOfBoundsFrames,
+    maxSeamStepPx,
+    seamStepByActorPx,
+    actorOverlapWarnings,
+    beatSummary
+  };
 }
 
 function summarizeChoreography(program: CompiledAnimation): string {
@@ -936,7 +1260,153 @@ const TEMPLATES: Readonly<Record<string, ChoreographInput & { version: typeof CO
       { action: "basketball-shot", emitCue: "shotMade" },
       { action: "fist-pump" }
     ]
+  },
+  "stickman://templates/two-actor-handoff": {
+    version: CONTRACT_VERSION_V2,
+    canvas: { width: 800, height: 450, fps: 30 },
+    theme: { accentColor: "#0f766e", background: "#ffffff" },
+    camera: "auto-director",
+    spotlight: "auto",
+    actors: [
+      {
+        id: "courier",
+        label: "Engineer",
+        x: "left",
+        facing: "right",
+        color: "#0f172a",
+        accessory: "tie",
+        zIndex: 2,
+        actions: [
+          { action: "wave", emitCue: "ready" },
+          {
+            action: "hand-over",
+            afterCue: "ready",
+            handoffTo: { actorId: "receiver", propType: "card", propId: "release-card" },
+            emitCue: "cardPassed"
+          },
+          { action: "thumbs-up", afterCue: "launchConfirmed" }
+        ]
+      },
+      {
+        id: "receiver",
+        label: "Release Lead",
+        x: "center",
+        facing: "left",
+        color: "#334155",
+        accessory: "glasses",
+        zIndex: 1,
+        actions: [
+          { action: "catch", afterCue: "cardPassed", emitCue: "cardCaught" },
+          { action: "turn-around", afterCue: "cardCaught" },
+          { action: "stairs-up", emitCue: "onStage" },
+          { action: "present-card", emitCue: "launchConfirmed" },
+          { action: "cheer" }
+        ]
+      }
+    ]
   }
+});
+
+const INCIDENT_WARROOM_MOVIE_TEMPLATE: MovieSpecInput = Object.freeze<MovieSpecInput>({
+  version: CONTRACT_VERSION_MOVIE,
+  title: "Incident War Room Recovery",
+  canvas: { width: 1280, height: 720, fps: 30 },
+  theme: { accentColor: "#b11f4b", background: "#ffffff" },
+  trimIdleTails: true,
+  scenes: [
+    {
+      id: "alert-triage",
+      title: "Alert Triage",
+      backdrop: "war-room",
+      transition: { kind: "fade", durationMs: 400 },
+      camera: "auto-director",
+      spotlight: "auto",
+      actors: [
+        {
+          id: "commander",
+          label: "Incident Lead",
+          x: "left",
+          facing: "right",
+          color: "#0f172a",
+          accessory: "glasses",
+          zIndex: 2,
+          actions: [
+            { action: "check-watch", say: "Latency spike!", emitCue: "alertSeen" },
+            { action: "point", afterCue: "planReady", to: "board", emitCue: "dispatchFix" }
+          ]
+        },
+        {
+          id: "sre",
+          label: "On-Call SRE",
+          x: "right",
+          facing: "left",
+          color: "#334155",
+          accessory: "badge",
+          zIndex: 1,
+          actions: [
+            { action: "think", afterCue: "alertSeen" },
+            { action: "idea", say: "Route failover!", emitCue: "planReady" },
+            { action: "nod", afterCue: "dispatchFix" }
+          ]
+        }
+      ]
+    },
+    {
+      id: "datacenter-fix",
+      title: "Datacenter Failover",
+      backdrop: "datacenter",
+      transition: { kind: "wipe", durationMs: 400 },
+      camera: "auto-director",
+      actor: {
+        id: "sre",
+        label: "On-Call SRE",
+        x: "offstage-left",
+        color: "#0f172a",
+        accessory: "badge"
+      },
+      actions: [
+        { action: "walk-on", to: "center", emitCue: "atRack" },
+        { action: "plug-cable", emitCue: "cablePatched" },
+        { action: "thumbs-up", say: "Cluster healthy!" }
+      ]
+    },
+    {
+      id: "all-clear",
+      title: "All Clear",
+      backdrop: "office",
+      transition: "cut",
+      camera: "auto-director",
+      spotlight: "auto",
+      actors: [
+        {
+          id: "commander",
+          label: "Incident Lead",
+          x: "left",
+          facing: "right",
+          color: "#0f172a",
+          accessory: "glasses",
+          zIndex: 2,
+          actions: [
+            { action: "present-card", say: "99.99% uptime", emitCue: "metricsShared" },
+            { action: "cheer", afterCue: "teamApplauds" }
+          ]
+        },
+        {
+          id: "sre",
+          label: "On-Call SRE",
+          x: "right",
+          facing: "left",
+          color: "#334155",
+          accessory: "badge",
+          zIndex: 1,
+          actions: [
+            { action: "clap", afterCue: "metricsShared", emitCue: "teamApplauds" },
+            { action: "thumbs-up" }
+          ]
+        }
+      ]
+    }
+  ]
 });
 
 function buildCatalogResourcePayload() {
@@ -1092,6 +1562,51 @@ const resourceEntries: readonly ResourceEntry[] = [
       mimeType: "application/json"
     },
     read: () => JSON.stringify(TEMPLATES["stickman://templates/sports-action"], null, 2)
+  },
+  {
+    meta: {
+      uri: MCP_APP_PLAYER_URI,
+      name: "Stickman Interactive MCP App Player",
+      description: "Self-contained (< 45 KB) interactive vector player UI resource for MCP Apps hosts with playback toolbar, blueprint toggle, and live 6-axis critique pills.",
+      mimeType: MCP_APP_MIME_TYPE
+    },
+    read: () => renderMcpAppPlayerHtml()
+  },
+  {
+    meta: {
+      uri: "stickman://schema/movie-v1",
+      name: "Stickman Multi-Scene Movie Schema v1",
+      description: "Strict JSON Schema for stickman.movie/v1 multi-scene movie documents with backdrops and transitions.",
+      mimeType: "application/schema+json"
+    },
+    read: () => JSON.stringify(movieSchema, null, 2)
+  },
+  {
+    meta: {
+      uri: "stickman://rubric/human-critique",
+      name: "Human Perceptual Critique Rubric",
+      description: "6-axis weighted quality rubric, pass thresholds, and VLM visual self-critique checklist.",
+      mimeType: "application/json"
+    },
+    read: () => JSON.stringify(HUMAN_CRITIQUE_RUBRIC, null, 2)
+  },
+  {
+    meta: {
+      uri: "stickman://templates/incident-warroom-movie",
+      name: "Template: Incident War Room Movie",
+      description: "Ready-to-compose 3-scene stickman.movie/v1 template (war-room -> datacenter -> office) with fade/wipe transitions and auto-director framing.",
+      mimeType: "application/json"
+    },
+    read: () => JSON.stringify(INCIDENT_WARROOM_MOVIE_TEMPLATE, null, 2)
+  },
+  {
+    meta: {
+      uri: "stickman://templates/two-actor-handoff",
+      name: "Template: Two-Actor Card Handoff & Stairs",
+      description: "Ready-to-choreograph 2-actor shared card handoff + elevated stairs presentation template.",
+      mimeType: "application/json"
+    },
+    read: () => JSON.stringify(TEMPLATES["stickman://templates/two-actor-handoff"], null, 2)
   }
 ];
 
@@ -1122,6 +1637,22 @@ const promptDefinitions: readonly Prompt[] = [
         name: "scenario",
         description: "Conversation or handoff scenario between the two stickman actors.",
         required: true
+      }
+    ]
+  },
+  {
+    name: "create-and-critique-movie",
+    description: "Step-by-step workflow to compose a multi-scene stickman movie, run perceptual critique (Tier A score + Tier B PNG inspection), refine until overallScore >= 8.5, and export.",
+    arguments: [
+      {
+        name: "topic",
+        description: "Narrative topic or product story for the multi-scene movie.",
+        required: true
+      },
+      {
+        name: "scenes",
+        description: "Optional scene breakdown or target scene count (default 3 scenes).",
+        required: false
       }
     ]
   }
@@ -1180,6 +1711,39 @@ function buildPromptResult(name: string, promptArgs: Record<string, string> | un
               `3. Author a 2-actor \`scene\` via \`stickman_choreograph\`: place actors on distinct anchors (e.g. \`"left"\` facing \`"right"\` and \`"right"\` facing \`"left"\`), differentiate them with \`accessory\` (\`tie\`, \`glasses\`, \`hat\`, \`badge\`) and \`color\`, and synchronize turns with \`emitCue\` / \`emitCueAt\` and \`afterCue\`.\n` +
               `4. Call \`stickman_storyboard\` to review the visual contact sheet and verify \`analysis.outOfBoundsCount === 0\` and \`analysis.actorOverlapWarnings.length === 0\`.\n` +
               `5. Export the verified scene with \`stickman_export\`.`
+          }
+        }
+      ]
+    };
+  }
+
+  if (name === "create-and-critique-movie") {
+    const topic = args.topic?.trim();
+    if (!topic) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        'Prompt "create-and-critique-movie" requires a non-empty "topic" argument.'
+      );
+    }
+    const scenesLine = args.scenes?.trim()
+      ? `\nRequested scenes: ${args.scenes.trim()}`
+      : "\nDesign 3 cohesive scenes with distinct backdrops (e.g. war-room, datacenter, office) and smooth fade/wipe transitions.";
+
+    return {
+      description: `Compose, critique (Tier A + Tier B), refine to >= 8.5/10, and export a stickman movie for: ${topic}`,
+      messages: [
+        {
+          role: "user",
+          content: {
+            type: "text",
+            text:
+              `Create a polished multi-scene stickman movie illustrating "${topic}".${scenesLine}\n\n` +
+              `Follow this exact closed-loop workflow:\n` +
+              `1. Read \`stickman://schema/movie-v1\`, \`stickman://rubric/human-critique\`, and \`stickman://templates/incident-warroom-movie\` to review multi-scene structure, backdrop presets, transitions, and the 6-axis perceptual quality bar.\n` +
+              `2. Author a \`stickman.movie/v1\` document with contextual \`backdrop\`, purposeful \`transition\` (\`fade\` / \`wipe\` / \`cut\`), \`camera: "auto-director"\`, \`spotlight: "auto"\` on multi-actor scenes, and \`trimIdleTails: true\`, then call \`stickman_movie\` to compose and verify the timeline.\n` +
+              `3. Call \`stickman_critique\` on the movie to obtain BOTH Tier A (\`report.overallScore\`, 6-axis \`dimensions\`, \`issues\`, \`suggestions\`) AND Tier B (annotated PNG contact sheet). Inspect the PNG against \`rubric.vlmSelfCritiqueChecklist\`.\n` +
+              `4. Iteratively apply fixes for any flagged issues or visual blemishes and re-run \`stickman_critique\` until \`report.overallScore >= 8.5\` and \`report.passed === true\`.\n` +
+              `5. Export the verified movie with \`stickman_export\` (\`format: "mp4"\`, \`format: "webm"\` with optional \`transparent: true\`, or \`format: "html"\`).`
           }
         }
       ]
@@ -1336,13 +1900,32 @@ export function createMcpServer(outputRoot: string): Server {
         }
         case "stickman_schema": {
           const version = args.version === undefined ? "v1" : args.version;
-          if (version !== "v1" && version !== "v2") throw new Error('Schema version must be "v1" or "v2".');
-          return finalizeResponse(name, result(version === "v2" ? animationSchemaV2 : animationSchema));
+          if (version !== "v1" && version !== "v2" && version !== "movie-v1") {
+            throw new Error('Schema version must be "v1", "v2", or "movie-v1".');
+          }
+          const schemaDoc =
+            version === "movie-v1"
+              ? movieSchema
+              : version === "v2"
+                ? animationSchemaV2
+                : animationSchema;
+          return finalizeResponse(name, result(schemaDoc));
         }
         case "stickman_validate": {
+          if (isMovieInput(args.animation)) {
+            const composed = composeMovie(args.animation);
+            return finalizeResponse(name, result({ valid: composed.valid, diagnostics: composed.diagnostics }));
+          }
           return finalizeResponse(name, result(validateAnimation(args.animation)));
         }
         case "stickman_compile": {
+          if (isMovieInput(args.animation)) {
+            const composed = composeMovie(args.animation);
+            if (!composed.valid || !composed.movie) {
+              return finalizeResponse(name, result({ valid: false, diagnostics: composed.diagnostics }, true));
+            }
+            return finalizeResponse(name, result({ valid: true, diagnostics: [], program: composed.movie }));
+          }
           const compiled = compileAnimation(args.animation);
           return finalizeResponse(name, result(compiled, !compiled.valid));
         }
@@ -1351,6 +1934,7 @@ export function createMcpServer(outputRoot: string): Server {
           if (!choreographed.valid || !choreographed.program || !choreographed.spec || !choreographed.anchors) {
             return finalizeResponse(name, result({ valid: false, diagnostics: choreographed.diagnostics }, true));
           }
+          const playerPayload = buildCompactPlayerPayload(choreographed.program);
           return finalizeResponse(
             name,
             result({
@@ -1359,32 +1943,37 @@ export function createMcpServer(outputRoot: string): Server {
               spec: choreographed.spec,
               program: choreographed.program,
               anchors: choreographed.anchors,
-              summary: summarizeChoreography(choreographed.program)
+              summary: summarizeChoreography(choreographed.program),
+              playerPayload
             })
           );
         }
         case "stickman_storyboard": {
-          const compiled = compileAnyAnimation(args.animation);
-          if (!compiled.valid || !compiled.program) {
-            return finalizeResponse(name, result({ valid: false, diagnostics: compiled.diagnostics }, true));
+          const resolvedInput = compileOrComposeInput(args.animation);
+          if (!resolvedInput.valid) {
+            return finalizeResponse(name, result({ valid: false, diagnostics: resolvedInput.diagnostics }, true));
           }
           const columns = typeof args.columns === "number" ? args.columns : undefined;
           const maxPanels = typeof args.maxPanels === "number" ? args.maxPanels : undefined;
           const mode = args.mode === undefined ? "normal" : args.mode;
           if (!isPlaybackMode(mode)) throw new Error("Mode must be normal, reduced, or static.");
-          const theme = args.theme === undefined ? "default" : args.theme;
-          if (theme !== "default" && theme !== "blueprint") {
+          const rawTheme = args.theme === undefined ? "default" : args.theme;
+          if (rawTheme !== "default" && rawTheme !== "blueprint") {
             throw new Error('Storyboard theme must be "default" or "blueprint".');
           }
+          const theme: "default" | "blueprint" = rawTheme;
           const includePng = args.includePng !== false;
 
-          const svg = renderStoryboardSvg(compiled.program, {
+          const sbOptions = {
             ...(columns !== undefined ? { columns } : {}),
             ...(maxPanels !== undefined ? { maxPanels } : {}),
             mode,
             theme
-          });
-          const analysis = analyzeStoryboard(compiled.program);
+          };
+          const svg = isCompiledMovie(resolvedInput.target)
+            ? renderMovieStoryboardSvg(resolvedInput.target, sbOptions)
+            : renderStoryboardSvg(resolvedInput.target, sbOptions);
+          const analysis = analyzeProgramOrMovieStoryboard(resolvedInput.target);
 
           let rasterizerAvailable = false;
           const extraContent: CallToolResult["content"] = [];
@@ -1418,9 +2007,9 @@ export function createMcpServer(outputRoot: string): Server {
           );
         }
         case "stickman_preview": {
-          const compiled = compileAnyAnimation(args.animation);
-          if (!compiled.valid || !compiled.program) {
-            return finalizeResponse(name, result({ valid: false, diagnostics: compiled.diagnostics }, true));
+          const resolvedInput = compileOrComposeInput(args.animation);
+          if (!resolvedInput.valid) {
+            return finalizeResponse(name, result({ valid: false, diagnostics: resolvedInput.diagnostics }, true));
           }
           const format = args.format === undefined ? "svg" : args.format;
           if (!isPreviewFormat(format)) {
@@ -1434,7 +2023,7 @@ export function createMcpServer(outputRoot: string): Server {
           if (timeMs !== undefined && (typeof timeMs !== "number" || !Number.isFinite(timeMs))) {
             throw new Error("timeMs must be finite.");
           }
-          const content = renderArtifact(compiled.program, format, {
+          const content = renderArtifact(resolvedInput.target, format, {
             ...(timeMs !== undefined ? { timeMs } : {}),
             ...(mode !== undefined ? { mode } : {}),
             ...(style !== undefined ? { style } : {})
@@ -1442,13 +2031,13 @@ export function createMcpServer(outputRoot: string): Server {
           return finalizeResponse(name, result({ format, content }));
         }
         case "stickman_export": {
-          const compiled = compileAnyAnimation(args.animation);
-          if (!compiled.valid || !compiled.program) {
-            return finalizeResponse(name, result({ valid: false, diagnostics: compiled.diagnostics }, true));
+          const resolvedInput = compileOrComposeInput(args.animation);
+          if (!resolvedInput.valid) {
+            return finalizeResponse(name, result({ valid: false, diagnostics: resolvedInput.diagnostics }, true));
           }
           const format = args.format;
           if (!isExportFormat(format)) {
-            throw new Error("Format must be svg-frame, svg, html, storyboard-svg, gif, or mp4.");
+            throw new Error("Format must be svg-frame, svg, html, storyboard-svg, gif, mp4, or webm.");
           }
           const mode = args.mode;
           if (mode !== undefined && !isPlaybackMode(mode)) throw new Error("Mode must be normal, reduced, or static.");
@@ -1458,13 +2047,15 @@ export function createMcpServer(outputRoot: string): Server {
           if (timeMs !== undefined && (typeof timeMs !== "number" || !Number.isFinite(timeMs))) {
             throw new Error("timeMs must be finite.");
           }
+          const transparent = typeof args.transparent === "boolean" ? args.transparent : undefined;
           return finalizeResponse(
             name,
             result(
-              await exportAnimation(compiled.program, outputRoot, stringArgument(args, "path"), format, {
+              await exportAnimation(resolvedInput.target, outputRoot, stringArgument(args, "path"), format, {
                 ...(timeMs !== undefined ? { timeMs } : {}),
                 ...(mode !== undefined ? { mode } : {}),
                 ...(style !== undefined ? { style } : {}),
+                ...(transparent !== undefined ? { transparent } : {}),
                 signal: extra.signal,
                 ...(extra._meta?.progressToken === undefined
                   ? {}
@@ -1482,6 +2073,91 @@ export function createMcpServer(outputRoot: string): Server {
                       }
                     })
               })
+            )
+          );
+        }
+        case "stickman_movie": {
+          const composed = composeMovie(args.movie as MovieSpecInput);
+          if (!composed.valid || !composed.movie) {
+            return finalizeResponse(name, result({ valid: false, diagnostics: composed.diagnostics }, true));
+          }
+          const movie: CompiledMovie = composed.movie;
+          const playerPayload = buildCompactPlayerPayload(movie);
+          const includeCritique = args.includeCritique === true;
+          const report = includeCritique ? evaluateAnimationQuality(movie) : undefined;
+          return finalizeResponse(
+            name,
+            result({
+              valid: true,
+              diagnostics: [],
+              spec: movie.spec,
+              durationMs: movie.durationMs,
+              sceneCount: movie.scenes.length,
+              scenes: movie.scenes.map((scene) => ({
+                id: scene.id,
+                index: scene.index,
+                ...(scene.title !== undefined ? { title: scene.title } : {}),
+                ...(scene.caption !== undefined ? { caption: scene.caption } : {}),
+                backdrop: scene.backdrop,
+                transition: scene.transition,
+                startMs: scene.startMs,
+                endMs: scene.endMs,
+                durationMs: scene.durationMs,
+                trimmedIdleMs: scene.trimmedIdleMs
+              })),
+              events: movie.events,
+              playerPayload,
+              ...(report !== undefined ? { report } : {})
+            })
+          );
+        }
+        case "stickman_critique": {
+          const resolvedInput = compileOrComposeInput(args.animation);
+          if (!resolvedInput.valid) {
+            return finalizeResponse(name, result({ valid: false, diagnostics: resolvedInput.diagnostics }, true));
+          }
+          const columns = typeof args.columns === "number" ? args.columns : undefined;
+          const maxPanels = typeof args.maxPanels === "number" ? args.maxPanels : undefined;
+          const theme = args.theme === undefined ? "default" : args.theme;
+          if (theme !== "default" && theme !== "blueprint") {
+            throw new Error('Critique theme must be "default" or "blueprint".');
+          }
+          const includePng = args.includePng !== false;
+
+          const critique = await critiqueAnimation(resolvedInput.target, {
+            ...(columns !== undefined ? { columns } : {}),
+            ...(maxPanels !== undefined ? { maxPanels } : {}),
+            theme,
+            includePng
+          });
+          const rasterizerAvailable = includePng
+            ? critique.rasterizerAvailable
+            : await checkRasterizerAvailable();
+          const extraContent: CallToolResult["content"] = [];
+          if (includePng && critique.pngBase64) {
+            extraContent.push({
+              type: "image",
+              data: critique.pngBase64,
+              mimeType: "image/png"
+            });
+          }
+          const playerPayload = buildCompactPlayerPayload(resolvedInput.target, {
+            ...(theme === "blueprint" ? { style: "blueprint" } : {})
+          });
+          return finalizeResponse(
+            name,
+            result(
+              {
+                valid: true,
+                diagnostics: [],
+                report: critique.report,
+                svg: critique.svg,
+                rubric: critique.rubric,
+                rasterizerAvailable,
+                playerPayload
+              },
+              false,
+              extraContent
             )
           );
         }

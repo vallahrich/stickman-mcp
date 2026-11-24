@@ -88,7 +88,7 @@ describe("CLI v0.2 commands and flags", () => {
 
     const badSchema = invokeCli(["schema", "--version", "v9"]);
     expect(badSchema.status).toBe(1);
-    expect(badSchema.stderr).toContain('must be "v1" or "v2"');
+    expect(badSchema.stderr).toContain('must be "v1", "v2", or "movie-v1"');
   }, 60_000);
 
   it("supports choreograph, storyboard (SVG & --lint-only), and storyboard-svg/svg-frame preview & export", async () => {

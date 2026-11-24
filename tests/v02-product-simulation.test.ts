@@ -539,11 +539,15 @@ describe("v0.2.2 End-to-End Product Simulation Suite", () => {
 
     expect(client.getServerVersion()).toEqual({ name: "stickman-mcp", version: "0.2.2" });
     const toolsList = await client.listTools();
-    expect(toolsList.tools).toHaveLength(16);
+    expect(toolsList.tools).toHaveLength(18);
     const resourcesList = await client.listResources();
-    expect(resourcesList.resources).toHaveLength(9);
+    expect(resourcesList.resources).toHaveLength(14);
     const promptsList = await client.listPrompts();
-    expect(promptsList.prompts.map((p) => p.name)).toEqual(["choreograph-slide", "two-actor-dialogue"]);
+    expect(promptsList.prompts.map((p) => p.name)).toEqual([
+      "choreograph-slide",
+      "two-actor-dialogue",
+      "create-and-critique-movie"
+    ]);
 
     const promptGuide = await client.getPrompt({
       name: "choreograph-slide",
