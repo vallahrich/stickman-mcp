@@ -1,0 +1,435 @@
+# Stickman MCP — Complete LLM & Developer Reference (v0.3.1)
+
+> Deterministic local 2D stick-figure animation and multi-scene movie engine with an 18-tool stdio MCP server. Zero AI video API cost; byte-identical SVG, HTML, GIF, MP4, and transparent VP9 WebM exports on Node.js 20+.
+
+- **Live site:** https://vallahrich.github.io/stickman-mcp/
+- **Repository:** https://github.com/vallahrich/stickman-mcp
+- **Release:** https://github.com/vallahrich/stickman-mcp/releases/tag/v0.3.1
+- **Runtime catalog:** 106 deterministic actions, 55 geometric vector props/add-ons, 3 strict JSON contracts (`stickman.animation/v1`, `stickman.animation/v2`, `stickman.movie/v1`).
+
+## What Stickman MCP Solves
+
+AI coding and presentation assistants struggle to produce repeatable, lightweight technical explainer animations: generative video APIs are non-deterministic, slow, costly, and cannot guarantee legible diagrams or exact slide alignment. Stickman MCP solves this with a pure local 2D vector animation compiler and stdio MCP server:
+
+- **100% local & deterministic:** Same JSON input and timestamp always produces identical SVG geometry at 30 fps. No model-weight calls, no external network dependencies, zero per-render API cost.
+- **Declarative multi-actor & multi-scene authoring:** Agents write concise cue-synced beats (`stickman.animation/v2`) or multi-scene movies (`stickman.movie/v1`) with contextual backdrops (`war-room`, `datacenter`, `office`, `stage`), `auto-director` virtual camera, 2.5D `depth` planes, `spotlight: "auto"`, editorial `say`/`think`/`badge` callouts, and shared single-prop `handoffTo`.
+- **Built-in self-critique loop:** `stickman_critique` scores every scene across 6 weighted perceptual axes (`Prop Integrity`, `Spatial Continuity`, `Staging & Eye-Trace`, `Pacing & Readability`, `Kinematic Appeal`, `Cinematography`) and emits annotated SVG/PNG contact sheets so an agent can iterate until `passed: true` (`overallScore >= 8.5`).
+- **Embeddable everywhere:** Export compact self-contained HTML players, scriptless animated SVG, orthographic CAD blueprint SVG, GIF, parallel H.264 MP4, or alpha-channel transparent VP9 WebM overlays, or mount `<stickman-player controls scroll-scrub blueprint>` in web pages.
+
+## Quick Install
+
+### Option 1 — GitHub Release Tarball (No Build Needed)
+
+```sh
+npm install ./vallahrich-stickman-mcp-0.3.1.tgz
+npx stickman discover
+npx stickman-mcp --root ./stickman-output
+```
+
+### Option 2 — Build From Source (Node.js 20+)
+
+```sh
+git clone https://github.com/vallahrich/stickman-mcp.git
+cd stickman-mcp
+npm install
+npm run build
+node dist/cli.js discover --category presentation
+node dist/mcp.js --root ./stickman-output
+```
+
+## Copy-Paste MCP Server Configuration
+
+Always pass an explicit `--root` directory. All file-writing tools (`stickman_export`, `stickman_render_film`, `stickman_author_motion`) strictly confine writes to new relative paths inside `--root` and refuse overwrites, traversal, or symlinks.
+
+### GitHub Copilot CLI
+
+```sh
+copilot mcp add stickman -- node "/path/to/stickman-mcp/dist/mcp.js" --root "/path/to/stickman-output"
+```
+
+### VS Code (`.mcp.json`)
+
+```json
+{
+  "mcpServers": {
+    "stickman": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "/path/to/stickman-mcp/dist/mcp.js",
+        "--root",
+        "/path/to/stickman-output"
+      ]
+    }
+  }
+}
+```
+
+### Claude Code
+
+```sh
+claude mcp add --transport stdio stickman -- node "/path/to/stickman-mcp/dist/mcp.js" --root "/path/to/stickman-output"
+```
+
+### OpenAI Codex CLI
+
+```sh
+codex mcp add stickman -- node "/path/to/stickman-mcp/dist/mcp.js" --root "/path/to/stickman-output"
+```
+
+## MCP Surface (18 Tools · 14 Resources · 3 Prompts)
+
+### Tools (18)
+
+| Tool | Group | Mode | Purpose |
+|---|---|---|---|
+| `stickman_discover` | Discovery & Schema | Read-only | Discover supported runtime actions with optional category, tag, prop, kind, travel, or search filters. |
+| `stickman_describe` | Discovery & Schema | Read-only | Describe one action by bare name (e.g. 'idea') or versioned ID (e.g. 'idea@1.1.0'). |
+| `stickman_schema` | Discovery & Schema | Read-only | Return the strict JSON Schema for stickman.animation/v1, stickman.animation/v2, or stickman.movie/v1. |
+| `stickman_story` | Discovery & Schema | Read-only | List combined IT story recipes or fetch an executable multi-action animation plus synchronized host cues. |
+| `stickman_validate` | Choreography & Movies | Read-only | Validate a v1, v2, or movie/v1 document and return path-specific diagnostics. |
+| `stickman_compile` | Choreography & Movies | Read-only | Validate and compile a v1, v2, or movie/v1 document into a canonical deterministic program. |
+| `stickman_choreograph` | Choreography & Movies | Read-only | Auto-choreograph single- or multi-actor v2 beats using semantic anchors, natural timing, auto-props, and cues. |
+| `stickman_movie` | Choreography & Movies | Read-only | Compose a multi-scene stickman.movie/v1 program with backdrops, fade/wipe transitions, idle-tail trimming, and optional critique. |
+| `stickman_storyboard` | Review & Critique | Read-only | Render a multi-panel storyboard contact sheet (default or CAD blueprint) with bounds, overlap, and seam lint plus optional PNG. |
+| `stickman_critique` | Review & Critique | Read-only | Run 6-axis perceptual quality scoring plus annotated SVG/PNG contact sheet and human critique rubric. |
+| `stickman_preview` | Preview & Export | Read-only | Render a single SVG frame, animated SVG, storyboard SVG, or self-contained HTML preview to stdout/tool output. |
+| `stickman_export` | Preview & Export | Writes under `--root` | Export svg-frame, svg, html, storyboard-svg, gif, mp4, or transparent webm to a new relative file under --root. |
+| `stickman_list_film_assets` | Continuous Films | Read-only | List mechanically qualified film motion IDs, kits, headwear, places, set props, overlay primitives, and join count. |
+| `stickman_check_join` | Continuous Films | Read-only | Check film-scale hard-join continuity cost and suggested bridge length between two approved motions. |
+| `stickman_compose_film` | Continuous Films | Read-only | Validate and compose a strict JSON film recipe with automatic pose-space bridges and continuity bounds. |
+| `stickman_render_film` | Continuous Films | Writes under `--root` | Render a film recipe into silent MP4, poster PNG, VTT captions, and optional QA sheet in a new directory under --root. |
+| `stickman_author_motion` | Motion Authoring | Writes under `--root` | Author a status=draft motion from reusable pose keys with anatomy/contact/continuity gates into a new outputDir under --root. |
+| `stickman_preview_motion` | Motion Authoring | Read-only | Render a sampled PNG preview strip for a draft, candidate, or packaged motion into a new outputDir under --root. |
+
+### Resources (14)
+
+- `stickman://catalog` — Grouped catalog of all runtime actions, clip markers, and prop metadata.
+- `stickman://schema/v1` — Strict JSON Schema for stickman.animation/v1 single-actor timelines.
+- `stickman://schema/v2` — Strict JSON Schema for stickman.animation/v2 multi-actor choreography.
+- `stickman://schema/movie-v1` — Strict JSON Schema for stickman.movie/v1 multi-scene movies.
+- `stickman://anchors` — Semantic stage anchors and coordinate conventions for the 800x450 canvas.
+- `stickman://props` — All geometric runtime prop definitions, attachment sockets, and action auto-mappings.
+- `stickman://rubric/human-critique` — 6-axis weighted quality rubric, pass thresholds, and visual self-critique checklist.
+- `ui://stickman/player` — Self-contained interactive MCP App vector player UI resource with blueprint toggle and critique pills.
+- `stickman://templates/presentation-pitch` — Ready-to-compile v2 single-actor slide presentation pitch template.
+- `stickman://templates/two-actor-dialogue` — Ready-to-compile v2 two-actor cue-synced conversation template.
+- `stickman://templates/idea-reveal` — Ready-to-compile v2 think -> idea lightbulb -> reveal -> cheer template.
+- `stickman://templates/sports-action` — Ready-to-compile v2 hurdle -> basketball-shot -> fist-pump template.
+- `stickman://templates/incident-warroom-movie` — Ready-to-compose 3-scene stickman.movie/v1 incident war-room recovery template.
+- `stickman://templates/two-actor-handoff` — Ready-to-choreograph 2-actor shared card handoff and elevated stairs template.
+
+### Prompts (3)
+
+- `choreograph-slide` — Step-by-step workflow to choreograph, storyboard-critique, and export a deterministic stickman slide animation.
+- `two-actor-dialogue` — Step-by-step workflow to choreograph and verify a 2-actor cue-synced stickman conversation.
+- `create-and-critique-movie` — Step-by-step workflow to compose a multi-scene movie, run Tier A + Tier B critique until >= 8.5/10, and export.
+
+## Export Formats
+
+| Format | Flag / Option | External Dependencies | Use Case |
+|---|---|---|---|
+| Single SVG frame | `svg-frame` | None | Posters, documentation diagrams, static slide illustrations |
+| Animated SVG | `svg` | None | Scriptless looping vector animations (GitHub READMEs, docs) |
+| Self-contained HTML | `html` | None | Interactive compact player (`< 220 KB`) with play/pause, seek, blueprint toggle |
+| Storyboard SVG | `storyboard-svg` | None | Multi-panel contact sheet (default or CAD blueprint theme) |
+| Animated GIF | `gif` | Optional `@resvg/resvg-js` + FFmpeg | Quick messaging, PR previews, legacy slide decks |
+| H.264 MP4 | `mp4` | Optional `@resvg/resvg-js` + FFmpeg | High-clarity silent explainer videos (parallel worker rasterization) |
+| Transparent VP9 WebM | `webm` + `transparent: true` | Optional `@resvg/resvg-js` + FFmpeg | Alpha-channel (`yuva420p`) compositing over slides or video editors |
+
+## Runnable Example 1: `stickman.animation/v2` (Multi-Actor Choreography)
+
+```json
+{
+  "version": "stickman.animation/v2",
+  "canvas": {
+    "width": 800,
+    "height": 450,
+    "fps": 30
+  },
+  "theme": {
+    "accentColor": "#2563eb",
+    "background": "#ffffff"
+  },
+  "actors": [
+    {
+      "id": "presenter",
+      "label": "Lead Presenter",
+      "x": "left",
+      "facing": "right",
+      "color": "#0f172a",
+      "accessory": "tie",
+      "accentColor": "#e11d48",
+      "zIndex": 2,
+      "actions": [
+        {
+          "action": "write-board",
+          "emitCue": "boardWritten"
+        },
+        {
+          "action": "fist-pump",
+          "afterCue": "approved"
+        }
+      ]
+    },
+    {
+      "id": "colleague",
+      "label": "Design Reviewer",
+      "x": "right",
+      "facing": "left",
+      "color": "#334155",
+      "accessory": "glasses",
+      "zIndex": 1,
+      "actions": [
+        {
+          "action": "surprised",
+          "afterCue": "boardWritten",
+          "emitCue": "reacted"
+        },
+        {
+          "action": "thumbs-up",
+          "afterCue": "reacted",
+          "emitCue": "approved"
+        },
+        {
+          "action": "fist-pump",
+          "afterCue": "approved"
+        }
+      ]
+    }
+  ]
+}
+```
+
+## Runnable Example 2: `stickman.movie/v1` (Multi-Scene Movie)
+
+```json
+{
+  "version": "stickman.movie/v1",
+  "title": "Incident War Room Recovery",
+  "canvas": {
+    "width": 1280,
+    "height": 720,
+    "fps": 30
+  },
+  "theme": {
+    "accentColor": "#b11f4b",
+    "background": "#ffffff"
+  },
+  "trimIdleTails": true,
+  "scenes": [
+    {
+      "id": "war-room-triage",
+      "title": "War Room Triage",
+      "backdrop": "war-room",
+      "camera": "auto-director",
+      "spotlight": "auto",
+      "transition": {
+        "kind": "fade",
+        "durationMs": 400
+      },
+      "actors": [
+        {
+          "id": "lead",
+          "label": "Incident Lead",
+          "x": 270,
+          "depth": 0,
+          "facing": "right",
+          "color": "#0f172a",
+          "accessory": "tie",
+          "zIndex": 3,
+          "actions": [
+            {
+              "action": "frustrated-pc",
+              "badge": "! Alert",
+              "emitCue": "alertRaised"
+            },
+            {
+              "action": "nod",
+              "afterCue": "rootCauseFound"
+            }
+          ]
+        },
+        {
+          "id": "sre",
+          "label": "On-Call SRE",
+          "x": 650,
+          "depth": 0.35,
+          "facing": "left",
+          "color": "#1e293b",
+          "accessory": "glasses",
+          "zIndex": 2,
+          "actions": [
+            {
+              "action": "think",
+              "afterCue": "alertRaised",
+              "emitCue": "triageDone"
+            },
+            {
+              "action": "idea",
+              "afterCue": "triageDone",
+              "say": "Found root cause!",
+              "emitCue": "rootCauseFound"
+            }
+          ]
+        },
+        {
+          "id": "ops",
+          "label": "Operations Engineer",
+          "x": 1000,
+          "depth": 0.65,
+          "facing": "left",
+          "color": "#334155",
+          "accessory": "badge",
+          "zIndex": 1,
+          "actions": [
+            {
+              "action": "check-watch",
+              "emitCue": "statusChecked"
+            },
+            {
+              "action": "thumbs-up",
+              "afterCue": "rootCauseFound"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "datacenter-patch",
+      "title": "Datacenter Patch",
+      "backdrop": "datacenter",
+      "camera": "auto-director",
+      "spotlight": "auto",
+      "transition": {
+        "kind": "wipe",
+        "durationMs": 400
+      },
+      "actors": [
+        {
+          "id": "sre",
+          "label": "On-Call SRE",
+          "x": 380,
+          "depth": 0,
+          "facing": "right",
+          "color": "#0f172a",
+          "accessory": "glasses",
+          "zIndex": 2,
+          "actions": [
+            {
+              "action": "rack-server",
+              "emitCue": "rackOpened"
+            },
+            {
+              "action": "plug-cable",
+              "afterCue": "rackOpened",
+              "say": "Patching node 3",
+              "emitCue": "nodePatched"
+            }
+          ]
+        },
+        {
+          "id": "lead",
+          "label": "Incident Lead",
+          "x": 860,
+          "depth": 0.3,
+          "facing": "left",
+          "color": "#1e293b",
+          "accessory": "tie",
+          "zIndex": 1,
+          "actions": [
+            {
+              "action": "check-watch",
+              "emitCue": "sloChecked"
+            },
+            {
+              "action": "nod",
+              "afterCue": "nodePatched",
+              "badge": "99.98%"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "all-clear",
+      "title": "All Systems Green",
+      "backdrop": "office",
+      "camera": "auto-director",
+      "spotlight": "auto",
+      "transition": "cut",
+      "actors": [
+        {
+          "id": "lead",
+          "label": "Incident Lead",
+          "x": 300,
+          "depth": 0,
+          "facing": "right",
+          "color": "#0f172a",
+          "accessory": "tie",
+          "zIndex": 3,
+          "actions": [
+            {
+              "action": "thumbs-up",
+              "say": "All systems green!",
+              "emitCue": "greenConfirmed"
+            },
+            {
+              "action": "cheer",
+              "afterCue": "greenConfirmed"
+            }
+          ]
+        },
+        {
+          "id": "sre",
+          "label": "On-Call SRE",
+          "x": 640,
+          "depth": 0.25,
+          "facing": "right",
+          "color": "#1e293b",
+          "accessory": "glasses",
+          "zIndex": 2,
+          "actions": [
+            {
+              "action": "cheer",
+              "badge": "✓ Verified green",
+              "emitCue": "sreCheered"
+            },
+            {
+              "action": "fist-pump",
+              "afterCue": "greenConfirmed"
+            }
+          ]
+        },
+        {
+          "id": "ops",
+          "label": "Operations Engineer",
+          "x": 960,
+          "depth": 0.45,
+          "facing": "left",
+          "color": "#334155",
+          "accessory": "badge",
+          "zIndex": 1,
+          "actions": [
+            {
+              "action": "fist-pump",
+              "emitCue": "opsPumped"
+            },
+            {
+              "action": "thumbs-up",
+              "afterCue": "greenConfirmed"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+## Deterministic Guarantees & Scope Boundaries
+
+- **Pure function of input and time:** `sampleAnimation(program, timeMs, mode)` and `sampleMovie(movie, timeMs, mode)` are deterministic with zero hidden timers, zero randomness, and zero network requests.
+- **Accessibility built in:** `reduced` and `static` playback modes keep actors onstage in a meaningful summary pose and honor `prefers-reduced-motion: reduce`.
+- **Explicit non-goals:** Stickman MCP is not a photorealistic AI video generator, 3D rigged character renderer, general physics simulator, or speech/audio synthesizer. Use it when you want clean, lightweight, auditable 2D technical explainers, slide animations, and storyboarded workflows.
+- **Licensing:** Original engine, authored key-pose specifications, and geometric vector props are MIT-licensed (`LICENSE`). Compact CMU-derived motion clips retain CMU non-resale dataset terms documented in `NOTICE` and `docs/rights.md`.

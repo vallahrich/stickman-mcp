@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <id>https://vallahrich.github.io/stickman-mcp/feed.xml</id>
+  <title>Stickman MCP Releases</title>
+  <subtitle>Deterministic 2D stick-figure animation and multi-scene movie engine with a local stdio MCP server.</subtitle>
+  <updated>2026-11-24T19:00:00Z</updated>
+  <link rel="self" type="application/atom+xml" href="https://vallahrich.github.io/stickman-mcp/feed.xml"/>
+  <link rel="alternate" type="text/html" href="https://vallahrich.github.io/stickman-mcp/"/>
+  <author>
+    <name>Stickman MCP Maintainers</name>
+    <uri>https://github.com/vallahrich/stickman-mcp</uri>
+  </author>
+  <entry>
+    <id>https://github.com/vallahrich/stickman-mcp/releases/tag/v0.3.1</id>
+    <title>Stickman MCP v0.3.1 — Discovery Assets, README &amp; Live Website Polish</title>
+    <updated>2026-11-24T19:00:00Z</updated>
+    <link rel="alternate" type="text/html" href="https://github.com/vallahrich/stickman-mcp/releases/tag/v0.3.1"/>
+    <summary>Ships machine-readable discovery endpoints (llms.txt, llms-full.txt, sitemap.xml, Atom feed.xml, robots.txt, 1200x630 og-card.png, Schema.org JSON-LD), MCP Registry server.json, CITATION.cff, scriptless 1200x420 README hero banner, and live website polish with theme toggle, high-contrast studio controls, and hero stage preview.</summary>
+  </entry>
+  <entry>
+    <id>https://github.com/vallahrich/stickman-mcp/releases/tag/v0.3.0</id>
+    <title>Stickman MCP v0.3.0 — Multi-Scene Movies, Virtual Camera, 6-Axis Critique &amp; Transparent WebM</title>
+    <updated>2026-11-24T14:00:37Z</updated>
+    <link rel="alternate" type="text/html" href="https://github.com/vallahrich/stickman-mcp/releases/tag/v0.3.0"/>
+    <summary>Adds stickman.movie/v1 multi-scene composition with contextual backdrops and fade/wipe transitions, auto-director virtual camera, 2.5D depth planes, spotlight focus, editorial callouts, curved Bezier spines, gaze cues, hand glyphs, shared multi-actor prop handoffs, 6-axis stickman_critique, ui://stickman/player MCP App, parallel MP4 rasterization, and transparent VP9 WebM export.</summary>
+  </entry>
+  <entry>
+    <id>https://github.com/vallahrich/stickman-mcp/releases/tag/v0.2.2</id>
+    <title>Stickman MCP v0.2.2 — Full-Stage Hatched CAD Blueprints &amp; Scroll-Scrubbed Playhead</title>
+    <updated>2026-11-17T17:20:35Z</updated>
+    <link rel="alternate" type="text/html" href="https://github.com/vallahrich/stickman-mcp/releases/tag/v0.2.2"/>
+    <summary>Adds full-stage architectural CAD blueprint rendering (--blueprint / --style blueprint), interactive scroll-scrubbed &lt;stickman-player&gt; timelines via bindScrollTimeline, and DESIGN.md token/contrast/anti-slop linting.</summary>
+  </entry>
+  <entry>
+    <id>https://github.com/vallahrich/stickman-mcp/releases/tag/v0.2.1</id>
+    <title>Stickman MCP v0.2.1 — Multi-Actor v2 Stabilization &amp; Release Parity</title>
+    <updated>2026-11-16T18:09:20Z</updated>
+    <link rel="alternate" type="text/html" href="https://github.com/vallahrich/stickman-mcp/releases/tag/v0.2.1"/>
+    <summary>Hardens stickman.animation/v2 multi-actor choreography, storyboard spatial/seam diagnostics, and offline release-candidate verification.</summary>
+  </entry>
+  <entry>
+    <id>https://github.com/vallahrich/stickman-mcp/releases/tag/v0.2.0</id>
+    <title>Stickman MCP v0.2.0 — stickman.animation/v2 Choreography, Props &amp; Storyboard Review</title>
+    <updated>2026-11-16T10:31:36Z</updated>
+    <link rel="alternate" type="text/html" href="https://github.com/vallahrich/stickman-mcp/releases/tag/v0.2.0"/>
+    <summary>Introduces stickman.animation/v2 multi-actor choreography with semantic anchors, cue synchronization, geometric vector props/add-ons, storyboard contact sheets, and expanded runtime motion catalog.</summary>
+  </entry>
+  <entry>
+    <id>https://github.com/vallahrich/stickman-mcp/releases/tag/v0.1.0</id>
+    <title>Stickman MCP v0.1.0 — Deterministic 2D Stick-Figure Engine &amp; Local Stdio MCP Server</title>
+    <updated>2026-11-05T12:38:30Z</updated>
+    <link rel="alternate" type="text/html" href="https://github.com/vallahrich/stickman-mcp/releases/tag/v0.1.0"/>
+    <summary>Initial release of the deterministic 2D vector stick-figure compiler, CLI, local stdio MCP server, safe export root boundary, continuous film composer, and offline motion gallery.</summary>
+  </entry>
+</feed>

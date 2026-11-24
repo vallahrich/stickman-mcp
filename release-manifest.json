@@ -1,6 +1,6 @@
 {
   "schema": "stickman.site-manifest/v1",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "scope": "connected-mcp-library-cli-and-offline-demos",
   "publicationApproved": false,
   "nativePresentation": true,
@@ -28,17 +28,32 @@
     {
       "path": "connection-guide.md",
       "bytes": 5145,
-      "sha256": "351e0870bf8da29c6ac028a05974e425caa8aae10c27d0ede4102476eb4e4732"
+      "sha256": "d6df5226f0428fca4bd02bd2af532247e3575ca5ed83ff69fcad0b777a015444"
+    },
+    {
+      "path": "feed.xml",
+      "bytes": 4435,
+      "sha256": "2c002898498e278c622a4ee4b93bb3f3d63f4e72cbd7c8f14f16a3edf38adea4"
+    },
+    {
+      "path": "hero-stage.svg",
+      "bytes": 8269,
+      "sha256": "e07c087d13fd0b2609c7c2a34556bd4044454a0b699a7ed5359ed0be36b764fb"
     },
     {
       "path": "index.html",
-      "bytes": 3037233,
-      "sha256": "cbc05277d5fb823c5480f717b69e0f13cefce65a22e3cefc57d7cf59aeeca405"
+      "bytes": 3046577,
+      "sha256": "3d2eb820feb81ddffd6d0dfc3b82182a62f65eb093647804129e0fc8b70e49b0"
+    },
+    {
+      "path": "llms-full.txt",
+      "bytes": 17328,
+      "sha256": "2c282475593f9ab52a102084f84d690af65b1049d75d0044798ea678a5185f32"
     },
     {
       "path": "llms.txt",
-      "bytes": 5145,
-      "sha256": "351e0870bf8da29c6ac028a05974e425caa8aae10c27d0ede4102476eb4e4732"
+      "bytes": 4723,
+      "sha256": "9d4eb0201a567e385f2714011a091319f95d0018ad89dd62076ff37dfd3c7486"
     },
     {
       "path": "motions/arms-crossed.html",
@@ -544,6 +559,11 @@
       "path": "motions/write-notes.html",
       "bytes": 368686,
       "sha256": "efcb4d3327870b8d57ab95c99ed8a3851e8db96b230bc8018145a11efef1ceee"
+    },
+    {
+      "path": "og-card.png",
+      "bytes": 64749,
+      "sha256": "4716c77319b506f63068c21dd0f993b99791b4f0b71025d1e91cd672a832d51a"
     },
     {
       "path": "posters/arms-crossed.svg",
@@ -1057,8 +1077,8 @@
     },
     {
       "path": "robots.txt",
-      "bytes": 23,
-      "sha256": "16ceb5ee3e0dc13aa9adf31a3ebbe45a1d965b8c2b9f72eaf84e5911e140ed95"
+      "bytes": 332,
+      "sha256": "e92b2c60b8b25b3c015cabeac21d8263404fa5515b1522327571803a4b0cc856"
     },
     {
       "path": "showcase/julius-caesar.mp4",
@@ -1082,8 +1102,8 @@
     },
     {
       "path": "showcase/on-prem-to-cloud.html",
-      "bytes": 340167,
-      "sha256": "99290b8d0d2aa98e03131686b8d00371d5badcadbd66b372199fa2f0334e8ff7"
+      "bytes": 344827,
+      "sha256": "cfb4daa025018082675a97b918c037f9c6277bcb366644ad81e5571d18e6b3da"
     },
     {
       "path": "showcase/open-source.mp4",
@@ -1099,6 +1119,11 @@
       "path": "showcase/open-source.vtt",
       "bytes": 838,
       "sha256": "fdbae76457afefb8ff06b536321210a80b82864c429c6e3ef6f26b750b3a4cf8"
+    },
+    {
+      "path": "sitemap.xml",
+      "bytes": 1011,
+      "sha256": "81d9f57b4fb29d939b50f60cbebc04c2e16177ce1254a3c8afa6f26d09047cbb"
     },
     {
       "path": "source-notices.md",
@@ -1622,8 +1647,8 @@
     },
     {
       "path": "stories/cloud-journey.html",
-      "bytes": 1860051,
-      "sha256": "76806e6461b16bf92d43cec39f9664123f448a49bc6d9e67b780cc1992c90fda"
+      "bytes": 1864711,
+      "sha256": "37ec98a5b9910d7291b3a46b0dcacbc0878b0529ba37fd367c94f534da78fe97"
     },
     {
       "path": "stories/cloud-journey.json",
@@ -1647,8 +1672,8 @@
     },
     {
       "path": "stories/deployment-rollout.html",
-      "bytes": 1249610,
-      "sha256": "ed2613362fec843057c1d61a79d8f0058ebd7cd2a4b3dae46b6bbbdbf5a5411a"
+      "bytes": 1254270,
+      "sha256": "9584e3999eedcd56003fa8e231af5ae374aa2596acd255eb55e5bdec5284d1d3"
     },
     {
       "path": "stories/deployment-rollout.json",
@@ -1672,8 +1697,8 @@
     },
     {
       "path": "stories/incident-resolution.html",
-      "bytes": 1829775,
-      "sha256": "9175afce4059c3634e82ab8c770de8ff7c0d719dfdbf0526f770c4acb6afc5fc"
+      "bytes": 1834435,
+      "sha256": "1a8503993b9ecd8712faafadbb3f7bc0cbc3032191d98001b05170f763a5a18b"
     },
     {
       "path": "stories/incident-resolution.json",
