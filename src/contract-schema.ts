@@ -155,6 +155,14 @@ export const animationSchemaV2 = {
         handle: { $ref: "#/$defs/point" }
       }
     },
+    stageProps: {
+      type: "array",
+      items: { $ref: "#/$defs/stageProp" }
+    },
+    customMotions: {
+      type: "object",
+      additionalProperties: { $ref: "#/$defs/customMotion" }
+    },
     actors: {
       type: "array",
       minItems: 1,
@@ -290,12 +298,73 @@ export const animationSchemaV2 = {
         { $ref: "#/$defs/addonConfig" }
       ]
     },
+    stageProp: {
+      type: "object",
+      additionalProperties: false,
+      required: ["id", "type"],
+      properties: {
+        id: { type: "string", minLength: 1 },
+        type: { enum: ADDON_TYPES },
+        x: { type: "number" },
+        y: { type: "number" },
+        anchor: { type: "string", minLength: 1 },
+        width: { type: "number", exclusiveMinimum: 0 },
+        height: { type: "number", exclusiveMinimum: 0 },
+        facing: { enum: ["left", "right"] },
+        color: { type: "string", minLength: 1 },
+        text: { type: "string" },
+        layer: { enum: ["back", "front"] },
+        scale: { type: "number", exclusiveMinimum: 0, maximum: 5 }
+      }
+    },
+    handoffSpec: {
+      type: "object",
+      additionalProperties: false,
+      required: ["actorId"],
+      properties: {
+        actorId: { type: "string", minLength: 1 },
+        propType: { enum: ADDON_TYPES },
+        propId: { type: "string", minLength: 1 },
+        atProgress: { type: "number", minimum: 0, maximum: 1 }
+      }
+    },
+    customMotion: {
+      type: "object",
+      additionalProperties: true,
+      required: ["frames"],
+      properties: {
+        id: { type: "string", minLength: 1 },
+        name: { type: "string", minLength: 1 },
+        label: { type: "string" },
+        frames: {
+          oneOf: [
+            { type: "integer", minimum: 2, maximum: 1800 },
+            { type: "array", minItems: 2 }
+          ]
+        },
+        fps: { type: "number", exclusiveMinimum: 0, maximum: 120 },
+        loop: { type: "boolean" },
+        kind: { enum: ["oneshot", "loop", "hold"] },
+        travel: { enum: ["in-place", "travel"] },
+        facingChange: { enum: [0, 90, 180] },
+        prop: { oneOf: [{ type: "string" }, { type: "null" }] },
+        aim: { oneOf: [{ enum: ["hand", "head"] }, { type: "null" }] },
+        markers: { type: "object", additionalProperties: { type: "number" } },
+        strideLength: { type: "number" },
+        poseKeys: { type: "array", minItems: 1 }
+      }
+    },
     choreographAction: {
       type: "object",
       additionalProperties: false,
       required: ["action"],
       properties: {
-        action: { enum: V2_ACTION_IDS },
+        action: {
+          anyOf: [
+            { enum: V2_ACTION_IDS },
+            { type: "string", minLength: 1 }
+          ]
+        },
         startMs: { type: "integer", minimum: 0 },
         durationMs: { type: "integer", minimum: 100 },
         delayMs: { type: "integer", minimum: 0 },
@@ -316,7 +385,9 @@ export const animationSchemaV2 = {
             { type: "array", items: { $ref: "#/$defs/addonItem" } }
           ]
         },
-        persist: { type: "boolean" }
+        persist: { type: "boolean" },
+        handoffTo: { $ref: "#/$defs/handoffSpec" },
+        toGround: { type: "boolean" }
       }
     },
     actorSpec: {

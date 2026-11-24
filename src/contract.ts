@@ -1,3 +1,5 @@
+import type { MotionClip, PoseKeyFrame } from "./motion-clips.js";
+
 export const CONTRACT_VERSION = "stickman.animation/v1" as const;
 export const CONTRACT_VERSION_V2 = "stickman.animation/v2" as const;
 export type ContractVersion = typeof CONTRACT_VERSION | typeof CONTRACT_VERSION_V2;
@@ -105,6 +107,7 @@ export type AddonType =
   | "cable"
   | "card"
   | "chair"
+  | "coffee-mug"
   | "cone"
   | "crate"
   | "cursor"
@@ -123,6 +126,7 @@ export type AddonType =
   | "laptop"
   | "ledge"
   | "magnifier"
+  | "mug"
   | "notebook"
   | "palm"
   | "pen"
@@ -236,6 +240,7 @@ export interface SampledAddon {
   puff?: boolean;
   open?: number;
   hinge?: "left" | "right";
+  flipX?: boolean;
   ink?: number;
   netBulge?: number;
   text?: string;
@@ -290,6 +295,47 @@ export type ChoreographAddonInput =
   | ChoreographAddonItem
   | ReadonlyArray<ChoreographAddonItem>;
 
+export interface StagePropSpec {
+  id: string;
+  type: AddonType;
+  x?: number;
+  y?: number;
+  anchor?: string;
+  width?: number;
+  height?: number;
+  facing?: "left" | "right";
+  color?: string;
+  text?: string;
+  layer?: "back" | "front";
+  scale?: number;
+}
+
+export interface HandoffSpec {
+  actorId: string;
+  propType?: AddonType;
+  propId?: string;
+  atProgress?: number;
+}
+
+export interface CustomMotionDraftSpec {
+  id?: string;
+  label?: string;
+  frames: number;
+  fps?: number;
+  loop?: boolean;
+  kind?: "oneshot" | "loop" | "hold";
+  travel?: "in-place" | "travel";
+  facingChange?: 0 | 90 | 180;
+  prop?: string | null;
+  aim?: "hand" | "head" | null;
+  markers?: Record<string, number>;
+  strideLength?: number;
+  poseKeys: PoseKeyFrame[];
+  [key: string]: unknown;
+}
+
+export type CustomMotionClipSpec = MotionClip | CustomMotionDraftSpec;
+
 export interface ChoreographAction {
   action: ActionName;
   startMs?: number;
@@ -306,6 +352,8 @@ export interface ChoreographAction {
   emitCueAt?: "start" | "end" | string;
   addon?: ChoreographAddonInput;
   persist?: boolean;
+  handoffTo?: HandoffSpec;
+  toGround?: boolean;
 }
 
 export interface ActorChoreographySpec {
@@ -346,6 +394,8 @@ export interface ResolvedActorAction extends AnimationAction {
   emitCueAt?: "start" | "end" | string;
   addon?: ChoreographAddonInput;
   persist?: boolean;
+  handoffTo?: HandoffSpec;
+  toGround?: boolean;
 }
 
 export interface CompiledActorSpec {
@@ -386,6 +436,8 @@ export interface AnimationSpecV2 {
     gaze?: GazeTarget;
   };
   prop?: PropSpec;
+  stageProps?: StagePropSpec[];
+  customMotions?: Record<string, CustomMotionClipSpec>;
   actors: CompiledActorSpec[];
   actions: ResolvedActorAction[];
 }
@@ -399,6 +451,8 @@ export interface ChoreographInput {
   addons?: "auto" | "none";
   anchors?: Record<string, Point2D | { x: number; y?: number }>;
   targets?: Record<string, Point2D | { x: number; y?: number }>;
+  stageProps?: StagePropSpec[];
+  customMotions?: Record<string, CustomMotionClipSpec>;
   actors?: ActorChoreographySpec[];
   actor?: ChoreographActorInput;
   actions?: ChoreographAction[];

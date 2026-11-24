@@ -147,6 +147,17 @@
       "socket": "stage"
     },
     {
+      "type": "coffee-mug",
+      "label": "Coffee Mug",
+      "category": "object",
+      "defaultSize": {
+        "w": 16,
+        "h": 18
+      },
+      "defaultColor": "#d97706",
+      "socket": "rHand"
+    },
+    {
       "type": "cone",
       "label": "Marker Cone",
       "category": "sport",
@@ -344,6 +355,17 @@
         "h": 34
       },
       "defaultColor": "#e2a532",
+      "socket": "rHand"
+    },
+    {
+      "type": "mug",
+      "label": "Mug",
+      "category": "object",
+      "defaultSize": {
+        "w": 16,
+        "h": 18
+      },
+      "defaultColor": "#d97706",
       "socket": "rHand"
     },
     {

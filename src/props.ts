@@ -151,6 +151,14 @@ export const PROP_DEFINITIONS: Readonly<Record<AddonType, PropDefinition>> = Obj
     defaultColor: "#202124",
     socket: "stage"
   },
+  "coffee-mug": {
+    type: "coffee-mug",
+    label: "Coffee Mug",
+    category: "object",
+    defaultSize: { w: 16, h: 18 },
+    defaultColor: "#d97706",
+    socket: "rHand"
+  },
   cone: {
     type: "cone",
     label: "Marker Cone",
@@ -293,6 +301,14 @@ export const PROP_DEFINITIONS: Readonly<Record<AddonType, PropDefinition>> = Obj
     category: "object",
     defaultSize: { w: 24, h: 34 },
     defaultColor: "#e2a532",
+    socket: "rHand"
+  },
+  mug: {
+    type: "mug",
+    label: "Mug",
+    category: "object",
+    defaultSize: { w: 16, h: 18 },
+    defaultColor: "#d97706",
     socket: "rHand"
   },
   notebook: {
@@ -474,6 +490,25 @@ export const PROP_DEFINITIONS: Readonly<Record<AddonType, PropDefinition>> = Obj
 });
 
 export const ADDON_TYPES: readonly AddonType[] = Object.freeze(Object.keys(PROP_DEFINITIONS) as AddonType[]);
+
+export const ASYMMETRIC_FLIP_TYPES: ReadonlySet<AddonType> = new Set<AddonType>([
+  "chair",
+  "desk",
+  "laptop",
+  "door",
+  "goal",
+  "hoop",
+  "stairs",
+  "server-rack",
+  "server-module",
+  "cable",
+  "socket",
+  "board",
+  "phone",
+  "magnifier",
+  "coffee-mug",
+  "mug"
+]);
 
 const BRAND_ACCENT_HEX = "#b11f4b";
 
@@ -2212,7 +2247,9 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       width: 60,
       height: 100,
       color: "#202124",
-      enter: "instant",
+      enter: "fade",
+      enterAt: 0,
+      enterDuration: 0.08,
       exit: "fade",
       exitAt: 0.92,
       exitDuration: 0.08
@@ -2227,7 +2264,9 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       width: 110,
       height: 92,
       color: "#202124",
-      enter: "instant",
+      enter: "fade",
+      enterAt: 0,
+      enterDuration: 0.08,
       exit: "fade",
       exitAt: 0.92,
       exitDuration: 0.08
@@ -2242,7 +2281,9 @@ const ACTION_DEFAULT_ADDONS: Readonly<Record<string, readonly AddonConfig[]>> = 
       width: 42,
       height: 40,
       color: "#367ea8",
-      enter: "instant",
+      enter: "fade",
+      enterAt: 0,
+      enterDuration: 0.08,
       exit: "fade",
       exitAt: 0.92,
       exitDuration: 0.08
@@ -2378,6 +2419,8 @@ export interface SampleActionAddonsParams {
   actorId?: string;
   canvas?: { width: number; height: number };
   addons?: readonly AddonConfig[];
+  fallbackDefaultAddons?: readonly AddonConfig[];
+  externalStageTargets?: ReadonlyMap<string, { type: AddonType; x: number; y: number; width: number; height: number; flipX?: boolean }>;
   mergeDefaults?: boolean;
   themeAccentColor?: string;
   persist?: boolean;
@@ -2556,13 +2599,19 @@ function interpolateKeyframes(keyframes: readonly AddonKeyframe[] | undefined, p
 function mergeActionConfigs(
   action: ActionName,
   overrides: readonly AddonConfig[] | undefined,
-  mergeDefaults = true
+  mergeDefaults = true,
+  fallbackDefaults?: readonly AddonConfig[]
 ): AddonConfig[] {
-  if (overrides === undefined) return defaultAddonsForAction(action);
+  const resolveDefaults = (): AddonConfig[] => {
+    const builtIn = defaultAddonsForAction(action);
+    if (builtIn.length > 0) return builtIn;
+    return fallbackDefaults ? fallbackDefaults.map(cloneAddonConfig) : [];
+  };
+  if (overrides === undefined) return resolveDefaults();
   if (overrides.length === 0) return [];
   if (!mergeDefaults) return overrides.map(cloneAddonConfig);
 
-  const defaults = defaultAddonsForAction(action);
+  const defaults = resolveDefaults();
   if (defaults.length === 0) return overrides.map(cloneAddonConfig);
 
   const usedOverrideIndices = new Set<number>();
@@ -2641,12 +2690,14 @@ function resolveColor(config: AddonConfig, def: PropDefinition, themeAccentColor
   return def.defaultColor;
 }
 
-function targetSweetSpot(addon: { type: AddonType; x: number; y: number; width: number; height: number }): Point2D {
+function targetSweetSpot(addon: { type: AddonType; x: number; y: number; width: number; height: number; flipX?: boolean }): Point2D {
   if (addon.type === "hoop") {
-    return { x: addon.x + addon.width * 0.7, y: addon.y + addon.height * 0.48 };
+    const fracX = addon.flipX ? 0.71 : 0.29;
+    return { x: addon.x + addon.width * fracX, y: addon.y + addon.height * 0.48 };
   }
   if (addon.type === "goal") {
-    return { x: addon.x + addon.width * 0.52, y: addon.y + addon.height * 0.58 };
+    const fracX = addon.flipX ? 0.48 : 0.52;
+    return { x: addon.x + addon.width * fracX, y: addon.y + addon.height * 0.58 };
   }
   return { x: addon.x + addon.width / 2, y: addon.y + addon.height / 2 };
 }
@@ -2679,17 +2730,28 @@ export function sampleActionAddons(params: SampleActionAddonsParams): SampledAdd
   const dir = facing < 0 ? -1 : 1;
   const stageRootX = params.originX ?? params.poseAtProgress?.(0).x ?? pose.x;
 
-  // Track which overrides explicitly supplied `color` so `themeAccentColor` applies cleanly to brand-accent defaults.
+  // Track which overrides explicitly supplied `color` or `hinge` so theme accents and bilateral mirroring respect overrides.
   const explicitColorIds = new Set<string>();
   const explicitColorTypes = new Set<AddonType>();
+  const explicitHingeIds = new Set<string>();
+  const explicitHingeTypes = new Set<AddonType>();
   for (const ov of params.addons ?? []) {
     if (ov.color !== undefined) {
       if (ov.id !== undefined) explicitColorIds.add(ov.id);
       else explicitColorTypes.add(ov.type);
     }
+    if (ov.hinge !== undefined) {
+      if (ov.id !== undefined) explicitHingeIds.add(ov.id);
+      else explicitHingeTypes.add(ov.type);
+    }
   }
 
-  const configs = mergeActionConfigs(params.action, params.addons, params.mergeDefaults ?? true);
+  const configs = mergeActionConfigs(
+    params.action,
+    params.addons,
+    params.mergeDefaults ?? true,
+    params.fallbackDefaultAddons
+  );
   if (configs.length === 0) return [];
 
   const prevStageIds = extractStagePropIds(params.previousAction);
@@ -2699,7 +2761,12 @@ export function sampleActionAddons(params: SampleActionAddonsParams): SampledAdd
   for (const id of toStringSet(params.persistedStageIds?.toNext)) nextStageIds.add(id);
 
   // First pass: compute base stage positions so projectiles targeting "hoop" / "goal" hit the exact laid-out target.
-  const stageBoxes = new Map<string, { type: AddonType; x: number; y: number; width: number; height: number }>();
+  const stageBoxes = new Map<string, { type: AddonType; x: number; y: number; width: number; height: number; flipX?: boolean }>();
+  if (params.externalStageTargets) {
+    for (const [key, box] of params.externalStageTargets.entries()) {
+      stageBoxes.set(key, box);
+    }
+  }
   for (const cfg of configs) {
     const def = PROP_DEFINITIONS[cfg.type];
     const id = cfg.id ?? cfg.type;
@@ -2715,7 +2782,10 @@ export function sampleActionAddons(params: SampleActionAddonsParams): SampledAdd
     const rawX = dir >= 0 ? stageRootX + xLocal * unit : stageRootX - xLocal * unit - width;
     const rawY = pose.groundY - (yLocal + hLocal) * unit;
     const clamped = clampStageBoxToCanvas(rawX, rawY, width, height, params.canvas);
-    stageBoxes.set(id, { type: cfg.type, x: clamped.x, y: clamped.y, width, height });
+    const boxFlipX = dir < 0 && ASYMMETRIC_FLIP_TYPES.has(cfg.type);
+    if (!params.externalStageTargets?.has(id) && !params.externalStageTargets?.has(cfg.type)) {
+      stageBoxes.set(id, { type: cfg.type, x: clamped.x, y: clamped.y, width, height, ...(boxFlipX ? { flipX: true } : {}) });
+    }
   }
 
   const sampled: SampledAddon[] = [];
@@ -2777,9 +2847,11 @@ export function sampleActionAddons(params: SampleActionAddonsParams): SampledAdd
     let limbRot = 0;
 
     if (isStage) {
-      const box = stageBoxes.get(id)!;
-      x = box.x;
-      y = box.y;
+      const box = stageBoxes.get(id) ?? stageBoxes.get(cfg.type);
+      if (box) {
+        x = box.x;
+        y = box.y;
+      }
     } else {
       const attachFrom = cfg.attachWindow?.from ?? 0;
       const attachUntil = cfg.attachWindow?.until ?? 1;
@@ -2905,6 +2977,12 @@ export function sampleActionAddons(params: SampleActionAddonsParams): SampledAdd
     }
 
     const layer: "back" | "front" = cfg.layer ?? (isStage ? "back" : "front");
+    const flipX = dir < 0 && ASYMMETRIC_FLIP_TYPES.has(cfg.type);
+    const hasExplicitHinge = explicitHingeIds.has(id) || explicitHingeTypes.has(cfg.type);
+    let effectiveHinge = cfg.hinge;
+    if (cfg.type === "door" && dir < 0 && !hasExplicitHinge) {
+      effectiveHinge = cfg.hinge === "left" ? "right" : "left";
+    }
 
     const item: SampledAddon = {
       id,
@@ -2926,7 +3004,8 @@ export function sampleActionAddons(params: SampleActionAddonsParams): SampledAdd
       ...(secondaryColor !== undefined ? { secondaryColor } : {}),
       ...(life.puff ? { puff: true } : {}),
       ...(openVal !== undefined ? { open: round3(clamp01(openVal)) } : {}),
-      ...(cfg.hinge !== undefined ? { hinge: cfg.hinge } : {}),
+      ...(effectiveHinge !== undefined ? { hinge: effectiveHinge } : {}),
+      ...(flipX ? { flipX: true } : {}),
       ...(inkVal !== undefined ? { ink: round3(clamp01(inkVal)) } : {}),
       ...(netBulgeVal !== undefined ? { netBulge: round3(Math.max(0, netBulgeVal)) } : {}),
       ...(cfg.text !== undefined ? { text: cfg.text } : {})
@@ -3069,7 +3148,32 @@ function renderCenteredLabelSvg(
   return `<text x="${formatSvgNumber(cx)}" y="${formatSvgNumber(cy)}" text-anchor="middle" dominant-baseline="middle" font-family="Segoe UI, Arial, sans-serif" font-weight="700" font-size="${formatSvgNumber(fontSize)}" fill="${escapeXml(fillColor)}" stroke="none">${escapeXml(trimmed)}</text>`;
 }
 
-function renderAddonGeometrySvg(addon: SampledAddon, strokeWidth: number, strokeColor: string): string {
+function renderAddonLabelSvg(addon: SampledAddon, strokeColor: string): string {
+  const x = addon.x;
+  const y = addon.y;
+  const w = addon.width;
+  const h = addon.height;
+  const cx = x + w / 2;
+  switch (addon.type) {
+    case "card":
+      return renderCenteredLabelSvg(addon.text, cx, y + h * 0.62, w * 0.84, h * 0.65, strokeColor);
+    case "board": {
+      const bh = h * 0.62;
+      const inkColor = addon.secondaryColor ?? strokeColor;
+      return addon.text && (addon.ink ?? 1) > 0.1
+        ? renderCenteredLabelSvg(addon.text, cx, y + bh * 0.45, w * 0.82, bh * 0.5, inkColor)
+        : "";
+    }
+    case "sign":
+      return renderCenteredLabelSvg(addon.text, cx, y + h * 0.52, w * 0.84, h * 0.72, strokeColor);
+    case "banner":
+      return renderCenteredLabelSvg(addon.text, cx, y + h * 0.58, w * 0.84, h * 0.68, strokeColor);
+    default:
+      return "";
+  }
+}
+
+function renderAddonGeometrySvg(addon: SampledAddon, strokeWidth: number, strokeColor: string, omitText = false): string {
   const n = formatSvgNumber;
   const x = addon.x;
   const y = addon.y;
@@ -3110,8 +3214,9 @@ function renderAddonGeometrySvg(addon: SampledAddon, strokeWidth: number, stroke
     }
 
     case "card": {
-      const label = renderCenteredLabelSvg(addon.text, cx, y + h * 0.62, w * 0.84, h * 0.65, strokeColor);
-      const copyLines = label
+      const hasLabel = Boolean(addon.text?.trim());
+      const label = omitText ? "" : renderCenteredLabelSvg(addon.text, cx, y + h * 0.62, w * 0.84, h * 0.65, strokeColor);
+      const copyLines = hasLabel
         ? ""
         : `<path d="${linePath({ x: x + w * 0.16, y: y + h * 0.5 }, { x: x + w * 0.78, y: y + h * 0.5 })}" stroke="${stroke}" stroke-width="${n(strokeWidth * 0.48)}"/>` +
           `<path d="${linePath({ x: x + w * 0.16, y: y + h * 0.7 }, { x: x + w * 0.58, y: y + h * 0.7 })}" stroke="${stroke}" stroke-width="${n(strokeWidth * 0.48)}"/>`;
@@ -3128,7 +3233,7 @@ function renderAddonGeometrySvg(addon: SampledAddon, strokeWidth: number, stroke
       const inkColor = addon.secondaryColor ?? strokeColor;
       const inkMarkup = renderBoardInkSvg(addon, strokeWidth, inkColor);
       const textLabel =
-        addon.text && (addon.ink ?? 1) > 0.1
+        !omitText && addon.text && (addon.ink ?? 1) > 0.1
           ? renderCenteredLabelSvg(addon.text, cx, y + bh * 0.45, w * 0.82, bh * 0.5, inkColor)
           : "";
       return (
@@ -3152,7 +3257,7 @@ function renderAddonGeometrySvg(addon: SampledAddon, strokeWidth: number, stroke
       }
       const opening =
         g.open > 0.02
-          ? `<rect data-part="door-opening" x="${n(g.x)}" y="${n(g.y)}" width="${n(g.width)}" height="${n(g.height)}" fill="#4a4f57" opacity="0.85" stroke="none"/>`
+          ? `<rect data-part="door-opening" x="${n(g.x)}" y="${n(g.y)}" width="${n(g.width)}" height="${n(g.height)}" fill="#cbd5e1" opacity="0.65" stroke="none"/>`
           : "";
       const leaf = `<path data-part="door-leaf" d="M${n(g.nearTop.x)} ${n(g.nearTop.y)}L${n(g.farTop.x)} ${n(g.farTop.y)}L${n(g.farBottom.x)} ${n(g.farBottom.y)}L${n(g.nearBottom.x)} ${n(g.nearBottom.y)}Z" fill="#ffffff" stroke="${stroke}" stroke-width="${sw}"/>`;
       const hinge = `<path data-part="door-hinge" d="${linePath(g.nearTop, g.nearBottom)}" fill="none" stroke="${stroke}" stroke-width="${n(strokeWidth * 1.15)}"/>`;
@@ -3213,14 +3318,19 @@ function renderAddonGeometrySvg(addon: SampledAddon, strokeWidth: number, stroke
     case "hoop": {
       const bulge = clamp01(addon.netBulge ?? 0);
       const rimY = y + h * 0.48 + bulge * h * 0.04;
-      const rimLeft = x + w * 0.48;
-      const rimRight = x + w * 0.92;
+      const rimLeft = x + w * 0.06;
+      const rimRight = x + w * 0.52;
       const rimMid = (rimLeft + rimRight) / 2;
       const netBotY = y + h * (0.82 + bulge * 0.12);
       const flare = bulge * w * 0.1;
+      const boardX = x + w * 0.52;
+      const boardW = w * 0.4;
+      const poleX = x + w * 0.94;
       return (
-        `<rect data-part="backboard" x="${n(x)}" y="${n(y)}" width="${n(w * 0.48)}" height="${n(h * 0.56)}" rx="2" fill="#ffffff"/>` +
-        `<rect x="${n(x + w * 0.18)}" y="${n(y + h * 0.24)}" width="${n(w * 0.22)}" height="${n(h * 0.2)}" fill="none" stroke="${fill}" stroke-width="${n(strokeWidth * 0.5)}"/>` +
+        `<path data-part="hoop-pole" d="${linePath({ x: poleX, y: y + h * 0.24 }, { x: poleX, y: y + h })}" fill="none" stroke="${stroke}" stroke-width="${n(strokeWidth * 1.15)}"/>` +
+        `<path d="${linePath({ x: boardX + boardW, y: y + h * 0.36 }, { x: poleX, y: y + h * 0.36 })}" fill="none" stroke="${stroke}" stroke-width="${n(strokeWidth * 0.9)}"/>` +
+        `<rect data-part="backboard" x="${n(boardX)}" y="${n(y)}" width="${n(boardW)}" height="${n(h * 0.56)}" rx="2" fill="#ffffff"/>` +
+        `<rect x="${n(boardX + boardW * 0.16)}" y="${n(y + h * 0.24)}" width="${n(boardW * 0.52)}" height="${n(h * 0.2)}" fill="none" stroke="${fill}" stroke-width="${n(strokeWidth * 0.5)}"/>` +
         `<path data-part="hoop-net" d="M${n(rimLeft + w * 0.03)} ${n(rimY)}Q${n(rimLeft - flare)} ${n((rimY + netBotY) / 2)} ${n(rimMid - w * 0.1 - flare * 0.4)} ${n(netBotY)}M${n(rimRight - w * 0.03)} ${n(rimY)}Q${n(rimRight + flare)} ${n((rimY + netBotY) / 2)} ${n(rimMid + w * 0.1 + flare * 0.4)} ${n(netBotY)}M${n(rimLeft + w * 0.06)} ${n((rimY + netBotY) / 2)}L${n(rimRight - w * 0.06)} ${n((rimY + netBotY) / 2 + bulge * 2)}" fill="none" stroke="#9aa0a6" stroke-width="${n(strokeWidth * 0.48)}"/>` +
         `<path data-part="hoop-rim" d="${linePath({ x: rimLeft, y: rimY }, { x: rimRight, y: rimY })}" fill="none" stroke="${fill}" stroke-width="${n(strokeWidth * 1.18)}"/>`
       );
@@ -3241,23 +3351,29 @@ function renderAddonGeometrySvg(addon: SampledAddon, strokeWidth: number, stroke
       const bulge = clamp01(addon.netBulge ?? 0);
       const bulgeDx = bulge * w * 0.16;
       const topY = y + h * 0.14;
+      const backTopX = x + w * 0.78;
+      const backBotX = x + w;
       const netSw = n(strokeWidth * 0.42);
-      const vCols = [0.33, 0.66]
+      const vCols = [0.28, 0.56]
         .map((t) => {
-          const gx = x + w * t;
-          return `<path d="M${n(gx)} ${n(topY)}Q${n(gx + bulgeDx)} ${n((topY + y + h) / 2)} ${n(gx)} ${n(y + h)}" fill="none" stroke="#9aa0a6" stroke-width="${netSw}"/>`;
+          const gxTop = x + (backTopX - x) * t;
+          const gxBot = x + (backBotX - x) * t;
+          const gxMid = (gxTop + gxBot) / 2;
+          return `<path d="M${n(gxTop)} ${n(topY)}Q${n(gxMid + bulgeDx)} ${n((topY + y + h) / 2)} ${n(gxBot)} ${n(y + h)}" fill="none" stroke="#9aa0a6" stroke-width="${netSw}"/>`;
         })
         .join("");
       const hRows = [0.42, 0.72]
         .map((t) => {
           const gy = y + h * t;
-          return `<path d="M${n(x)} ${n(gy)}Q${n(cx + bulgeDx)} ${n(gy - bulge * h * 0.04)} ${n(x + w + bulgeDx * 0.5)} ${n(gy)}" fill="none" stroke="#9aa0a6" stroke-width="${netSw}"/>`;
+          const rowFrac = (gy - topY) / Math.max(1e-6, y + h - topY);
+          const rightX = lerp(backTopX, backBotX, rowFrac);
+          return `<path d="M${n(x)} ${n(gy)}Q${n((x + rightX) / 2 + bulgeDx)} ${n(gy - bulge * h * 0.04)} ${n(rightX + bulgeDx * 0.5)} ${n(gy)}" fill="none" stroke="#9aa0a6" stroke-width="${netSw}"/>`;
         })
         .join("");
-      const backStay = `<path data-part="goal-net-back" d="M${n(x + w)} ${n(topY)}Q${n(x + w + bulgeDx * 1.25)} ${n((topY + y + h) / 2)} ${n(x + w)} ${n(y + h)}" fill="none" stroke="#9aa0a6" stroke-width="${n(strokeWidth * 0.55)}"/>`;
+      const backStay = `<path data-part="goal-net-back" d="M${n(backTopX)} ${n(topY)}Q${n((backTopX + backBotX) / 2 + bulgeDx * 1.25)} ${n((topY + y + h) / 2)} ${n(backBotX)} ${n(y + h)}" fill="none" stroke="#9aa0a6" stroke-width="${n(strokeWidth * 0.55)}"/>`;
       return (
         `<g data-part="goal-net">${vCols}${hRows}${backStay}</g>` +
-        `<path data-part="goal-frame" d="M${n(x)} ${n(y + h)}V${n(topY)}H${n(x + w)}V${n(y + h)}" fill="none" stroke="${stroke}" stroke-width="${sw}"/>`
+        `<path data-part="goal-frame" d="M${n(x)} ${n(y + h)}V${n(topY)}H${n(backTopX)}L${n(backBotX)} ${n(y + h)}" fill="none" stroke="${stroke}" stroke-width="${sw}"/>`
       );
     }
 
@@ -3297,8 +3413,9 @@ function renderAddonGeometrySvg(addon: SampledAddon, strokeWidth: number, stroke
 
     case "sign": {
       const stickLen = h * 1.02;
-      const label = renderCenteredLabelSvg(addon.text, cx, y + h * 0.52, w * 0.84, h * 0.72, strokeColor);
-      const fallbackLines = label
+      const hasLabel = Boolean(addon.text?.trim());
+      const label = omitText ? "" : renderCenteredLabelSvg(addon.text, cx, y + h * 0.52, w * 0.84, h * 0.72, strokeColor);
+      const fallbackLines = hasLabel
         ? ""
         : `<path d="${linePath({ x: x + w * 0.18, y: y + h * 0.42 }, { x: x + w * 0.82, y: y + h * 0.42 })}" stroke="${stroke}" stroke-width="${n(strokeWidth * 0.6)}"/>` +
           `<path d="${linePath({ x: x + w * 0.28, y: y + h * 0.66 }, { x: x + w * 0.72, y: y + h * 0.66 })}" stroke="${stroke}" stroke-width="${n(strokeWidth * 0.45)}"/>`;
@@ -3311,8 +3428,9 @@ function renderAddonGeometrySvg(addon: SampledAddon, strokeWidth: number, stroke
     }
 
     case "banner": {
-      const label = renderCenteredLabelSvg(addon.text, cx, y + h * 0.58, w * 0.84, h * 0.68, strokeColor);
-      const fallbackLines = label
+      const hasLabel = Boolean(addon.text?.trim());
+      const label = omitText ? "" : renderCenteredLabelSvg(addon.text, cx, y + h * 0.58, w * 0.84, h * 0.68, strokeColor);
+      const fallbackLines = hasLabel
         ? ""
         : `<path d="${linePath({ x: x + w * 0.14, y: y + h * 0.48 }, { x: x + w * 0.86, y: y + h * 0.48 })}" stroke="${fill}" stroke-width="${n(strokeWidth * 0.75)}"/>` +
           `<path d="${linePath({ x: x + w * 0.22, y: y + h * 0.72 }, { x: x + w * 0.72, y: y + h * 0.72 })}" stroke="${stroke}" stroke-width="${n(strokeWidth * 0.48)}"/>`;
@@ -3542,18 +3660,45 @@ function renderAddonGeometrySvg(addon: SampledAddon, strokeWidth: number, stroke
 
     case "laptop": {
       const open = clamp01(addon.open ?? 0.9);
-      const hingeY = y + h * 0.76;
-      const lidTop = y + h * (0.72 - open * 0.68);
-      const lid = `M${n(x + w * (0.08 + open * 0.05))} ${n(lidTop)}L${n(x + w * (0.92 - open * 0.05))} ${n(lidTop)}L${n(x + w * 0.92)} ${n(hingeY)}L${n(x + w * 0.08)} ${n(hingeY)}Z`;
+      const hingeX = x + w * 0.72;
+      const hingeY = y + h * 0.82;
+      const lidLen = Math.min(w * 0.66, h * 0.76);
+      const openRad = Math.PI - open * ((104 * Math.PI) / 180);
+      const tipX = hingeX + Math.cos(openRad) * lidLen;
+      const tipY = hingeY - Math.sin(openRad) * lidLen;
+      const lidThick = Math.max(2, h * 0.09);
+      const perpX = Math.sin(openRad) * lidThick;
+      const perpY = Math.cos(openRad) * lidThick;
+      const lid = `M${n(hingeX)} ${n(hingeY)}L${n(tipX)} ${n(tipY)}L${n(tipX + perpX)} ${n(tipY + perpY)}L${n(hingeX + perpX)} ${n(hingeY + perpY)}Z`;
       const screen = open > 0.05
-        ? `<path data-part="laptop-screen" d="M${n(x + w * 0.18)} ${n(lidTop + h * open * 0.08)}L${n(x + w * 0.82)} ${n(lidTop + h * open * 0.08)}L${n(x + w * 0.84)} ${n(hingeY - h * open * 0.08)}L${n(x + w * 0.16)} ${n(hingeY - h * open * 0.08)}Z" fill="#c8ecf6"/>`
+        ? `<path data-part="laptop-screen" d="${linePath({ x: lerp(hingeX, tipX, 0.14), y: lerp(hingeY, tipY, 0.14) }, { x: lerp(hingeX, tipX, 0.9), y: lerp(hingeY, tipY, 0.9) })}" fill="none" stroke="#c8ecf6" stroke-width="${n(Math.max(1.5, strokeWidth * 0.85))}"/>`
         : "";
-      const base = `M${n(x + w * 0.08)} ${n(hingeY)}L${n(x + w * 0.92)} ${n(hingeY)}L${n(x + w)} ${n(y + h * 0.97)}L${n(x)} ${n(y + h * 0.97)}Z`;
+      const base = `M${n(x + w * 0.04)} ${n(hingeY)}H${n(hingeX + lidThick * 0.6)}L${n(hingeX + lidThick)} ${n(y + h * 0.97)}H${n(x)}Z`;
       return (
         `<path data-part="laptop-base" d="${base}" fill="${fill}"/>` +
+        `<path data-part="laptop-keyboard" d="${linePath({ x: x + w * 0.1, y: hingeY - strokeWidth * 0.35 }, { x: hingeX - w * 0.1, y: hingeY - strokeWidth * 0.35 })}" fill="none" stroke="${stroke}" stroke-width="${n(strokeWidth * 0.55)}"/>` +
         `<path data-part="laptop-lid" d="${lid}" fill="${fill}"/>` +
         screen +
-        `<path data-part="laptop-hinge" d="${linePath({ x: x + w * 0.08, y: hingeY }, { x: x + w * 0.92, y: hingeY })}" fill="none"/>`
+        `<circle data-part="laptop-hinge" cx="${n(hingeX)}" cy="${n(hingeY)}" r="${n(Math.max(1.2, strokeWidth * 0.45))}" fill="${stroke}" stroke="none"/>`
+      );
+    }
+
+    case "coffee-mug":
+    case "mug": {
+      const bodyX = x + w * 0.06;
+      const bodyY = y + h * 0.24;
+      const bodyW = w * 0.64;
+      const bodyH = h * 0.74;
+      const handleX = bodyX + bodyW;
+      const handleTopY = bodyY + bodyH * 0.2;
+      const handleBotY = bodyY + bodyH * 0.74;
+      const handleOutX = x + w * 0.96;
+      const steamSw = n(Math.max(0.8, strokeWidth * 0.38));
+      return (
+        `<path data-part="mug-steam" d="M${n(bodyX + bodyW * 0.32)} ${n(bodyY - h * 0.04)}Q${n(bodyX + bodyW * 0.18)} ${n(y + h * 0.1)} ${n(bodyX + bodyW * 0.36)} ${n(y)}M${n(bodyX + bodyW * 0.68)} ${n(bodyY - h * 0.04)}Q${n(bodyX + bodyW * 0.82)} ${n(y + h * 0.1)} ${n(bodyX + bodyW * 0.64)} ${n(y)}" fill="none" stroke="#94a3b8" stroke-width="${steamSw}" opacity="0.72"/>` +
+        `<path data-part="mug-handle" d="M${n(handleX)} ${n(handleTopY)}C${n(handleOutX)} ${n(handleTopY)} ${n(handleOutX)} ${n(handleBotY)} ${n(handleX)} ${n(handleBotY)}" fill="none" stroke="${stroke}" stroke-width="${n(Math.max(1.2, strokeWidth * 0.72))}"/>` +
+        `<rect data-part="mug-body" x="${n(bodyX)}" y="${n(bodyY)}" width="${n(bodyW)}" height="${n(bodyH)}" rx="${n(Math.min(3, bodyW * 0.2))}" fill="${fill}"/>` +
+        `<path d="${linePath({ x: bodyX + bodyW * 0.12, y: bodyY + bodyH * 0.18 }, { x: bodyX + bodyW * 0.88, y: bodyY + bodyH * 0.18 })}" fill="none" stroke="#ffffff" stroke-width="${n(Math.max(0.8, strokeWidth * 0.38))}" opacity="0.65"/>`
       );
     }
 
@@ -3737,15 +3882,25 @@ export function renderAddonSvg(addon: SampledAddon, options: RenderAddonSvgOptio
     isBlueprint && addon.type === "board"
       ? { ...addon, secondaryColor: "#0f172a" }
       : addon;
-  const rawInner = renderAddonGeometrySvg(effectiveAddon, strokeWidth, strokeColor);
+  const shouldMirrorSvg = addon.flipX === true && addon.type !== "door";
+  const rawInner = renderAddonGeometrySvg(effectiveAddon, strokeWidth, strokeColor, shouldMirrorSvg);
   if (!rawInner) return "";
-  const inner = isBlueprint ? toBlueprintAddonGeometrySvg(rawInner, hatchPatternId) : rawInner;
+  const geomInner = isBlueprint ? toBlueprintAddonGeometrySvg(rawInner, hatchPatternId) : rawInner;
+  const rawLabel = shouldMirrorSvg ? renderAddonLabelSvg(effectiveAddon, strokeColor) : "";
+  const labelInner = rawLabel && isBlueprint ? toBlueprintAddonGeometrySvg(rawLabel, hatchPatternId) : rawLabel;
+  const cx = addon.x + addon.width / 2;
+  const inner = shouldMirrorSvg
+    ? `<g data-part="flip-x" transform="translate(${n(2 * cx)} 0) scale(-1 1)">${geomInner}</g>${labelInner}`
+    : geomInner;
 
   const attrs: string[] = [
     `data-addon="${escapeXml(addon.type)}"`,
     `data-addon-id="${escapeXml(addon.id)}"`,
     `data-layer="${addon.layer}"`
   ];
+  if (addon.flipX) {
+    attrs.push(`data-flip-x="true"`);
+  }
   if (isBlueprint) {
     attrs.push(`data-style="blueprint"`);
   }
@@ -3763,7 +3918,6 @@ export function renderAddonSvg(addon: SampledAddon, options: RenderAddonSvgOptio
     attrs.push(`opacity="${n(clamp01(addon.opacity))}"`);
   }
   if (Math.abs(addon.scale - 1) > 0.001 || Math.abs(addon.rotation) > 0.001) {
-    const cx = addon.x + addon.width / 2;
     const cy = addon.y + addon.height / 2;
     attrs.push(
       `transform="translate(${n(cx)} ${n(cy)}) rotate(${n(addon.rotation)}) scale(${n(addon.scale)}) translate(${n(-cx)} ${n(-cy)})"`

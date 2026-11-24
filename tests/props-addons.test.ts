@@ -105,7 +105,7 @@ describe("R3 runtime props & add-ons lifecycle engine", () => {
 
     expect(PROP_CATALOG_VERSION).toBe(catalogRaw.version);
     expect(ADDON_TYPES).toEqual(catalogRaw.props.map((item) => item.type));
-    expect(ADDON_TYPES).toHaveLength(53);
+    expect(ADDON_TYPES).toHaveLength(55);
 
     for (const entry of catalogRaw.props) {
       expect(PROP_DEFINITIONS[entry.type], entry.type).toEqual(entry);
@@ -570,7 +570,7 @@ describe("R3 runtime props & add-ons lifecycle engine", () => {
     const clampedHoop = atSwish.find((a) => a.type === "hoop")!;
     const clampedBall = atSwish.find((a) => a.type === "basketball")!;
     expect(clampedHoop.x + clampedHoop.width).toBeLessThanOrEqual(narrowCanvas.width - 4 + 1e-6);
-    expect(clampedBall.x + clampedBall.width / 2).toBeCloseTo(clampedHoop.x + clampedHoop.width * 0.7, 2);
+    expect(clampedBall.x + clampedBall.width / 2).toBeCloseTo(clampedHoop.x + clampedHoop.width * 0.29, 2);
 
     // Every auto-mapped action compiles (when in runtime catalog) and renders valid XML across its timeline
     const pureLocomotion = new Set(["walk", "run", "jog", "walk-backwards", "crawl", "push-walk", "sneak"]);

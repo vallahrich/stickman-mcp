@@ -4,6 +4,7 @@ import {
   type ActorAccessory,
   type ActorChoreographySpec,
   type AddonConfig,
+  type AddonSocket,
   type AddonType,
   type AnimationSpecV2,
   type ChoreographAction,
@@ -16,8 +17,11 @@ import {
   type CompileResult,
   type CompiledActorSpec,
   type CompiledAnimation,
+  type CustomMotionClipSpec,
+  type CustomMotionDraftSpec,
   type Diagnostic,
   type GazeTarget,
+  type HandoffSpec,
   type PlaybackMode,
   type Point2D,
   type PropSpec,
@@ -27,14 +31,26 @@ import {
   type SampledFrame,
   type Segment,
   type StageAnchorName,
+  type StagePropSpec,
   type ValidationResult
 } from "./contract.js";
 import { markerEvents } from "./events.js";
-import { sampleClipMotion } from "./motion-clips.js";
+import {
+  sampleClipMotion,
+  type MotionClip,
+  type MotionClipFrame,
+  type MotionClipLibrary,
+  type MotionClipMeta,
+  type PoseKey,
+  type PoseKeyFrame
+} from "./motion-clips.js";
 import { RUNTIME_ACTION_NAMES, RUNTIME_MOTION_LIBRARY, getMotionClip, getMotionMeta } from "./motion-library.js";
 import {
   ADDON_TYPES,
+  ASYMMETRIC_FLIP_TYPES,
   PROP_DEFINITIONS,
+  addonLifecycleState,
+  computeAddonFlightPoint,
   defaultAddonsForAction,
   sampleActionAddons,
   type AddonPoseSnapshot,
@@ -253,13 +269,280 @@ function actorRigBaseScale(
   return Math.min(1, canvasWidth / 180, (actorGroundY - 4) / headroom);
 }
 
-function isTravelActionName(actionName: string): boolean {
-  const meta = getMotionMeta(actionName);
+const DEFAULT_RIG: MotionClip["rig"] = Object.freeze({
+  units: "normalized-height-100",
+  height: 100,
+  thigh: 22.5,
+  shin: 22.5,
+  foot: 7,
+  torso: 30,
+  neck: 4,
+  headRadius: 11,
+  upperArm: 17,
+  forearm: 16
+});
+
+function getClipFromLibrary(library: MotionClipLibrary, actionName: string): MotionClip | undefined {
+  return library.clips[actionName] ?? getMotionClip(actionName);
+}
+
+function getMetaFromLibrary(library: MotionClipLibrary, actionName: string): MotionClipMeta | undefined {
+  return library.clips[actionName]?.meta ?? getMotionMeta(actionName);
+}
+
+function compileCustomMotionClip(
+  keyName: string,
+  raw: unknown,
+  path: string,
+  diagnostics: Diagnostic[]
+): MotionClip | undefined {
+  if (!isRecord(raw)) {
+    diagnostics.push({ path, code: "invalid_type", message: `Custom motion "${keyName}" must be an object.` });
+    return undefined;
+  }
+
+  const neutralTemplate = RUNTIME_MOTION_LIBRARY.clips.idle!.frames[0]!;
+
+  if (Array.isArray(raw.frames)) {
+    if (raw.frames.length < 2) {
+      diagnostics.push({
+        path: `${path}.frames`,
+        code: "out_of_range",
+        message: `Custom motion "${keyName}" frames array must contain at least 2 frames.`
+      });
+      return undefined;
+    }
+    const fps = raw.fps !== undefined ? (finiteNumber(raw.fps) && raw.fps > 0 && raw.fps <= 120 ? raw.fps : NaN) : 30;
+    if (!Number.isFinite(fps)) {
+      diagnostics.push({ path: `${path}.fps`, code: "out_of_range", message: "Custom motion fps must be between 0 and 120." });
+      return undefined;
+    }
+    const loop = Boolean(raw.loop);
+    const clip: MotionClip = {
+      name: typeof raw.name === "string" && raw.name.trim() ? raw.name.trim() : keyName,
+      fps,
+      loop,
+      frames: raw.frames as MotionClipFrame[],
+      strideLength: finiteNumber(raw.strideLength) ? raw.strideLength : 0,
+      markers: isRecord(raw.markers) ? (raw.markers as Record<string, number>) : {},
+      rig: isRecord(raw.rig) ? (raw.rig as MotionClip["rig"]) : { ...DEFAULT_RIG },
+      ...(Array.isArray(raw.poseKeys) ? { poseKeys: raw.poseKeys as PoseKeyFrame[] } : {}),
+      ...(isRecord(raw.meta)
+        ? { meta: raw.meta as unknown as MotionClipMeta }
+        : typeof raw.prop === "string"
+          ? {
+              meta: {
+                id: keyName,
+                label: typeof raw.label === "string" ? raw.label : keyName,
+                summary: "Custom authored motion",
+                kind: loop ? "loop" : "oneshot",
+                travel: raw.travel === "travel" ? "travel" : "in-place",
+                facingChange: raw.facingChange === 90 || raw.facingChange === 180 ? raw.facingChange : 0,
+                contacts: ["lFoot", "rFoot"],
+                markers: isRecord(raw.markers) ? (raw.markers as Record<string, number>) : {},
+                aim: raw.aim === "hand" || raw.aim === "head" ? raw.aim : null,
+                prop: raw.prop,
+                mirrorable: true,
+                tags: [],
+                durationS: Number((raw.frames.length / fps).toFixed(3)),
+                quality: null,
+                source: { authored: "custom" },
+                license: "custom"
+              }
+            }
+          : {})
+    };
+    return clip;
+  }
+
+  // Draft key-pose spec (as emitted by stickman_author_motion)
+  const startLen = diagnostics.length;
+  if (!finiteNumber(raw.frames) || !Number.isInteger(raw.frames) || raw.frames < 2 || raw.frames > 1800) {
+    diagnostics.push({
+      path: `${path}.frames`,
+      code: "out_of_range",
+      message: `Custom motion "${keyName}" frames must be an integer from 2 to 1800 (or an array of clip frames).`
+    });
+  }
+  const fpsVal = raw.fps === undefined ? 30 : raw.fps;
+  if (!finiteNumber(fpsVal) || fpsVal <= 0 || fpsVal > 120) {
+    diagnostics.push({
+      path: `${path}.fps`,
+      code: "out_of_range",
+      message: "Custom motion fps must be a finite number > 0 and <= 120."
+    });
+  }
+  if (raw.loop !== undefined && typeof raw.loop !== "boolean") {
+    diagnostics.push({ path: `${path}.loop`, code: "invalid_type", message: "Custom motion loop must be a boolean." });
+  }
+  if (raw.kind !== undefined && raw.kind !== "oneshot" && raw.kind !== "loop" && raw.kind !== "hold") {
+    diagnostics.push({ path: `${path}.kind`, code: "invalid_enum", message: 'Custom motion kind must be "oneshot", "loop", or "hold".' });
+  }
+  if (raw.travel !== undefined && raw.travel !== "in-place" && raw.travel !== "travel") {
+    diagnostics.push({ path: `${path}.travel`, code: "invalid_enum", message: 'Custom motion travel must be "in-place" or "travel".' });
+  }
+  if (raw.prop !== undefined && raw.prop !== null && typeof raw.prop !== "string") {
+    diagnostics.push({ path: `${path}.prop`, code: "invalid_type", message: "Custom motion prop must be a string or null." });
+  }
+  if (!Array.isArray(raw.poseKeys) || raw.poseKeys.length < 1) {
+    diagnostics.push({
+      path: `${path}.poseKeys`,
+      code: "required_array",
+      message: `Custom motion "${keyName}" requires a non-empty poseKeys array.`
+    });
+  } else {
+    for (let kIdx = 0; kIdx < raw.poseKeys.length; kIdx++) {
+      const kf = raw.poseKeys[kIdx];
+      const kfPath = `${path}.poseKeys[${kIdx}]`;
+      if (!isRecord(kf) || !finiteNumber(kf.frame) || !isRecord(kf.pose)) {
+        diagnostics.push({
+          path: kfPath,
+          code: "invalid_type",
+          message: "Each poseKey must provide numeric frame and a pose object."
+        });
+        continue;
+      }
+      const p = kf.pose;
+      if (!isRecord(p.rLeg) || !isRecord(p.lLeg) || !isRecord(p.rArm) || !isRecord(p.lArm)) {
+        diagnostics.push({
+          path: `${kfPath}.pose`,
+          code: "invalid_type",
+          message: "Each poseKey.pose must define rLeg, lLeg, rArm, and lArm objects."
+        });
+      }
+    }
+  }
+
+  if (diagnostics.length > startLen) return undefined;
+
+  const draft = raw as unknown as CustomMotionDraftSpec;
+  const n = Math.max(2, Math.round(draft.frames));
+  const fps = finiteNumber(draft.fps) ? draft.fps : 30;
+  const loop = draft.loop ?? draft.kind === "loop";
+  const sortedKeys = [...draft.poseKeys].sort((a, b) => a.frame - b.frame);
+  const baseFrame: MotionClipFrame = {
+    root: { x: 0, y: neutralTemplate.root.y },
+    angles: neutralTemplate.angles,
+    contacts: { l: true, r: true }
+  };
+  const markers: Record<string, number> = {};
+  if (isRecord(draft.markers)) {
+    for (const [mk, mv] of Object.entries(draft.markers)) {
+      if (finiteNumber(mv)) markers[mk] = mv;
+    }
+  }
+  const propName = typeof draft.prop === "string" && draft.prop.trim() ? draft.prop.trim() : null;
+  const kind = draft.kind ?? (loop ? "loop" : "oneshot");
+  const travel = draft.travel ?? "in-place";
+  const facingChange = draft.facingChange === 90 || draft.facingChange === 180 ? draft.facingChange : 0;
+
+  return {
+    name: keyName,
+    fps,
+    loop: Boolean(loop),
+    frames: Array.from({ length: n }, () => baseFrame),
+    strideLength: finiteNumber(draft.strideLength) ? draft.strideLength : 0,
+    markers,
+    poseKeys: sortedKeys,
+    rig: { ...DEFAULT_RIG },
+    meta: {
+      id: keyName,
+      label: typeof draft.label === "string" && draft.label.trim() ? draft.label.trim() : keyName,
+      summary: typeof draft.notes === "string" ? draft.notes : "Custom authored motion",
+      kind,
+      travel,
+      facingChange,
+      contacts: ["lFoot", "rFoot"],
+      markers,
+      aim: draft.aim === "hand" || draft.aim === "head" ? draft.aim : null,
+      prop: propName,
+      mirrorable: true,
+      tags: Array.isArray(draft.tags) ? draft.tags.filter((t): t is string => typeof t === "string") : [],
+      durationS: Number((n / fps).toFixed(3)),
+      quality: null,
+      source: { authored: "custom" },
+      license: "custom"
+    }
+  };
+}
+
+function buildEffectiveMotionLibrary(
+  customMotions: Record<string, CustomMotionClipSpec> | undefined
+): MotionClipLibrary {
+  if (!customMotions || Object.keys(customMotions).length === 0) {
+    return RUNTIME_MOTION_LIBRARY;
+  }
+  const noop: Diagnostic[] = [];
+  const customClips: Record<string, MotionClip> = {};
+  for (const [key, raw] of Object.entries(customMotions)) {
+    const compiled = compileCustomMotionClip(key, raw, `$.customMotions.${key}`, noop);
+    if (compiled) customClips[key] = compiled;
+  }
+  if (Object.keys(customClips).length === 0) return RUNTIME_MOTION_LIBRARY;
+  return {
+    ...RUNTIME_MOTION_LIBRARY,
+    clips: {
+      ...RUNTIME_MOTION_LIBRARY.clips,
+      ...customClips
+    }
+  };
+}
+
+function measureClipElevationEndpoints(clip: MotionClip | undefined): { startLift: number; endLift: number } {
+  if (!clip?.poseKeys?.length) return { startLift: 0, endLift: 0 };
+  const poseFootLift = (p: PoseKey): number => {
+    if (p.lFoot && p.rFoot) return Math.min(p.lFoot.y, p.rFoot.y);
+    if (p.lPlant !== undefined || p.rPlant !== undefined) return Math.min(p.lPlant ?? 0, p.rPlant ?? 0);
+    return 0;
+  };
+  const first = clip.poseKeys[0]!.pose;
+  const last = clip.poseKeys[clip.poseKeys.length - 1]!.pose;
+  const rawStart = poseFootLift(first);
+  const rawEnd = poseFootLift(last);
+  const isHanging = clip.name === "hang-swing" || clip.meta?.prop === "bar";
+  const startLift = !isHanging && rawStart > 6 ? rawStart : 0;
+  const endLift =
+    !isHanging && rawEnd > 6 && (!last.lFoot || !last.rFoot || Math.abs(last.lFoot.y - last.rFoot.y) <= 2)
+      ? rawEnd
+      : 0;
+  return { startLift, endLift };
+}
+
+function clipDefaultPropFallbackAddons(
+  actionName: string,
+  library: MotionClipLibrary
+): AddonConfig[] | undefined {
+  if (defaultAddonsForAction(actionName).length > 0) return undefined;
+  const propName = getMetaFromLibrary(library, actionName)?.prop;
+  if (!propName || !ADDON_TYPE_SET.has(propName)) return undefined;
+  const propType = propName as AddonType;
+  const def = PROP_DEFINITIONS[propType];
+  return [
+    {
+      id: propType,
+      type: propType,
+      socket: def.socket,
+      layer: def.socket === "stage" ? "back" : "front",
+      width: def.defaultSize.w,
+      height: def.defaultSize.h,
+      color: def.defaultColor,
+      enter: "fade",
+      enterAt: 0,
+      enterDuration: 0.08,
+      exit: "fade",
+      exitAt: 0.92,
+      exitDuration: 0.08
+    }
+  ];
+}
+
+function isTravelActionName(actionName: string, library: MotionClipLibrary = RUNTIME_MOTION_LIBRARY): boolean {
+  const meta = getMetaFromLibrary(library, actionName);
   return actionName === "walk" || actionName === "run" || (meta?.travel === "travel" && actionName !== "push");
 }
 
-function clipPoseDxSpan(actionName: string): number {
-  const clip = getMotionClip(actionName);
+function clipPoseDxSpan(actionName: string, library: MotionClipLibrary = RUNTIME_MOTION_LIBRARY): number {
+  const clip = getClipFromLibrary(library, actionName);
   if (!clip?.poseKeys || clip.poseKeys.length < 2) return 0;
   const first = clip.poseKeys[0]!.pose;
   const last = clip.poseKeys[clip.poseKeys.length - 1]!.pose;
@@ -278,9 +561,10 @@ function computeNaturalDurationMs(
   actionName: string,
   distance: number,
   effectiveScale: number,
-  speed: number
+  speed: number,
+  library: MotionClipLibrary = RUNTIME_MOTION_LIBRARY
 ): number {
-  const clip = getMotionClip(actionName);
+  const clip = getClipFromLibrary(library, actionName);
   const clipFrames = clip?.frames.length ?? 60;
   const clipFps = clip?.fps ?? 30;
   const rawClipDuration = Math.round((clipFrames / clipFps) * 1000 / speed);
@@ -312,9 +596,10 @@ function synthesizeForwardAimTarget(
   facing: -1 | 1,
   actorGroundY: number,
   effectiveScale: number,
-  canvas: { width: number; height: number }
+  canvas: { width: number; height: number },
+  library: MotionClipLibrary = RUNTIME_MOTION_LIBRARY
 ): Point2D {
-  const meta = getMotionMeta(actionName);
+  const meta = getMetaFromLibrary(library, actionName);
   const forwardOffset = Math.max(36, Math.round(120 * effectiveScale));
   let x = rootX + facing * forwardOffset;
   if (facing > 0) {
@@ -333,13 +618,14 @@ function computeCueOffsetMs(
   speed: number,
   emitCueAt: string | undefined,
   path: string,
-  diagnostics: Diagnostic[]
+  diagnostics: Diagnostic[],
+  library: MotionClipLibrary = RUNTIME_MOTION_LIBRARY
 ): number {
   const cueAt = emitCueAt ?? "end";
   if (cueAt === "start") return 0;
   if (cueAt === "end") return durationMs;
 
-  const clip = getMotionClip(actionName);
+  const clip = getClipFromLibrary(library, actionName);
   const markers = clip?.markers ?? clip?.meta?.markers;
   if (!clip || !markers || !Object.hasOwn(markers, cueAt)) {
     const supported = markers ? Object.keys(markers).join(", ") : "none";
@@ -751,7 +1037,8 @@ function normalizeActionAddon(
   actionPersist: boolean | undefined,
   sceneAddons: "auto" | "none",
   path: string,
-  diagnostics: Diagnostic[]
+  diagnostics: Diagnostic[],
+  library: MotionClipLibrary = RUNTIME_MOTION_LIBRARY
 ): NormalizedAddonResolution {
   const basePersist = Boolean(actionPersist);
   if (addonInput === undefined) {
@@ -798,7 +1085,8 @@ function normalizeActionAddon(
       }
       const fieldsValid = validateAddonConfigFields(item, itemPath, diagnostics);
       const defaults = defaultAddonsForAction(actionName);
-      if (defaults.length === 0) {
+      const fallbackDefaults = defaults.length > 0 ? defaults : (clipDefaultPropFallbackAddons(actionName, library) ?? []);
+      if (fallbackDefaults.length === 0) {
         diagnostics.push({
           path: itemPath,
           code: "missing_addon_type",
@@ -807,7 +1095,7 @@ function normalizeActionAddon(
         return [];
       }
       if (!fieldsValid) return [];
-      return defaults.map((def) => ({
+      return fallbackDefaults.map((def) => ({
         ...def,
         ...(item as Partial<AddonConfig>),
         type: def.type,
@@ -954,6 +1242,8 @@ interface PendingActionNode {
   cueOffsetMs: number;
   addon?: ChoreographAddonInput;
   persist?: boolean;
+  handoffTo?: HandoffSpec;
+  toGround?: boolean;
   startMs: number;
   endMs: number;
 }
@@ -969,7 +1259,22 @@ export function choreographAnimation(input: unknown): ChoreographResult {
 
   hasOnlyKeys(
     input,
-    ["version", "canvas", "durationMs", "groundY", "theme", "addons", "anchors", "targets", "actors", "actor", "actions", "prop"],
+    [
+      "version",
+      "canvas",
+      "durationMs",
+      "groundY",
+      "theme",
+      "addons",
+      "anchors",
+      "targets",
+      "stageProps",
+      "customMotions",
+      "actors",
+      "actor",
+      "actions",
+      "prop"
+    ],
     "$",
     diagnostics
   );
@@ -1115,6 +1420,146 @@ export function choreographAnimation(input: unknown): ChoreographResult {
   }
 
   const anchors = resolveStageAnchors(canvas, sceneGroundY, customAnchorsRaw);
+
+  // Parse & validate optional inline customMotions before validating actors/actions
+  const customClips: Record<string, MotionClip> = {};
+  let rawCustomMotions: Record<string, CustomMotionClipSpec> | undefined;
+  if (input.customMotions !== undefined) {
+    if (!isRecord(input.customMotions)) {
+      diagnostics.push({
+        path: "$.customMotions",
+        code: "invalid_type",
+        message: "customMotions must be an object mapping motion names to MotionClip or key-pose draft specs."
+      });
+    } else {
+      rawCustomMotions = {};
+      for (const [rawKey, rawSpec] of Object.entries(input.customMotions)) {
+        const key = rawKey.trim();
+        if (!key) {
+          diagnostics.push({
+            path: `$.customMotions.${rawKey}`,
+            code: "invalid_name",
+            message: "Custom motion name must be a non-empty string."
+          });
+          continue;
+        }
+        const compiledClip = compileCustomMotionClip(key, rawSpec, `$.customMotions.${key}`, diagnostics);
+        if (compiledClip) {
+          customClips[key] = compiledClip;
+          rawCustomMotions[key] = structuredClone(rawSpec as CustomMotionClipSpec);
+        }
+      }
+      if (Object.keys(rawCustomMotions).length === 0) rawCustomMotions = undefined;
+    }
+  }
+  const effectiveLibrary: MotionClipLibrary =
+    Object.keys(customClips).length > 0
+      ? { ...RUNTIME_MOTION_LIBRARY, clips: { ...RUNTIME_MOTION_LIBRARY.clips, ...customClips } }
+      : RUNTIME_MOTION_LIBRARY;
+
+  // Parse & validate optional scene-level stageProps
+  let resolvedStageProps: StagePropSpec[] | undefined;
+  if (input.stageProps !== undefined) {
+    if (!Array.isArray(input.stageProps)) {
+      diagnostics.push({
+        path: "$.stageProps",
+        code: "invalid_type",
+        message: "stageProps must be an array of stage prop objects."
+      });
+    } else {
+      resolvedStageProps = [];
+      const seenStagePropIds = new Set<string>();
+      for (let spIdx = 0; spIdx < input.stageProps.length; spIdx++) {
+        const rawSp = input.stageProps[spIdx];
+        const spPath = `$.stageProps[${spIdx}]`;
+        if (!isRecord(rawSp)) {
+          diagnostics.push({ path: spPath, code: "invalid_type", message: "Each stageProp must be an object." });
+          continue;
+        }
+        hasOnlyKeys(
+          rawSp,
+          ["id", "type", "x", "y", "anchor", "width", "height", "facing", "color", "text", "layer", "scale"],
+          spPath,
+          diagnostics
+        );
+        const startLen = diagnostics.length;
+        const spId = typeof rawSp.id === "string" && rawSp.id.trim() ? rawSp.id.trim() : "";
+        if (!spId) {
+          diagnostics.push({ path: `${spPath}.id`, code: "invalid_id", message: "stageProp.id must be a non-empty string." });
+        } else if (seenStagePropIds.has(spId)) {
+          diagnostics.push({
+            path: `${spPath}.id`,
+            code: "duplicate_stage_prop_id",
+            message: `Duplicate stageProp id "${spId}".`
+          });
+        } else {
+          seenStagePropIds.add(spId);
+        }
+        if (typeof rawSp.type !== "string" || !ADDON_TYPE_SET.has(rawSp.type)) {
+          diagnostics.push({
+            path: `${spPath}.type`,
+            code: "unsupported_addon",
+            message: `Unsupported stageProp type "${String(rawSp.type)}". Supported types: ${ADDON_TYPES.join(", ")}.`
+          });
+        }
+        if (rawSp.anchor !== undefined) {
+          if (typeof rawSp.anchor !== "string" || !Object.hasOwn(anchors, rawSp.anchor)) {
+            diagnostics.push({
+              path: `${spPath}.anchor`,
+              code: "unbound_target",
+              message: `Unknown stage anchor "${String(rawSp.anchor)}" on stageProp.`
+            });
+          }
+        }
+        for (const numK of ["x", "y"] as const) {
+          if (rawSp[numK] !== undefined && !finiteNumber(rawSp[numK])) {
+            diagnostics.push({ path: `${spPath}.${numK}`, code: "invalid_number", message: `stageProp.${numK} must be a finite number.` });
+          }
+        }
+        for (const posK of ["width", "height", "scale"] as const) {
+          const v = rawSp[posK];
+          if (v !== undefined) {
+            if (!finiteNumber(v) || v <= 0 || (posK === "scale" && v > 5)) {
+              diagnostics.push({
+                path: `${spPath}.${posK}`,
+                code: "out_of_range",
+                message: posK === "scale" ? "stageProp.scale must be > 0 and <= 5." : `stageProp.${posK} must be > 0.`
+              });
+            }
+          }
+        }
+        if (rawSp.facing !== undefined && rawSp.facing !== "left" && rawSp.facing !== "right") {
+          diagnostics.push({ path: `${spPath}.facing`, code: "invalid_facing", message: 'stageProp.facing must be "left" or "right".' });
+        }
+        if (rawSp.color !== undefined && (typeof rawSp.color !== "string" || !rawSp.color.trim())) {
+          diagnostics.push({ path: `${spPath}.color`, code: "invalid_type", message: "stageProp.color must be a non-empty string." });
+        }
+        if (rawSp.text !== undefined && typeof rawSp.text !== "string") {
+          diagnostics.push({ path: `${spPath}.text`, code: "invalid_type", message: "stageProp.text must be a string." });
+        }
+        if (rawSp.layer !== undefined && rawSp.layer !== "back" && rawSp.layer !== "front") {
+          diagnostics.push({ path: `${spPath}.layer`, code: "invalid_enum", message: 'stageProp.layer must be "back" or "front".' });
+        }
+        if (diagnostics.length === startLen) {
+          resolvedStageProps.push({
+            id: spId,
+            type: rawSp.type as AddonType,
+            ...(finiteNumber(rawSp.x) ? { x: rawSp.x } : {}),
+            ...(finiteNumber(rawSp.y) ? { y: rawSp.y } : {}),
+            ...(typeof rawSp.anchor === "string" ? { anchor: rawSp.anchor } : {}),
+            ...(finiteNumber(rawSp.width) ? { width: rawSp.width } : {}),
+            ...(finiteNumber(rawSp.height) ? { height: rawSp.height } : {}),
+            ...(rawSp.facing === "left" || rawSp.facing === "right" ? { facing: rawSp.facing } : {}),
+            ...(typeof rawSp.color === "string" ? { color: rawSp.color } : {}),
+            ...(typeof rawSp.text === "string" ? { text: rawSp.text } : {}),
+            ...(rawSp.layer === "back" || rawSp.layer === "front" ? { layer: rawSp.layer } : {}),
+            ...(finiteNumber(rawSp.scale) ? { scale: rawSp.scale } : {})
+          });
+        }
+      }
+      if (resolvedStageProps.length === 0) resolvedStageProps = undefined;
+    }
+  }
 
   let rawActors: Array<{ spec: unknown; basePath: string }> = [];
   if (input.actors !== undefined) {
@@ -1479,7 +1924,9 @@ export function choreographAnimation(input: unknown): ChoreographResult {
           "emitCue",
           "emitCueAt",
           "addon",
-          "persist"
+          "persist",
+          "handoffTo",
+          "toGround"
         ],
         actionPath,
         diagnostics
@@ -1487,7 +1934,7 @@ export function choreographAnimation(input: unknown): ChoreographResult {
 
       const rawName = typeof rawAct.action === "string" ? rawAct.action : "";
       const actionName = normalizeActionName(rawName);
-      if (!rawName || !ACTION_NAME_SET.has(actionName)) {
+      if (!rawName || (!Object.hasOwn(customClips, actionName) && !ACTION_NAME_SET.has(actionName))) {
         diagnostics.push({
           path: `${actionPath}.action`,
           code: "unsupported_action",
@@ -1545,10 +1992,63 @@ export function choreographAnimation(input: unknown): ChoreographResult {
       if (rawAct.persist !== undefined && typeof rawAct.persist !== "boolean") {
         diagnostics.push({ path: `${actionPath}.persist`, code: "invalid_type", message: "persist must be a boolean." });
       }
+      if (rawAct.toGround !== undefined && typeof rawAct.toGround !== "boolean") {
+        diagnostics.push({ path: `${actionPath}.toGround`, code: "invalid_type", message: "toGround must be a boolean." });
+      }
+
+      let handoffTo: HandoffSpec | undefined;
+      if (rawAct.handoffTo !== undefined) {
+        const hfPath = `${actionPath}.handoffTo`;
+        if (!isRecord(rawAct.handoffTo)) {
+          diagnostics.push({ path: hfPath, code: "invalid_type", message: "handoffTo must be an object with actorId." });
+        } else {
+          hasOnlyKeys(rawAct.handoffTo, ["actorId", "propType", "propId", "atProgress"], hfPath, diagnostics);
+          const startLen = diagnostics.length;
+          const targetActorId =
+            typeof rawAct.handoffTo.actorId === "string" && rawAct.handoffTo.actorId.trim()
+              ? rawAct.handoffTo.actorId.trim()
+              : "";
+          if (!targetActorId) {
+            diagnostics.push({ path: `${hfPath}.actorId`, code: "invalid_id", message: "handoffTo.actorId must be a non-empty string." });
+          }
+          if (rawAct.handoffTo.propType !== undefined) {
+            if (typeof rawAct.handoffTo.propType !== "string" || !ADDON_TYPE_SET.has(rawAct.handoffTo.propType)) {
+              diagnostics.push({
+                path: `${hfPath}.propType`,
+                code: "unsupported_addon",
+                message: `Unsupported handoffTo.propType "${String(rawAct.handoffTo.propType)}".`
+              });
+            }
+          }
+          if (
+            rawAct.handoffTo.propId !== undefined &&
+            (typeof rawAct.handoffTo.propId !== "string" || !rawAct.handoffTo.propId.trim())
+          ) {
+            diagnostics.push({ path: `${hfPath}.propId`, code: "invalid_id", message: "handoffTo.propId must be a non-empty string." });
+          }
+          if (rawAct.handoffTo.atProgress !== undefined) {
+            if (!finiteNumber(rawAct.handoffTo.atProgress) || rawAct.handoffTo.atProgress < 0 || rawAct.handoffTo.atProgress > 1) {
+              diagnostics.push({
+                path: `${hfPath}.atProgress`,
+                code: "out_of_range",
+                message: "handoffTo.atProgress must be between 0 and 1."
+              });
+            }
+          }
+          if (diagnostics.length === startLen) {
+            handoffTo = {
+              actorId: targetActorId,
+              ...(typeof rawAct.handoffTo.propType === "string" ? { propType: rawAct.handoffTo.propType as AddonType } : {}),
+              ...(typeof rawAct.handoffTo.propId === "string" ? { propId: rawAct.handoffTo.propId.trim() } : {}),
+              ...(finiteNumber(rawAct.handoffTo.atProgress) ? { atProgress: rawAct.handoffTo.atProgress } : {})
+            };
+          }
+        }
+      }
 
       const isEntranceExit = ENTRANCE_EXIT_SET.has(actionName);
-      const isTravel = isTravelActionName(actionName);
-      const meta = getMotionMeta(actionName);
+      const isTravel = isTravelActionName(actionName, effectiveLibrary);
+      const meta = getMetaFromLibrary(effectiveLibrary, actionName);
 
       let resolvedFrom: Point2D | undefined;
       if (rawAct.from !== undefined) {
@@ -1597,18 +2097,18 @@ export function choreographAnimation(input: unknown): ChoreographResult {
             message: `Locomotion "${actionName}" requires a \`to\` or \`target\` stage anchor or point.`
           });
         } else {
-          const dxSpan = clipPoseDxSpan(actionName);
+          const dxSpan = clipPoseDxSpan(actionName, effectiveLibrary);
           const naturalEndX = clamp(Math.round(startX + curFacing * dxSpan * effectiveScale), 24, width - 24);
           resolvedTo = { x: naturalEndX, y: actorGroundY };
         }
       } else if (actionName === "point" || Boolean(meta?.aim)) {
         // Sign 7: auto-synthesize a forward target for aim gestures when omitted in v2
-        resolvedTo = synthesizeForwardAimTarget(actionName, startX, curFacing, actorGroundY, effectiveScale, canvas);
+        resolvedTo = synthesizeForwardAimTarget(actionName, startX, curFacing, actorGroundY, effectiveScale, canvas, effectiveLibrary);
       }
 
       const endX = isTravel && resolvedTo ? resolvedTo.x : startX;
       const distance = Math.abs(endX - startX);
-      const durationMs = explicitDurationMs ?? computeNaturalDurationMs(actionName, distance, effectiveScale, effectiveSpeed);
+      const durationMs = explicitDurationMs ?? computeNaturalDurationMs(actionName, distance, effectiveScale, effectiveSpeed, effectiveLibrary);
 
       let direction: -1 | 1 = curFacing;
       if (isTravel && distance > 1e-6) {
@@ -1626,7 +2126,8 @@ export function choreographAnimation(input: unknown): ChoreographResult {
         typeof rawAct.persist === "boolean" ? rawAct.persist : undefined,
         sceneAddons,
         actionPath,
-        diagnostics
+        diagnostics,
+        effectiveLibrary
       );
 
       let afterCue: string | undefined;
@@ -1674,7 +2175,7 @@ export function choreographAnimation(input: unknown): ChoreographResult {
       }
 
       const cueOffsetMs = emitCue
-        ? computeCueOffsetMs(actionName, durationMs, effectiveSpeed, emitCueAt, actionPath, diagnostics)
+        ? computeCueOffsetMs(actionName, durationMs, effectiveSpeed, emitCueAt, actionPath, diagnostics, effectiveLibrary)
         : durationMs;
 
       const node: PendingActionNode = {
@@ -1697,6 +2198,8 @@ export function choreographAnimation(input: unknown): ChoreographResult {
         cueOffsetMs,
         ...(rawAct.addon !== undefined ? { addon: rawAct.addon as ChoreographAddonInput } : {}),
         ...(addonRes.persist ? { persist: true } : {}),
+        ...(handoffTo !== undefined ? { handoffTo } : {}),
+        ...(rawAct.toGround === true ? { toGround: true } : {}),
         startMs: 0,
         endMs: 0
       };
@@ -1743,6 +2246,22 @@ export function choreographAnimation(input: unknown): ChoreographResult {
         code: "invalid_cue_reference",
         message: `Unknown cue "${node.afterCue}". Emit it from an action via emitCue.`
       });
+    }
+    if (node.handoffTo) {
+      const senderId = compiledActorsDraft[node.actorIdx]?.id;
+      if (!seenActorIds.has(node.handoffTo.actorId)) {
+        diagnostics.push({
+          path: `${node.path}.handoffTo.actorId`,
+          code: "unknown_handoff_actor",
+          message: `Unknown handoffTo actorId "${node.handoffTo.actorId}".`
+        });
+      } else if (node.handoffTo.actorId === senderId) {
+        diagnostics.push({
+          path: `${node.path}.handoffTo.actorId`,
+          code: "invalid_handoff_target",
+          message: `handoffTo.actorId cannot reference the same actor "${senderId}".`
+        });
+      }
     }
   }
 
@@ -1875,7 +2394,9 @@ export function choreographAnimation(input: unknown): ChoreographResult {
       ...(node.emitCue !== undefined ? { emitCue: node.emitCue } : {}),
       ...(node.emitCueAt !== undefined ? { emitCueAt: node.emitCueAt } : {}),
       ...(node.addon !== undefined ? { addon: node.addon } : {}),
-      ...(node.persist ? { persist: true } : {})
+      ...(node.persist ? { persist: true } : {}),
+      ...(node.handoffTo !== undefined ? { handoffTo: { ...node.handoffTo } } : {}),
+      ...(node.toGround ? { toGround: true } : {})
     }))
   }));
 
@@ -1902,6 +2423,8 @@ export function choreographAnimation(input: unknown): ChoreographResult {
       ...(primary.gaze !== undefined ? { gaze: typeof primary.gaze === "object" ? { ...primary.gaze } : primary.gaze } : {})
     },
     ...(isRecord(input.prop) ? { prop: structuredClone(input.prop as unknown as PropSpec) } : {}),
+    ...(resolvedStageProps ? { stageProps: resolvedStageProps.map((sp) => ({ ...sp })) } : {}),
+    ...(rawCustomMotions ? { customMotions: structuredClone(rawCustomMotions) } : {}),
     actors: compiledActors,
     actions: primary.actions.map((act) => structuredClone(act))
   };
@@ -1910,7 +2433,7 @@ export function choreographAnimation(input: unknown): ChoreographResult {
     contractVersion: CONTRACT_VERSION_V2,
     spec
   };
-  const events = markerEvents(spec, RUNTIME_MOTION_LIBRARY);
+  const events = markerEvents(spec, effectiveLibrary);
   if (events.length > 0) program.events = events;
 
   return {
@@ -1947,11 +2470,40 @@ interface ActorActionTrajectory {
   direction: -1 | 1;
   afterFacing: -1 | 1;
   isTravel: boolean;
+  startElevationY: number;
+  endElevationY: number;
+  clipGroundY: number;
+  descendsToGround: boolean;
   pointTarget?: Point2D;
   addonEnabled: boolean;
   addonOverrides?: AddonConfig[];
   addonMergeDefaults: boolean;
   addonPersist: boolean;
+  fallbackDefaultAddons?: AddonConfig[];
+}
+
+interface ElevationPropSpan {
+  sourceIdx: number;
+  throughIdx: number;
+  persistsAfterEnd: boolean;
+  propId: string;
+  propType: AddonType;
+}
+
+interface ResolvedHandoff {
+  senderActorIdx: number;
+  senderTrajIdx: number;
+  receiverActorIdx: number;
+  recvStartIdx: number;
+  recvEndIdx: number;
+  propType: AddonType;
+  propId: string;
+  enterStartMs: number;
+  releaseMs: number;
+  catchMs: number;
+  chainEndMs: number;
+  persist: boolean;
+  overrideCfg?: AddonConfig;
 }
 
 interface RawActorPose {
@@ -2160,19 +2712,24 @@ function inertializeActorPose(
 
 function buildActorTrajectories(
   actor: CompiledActorSpec,
-  sceneAddons: "auto" | "none"
+  sceneAddons: "auto" | "none",
+  library: MotionClipLibrary,
+  effectiveScale: number,
+  canvasWidth: number
 ): ActorActionTrajectory[] {
   const noopDiagnostics: Diagnostic[] = [];
   let curX = actor.x;
   let curFacing: -1 | 1 = actor.facing;
+  let curElevationY = 0;
   const trajectories: ActorActionTrajectory[] = [];
 
   for (let i = 0; i < actor.actions.length; i++) {
     const item = actor.actions[i]!;
-    const meta = getMotionMeta(item.action);
-    const isTravel = isTravelActionName(item.action);
-    const startX = item.from ? item.from.x : curX;
-    const endX = isTravel ? (item.to?.x ?? startX) : startX;
+    const clip = getClipFromLibrary(library, item.action);
+    const meta = getMetaFromLibrary(library, item.action);
+    const isTravel = isTravelActionName(item.action, library);
+    let startX = item.from ? item.from.x : curX;
+    let endX = isTravel ? (item.to?.x ?? startX) : startX;
     const distance = Math.abs(endX - startX);
     let direction: -1 | 1 = curFacing;
     if (isTravel && distance > 1e-6) {
@@ -2180,11 +2737,62 @@ function buildActorTrajectories(
     } else if (!isTravel && item.to && Math.abs(item.to.x - startX) > 1e-6) {
       direction = Math.sign(item.to.x - startX) as -1 | 1;
     }
+
+    // Keep in-place clips with deep backward run-ups (e.g., kick-ball) strictly inside [0..canvasWidth]
+    if (!isTravel && clip?.poseKeys?.length) {
+      let minLocalX = 0;
+      let maxLocalX = 0;
+      for (const kf of clip.poseKeys) {
+        const p = kf.pose;
+        const f = clamp(p.facing ?? 1, -1, 1);
+        const candidates = [p.dx ?? 0, p.lFoot?.x ?? 0, p.rFoot?.x ?? 0];
+        for (const cx of candidates) {
+          const sx = f * cx;
+          if (sx < minLocalX) minLocalX = sx;
+          if (sx > maxLocalX) maxLocalX = sx;
+        }
+      }
+      if (minLocalX < -80) {
+        const backMargin = (Math.abs(minLocalX) + 27) * effectiveScale;
+        const fwdMargin = (Math.max(0, maxLocalX) + 24) * effectiveScale;
+        const clampedX =
+          direction > 0
+            ? clamp(startX, backMargin, Math.max(backMargin, canvasWidth - fwdMargin))
+            : clamp(startX, fwdMargin, Math.max(fwdMargin, canvasWidth - backMargin));
+        startX = clampedX;
+        endX = clampedX;
+      }
+    }
+
     const afterFacing: -1 | 1 = meta?.facingChange === 180 ? (-direction as -1 | 1) : direction;
     curX = endX;
     curFacing = afterFacing;
 
-    const addonNorm = normalizeActionAddon(item.action, item.addon, item.persist, sceneAddons, "$", noopDiagnostics);
+    // Persistent elevation tracking (stairs-up / step-up / climb-ledge -> elevated stance -> stairs-down / climb-down / toGround)
+    const { startLift, endLift } = measureClipElevationEndpoints(clip);
+    const startLiftPx = startLift * effectiveScale;
+    const endLiftPx = endLift * effectiveScale;
+    const startElevationY = curElevationY;
+    let clipGroundY = actor.groundY - curElevationY;
+    let endElevationY = curElevationY;
+    let descendsToGround = false;
+
+    if (startLiftPx > 6 * effectiveScale && endLiftPx <= 2 * effectiveScale) {
+      const targetAfter = Math.max(0, curElevationY - startLiftPx);
+      clipGroundY = actor.groundY - targetAfter;
+      endElevationY = targetAfter;
+    } else if (endLiftPx > 6 * effectiveScale && startLiftPx <= 2 * effectiveScale) {
+      clipGroundY = actor.groundY - curElevationY;
+      endElevationY = curElevationY + endLiftPx;
+    } else if (item.toGround === true && curElevationY > 0) {
+      clipGroundY = actor.groundY - curElevationY;
+      endElevationY = 0;
+      descendsToGround = true;
+    }
+    curElevationY = Math.max(0, endElevationY);
+
+    const addonNorm = normalizeActionAddon(item.action, item.addon, item.persist, sceneAddons, "$", noopDiagnostics, library);
+    const fallbackDefaultAddons = clipDefaultPropFallbackAddons(item.action, library);
     trajectories.push({
       item,
       index: i,
@@ -2193,11 +2801,16 @@ function buildActorTrajectories(
       direction,
       afterFacing,
       isTravel,
+      startElevationY,
+      endElevationY: curElevationY,
+      clipGroundY,
+      descendsToGround,
       ...(!isTravel && item.to ? { pointTarget: item.to } : {}),
       addonEnabled: addonNorm.enabled,
       ...(addonNorm.overrides !== undefined ? { addonOverrides: addonNorm.overrides } : {}),
       addonMergeDefaults: addonNorm.mergeDefaults,
-      addonPersist: addonNorm.persist
+      addonPersist: addonNorm.persist,
+      ...(fallbackDefaultAddons !== undefined ? { fallbackDefaultAddons } : {})
     });
   }
 
@@ -2214,11 +2827,13 @@ function toAdjacentAddonContext(traj: ActorActionTrajectory): AdjacentActionCont
 
 function extractStageIdsForTrajectory(traj: ActorActionTrajectory): Set<string> {
   if (!traj.addonEnabled) return new Set<string>();
+  const baseDefaults = defaultAddonsForAction(traj.item.action);
+  const defaults = baseDefaults.length > 0 ? baseDefaults : (traj.fallbackDefaultAddons ?? []);
   const configs =
     traj.addonOverrides === undefined
-      ? defaultAddonsForAction(traj.item.action)
+      ? defaults
       : traj.addonMergeDefaults
-        ? [...defaultAddonsForAction(traj.item.action), ...traj.addonOverrides]
+        ? [...defaults, ...traj.addonOverrides]
         : traj.addonOverrides;
   const ids = new Set<string>();
   for (const cfg of configs) {
@@ -2228,6 +2843,248 @@ function extractStageIdsForTrajectory(traj: ActorActionTrajectory): Set<string> 
     }
   }
   return ids;
+}
+
+function resolveSceneStageProps(
+  spec: AnimationSpecV2,
+  anchors: Record<string, Point2D>,
+  sceneGroundY: number
+): {
+  addons: SampledAddon[];
+  ids: Set<string>;
+  types: Set<AddonType>;
+  targets: Map<string, { type: AddonType; x: number; y: number; width: number; height: number; flipX?: boolean }>;
+} {
+  const addons: SampledAddon[] = [];
+  const ids = new Set<string>();
+  const types = new Set<AddonType>();
+  const targets = new Map<string, { type: AddonType; x: number; y: number; width: number; height: number; flipX?: boolean }>();
+  if (!spec.stageProps || spec.stageProps.length === 0) {
+    return { addons, ids, types, targets };
+  }
+  const themeAccent = spec.theme?.accentColor;
+  for (const sp of spec.stageProps) {
+    const def = PROP_DEFINITIONS[sp.type];
+    const sc = sp.scale ?? 1;
+    const width = Number(((sp.width ?? def.defaultSize.w) * sc).toFixed(3));
+    const height = Number(((sp.height ?? def.defaultSize.h) * sc).toFixed(3));
+    const anchorPt = sp.anchor ? anchors[sp.anchor] : undefined;
+    const rawX =
+      sp.x !== undefined
+        ? anchorPt
+          ? anchorPt.x + sp.x
+          : sp.x
+        : anchorPt
+          ? anchorPt.x - width / 2
+          : anchors.center!.x - width / 2;
+    const rawY =
+      sp.y !== undefined
+        ? sp.y
+        : sp.anchor && ELEVATED_STAGE_ANCHORS.has(sp.anchor) && anchorPt
+          ? anchorPt.y - height / 2
+          : sceneGroundY - height;
+    const flipX = sp.facing === "left" && ASYMMETRIC_FLIP_TYPES.has(sp.type);
+    const hinge: "left" | "right" | undefined =
+      sp.type === "door"
+        ? sp.facing === "left"
+          ? "left"
+          : "right"
+        : sp.type === "stairs"
+          ? "right"
+          : undefined;
+    const color =
+      sp.color ??
+      (themeAccent && def.defaultColor.toLowerCase() === "#b11f4b" ? themeAccent : def.defaultColor);
+
+    const sampled: SampledAddon = {
+      id: sp.id,
+      type: sp.type,
+      layer: sp.layer ?? "back",
+      x: Number(rawX.toFixed(3)),
+      y: Number(rawY.toFixed(3)),
+      width,
+      height,
+      rotation: 0,
+      scale: 1,
+      opacity: 1,
+      color,
+      ...(hinge !== undefined ? { hinge } : {}),
+      ...(flipX ? { flipX: true } : {}),
+      ...(sp.text !== undefined ? { text: sp.text } : {})
+    };
+    addons.push(sampled);
+    ids.add(sp.id);
+    types.add(sp.type);
+    const box = { type: sp.type, x: sampled.x, y: sampled.y, width: sampled.width, height: sampled.height, ...(flipX ? { flipX: true } : {}) };
+    targets.set(sp.id, box);
+    if (!targets.has(sp.type)) targets.set(sp.type, box);
+  }
+  return { addons, ids, types, targets };
+}
+
+function resolveActorElevationSpans(
+  trajectories: readonly ActorActionTrajectory[],
+  sceneStagePropTypes: ReadonlySet<AddonType>,
+  sceneStagePropIds: ReadonlySet<string>
+): ElevationPropSpan[] {
+  const spans: ElevationPropSpan[] = [];
+  for (let i = 0; i < trajectories.length; i++) {
+    const traj = trajectories[i]!;
+    if (traj.endElevationY <= traj.startElevationY || !traj.addonEnabled) continue;
+    const defaults = defaultAddonsForAction(traj.item.action);
+    const stageProp = defaults.find((cfg) => cfg.type === "stairs" || cfg.type === "ledge");
+    if (!stageProp) continue;
+    const propId = stageProp.id ?? stageProp.type;
+    if (sceneStagePropTypes.has(stageProp.type) || sceneStagePropIds.has(propId)) continue;
+
+    let throughIdx = i;
+    for (let j = i + 1; j < trajectories.length; j++) {
+      const next = trajectories[j]!;
+      if (next.startElevationY <= 0) break;
+      throughIdx = j;
+      if (next.endElevationY <= 0) break;
+    }
+    if (throughIdx > i) {
+      spans.push({
+        sourceIdx: i,
+        throughIdx,
+        persistsAfterEnd: trajectories[throughIdx]!.endElevationY > 0,
+        propId,
+        propType: stageProp.type
+      });
+    }
+  }
+  return spans;
+}
+
+function handPointForPose(pose: RawActorPose, socket: AddonSocket): Point2D {
+  const seg = (id: string): Segment | undefined => pose.segments.find((s) => s.id === id);
+  const rFore = seg("right-forearm");
+  const lFore = seg("left-forearm");
+  if (socket === "bothHands" && rFore && lFore) {
+    return { x: (rFore.x2 + lFore.x2) / 2, y: (rFore.y2 + lFore.y2) / 2 };
+  }
+  if (socket === "lHand" && lFore) return { x: lFore.x2, y: lFore.y2 };
+  if (rFore) return { x: rFore.x2, y: rFore.y2 };
+  if (lFore) return { x: lFore.x2, y: lFore.y2 };
+  return { x: pose.x, y: pose.groundY - 70 };
+}
+
+const RECEIVING_CHAIN_ACTIONS = new Set<string>(["catch", "present-card", "reveal", "hold-sign", "hand-over"]);
+
+function resolveCrossActorHandoffs(
+  actors: readonly CompiledActorSpec[],
+  trajectoriesByActor: readonly (readonly ActorActionTrajectory[])[]
+): ResolvedHandoff[] {
+  const handoffs: ResolvedHandoff[] = [];
+  const actorIndexById = new Map(actors.map((a, idx) => [a.id, idx]));
+
+  for (let senderActorIdx = 0; senderActorIdx < actors.length; senderActorIdx++) {
+    const senderTrajs = trajectoriesByActor[senderActorIdx]!;
+    for (let senderTrajIdx = 0; senderTrajIdx < senderTrajs.length; senderTrajIdx++) {
+      const sTraj = senderTrajs[senderTrajIdx]!;
+      let targetActorIdx: number | undefined;
+      let explicitSpec = sTraj.item.handoffTo;
+
+      if (explicitSpec) {
+        targetActorIdx = actorIndexById.get(explicitSpec.actorId);
+      } else if (sTraj.item.action === "hand-over" && sTraj.item.emitCue) {
+        // Implicit cue-linked handoff when hand-over emits a cue consumed by another actor's catch/present-card
+        for (let otherIdx = 0; otherIdx < actors.length; otherIdx++) {
+          if (otherIdx === senderActorIdx) continue;
+          const otherTrajs = trajectoriesByActor[otherIdx]!;
+          const match = otherTrajs.find(
+            (t) => t.item.afterCue === sTraj.item.emitCue && RECEIVING_CHAIN_ACTIONS.has(t.item.action)
+          );
+          if (match) {
+            targetActorIdx = otherIdx;
+            break;
+          }
+        }
+      }
+
+      if (targetActorIdx === undefined || targetActorIdx === senderActorIdx) continue;
+      const recvTrajs = trajectoriesByActor[targetActorIdx]!;
+      if (recvTrajs.length === 0) continue;
+
+      const senderDefaults = defaultAddonsForAction(sTraj.item.action);
+      const propType: AddonType =
+        explicitSpec?.propType ??
+        sTraj.addonOverrides?.[0]?.type ??
+        senderDefaults[0]?.type ??
+        "card";
+      const propId = explicitSpec?.propId ?? sTraj.addonOverrides?.[0]?.id ?? propType;
+      const releaseProgress =
+        explicitSpec?.atProgress ??
+        senderDefaults[0]?.flight?.from ??
+        0.571;
+      const enterFrac = senderDefaults[0]?.enterAt ?? 0.08;
+      const enterStartMs = sTraj.item.startMs + enterFrac * sTraj.item.durationMs;
+      const releaseMs = sTraj.item.startMs + releaseProgress * sTraj.item.durationMs;
+
+      // Locate receiving action on receiver actor
+      let recvStartIdx = -1;
+      if (sTraj.item.emitCue) {
+        recvStartIdx = recvTrajs.findIndex((t) => t.item.afterCue === sTraj.item.emitCue);
+      }
+      if (recvStartIdx < 0) {
+        recvStartIdx = recvTrajs.findIndex(
+          (t) => t.item.startMs >= sTraj.item.startMs && RECEIVING_CHAIN_ACTIONS.has(t.item.action)
+        );
+      }
+      if (recvStartIdx < 0) {
+        recvStartIdx = recvTrajs.findIndex((t) => t.item.startMs + t.item.durationMs > releaseMs);
+      }
+      if (recvStartIdx < 0) continue;
+
+      // Extend receiving chain across consecutive catch -> present-card / reveal / matching prop actions
+      let recvEndIdx = recvStartIdx;
+      for (let j = recvStartIdx + 1; j < recvTrajs.length; j++) {
+        const nxt = recvTrajs[j]!;
+        const nxtDefaults = defaultAddonsForAction(nxt.item.action);
+        const matchesProp =
+          nxtDefaults.some((d) => d.type === propType || (d.id ?? d.type) === propId) ||
+          Boolean(nxt.addonOverrides?.some((d) => d.type === propType || d.id === propId));
+        if (matchesProp) {
+          recvEndIdx = j;
+        } else {
+          break;
+        }
+      }
+
+      const recvFirst = recvTrajs[recvStartIdx]!;
+      const recvLast = recvTrajs[recvEndIdx]!;
+      const rawCatchMs =
+        recvFirst.item.action === "catch"
+          ? recvFirst.item.startMs + 0.276 * recvFirst.item.durationMs
+          : recvFirst.item.startMs;
+      const catchMs = Math.max(releaseMs + 60, rawCatchMs);
+      const chainEndMs = recvLast.item.startMs + recvLast.item.durationMs;
+      const persist = Boolean(sTraj.addonPersist || recvLast.addonPersist);
+      const overrideCfg =
+        sTraj.addonOverrides?.find((c) => c.type === propType || c.id === propId) ??
+        recvFirst.addonOverrides?.find((c) => c.type === propType || c.id === propId) ??
+        recvLast.addonOverrides?.find((c) => c.type === propType || c.id === propId);
+
+      handoffs.push({
+        senderActorIdx,
+        senderTrajIdx,
+        receiverActorIdx: targetActorIdx,
+        recvStartIdx,
+        recvEndIdx,
+        propType,
+        propId,
+        enterStartMs,
+        releaseMs,
+        catchMs,
+        chainEndMs,
+        persist,
+        ...(overrideCfg ? { overrideCfg } : {})
+      });
+    }
+  }
+
+  return handoffs;
 }
 
 export function sampleAnimationV2(
@@ -2245,29 +3102,41 @@ export function sampleAnimationV2(
   const spec = program.spec as AnimationSpecV2;
   const playheadT = mode === "normal" ? Math.min(spec.durationMs, Math.max(0, timeMs)) : spec.durationMs;
   const sceneAddonsMode: "auto" | "none" = spec.addons ?? "auto";
+  const effectiveLibrary = buildEffectiveMotionLibrary(spec.customMotions);
+  const sceneGroundY = spec.groundY ?? Math.round(spec.canvas.height * 0.82);
+  const sceneAnchors = resolveStageAnchors(spec.canvas, sceneGroundY, spec.anchors);
+  const sceneStage = resolveSceneStageProps(spec, sceneAnchors, sceneGroundY);
 
-  const sampledByIndex: Array<{
+  interface ActorRuntimeCtx {
     actorIndex: number;
-    zIndex: number;
-    actorFrame: SampledActorFrame;
-    addons: SampledAddon[];
-  }> = [];
+    actor: CompiledActorSpec;
+    effectiveScale: number;
+    trajectories: ActorActionTrajectory[];
+    themeAccentColor?: string;
+    elevationSpans: ElevationPropSpan[];
+    sampleIdleClip: (rootX: number, facing: -1 | 1, progress: number, elevationY: number) => RawActorPose;
+    sampleTrajectoryClip: (traj: ActorActionTrajectory, progress: number) => RawActorPose;
+    poseAtTrajectoryProgress: (traj: ActorActionTrajectory) => (p: number) => AddonPoseSnapshot;
+    sampleRawAt: (t: number) => RawActorPose;
+    sampleBlendedAt: (evalTime: number, depth: number) => RawActorPose;
+  }
 
-  for (let actorIndex = 0; actorIndex < spec.actors.length; actorIndex++) {
-    const actor = spec.actors[actorIndex]!;
+  const actorContexts: ActorRuntimeCtx[] = spec.actors.map((actor, actorIndex) => {
     const baseRigScale = actorRigBaseScale(spec.canvas.width, actor.groundY, actor.actions);
     const effectiveScale = Math.max(0.2, baseRigScale * actor.scale);
-    const trajectories = buildActorTrajectories(actor, sceneAddonsMode);
+    const trajectories = buildActorTrajectories(actor, sceneAddonsMode, effectiveLibrary, effectiveScale, spec.canvas.width);
     const themeAccentColor = actor.accentColor ?? spec.theme?.accentColor;
+    const elevationSpans = resolveActorElevationSpans(trajectories, sceneStage.types, sceneStage.ids);
 
-    const sampleIdleClip = (rootX: number, facing: -1 | 1, progress: number): RawActorPose => {
-      const clip = sampleClipMotion(RUNTIME_MOTION_LIBRARY, {
+    const sampleIdleClip = (rootX: number, facing: -1 | 1, progress: number, elevationY: number): RawActorPose => {
+      const effGroundY = actor.groundY - Math.max(0, elevationY);
+      const clip = sampleClipMotion(effectiveLibrary, {
         action: "idle",
         clipId: "idle",
         progress: clamp01(progress),
         startX: rootX,
         endX: rootX,
-        groundY: actor.groundY,
+        groundY: effGroundY,
         facing,
         scale: effectiveScale
       });
@@ -2287,14 +3156,19 @@ export function sampleAnimationV2(
 
     const sampleTrajectoryClip = (traj: ActorActionTrajectory, progress: number): RawActorPose => {
       const p = clamp01(progress);
-      const clip = sampleClipMotion(RUNTIME_MOTION_LIBRARY, {
+      let effGroundY = traj.clipGroundY;
+      if (traj.descendsToGround && traj.startElevationY > 0) {
+        const dropT = clamp01((p - 0.25) / 0.4);
+        effGroundY = actor.groundY - traj.startElevationY * (1 - dropT * dropT);
+      }
+      const clip = sampleClipMotion(effectiveLibrary, {
         action: traj.item.action,
         clipId: traj.item.action,
         progress: p,
         durationMs: traj.item.durationMs,
         startX: traj.startX,
         endX: traj.endX,
-        groundY: actor.groundY,
+        groundY: effGroundY,
         facing: traj.direction,
         scale: effectiveScale,
         ...(traj.pointTarget ? { pointTarget: traj.pointTarget } : {}),
@@ -2335,102 +3209,10 @@ export function sampleAnimationV2(
       };
     };
 
-    if (mode !== "normal") {
-      let finalX = actor.x;
-      let finalFacing: -1 | 1 = actor.facing;
-      let lastOnstageX: number | undefined = actor.x >= 0 && actor.x <= spec.canvas.width ? actor.x : undefined;
-      let lastOnstageFacing: -1 | 1 = actor.facing;
-      let lastOnstageActionIdx = -1;
-
-      for (const traj of trajectories) {
-        finalX = traj.endX;
-        finalFacing = traj.afterFacing;
-        if (traj.endX >= 0 && traj.endX <= spec.canvas.width) {
-          lastOnstageX = traj.endX;
-          lastOnstageFacing = traj.afterFacing;
-          lastOnstageActionIdx = traj.index;
-        } else if (traj.startX >= 0 && traj.startX <= spec.canvas.width && lastOnstageX === undefined) {
-          lastOnstageX = traj.startX;
-          lastOnstageFacing = traj.direction;
-        }
-      }
-
-      const endedOnstage = finalX >= 0 && finalX <= spec.canvas.width;
-      const summaryX = endedOnstage
-        ? finalX
-        : lastOnstageX ?? clamp(finalX, Math.min(48, spec.canvas.width / 2), Math.max(48, spec.canvas.width - 48));
-      const summaryFacing = endedOnstage ? finalFacing : lastOnstageFacing;
-      const summaryActIdx = endedOnstage ? trajectories.length - 1 : lastOnstageActionIdx;
-      const summaryTraj = summaryActIdx >= 0 ? trajectories[summaryActIdx] : undefined;
-
-      const finalPose =
-        summaryTraj && HOLD_OR_SEATED_FINAL_ACTIONS.has(summaryTraj.item.action)
-          ? sampleTrajectoryClip(summaryTraj, 1)
-          : sampleIdleClip(summaryX, summaryFacing, 0);
-
-      const actorFrame: SampledActorFrame = {
-        id: actor.id,
-        ...(actor.label !== undefined ? { label: actor.label } : {}),
-        action: finalPose.action,
-        x: finalPose.x,
-        groundY: finalPose.groundY,
-        head: finalPose.head,
-        segments: finalPose.segments,
-        facing: finalPose.facing,
-        ...(finalPose.articulated ? { articulated: true } : {}),
-        color: actor.color,
-        ...(actor.accessory !== undefined ? { accessory: actor.accessory } : {}),
-        ...(themeAccentColor !== undefined ? { accentColor: themeAccentColor } : {}),
-        scale: effectiveScale,
-        zIndex: actor.zIndex
-      };
-
-      const finalAddons: SampledAddon[] = [];
-      const seenAddonKeys = new Set<string>();
-      for (let k = trajectories.length - 1; k >= 0; k--) {
-        const traj = trajectories[k]!;
-        if (!traj.addonEnabled) continue;
-        const shouldInclude =
-          traj.addonPersist || (k === summaryActIdx && HOLD_OR_SEATED_FINAL_ACTIONS.has(traj.item.action));
-        if (!shouldInclude) continue;
-        const poseSnap = poseAtTrajectoryProgress(traj)(1);
-        const sampled = sampleActionAddons({
-          action: traj.item.action,
-          progress: 1,
-          pose: poseSnap,
-          originX: traj.startX,
-          poseAtProgress: poseAtTrajectoryProgress(traj),
-          actorId: actor.id,
-          canvas: spec.canvas,
-          ...(traj.addonOverrides !== undefined ? { addons: traj.addonOverrides } : {}),
-          mergeDefaults: traj.addonMergeDefaults,
-          ...(themeAccentColor !== undefined ? { themeAccentColor } : {}),
-          persist: true
-        });
-        for (const addon of sampled) {
-          if (!seenAddonKeys.has(addon.id)) {
-            seenAddonKeys.add(addon.id);
-            finalAddons.unshift(addon);
-          }
-        }
-      }
-
-      actorFrame.gazeDir = resolveActorGazeDir(
-        finalPose.action,
-        (summaryTraj && finalPose.action === summaryTraj.item.action ? summaryTraj.item.gaze : undefined) ?? actor.gaze,
-        finalPose.facing,
-        finalPose.head,
-        summaryTraj?.pointTarget,
-        finalAddons
-      );
-
-      sampledByIndex.push({ actorIndex, zIndex: actor.zIndex, actorFrame, addons: finalAddons });
-      continue;
-    }
-
     const sampleRawAt = (t: number): RawActorPose => {
       let idleX = trajectories[0]?.item.from ? trajectories[0].item.from.x : actor.x;
       let idleFacing: -1 | 1 = actor.facing;
+      let idleElevationY = 0;
       let prevCompletedIndex = -1;
       let nextPendingIndex = -1;
 
@@ -2450,10 +3232,11 @@ export function sampleAnimationV2(
         }
         idleX = traj.endX;
         idleFacing = traj.afterFacing;
+        idleElevationY = traj.endElevationY;
         prevCompletedIndex = i;
       }
 
-      const pose = sampleIdleClip(idleX, idleFacing, ((t / 1000) % 2) / 2);
+      const pose = sampleIdleClip(idleX, idleFacing, ((t / 1000) % 2) / 2, idleElevationY);
       pose.prevCompletedIndex = prevCompletedIndex;
       pose.nextPendingIndex = nextPendingIndex;
       return pose;
@@ -2494,7 +3277,193 @@ export function sampleAnimationV2(
       return raw;
     };
 
-    const blended = sampleBlendedAt(playheadT, 0);
+    return {
+      actorIndex,
+      actor,
+      effectiveScale,
+      trajectories,
+      ...(themeAccentColor !== undefined ? { themeAccentColor } : {}),
+      elevationSpans,
+      sampleIdleClip,
+      sampleTrajectoryClip,
+      poseAtTrajectoryProgress,
+      sampleRawAt,
+      sampleBlendedAt
+    };
+  });
+
+  // Resolve cross-actor shared prop handoffs and build per-(actor, traj) suppression maps
+  const handoffs = resolveCrossActorHandoffs(
+    spec.actors,
+    actorContexts.map((c) => c.trajectories)
+  );
+  const suppressedByTraj = new Map<string, { ids: Set<string>; types: Set<AddonType> }>();
+  const markSuppressed = (actorIdx: number, trajIdx: number, id?: string, type?: AddonType): void => {
+    const key = `${actorIdx}:${trajIdx}`;
+    let entry = suppressedByTraj.get(key);
+    if (!entry) {
+      entry = { ids: new Set<string>(), types: new Set<AddonType>() };
+      suppressedByTraj.set(key, entry);
+    }
+    if (id) entry.ids.add(id);
+    if (type) entry.types.add(type);
+  };
+  for (const hf of handoffs) {
+    markSuppressed(hf.senderActorIdx, hf.senderTrajIdx, hf.propId, hf.propType);
+    const senderAction = actorContexts[hf.senderActorIdx]!.trajectories[hf.senderTrajIdx]!.item.action;
+    if (senderAction === "hand-over") {
+      markSuppressed(hf.senderActorIdx, hf.senderTrajIdx, "card", "card");
+    }
+    for (let j = hf.recvStartIdx; j <= hf.recvEndIdx; j++) {
+      const rTraj = actorContexts[hf.receiverActorIdx]!.trajectories[j]!;
+      markSuppressed(hf.receiverActorIdx, j, hf.propId, hf.propType);
+      if (rTraj.item.action === "catch") {
+        markSuppressed(hf.receiverActorIdx, j, "ball", "ball");
+      }
+    }
+  }
+
+  const filterActorAddons = (
+    actorIdx: number,
+    trajIdx: number,
+    traj: ActorActionTrajectory,
+    items: SampledAddon[],
+    extraSuppressTypes?: ReadonlySet<AddonType>,
+    extraSuppressIds?: ReadonlySet<string>
+  ): SampledAddon[] => {
+    const hfSup = suppressedByTraj.get(`${actorIdx}:${trajIdx}`);
+    return items.filter((addon) => {
+      if (hfSup && (hfSup.ids.has(addon.id) || hfSup.types.has(addon.type))) return false;
+      if (extraSuppressIds?.has(addon.id) || extraSuppressTypes?.has(addon.type)) return false;
+      const explicitOverride = Boolean(
+        traj.addonOverrides?.some((ov) => ov.id === addon.id || (ov.id === undefined && ov.type === addon.type))
+      );
+      if (!explicitOverride && (sceneStage.ids.has(addon.id) || sceneStage.types.has(addon.type))) {
+        return false;
+      }
+      return true;
+    });
+  };
+
+  const sampledByIndex: Array<{
+    actorIndex: number;
+    zIndex: number;
+    actorFrame: SampledActorFrame;
+    addons: SampledAddon[];
+  }> = [];
+
+  for (const ctx of actorContexts) {
+    const { actorIndex, actor, effectiveScale, trajectories, themeAccentColor, elevationSpans } = ctx;
+
+    if (mode !== "normal") {
+      let finalX = actor.x;
+      let finalFacing: -1 | 1 = actor.facing;
+      let finalElevationY = 0;
+      let lastOnstageX: number | undefined = actor.x >= 0 && actor.x <= spec.canvas.width ? actor.x : undefined;
+      let lastOnstageFacing: -1 | 1 = actor.facing;
+      let lastOnstageElevationY = 0;
+      let lastOnstageActionIdx = -1;
+
+      for (const traj of trajectories) {
+        finalX = traj.endX;
+        finalFacing = traj.afterFacing;
+        finalElevationY = traj.endElevationY;
+        if (traj.endX >= 0 && traj.endX <= spec.canvas.width) {
+          lastOnstageX = traj.endX;
+          lastOnstageFacing = traj.afterFacing;
+          lastOnstageElevationY = traj.endElevationY;
+          lastOnstageActionIdx = traj.index;
+        } else if (traj.startX >= 0 && traj.startX <= spec.canvas.width && lastOnstageX === undefined) {
+          lastOnstageX = traj.startX;
+          lastOnstageFacing = traj.direction;
+          lastOnstageElevationY = traj.startElevationY;
+        }
+      }
+
+      const endedOnstage = finalX >= 0 && finalX <= spec.canvas.width;
+      const summaryX = endedOnstage
+        ? finalX
+        : lastOnstageX ?? clamp(finalX, Math.min(48, spec.canvas.width / 2), Math.max(48, spec.canvas.width - 48));
+      const summaryFacing = endedOnstage ? finalFacing : lastOnstageFacing;
+      const summaryElevationY = endedOnstage ? finalElevationY : lastOnstageElevationY;
+      const summaryActIdx = endedOnstage ? trajectories.length - 1 : lastOnstageActionIdx;
+      const summaryTraj = summaryActIdx >= 0 ? trajectories[summaryActIdx] : undefined;
+
+      const finalPose =
+        summaryTraj && HOLD_OR_SEATED_FINAL_ACTIONS.has(summaryTraj.item.action)
+          ? ctx.sampleTrajectoryClip(summaryTraj, 1)
+          : ctx.sampleIdleClip(summaryX, summaryFacing, 0, summaryElevationY);
+
+      const actorFrame: SampledActorFrame = {
+        id: actor.id,
+        ...(actor.label !== undefined ? { label: actor.label } : {}),
+        action: finalPose.action,
+        x: finalPose.x,
+        groundY: finalPose.groundY,
+        head: finalPose.head,
+        segments: finalPose.segments,
+        facing: finalPose.facing,
+        ...(finalPose.articulated ? { articulated: true } : {}),
+        color: actor.color,
+        ...(actor.accessory !== undefined ? { accessory: actor.accessory } : {}),
+        ...(themeAccentColor !== undefined ? { accentColor: themeAccentColor } : {}),
+        scale: effectiveScale,
+        zIndex: actor.zIndex
+      };
+
+      const finalAddons: SampledAddon[] = [];
+      const seenAddonKeys = new Set<string>();
+      for (let k = trajectories.length - 1; k >= 0; k--) {
+        const traj = trajectories[k]!;
+        if (!traj.addonEnabled) continue;
+        const shouldInclude =
+          traj.addonPersist ||
+          (k === summaryActIdx && HOLD_OR_SEATED_FINAL_ACTIONS.has(traj.item.action)) ||
+          (summaryElevationY > 0 && elevationSpans.some((sp) => sp.sourceIdx === k && sp.persistsAfterEnd));
+        if (!shouldInclude) continue;
+        const poseSnap = ctx.poseAtTrajectoryProgress(traj)(1);
+        const sampled = filterActorAddons(
+          actorIndex,
+          k,
+          traj,
+          sampleActionAddons({
+            action: traj.item.action,
+            progress: 1,
+            pose: poseSnap,
+            originX: traj.startX,
+            poseAtProgress: ctx.poseAtTrajectoryProgress(traj),
+            actorId: actor.id,
+            canvas: spec.canvas,
+            ...(traj.addonOverrides !== undefined ? { addons: traj.addonOverrides } : {}),
+            ...(traj.fallbackDefaultAddons !== undefined ? { fallbackDefaultAddons: traj.fallbackDefaultAddons } : {}),
+            ...(sceneStage.targets.size > 0 ? { externalStageTargets: sceneStage.targets } : {}),
+            mergeDefaults: traj.addonMergeDefaults,
+            ...(themeAccentColor !== undefined ? { themeAccentColor } : {}),
+            persist: true
+          })
+        );
+        for (const addon of sampled) {
+          if (!seenAddonKeys.has(addon.id)) {
+            seenAddonKeys.add(addon.id);
+            finalAddons.unshift(addon);
+          }
+        }
+      }
+
+      actorFrame.gazeDir = resolveActorGazeDir(
+        finalPose.action,
+        (summaryTraj && finalPose.action === summaryTraj.item.action ? summaryTraj.item.gaze : undefined) ?? actor.gaze,
+        finalPose.facing,
+        finalPose.head,
+        summaryTraj?.pointTarget,
+        finalAddons
+      );
+
+      sampledByIndex.push({ actorIndex, zIndex: actor.zIndex, actorFrame, addons: finalAddons });
+      continue;
+    }
+
+    const blended = ctx.sampleBlendedAt(playheadT, 0);
     const actorFrame: SampledActorFrame = {
       id: actor.id,
       ...(actor.label !== undefined ? { label: actor.label } : {}),
@@ -2515,6 +3484,57 @@ export function sampleAnimationV2(
     const actorAddons: SampledAddon[] = [];
     const activeIdx = blended.activeIndex;
 
+    // Determine any anchored elevation props active right now
+    const activeSpanIdsToPersistOut = new Set<string>();
+    const activeSpanSuppressTypes = new Set<AddonType>();
+    const activeSpanSuppressIds = new Set<string>();
+    const anchoredElevationAddons: SampledAddon[] = [];
+
+    for (const span of elevationSpans) {
+      if (activeIdx === span.sourceIdx) {
+        activeSpanIdsToPersistOut.add(span.propId);
+        continue;
+      }
+      const inSpanAction = activeIdx > span.sourceIdx && activeIdx <= span.throughIdx;
+      const inSpanIdle =
+        activeIdx < 0 &&
+        blended.prevCompletedIndex >= span.sourceIdx &&
+        (blended.prevCompletedIndex < span.throughIdx || span.persistsAfterEnd);
+      if (!inSpanAction && !inSpanIdle) continue;
+
+      activeSpanSuppressTypes.add(span.propType);
+      activeSpanSuppressIds.add(span.propId);
+
+      const srcTraj = trajectories[span.sourceIdx]!;
+      const sampledSrc = sampleActionAddons({
+        action: srcTraj.item.action,
+        progress: 1,
+        pose: ctx.poseAtTrajectoryProgress(srcTraj)(1),
+        originX: srcTraj.startX,
+        poseAtProgress: ctx.poseAtTrajectoryProgress(srcTraj),
+        actorId: actor.id,
+        canvas: spec.canvas,
+        ...(srcTraj.addonOverrides !== undefined ? { addons: srcTraj.addonOverrides } : {}),
+        mergeDefaults: srcTraj.addonMergeDefaults,
+        ...(themeAccentColor !== undefined ? { themeAccentColor } : {}),
+        persist: true
+      });
+      const anchored = sampledSrc.find((a) => a.id === span.propId || a.type === span.propType);
+      if (!anchored) continue;
+
+      let opacity = anchored.opacity;
+      if (activeIdx === span.throughIdx && !span.persistsAfterEnd && !trajectories[span.throughIdx]!.addonPersist) {
+        const endTraj = trajectories[span.throughIdx]!;
+        const endProgress = clamp01((playheadT - endTraj.item.startMs) / endTraj.item.durationMs);
+        const exitLife = addonLifecycleState({ exit: "fade", exitAt: 0.92, exitDuration: 0.08 }, endProgress);
+        if (!exitLife.visible) continue;
+        opacity = Number((opacity * exitLife.opacity).toFixed(3));
+      }
+      if (opacity > 0.001) {
+        anchoredElevationAddons.push({ ...anchored, opacity });
+      }
+    }
+
     if (activeIdx >= 0) {
       const traj = trajectories[activeIdx]!;
       if (traj.addonEnabled) {
@@ -2533,21 +3553,33 @@ export function sampleAnimationV2(
           scale: effectiveScale
         };
 
-        const sampled = sampleActionAddons({
-          action: traj.item.action,
-          progress,
-          pose: currentPoseSnap,
-          originX: traj.startX,
-          poseAtProgress: poseAtTrajectoryProgress(traj),
-          actorId: actor.id,
-          canvas: spec.canvas,
-          ...(traj.addonOverrides !== undefined ? { addons: traj.addonOverrides } : {}),
-          mergeDefaults: traj.addonMergeDefaults,
-          ...(themeAccentColor !== undefined ? { themeAccentColor } : {}),
-          ...(traj.addonPersist ? { persist: true } : {}),
-          ...(sameSpotPrev ? { previousAction: toAdjacentAddonContext(prevTraj) } : {}),
-          ...(sameSpotNext ? { nextAction: toAdjacentAddonContext(nextTraj) } : {})
-        });
+        const sampled = filterActorAddons(
+          actorIndex,
+          activeIdx,
+          traj,
+          sampleActionAddons({
+            action: traj.item.action,
+            progress,
+            pose: currentPoseSnap,
+            originX: traj.startX,
+            poseAtProgress: ctx.poseAtTrajectoryProgress(traj),
+            actorId: actor.id,
+            canvas: spec.canvas,
+            ...(traj.addonOverrides !== undefined ? { addons: traj.addonOverrides } : {}),
+            ...(traj.fallbackDefaultAddons !== undefined ? { fallbackDefaultAddons: traj.fallbackDefaultAddons } : {}),
+            ...(sceneStage.targets.size > 0 ? { externalStageTargets: sceneStage.targets } : {}),
+            mergeDefaults: traj.addonMergeDefaults,
+            ...(themeAccentColor !== undefined ? { themeAccentColor } : {}),
+            ...(traj.addonPersist ? { persist: true } : {}),
+            ...(sameSpotPrev ? { previousAction: toAdjacentAddonContext(prevTraj) } : {}),
+            ...(sameSpotNext ? { nextAction: toAdjacentAddonContext(nextTraj) } : {}),
+            ...(activeSpanIdsToPersistOut.size > 0
+              ? { persistedStageIds: { toNext: activeSpanIdsToPersistOut } }
+              : {})
+          }),
+          activeSpanSuppressTypes,
+          activeSpanSuppressIds
+        );
         actorAddons.push(...sampled);
       }
     } else if (blended.prevCompletedIndex >= 0 && blended.nextPendingIndex >= 0) {
@@ -2559,23 +3591,38 @@ export function sampleAnimationV2(
         const nextIds = extractStageIdsForTrajectory(nextTraj);
         const sharedIds = [...prevIds].filter((id) => nextIds.has(id));
         if (sharedIds.length > 0) {
-          const sampled = sampleActionAddons({
-            action: prevTraj.item.action,
-            progress: 1,
-            pose: poseAtTrajectoryProgress(prevTraj)(1),
-            originX: prevTraj.startX,
-            poseAtProgress: poseAtTrajectoryProgress(prevTraj),
-            actorId: actor.id,
-            canvas: spec.canvas,
-            ...(prevTraj.addonOverrides !== undefined ? { addons: prevTraj.addonOverrides } : {}),
-            mergeDefaults: prevTraj.addonMergeDefaults,
-            ...(themeAccentColor !== undefined ? { themeAccentColor } : {}),
-            persist: true
-          });
+          const sampled = filterActorAddons(
+            actorIndex,
+            blended.prevCompletedIndex,
+            prevTraj,
+            sampleActionAddons({
+              action: prevTraj.item.action,
+              progress: 1,
+              pose: ctx.poseAtTrajectoryProgress(prevTraj)(1),
+              originX: prevTraj.startX,
+              poseAtProgress: ctx.poseAtTrajectoryProgress(prevTraj),
+              actorId: actor.id,
+              canvas: spec.canvas,
+              ...(prevTraj.addonOverrides !== undefined ? { addons: prevTraj.addonOverrides } : {}),
+              ...(prevTraj.fallbackDefaultAddons !== undefined ? { fallbackDefaultAddons: prevTraj.fallbackDefaultAddons } : {}),
+              mergeDefaults: prevTraj.addonMergeDefaults,
+              ...(themeAccentColor !== undefined ? { themeAccentColor } : {}),
+              persist: true
+            }),
+            activeSpanSuppressTypes,
+            activeSpanSuppressIds
+          );
           for (const addon of sampled) {
             if (sharedIds.includes(addon.id)) actorAddons.push(addon);
           }
         }
+      }
+    }
+
+    // Add anchored elevation props (e.g. stationary stairs across stairs-up -> cheer -> stairs-down)
+    for (const anchored of anchoredElevationAddons) {
+      if (!actorAddons.some((a) => a.id === anchored.id)) {
+        actorAddons.unshift(anchored);
       }
     }
 
@@ -2585,19 +3632,25 @@ export function sampleAnimationV2(
     for (let j = completedCeiling; j >= 0; j--) {
       const earlier = trajectories[j]!;
       if (!earlier.addonEnabled || !earlier.addonPersist) continue;
-      const persistedSample = sampleActionAddons({
-        action: earlier.item.action,
-        progress: 1,
-        pose: poseAtTrajectoryProgress(earlier)(1),
-        originX: earlier.startX,
-        poseAtProgress: poseAtTrajectoryProgress(earlier),
-        actorId: actor.id,
-        canvas: spec.canvas,
-        ...(earlier.addonOverrides !== undefined ? { addons: earlier.addonOverrides } : {}),
-        mergeDefaults: earlier.addonMergeDefaults,
-        ...(themeAccentColor !== undefined ? { themeAccentColor } : {}),
-        persist: true
-      });
+      const persistedSample = filterActorAddons(
+        actorIndex,
+        j,
+        earlier,
+        sampleActionAddons({
+          action: earlier.item.action,
+          progress: 1,
+          pose: ctx.poseAtTrajectoryProgress(earlier)(1),
+          originX: earlier.startX,
+          poseAtProgress: ctx.poseAtTrajectoryProgress(earlier),
+          actorId: actor.id,
+          canvas: spec.canvas,
+          ...(earlier.addonOverrides !== undefined ? { addons: earlier.addonOverrides } : {}),
+          ...(earlier.fallbackDefaultAddons !== undefined ? { fallbackDefaultAddons: earlier.fallbackDefaultAddons } : {}),
+          mergeDefaults: earlier.addonMergeDefaults,
+          ...(themeAccentColor !== undefined ? { themeAccentColor } : {}),
+          persist: true
+        })
+      );
       for (const addon of persistedSample) {
         if (!presentIds.has(addon.id)) {
           presentIds.add(addon.id);
@@ -2619,10 +3672,145 @@ export function sampleAnimationV2(
     sampledByIndex.push({ actorIndex, zIndex: actor.zIndex, actorFrame, addons: actorAddons });
   }
 
+  // Sample cross-actor shared handoff props (single continuous prop across sender -> arc -> receiver)
+  const handoffAddons: SampledAddon[] = [];
+  for (const hf of handoffs) {
+    const senderCtx = actorContexts[hf.senderActorIdx]!;
+    const receiverCtx = actorContexts[hf.receiverActorIdx]!;
+    const senderTraj = senderCtx.trajectories[hf.senderTrajIdx]!;
+    const recvFirstTraj = receiverCtx.trajectories[hf.recvStartIdx]!;
+    const recvLastTraj = receiverCtx.trajectories[hf.recvEndIdx]!;
+    const def = PROP_DEFINITIONS[hf.propType];
+    const baseUnit = (senderCtx.effectiveScale + receiverCtx.effectiveScale) / 2;
+    const width = Number(((hf.overrideCfg?.width ?? def.defaultSize.w) * baseUnit).toFixed(3));
+    const height = Number(((hf.overrideCfg?.height ?? def.defaultSize.h) * baseUnit).toFixed(3));
+    const themeColor = senderCtx.themeAccentColor ?? receiverCtx.themeAccentColor ?? spec.theme?.accentColor;
+    const color =
+      hf.overrideCfg?.color ??
+      (themeColor && def.defaultColor.toLowerCase() === "#b11f4b" ? themeColor : def.defaultColor);
+    const defaultSocket: AddonSocket =
+      hf.overrideCfg?.socket ?? (def.socket === "stage" ? "rHand" : def.socket);
+
+    if (mode !== "normal") {
+      const keepSummary = hf.persist || HOLD_OR_SEATED_FINAL_ACTIONS.has(recvLastTraj.item.action);
+      if (!keepSummary) continue;
+      const rPose = receiverCtx.sampleTrajectoryClip(recvLastTraj, 1);
+      const pt = handPointForPose(rPose, defaultSocket);
+      const flipX = (rPose.facing ?? 1) < 0 && ASYMMETRIC_FLIP_TYPES.has(hf.propType);
+      handoffAddons.push({
+        id: hf.propId,
+        type: hf.propType,
+        actorId: receiverCtx.actor.id,
+        layer: hf.overrideCfg?.layer ?? "front",
+        x: Number((pt.x - width / 2).toFixed(3)),
+        y: Number((pt.y - height / 2).toFixed(3)),
+        width,
+        height,
+        rotation: hf.overrideCfg?.rotation ?? 0,
+        scale: 1,
+        opacity: 1,
+        color,
+        ...(hf.overrideCfg?.secondaryColor !== undefined ? { secondaryColor: hf.overrideCfg.secondaryColor } : {}),
+        ...(flipX ? { flipX: true } : {}),
+        ...(hf.overrideCfg?.text !== undefined ? { text: hf.overrideCfg.text } : {})
+      });
+      continue;
+    }
+
+    if (playheadT < hf.enterStartMs - 1e-6) continue;
+    if (!hf.persist && playheadT > hf.chainEndMs + 1e-6) continue;
+
+    let cx = 0;
+    let cy = 0;
+    let opacity = 1;
+    let scale = 1;
+    let rotation = hf.overrideCfg?.rotation ?? 0;
+    let ownerId = senderCtx.actor.id;
+    let holderFacing = senderCtx.actor.facing;
+
+    if (playheadT < hf.releaseMs) {
+      const sPose = senderCtx.sampleBlendedAt(playheadT, 0);
+      const pt = handPointForPose(sPose, defaultSocket);
+      cx = pt.x;
+      cy = pt.y;
+      ownerId = senderCtx.actor.id;
+      holderFacing = sPose.facing < 0 ? -1 : 1;
+      const enterDur = Math.max(40, senderTraj.item.durationMs * 0.08);
+      opacity = clamp01((playheadT - hf.enterStartMs) / enterDur);
+    } else if (playheadT < hf.catchMs) {
+      const sReleasePose = senderCtx.sampleBlendedAt(hf.releaseMs, 0);
+      const rCatchPose = receiverCtx.sampleBlendedAt(hf.catchMs, 0);
+      const startPt = handPointForPose(sReleasePose, defaultSocket);
+      const catchSocket: AddonSocket = recvFirstTraj.item.action === "catch" ? "bothHands" : defaultSocket;
+      const endPt = handPointForPose(rCatchPose, catchSocket);
+      const span = Math.max(1e-6, hf.catchMs - hf.releaseMs);
+      const flightT = clamp01((playheadT - hf.releaseMs) / span);
+      const dist = Math.hypot(endPt.x - startPt.x, endPt.y - startPt.y);
+      const apex = dist > 40 ? Math.min(26, dist * 0.12) : 0;
+      const fp = computeAddonFlightPoint(startPt, endPt, { from: 0, to: 1, apex }, flightT, 1);
+      cx = fp.x;
+      cy = fp.y;
+      ownerId = flightT < 0.5 ? senderCtx.actor.id : receiverCtx.actor.id;
+      holderFacing = flightT < 0.5 ? (sReleasePose.facing < 0 ? -1 : 1) : (rCatchPose.facing < 0 ? -1 : 1);
+    } else {
+      const evalT = Math.min(playheadT, hf.chainEndMs);
+      const rPose = receiverCtx.sampleBlendedAt(evalT, 0);
+      const activeRecvTraj =
+        rPose.activeIndex >= hf.recvStartIdx && rPose.activeIndex <= hf.recvEndIdx
+          ? receiverCtx.trajectories[rPose.activeIndex]!
+          : recvLastTraj;
+      const curSocket: AddonSocket = activeRecvTraj.item.action === "catch" ? "bothHands" : defaultSocket;
+      const pt = handPointForPose(rPose, curSocket);
+      // Smooth short socket blend when transitioning from catch (bothHands) -> present-card (rHand)
+      if (
+        rPose.activeIndex > hf.recvStartIdx &&
+        receiverCtx.trajectories[rPose.activeIndex - 1]?.item.action === "catch" &&
+        evalT - activeRecvTraj.item.startMs < 120
+      ) {
+        const bothPt = handPointForPose(rPose, "bothHands");
+        const bt = clamp01((evalT - activeRecvTraj.item.startMs) / 120);
+        cx = bothPt.x + (pt.x - bothPt.x) * bt;
+        cy = bothPt.y + (pt.y - bothPt.y) * bt;
+      } else {
+        cx = pt.x;
+        cy = pt.y;
+      }
+      ownerId = receiverCtx.actor.id;
+      holderFacing = rPose.facing < 0 ? -1 : 1;
+
+      if (!hf.persist) {
+        const exitStart = hf.chainEndMs - Math.max(80, recvLastTraj.item.durationMs * 0.08);
+        if (playheadT > exitStart) {
+          opacity = clamp01(1 - (playheadT - exitStart) / Math.max(1e-6, hf.chainEndMs - exitStart));
+        }
+      }
+    }
+
+    if (opacity <= 0.001) continue;
+    const flipX = holderFacing < 0 && ASYMMETRIC_FLIP_TYPES.has(hf.propType);
+    handoffAddons.push({
+      id: hf.propId,
+      type: hf.propType,
+      actorId: ownerId,
+      layer: hf.overrideCfg?.layer ?? "front",
+      x: Number((cx - width / 2).toFixed(3)),
+      y: Number((cy - height / 2).toFixed(3)),
+      width,
+      height,
+      rotation: Number(rotation.toFixed(3)),
+      scale: Number(scale.toFixed(3)),
+      opacity: Number(opacity.toFixed(3)),
+      color,
+      ...(hf.overrideCfg?.secondaryColor !== undefined ? { secondaryColor: hf.overrideCfg.secondaryColor } : {}),
+      ...(flipX ? { flipX: true } : {}),
+      ...(hf.overrideCfg?.text !== undefined ? { text: hf.overrideCfg.text } : {})
+    });
+  }
+
   const primary = sampledByIndex[0]!.actorFrame;
   const sortedEntries = [...sampledByIndex].sort((a, b) => a.zIndex - b.zIndex || a.actorIndex - b.actorIndex);
   const sortedActors = sortedEntries.map((entry) => entry.actorFrame);
-  const allAddons = sortedEntries.flatMap((entry) => entry.addons);
+  const allAddons = [...sceneStage.addons, ...sortedEntries.flatMap((entry) => entry.addons), ...handoffAddons];
 
   return {
     timeMs: playheadT,
