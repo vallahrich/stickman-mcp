@@ -40,6 +40,7 @@ export * from "./callouts.js";
 export * from "./catalog.js";
 export * from "./choreograph.js";
 export * from "./compiler.js";
+export * from "./critic.js";
 export * from "./contract.js";
 export * from "./contract-schema.js";
 export * from "./events.js";
