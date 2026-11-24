@@ -58,6 +58,13 @@ export const MCP_PROMPTS = Object.freeze([
 
 const RELEASE_HISTORY = Object.freeze([
   {
+    version: "0.3.1",
+    updated: "2026-11-24T19:00:00Z",
+    title: "Stickman MCP v0.3.1 — Discovery Assets, README & Live Website Polish",
+    summary:
+      "Ships machine-readable discovery endpoints (llms.txt, llms-full.txt, sitemap.xml, Atom feed.xml, robots.txt, 1200x630 og-card.png, Schema.org JSON-LD), MCP Registry server.json, CITATION.cff, scriptless 1200x420 README hero banner, and live website polish with theme toggle, high-contrast studio controls, and hero stage preview."
+  },
+  {
     version: "0.3.0",
     updated: "2026-11-24T14:00:37Z",
     title: "Stickman MCP v0.3.0 — Multi-Scene Movies, Virtual Camera, 6-Axis Critique & Transparent WebM",

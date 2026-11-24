@@ -2,7 +2,7 @@
 
 # Stickman MCP
 
-[![Release v0.3.0](https://img.shields.io/badge/release-v0.3.0-b11f4b)](https://github.com/vallahrich/stickman-mcp/releases/tag/v0.3.0)
+[![Release v0.3.1](https://img.shields.io/badge/release-v0.3.1-b11f4b)](https://github.com/vallahrich/stickman-mcp/releases/tag/v0.3.1)
 [![License: MIT + NOTICE](https://img.shields.io/badge/license-MIT%20%2B%20NOTICE-242424)](LICENSE)
 [![Node.js 20+](https://img.shields.io/badge/node-20%2B-16a34a)](package.json)
 [![Live Gallery](https://img.shields.io/badge/live_gallery-GitHub_Pages-0078d4)](https://vallahrich.github.io/stickman-mcp/)
@@ -17,12 +17,12 @@
 
 ## 30-Second Quick Start
 
-### Option A — Install from the `v0.3.0` GitHub Release (no build required)
+### Option A — Install from the `v0.3.1` GitHub Release (no build required)
 
-Download `vallahrich-stickman-mcp-0.3.0.tgz` from the [v0.3.0 release](https://github.com/vallahrich/stickman-mcp/releases/tag/v0.3.0):
+Download `vallahrich-stickman-mcp-0.3.1.tgz` from the [v0.3.1 release](https://github.com/vallahrich/stickman-mcp/releases/tag/v0.3.1):
 
 ```sh
-npm install ./vallahrich-stickman-mcp-0.3.0.tgz
+npm install ./vallahrich-stickman-mcp-0.3.1.tgz
 npx stickman discover --category presentation
 npx stickman-mcp --root ./stickman-output
 ```
@@ -96,7 +96,7 @@ codex mcp add stickman -- node "/path/to/stickman-mcp/dist/mcp.js" --root "/path
 
 ## What You Can Build
 
-| Capability | What Ships in `v0.3.0` |
+| Capability | What Ships in `v0.3.1` |
 |---|---|
 | **Multi-Scene Explainer Movies** | Compose 1–16 sequential scenes (`stickman.movie/v1`) with contextual vector backdrops (`war-room`, `datacenter`, `office`, `stage`), `fade`/`wipe`/`cut` transitions, `auto-director` virtual camera, 2.5D `depth` planes, `spotlight: "auto"`, editorial `say`/`think`/`badge` callouts, and chapter-aware HTML, parallel H.264 MP4, or transparent VP9 WebM export. |
 | **Multi-Actor Slide Overlays & `<stickman-player>`** | Stage cue-synced multi-actor scenes (`stickman.animation/v2`) using **106 runtime actions**, **55 geometric props**, curved Bezier spines, gaze cues, hand glyphs, shared `handoffTo` prop transfers, and inline `customMotions`. Embed via `<stickman-player controls scroll-scrub blueprint>` or `bindScrollTimeline`. |

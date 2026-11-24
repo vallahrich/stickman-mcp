@@ -3,7 +3,7 @@
   "name": "io.github.vallahrich/stickman-mcp",
   "title": "Stickman MCP",
   "description": "Deterministic 2D stick-figure animation and movie engine for AI agents over local stdio MCP.",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "websiteUrl": "https://vallahrich.github.io/stickman-mcp/",
   "repository": {
     "url": "https://github.com/vallahrich/stickman-mcp",
@@ -13,7 +13,7 @@
     {
       "registryType": "npm",
       "identifier": "@vallahrich/stickman-mcp",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"

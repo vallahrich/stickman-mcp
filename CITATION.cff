@@ -6,7 +6,7 @@ authors:
   - name: "Stickman MCP Contributors"
     alias: "vallahrich"
     website: "https://github.com/vallahrich/stickman-mcp"
-version: "0.3.0"
+version: "0.3.1"
 date-released: "2026-11-24"
 repository-code: "https://github.com/vallahrich/stickman-mcp"
 url: "https://vallahrich.github.io/stickman-mcp/"

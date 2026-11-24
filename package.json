@@ -1,6 +1,6 @@
 {
   "name": "@vallahrich/stickman-mcp",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "description": "Deterministic stick-figure animation and local MCP tools for IT presentations, digital-service explainers, websites and video",
   "keywords": ["stickman", "stick-figure", "animation", "mcp", "presentation", "svg", "digital-services", "copilot", "claude-code", "codex"],

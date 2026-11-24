@@ -160,7 +160,7 @@ export async function studioSection(repoRoot) {
   return `<section class="section" id="studio">
   <div class="section-heading">
     <div>
-      <p class="eyebrow">v0.3.0 · Live Movie, Camera &amp; Critique Studio</p>
+      <p class="eyebrow">v0.3.1 · Live Movie, Camera &amp; Critique Studio</p>
       <h2>Interactive vector player &amp; 6-axis critique.</h2>
     </div>
     <p class="quiet">Runs the shipping <code>COMPACT_CLIENT_RENDERER_JS</code> runtime directly on compiled <code>stickman.movie/v1</code> and <code>v2</code> payloads—curved spines, gaze cues, hand glyphs, virtual camera, depth planes, spotlight, and editorial callouts with zero external requests.</p>

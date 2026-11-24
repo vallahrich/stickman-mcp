@@ -285,7 +285,7 @@ setTheme(urlTheme||(initDark?"dark":"light"));
 if(typeof ResizeObserver==="function"&&appEl){
   try{new ResizeObserver(()=>notifySize()).observe(appEl);}catch(_e){}
 }
-postRpc({jsonrpc:"2.0",id:1,method:"ui/initialize",params:{protocolVersion:"2025-11-21",appInfo:{name:"stickman-player",version:"0.3.0"},appCapabilities:{}}});
+postRpc({jsonrpc:"2.0",id:1,method:"ui/initialize",params:{protocolVersion:"2025-11-21",appInfo:{name:"stickman-player",version:"0.3.1"},appCapabilities:{}}});
 notifySize();
 })();`;
 }

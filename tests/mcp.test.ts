@@ -73,7 +73,7 @@ const scene = {
 describe("stdio MCP protocol", () => {
   it("negotiates v0.3.0 capabilities (tools, resources, prompts) and advertises eighteen strict, annotated tools with output schemas", async () => {
     const { client, listed, stderr, transportErrors } = await connect();
-    expect(client.getServerVersion()).toEqual({ name: "stickman-mcp", version: "0.3.0" });
+    expect(client.getServerVersion()).toEqual({ name: "stickman-mcp", version: "0.3.1" });
     expect(client.getServerCapabilities()).toMatchObject({
       tools: {},
       resources: {},

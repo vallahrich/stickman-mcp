@@ -119,9 +119,9 @@ describe("v0.3.0 End-to-End Product Simulation Suite", () => {
       version: string;
       packages: Record<string, { version?: string }>;
     };
-    expect(pkg.version).toBe("0.3.0");
-    expect(lock.version).toBe("0.3.0");
-    expect(lock.packages[""]?.version).toBe("0.3.0");
+    expect(pkg.version).toBe("0.3.1");
+    expect(lock.version).toBe("0.3.1");
+    expect(lock.packages[""]?.version).toBe("0.3.1");
 
     expect(CONTRACT_VERSION_V2).toBe("stickman.animation/v2");
     expect(typeof choreographAnimation).toBe("function");
@@ -547,7 +547,7 @@ describe("v0.3.0 End-to-End Product Simulation Suite", () => {
 
     await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
 
-    expect(client.getServerVersion()).toEqual({ name: "stickman-mcp", version: "0.3.0" });
+    expect(client.getServerVersion()).toEqual({ name: "stickman-mcp", version: "0.3.1" });
     const toolsList = await client.listTools();
     expect(toolsList.tools).toHaveLength(18);
     const resourcesList = await client.listResources();
