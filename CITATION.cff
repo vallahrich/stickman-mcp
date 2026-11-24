@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+title: "Stickman MCP"
+message: "If you use Stickman MCP in technical presentations, documentation, or research workflows, please cite it as below."
+type: software
+authors:
+  - name: "Stickman MCP Contributors"
+    alias: "vallahrich"
+    website: "https://github.com/vallahrich/stickman-mcp"
+version: "0.3.0"
+date-released: "2026-11-24"
+repository-code: "https://github.com/vallahrich/stickman-mcp"
+url: "https://vallahrich.github.io/stickman-mcp/"
+license: MIT
+abstract: >-
+  A deterministic local 2D stick-figure animation and multi-scene movie engine
+  with an 18-tool stdio Model Context Protocol (MCP) server, 106 runtime
+  actions, 55 geometric props, 6-axis perceptual critique, and SVG/HTML/GIF/MP4/transparent
+  WebM export.
+keywords:
+  - stickman
+  - stick-figure
+  - 2d-animation
+  - model-context-protocol
+  - mcp
+  - svg
+  - deterministic-animation
+  - explainer-video
+  - webm

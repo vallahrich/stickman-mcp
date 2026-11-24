@@ -1,0 +1,31 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.vallahrich/stickman-mcp",
+  "title": "Stickman MCP",
+  "description": "Deterministic 2D stick-figure animation and movie engine for AI agents over local stdio MCP.",
+  "version": "0.3.0",
+  "websiteUrl": "https://vallahrich.github.io/stickman-mcp/",
+  "repository": {
+    "url": "https://github.com/vallahrich/stickman-mcp",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@vallahrich/stickman-mcp",
+      "version": "0.3.0",
+      "runtimeHint": "npx",
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [
+        {
+          "type": "named",
+          "name": "--root",
+          "description": "Explicit output directory confining all file exports, film renders, and motion drafts.",
+          "isRequired": true
+        }
+      ]
+    }
+  ]
+}

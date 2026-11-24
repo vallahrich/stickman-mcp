@@ -3,6 +3,7 @@ import path from "node:path";
 import { COMPACT_CLIENT_RENDERER_JS } from "../../dist/index.js";
 import { blueprintSection } from "./blueprint-section.mjs";
 import { buildCatalogue, repo } from "./catalogue.mjs";
+import { buildHeadMetadata, generateDiscoveryFiles } from "./discovery.mjs";
 import { buildStories } from "./stories.mjs";
 import { removeRetiredPresentationAssets } from "./retired-presentations.mjs";
 import { showcaseSection } from "./showcase-section.mjs";
@@ -29,11 +30,12 @@ const css = await fs.readFile(path.join(repo, "site", "styles.css"), "utf8");
 const js = await fs.readFile(path.join(repo, "site", "catalogue.js"), "utf8");
 const appJs = await fs.readFile(path.join(repo, "site", "app.js"), "utf8");
 const encode = data => JSON.stringify(data).replaceAll("<", "\\u003c");
+const version = JSON.parse(await fs.readFile(path.join(repo, "package.json"), "utf8")).version;
+const discoveryHead = buildHeadMetadata({ version, releaseCandidate: candidate });
 // Checkout line endings differ across platforms. Normalize before matching
 // multiline installation snippets so candidate commands never retain npm ci.
 let html = (await fs.readFile(path.join(repo, "site", "index.html"), "utf8")).replace(/\r\n/g, "\n");
 if (candidate) {
-  const version = JSON.parse(await fs.readFile(path.join(repo, "package.json"), "utf8")).version;
   html = html.replace('<meta name="robots" content="noindex,nofollow">', '<meta name="robots" content="index,follow">')
     .replace('<span class="badge">v0.3 · Deterministic MCP</span>', `<span class="badge">v${version} · Local MCP</span>`)
     .replace("Build the local checkout first. Review the setup command before adding the server to your agent.", "Install the matching reviewed tarball. Point your agent at the installed package directory.")
@@ -46,16 +48,16 @@ if (candidate) {
     throw new Error("Candidate installation snippet failed to inject tarball version.");
   }
 }
-html = html.replace('<link rel="stylesheet" href="styles.css"><script src="catalogue.js" defer></script><script src="app.js" defer></script>', `<style>${css}</style>`)
+html = html.replace("<!-- DISCOVERY_HEAD -->", discoveryHead)
+  .replace('<link rel="stylesheet" href="styles.css"><script src="catalogue.js" defer></script><script src="app.js" defer></script>', `<style>${css}</style>`)
   .replace("__CATALOGUE_DATA__", encode(catalogue))
   .replace("__SHOWCASE_SECTION__", showcase)
   .replace("__STUDIO_SECTION__", studio)
   .replace("__BLUEPRINT_SECTION__", blueprint)
   .replace("</body>", `<script>${js}\n${COMPACT_CLIENT_RENDERER_JS}\n${appJs}</script></body>`);
 await fs.writeFile(path.join(output, "index.html"), html);
-await fs.writeFile(path.join(output, "robots.txt"), candidate ? "User-agent: *\nAllow: /\n" : "User-agent: *\nDisallow: /\n");
+await generateDiscoveryFiles(output, { version, releaseCandidate: candidate, repoRoot: repo, catalogue });
 await fs.copyFile(path.join(repo, "docs", "mcp-setup.md"), path.join(output, "connection-guide.md"));
-await fs.copyFile(path.join(repo, "docs", "agent-integration.md"), path.join(output, "llms.txt"));
 await fs.copyFile(path.join(repo, "docs", "showcase-sources.md"), path.join(output, "source-notices.md"));
 if (candidate) {
   for (const name of ["LICENSE", "NOTICE"]) await fs.copyFile(path.join(repo, name), path.join(output, name));

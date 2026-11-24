@@ -23,7 +23,7 @@ const catalogue = JSON.parse(await readAllowed(root, "catalogue.json"));
 if (catalogue.development || catalogue.motions.some(motion => motion.note || motion.score || motion.approval !== "user-approved")) {
   throw new Error("Unexpected private review data or approval state.");
 }
-const mime = { ".html": "text/html", ".json": "application/json", ".svg": "image/svg+xml",
+const mime = { ".html": "text/html", ".json": "application/json", ".xml": "application/xml", ".svg": "image/svg+xml",
   ".js": "text/javascript", ".css": "text/css", ".png": "image/png",
   ".mp4": "video/mp4", ".vtt": "text/vtt", ".md": "text/plain", ".txt": "text/plain" };
 const server = http.createServer(async (request, response) => {

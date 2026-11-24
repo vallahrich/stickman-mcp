@@ -5,7 +5,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { repo } from "./catalogue.mjs";
 
-const mime = { ".html": "text/html; charset=utf-8", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".gif": "image/gif", ".txt": "text/plain; charset=utf-8", ".md": "text/plain; charset=utf-8", ".mp4": "video/mp4", ".vtt": "text/vtt", ".pdf": "application/pdf", ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation" };
+const mime = { ".html": "text/html; charset=utf-8", ".json": "application/json", ".xml": "application/xml; charset=utf-8", ".svg": "image/svg+xml", ".png": "image/png", ".gif": "image/gif", ".txt": "text/plain; charset=utf-8", ".md": "text/plain; charset=utf-8", ".mp4": "video/mp4", ".vtt": "text/vtt", ".pdf": "application/pdf", ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation" };
 export async function createSiteServer({ development = false } = {}) {
   const root = await fs.realpath(path.join(repo, "dist", development ? "site-dev" : "site"));
   return http.createServer(async (request, response) => {

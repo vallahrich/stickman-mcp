@@ -1,0 +1,36 @@
+# Stickman MCP
+
+> Deterministic local 2D stick-figure animation and multi-scene movie engine with an 18-tool stdio MCP server — zero AI video API cost, byte-identical SVG, HTML, GIF, MP4, and transparent VP9 WebM output.
+
+Stickman MCP compiles strict JSON contracts (`stickman.animation/v1`, `stickman.animation/v2`, and `stickman.movie/v1`) into pure 30 fps vector animations and multi-scene explainer movies on Node.js 20+. Every frame is a deterministic function of validated choreography data with 106 runtime actions, 55 geometric props, virtual auto-director camera, 2.5D depth planes, spotlight focus, editorial callouts, 6-axis perceptual critique (`stickman_critique`), and an interactive MCP App player (`ui://stickman/player`).
+
+## Live Site & Machine-Readable Endpoints
+
+- [Live Gallery & Interactive v0.3 Studio](https://vallahrich.github.io/stickman-mcp/): Interactive vector player, 6-axis critique card, CAD blueprint views, and 97-motion gallery.
+- [Full LLM & Developer Reference (llms-full.txt)](https://vallahrich.github.io/stickman-mcp/llms-full.txt): Self-contained installation, copy-paste MCP client configs, all 18 tools, 14 resources, 3 prompts, and runnable JSON examples.
+- [Release Feed (Atom XML)](https://vallahrich.github.io/stickman-mcp/feed.xml): Chronological release notes from v0.1.0 through v0.3.0.
+- [Capabilities Manifest (JSON)](https://vallahrich.github.io/stickman-mcp/capabilities.json): Transport, contract versions, runtime action IDs, tools, resources, and prompts.
+- [Motion Catalogue (JSON)](https://vallahrich.github.io/stickman-mcp/catalogue.json): Structured motion catalog with categories, variants, and runtime ID availability.
+- [Combined IT Story Recipes (JSON)](https://vallahrich.github.io/stickman-mcp/stories.json): Executable multi-step IT presentation narratives and host cues.
+
+## Source & Releases
+
+- [GitHub Repository](https://github.com/vallahrich/stickman-mcp): Source code, CLI, TypeScript library, and stdio MCP server (branch `vallahrich-stickman-mcp-engine`).
+- [Releases (v0.3.0)](https://github.com/vallahrich/stickman-mcp/releases/tag/v0.3.0): Verified tarball (`vallahrich-stickman-mcp-0.3.0.tgz`) and offline site archive.
+- [README](https://github.com/vallahrich/stickman-mcp/blob/vallahrich-stickman-mcp-engine/README.md): Quick start, copy-paste MCP configs, capability summary, and honest positioning.
+
+## Documentation
+
+- [Local MCP Setup & Verification](https://github.com/vallahrich/stickman-mcp/blob/vallahrich-stickman-mcp-engine/docs/mcp-setup.md): Copilot CLI, VS Code, Claude Code, and OpenAI Codex CLI stdio configuration and tool/error contracts.
+- [Browser & Deck Integration](https://github.com/vallahrich/stickman-mcp/blob/vallahrich-stickman-mcp-engine/docs/browser-integration.md): `<stickman-player>` Web Component, `bindScrollTimeline`, and slide overlay embedding.
+- [Design System & Motion Spec (DESIGN.md)](https://github.com/vallahrich/stickman-mcp/blob/vallahrich-stickman-mcp-engine/DESIGN.md): Color tokens, WCAG AA contrast floors, blueprint conventions, and motion timing rules.
+- [Film Recipes](https://github.com/vallahrich/stickman-mcp/blob/vallahrich-stickman-mcp-engine/docs/film-recipes.md): Continuous silent short films with automatic pose-space bridges and continuity bounds.
+- [Motion Authoring Guide](https://github.com/vallahrich/stickman-mcp/blob/vallahrich-stickman-mcp-engine/docs/motion-authoring.md): Key-pose drafting with `stickman_author_motion` and `stickman_preview_motion`.
+- [Rights & Attribution](https://github.com/vallahrich/stickman-mcp/blob/vallahrich-stickman-mcp-engine/docs/rights.md): MIT engine license and CMU-derived motion clip terms.
+
+## Flagship Examples
+
+- [3-Scene Incident War Room Movie (stickman.movie/v1)](https://github.com/vallahrich/stickman-mcp/blob/vallahrich-stickman-mcp-engine/examples/v3-incident-warroom-movie.json): Multi-scene recovery story with war-room, datacenter, and office backdrops, 2.5D depth, spotlight, and auto-director camera.
+- [Two-Actor Shared Handoff & Stairs (stickman.animation/v2)](https://github.com/vallahrich/stickman-mcp/blob/vallahrich-stickman-mcp-engine/examples/v3-handoff-and-stairs.json): Shared single-prop `handoffTo` transfer and elevated stairs traversal.
+- [Two-Actor Collaboration (stickman.animation/v2)](https://github.com/vallahrich/stickman-mcp/blob/vallahrich-stickman-mcp-engine/examples/v2-two-actors-collab.json): Cue-synced multi-actor dialogue with semantic stage anchors and accessories.
+- [Ballistic Sports Add-Ons (stickman.animation/v2)](https://github.com/vallahrich/stickman-mcp/blob/vallahrich-stickman-mcp-engine/examples/v2-sports-addons.json): Hurdle clearance and parabolic basketball arc into hoop.
